@@ -1,8 +1,15 @@
 {
-  "name": "dpd-vs-ups-rate-calculator",
-  "version": "1.0.0",
+  "name": "international-rate-calculator",
+  "version": "2.0.0",
   "private": true,
-  "description": "DPD vs UPS international rate calculator",
-  "scripts": { "start": "node server.js" },
-  "engines": { "node": ">=18" }
+  "description": "International rate calculator (DPD vs UPS, more to come) — Express + Postgres",
+  "scripts": {
+    "start": "node server.js",
+    "build": "python3 source/build_frontend.py || true"
+  },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.12.0"
+  }
 }
