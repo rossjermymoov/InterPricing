@@ -1,0 +1,8 @@
+{
+  "name": "dpd-vs-ups-rate-calculator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DPD vs UPS international rate calculator",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
