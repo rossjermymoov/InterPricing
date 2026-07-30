@@ -6,6 +6,15 @@ const crypto = require('crypto');
 const seedPath = path.join(__dirname, 'seed.json');
 const readSeed = () => JSON.parse(fs.readFileSync(seedPath, 'utf8'));
 
+// Fill missing keys in target from defaults (deep), without overwriting existing values.
+const deepFill = (target, defaults) => {
+  for (const k of Object.keys(defaults)) {
+    if (target[k] === undefined) target[k] = defaults[k];
+    else if (defaults[k] && typeof defaults[k] === 'object' && !Array.isArray(defaults[k]) && typeof target[k] === 'object') deepFill(target[k], defaults[k]);
+  }
+  return target;
+};
+
 let pool = null;
 if (process.env.DATABASE_URL) {
   const { Pool } = require('pg');
@@ -69,9 +78,20 @@ async function migrateConfig() {
     if (!cfg.settings.surcharges.residential) { cfg.settings.surcharges.residential = { dpd: 0, ups: 0 }; changed = true; }
     if (!cfg.settings.surcharges.ddp) { cfg.settings.surcharges.ddp = { dpd: 0, ups: 0 }; changed = true; }
   }
+  // Rate-data refresh: when seed.dataVersion changes, replace rate tables but preserve admin settings.
+  const seed = readSeed();
+  if ((cfg.dataVersion || 0) !== (seed.dataVersion || 0)) {
+    const RATE_KEYS = ['bands','countries','divisor','dpd_classic','dpd_express','dpd_parcel','dpd_expresspak','ups_express','ups_standard','c2zone_express','c2zone_standard'];
+    for (const k of RATE_KEYS) cfg[k] = seed[k];
+    delete cfg.ups; delete cfg.c2zone;
+    cfg.settings = deepFill(cfg.settings || {}, seed.settings || {});
+    cfg.dataVersion = seed.dataVersion;
+    changed = true;
+    console.log('[db] refreshed rate data to version ' + seed.dataVersion);
+  }
   if (changed) {
     await pool.query('UPDATE rate_config SET data = $1 WHERE id = 1', [JSON.stringify(cfg)]);
-    console.log('[db] migrated config (markups/surcharges)');
+    console.log('[db] migrated config');
   }
 }
 

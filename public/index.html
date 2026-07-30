@@ -224,11 +224,11 @@ const SERVICES=[
  {key:'ae',name:'DPD Air Express',       carrier:'dpd',fuel:'dpd', mk:'dpdAir', type:'band',src:'dpd_express',    color:'#7c3aed'},
  {key:'ep',name:'DPD Classic ExpressPak',carrier:'dpd',fuel:'dpd', mk:'dpdRoad',type:'flat',src:'dpd_expresspak', cap:'ep', color:'#db2777'},
  {key:'cp',name:'DPD Classic Parcel',    carrier:'dpd',fuel:'dpd', mk:'dpdRoad',type:'flat',src:'dpd_parcel',     cap:'cp', color:'#0891b2'},
- {key:'ux',name:'UPS Express Saver',     carrier:'ups',fuel:'upsx',mk:'ups',    type:'zone',src:'ups',            color:'#0f766e'},
- {key:'us',name:'UPS Standard',          carrier:'ups',fuel:'upss',mk:'ups',    type:'pending',                   color:'#ea580c'},
+ {key:'ux',name:'UPS Express Saver',     carrier:'ups',fuel:'upsx',mk:'ups',    type:'zone',src:'ups_express', zmap:'c2zone_express',  color:'#0f766e'},
+ {key:'us',name:'UPS Standard',          carrier:'ups',fuel:'upss',mk:'ups',    type:'zone',src:'ups_standard',zmap:'c2zone_standard', color:'#ea580c'},
 ];
 const csel=$('country');
-const zoneFor=c=>P.c2zone[c]||'';
+const zoneFor=(svc,c)=>(P[svc.zmap]||{})[c]||'';
 function build(rawBase,svc){
   if(rawBase==null) return {base:null};
   const extras=[];
@@ -249,12 +249,11 @@ function baseRate(svc,c,chg){
   if(svc.type==='flat'){const p=P[svc.src][c];if(p==null)return{price:null,avail:false};
     const cap=CAPS[svc.cap];if(chg>cap+1e-9)return{price:null,avail:true,note:'over '+cap+' kg cap'};
     return{price:p,avail:true,band:'flat ≤'+cap+'kg'};}
-  if(svc.type==='zone'){const zone=zoneFor(c),z=P[svc.src][zone];
-    if(!zone)return{price:null,avail:false};if(!z)return{price:null,avail:false};
+  if(svc.type==='zone'){const zone=zoneFor(svc,c),z=zone&&P[svc.src][zone];
+    if(!zone||!z)return{price:null,avail:false};
     const b=z.bands,mB=b[b.length-1][0];
     if(chg<=mB+1e-9){for(const[w,pr]of b)if(w>=chg-1e-9)return{price:pr,avail:true,band:w};}
-    const pr=Math.max(chg*z.perkg,z.min);return{price:Math.round(pr*100)/100,avail:true,band:'>'+mB+' per-kg'};}
-  if(svc.type==='pending'){return{price:null,avail:P.dpd_parcel[c]!=null,pending:true,note:'awaiting rate card'};}
+    return{price:b[b.length-1][1],avail:true,band:'>'+mB+' kg'};}
   return{price:null,avail:false};
 }
 let chart;
@@ -309,13 +308,14 @@ function drawChart(c){
   SERVICES.forEach(svc=>{let data=null;
     if(svc.type==='band'){const arr=P[svc.src][c];if(arr)data=arr.map(p=>p==null?null:build(p,svc)[key]);}
     else if(svc.type==='flat'){const p=P[svc.src][c];if(p!=null){const cap=CAPS[svc.cap];data=bands.map(w=>w>cap+1e-9?null:build(p,svc)[key]);}}
-    else if(svc.type==='zone'){const zone=zoneFor(c),z=P[svc.src][zone];if(zone&&z)data=bands.map(w=>{const r=baseRate(svc,c,w);return r.price==null?null:build(r.price,svc)[key];});}
+    else if(svc.type==='zone'){const zone=zoneFor(svc,c),z=zone&&P[svc.src][zone];if(zone&&z)data=bands.map(w=>{const r=baseRate(svc,c,w);return r.price==null?null:build(r.price,svc)[key];});}
     if(data){ds.push({label:svc.name,data,borderColor:svc.color,borderWidth:2.4,tension:.12,pointRadius:0,spanGaps:false});
       leg.push(`<span><span class="dot" style="background:${svc.color}"></span>${svc.name}</span>`);}});
   $('legend').innerHTML=leg.join('');
   const lbl={sell:'Customer price (£)',cost:'Cost price (£, incl. fuel)',base:'Base rate (£)'}[metric];
-  const notes=[];if(!zoneFor(c))notes.push('UPS Express hidden — no zone mapped for this country.');
-  if(P.dpd_parcel[c]!=null)notes.push('UPS Standard omitted (rate card pending).');
+  const notes=[];
+  if(!P.c2zone_express[c])notes.push('UPS Express Saver: no zone for this country.');
+  if(!P.c2zone_standard[c]&&P.dpd_parcel[c]!=null)notes.push('UPS Standard: not available for this country.');
   $('chartnote').textContent=notes.join(' ');
   if(chart){chart.data.labels=bands;chart.data.datasets=ds;chart.options.scales.y.title.text=lbl;chart.update();return;}
   chart=new Chart($('chart'),{type:'line',data:{labels:bands,datasets:ds},
