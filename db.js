@@ -42,7 +42,34 @@ async function initDb() {
       role text NOT NULL DEFAULT 'sales',
       created_at timestamptz NOT NULL DEFAULT now()
     );`);
+  await migrateConfig();
   console.log('[db] schema ready (rate_config, users, app_secrets)');
+}
+
+// Normalise older config shapes (e.g. markups stored as {cost,sell} -> single charge-out number).
+async function migrateConfig() {
+  const r = await pool.query('SELECT data FROM rate_config WHERE id = 1');
+  if (!r.rows[0]) return;
+  const cfg = r.rows[0].data;
+  let changed = false;
+  const m = cfg.settings && cfg.settings.markups;
+  if (m) {
+    for (const k of Object.keys(m)) {
+      const v = m[k];
+      if (v && typeof v === 'object') {
+        m[k] = (v.sell != null ? v.sell : (v.cost != null ? v.cost : 0));
+        changed = true;
+      }
+    }
+  }
+  if (cfg.settings && !cfg.settings.surcharges) {
+    cfg.settings.surcharges = { residential: { dpd: 0, ups: 0 } };
+    changed = true;
+  }
+  if (changed) {
+    await pool.query('UPDATE rate_config SET data = $1 WHERE id = 1', [JSON.stringify(cfg)]);
+    console.log('[db] migrated config (markups/surcharges)');
+  }
 }
 
 // ---- config ----

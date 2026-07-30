@@ -93,10 +93,14 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
       for (const k in o) { const v = o[k]; r[k] = (v && typeof v === 'object') ? numify(v) : Number(v); }
       return r;
     };
-    const { markups, fuel, caps } = req.body || {};
+    const { markups, fuel, caps, surcharges } = req.body || {};
     if (markups) cfg.settings.markups = { ...cfg.settings.markups, ...numify(markups) };
     if (fuel) cfg.settings.fuel = { ...cfg.settings.fuel, ...numify(fuel) };
     if (caps) cfg.settings.caps = { ...cfg.settings.caps, ...numify(caps) };
+    if (surcharges) {
+      cfg.settings.surcharges = cfg.settings.surcharges || {};
+      cfg.settings.surcharges.residential = { ...(cfg.settings.surcharges.residential || {}), ...numify(surcharges.residential || {}) };
+    }
     await db.setConfig(cfg);
     res.json({ settings: cfg.settings });
   } catch (e) { res.status(500).json({ error: e.message }); }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Generates ../public/index.html — calculator + auth + separate admin Settings page.
+# Generates ../public/index.html — calculator + auth + admin Settings (pricing, surcharges, team).
 import os, shutil
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -29,20 +29,22 @@ h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em}
 .f label{display:block;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
 .f input,.f select{padding:9px 10px;border:1px solid #cbd5e1;border-radius:9px;font-size:14px;background:#fff;color:var(--ink)}
 .f input:focus,.f select:focus{outline:2px solid var(--teal);border-color:var(--teal)}
-.f.country{flex:1;min-width:200px}.f.country select{width:100%}
+.f.country{flex:1;min-width:180px}.f.country select{width:100%}
 .f.small input{width:78px;text-align:right;font-variant-numeric:tabular-nums}
+.resitoggle{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#334155;padding-bottom:9px}
+.resitoggle input{width:16px;height:16px;accent-color:var(--teal)}
 .wt{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-size:13.5px}
 .wt div b{font-size:17px}.wt .lab{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
-.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:13px;margin-top:16px}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:13px;margin-top:16px}
 .res{border:1px solid var(--line);border-radius:14px;padding:15px;position:relative;background:#fff}
 .res .car{font-size:12.5px;font-weight:700;color:#334155;display:flex;align-items:center;gap:7px}
 .res .swatch{width:10px;height:10px;border-radius:3px;flex:none}
 .res .pr{font-size:25px;font-weight:800;letter-spacing:-.02em;margin:6px 0 0}
-.res .sub{font-size:11px;color:var(--muted);margin-bottom:6px}
-.res .brk{font-size:11.5px;color:#475569;margin-top:6px;line-height:1.65}
+.res .sub{font-size:11px;color:var(--muted);margin-bottom:8px}
+.res .brk{font-size:11.5px;color:#475569;line-height:1.6}
+.res .brk .blk{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;font-weight:800;margin:8px 0 3px}
 .res .brk .row{display:flex;justify-content:space-between;gap:8px}
-.res .brk .row.sell{border-top:1px solid var(--line);margin-top:5px;padding-top:5px;font-weight:700;color:var(--ink)}
-.res .brk .row.cost{border-top:1px solid var(--line);margin-top:5px;padding-top:5px}
+.res .brk .row.tot{font-weight:700;color:var(--ink);border-top:1px solid var(--line);margin-top:3px;padding-top:3px}
 .res.win{border:2px solid var(--g);background:var(--g-bg)} .res.win .pr{color:var(--g)}
 .res.lose{border:1px solid #fca5a5;background:var(--r-bg)} .res.lose .pr{color:var(--r)}
 .res.mid{background:var(--a-bg)}
@@ -50,11 +52,12 @@ h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em}
 .res.pending{background:#fffbeb;border:1px dashed #f59e0b}.res.pending .pr{color:#b45309;font-size:15px;margin:10px 0}
 .badge{position:absolute;top:12px;right:12px;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--g);color:#fff}
 .verdict{margin-top:15px;font-size:14px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
-.mkgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px 16px;padding:2px 0 4px}
+.mkgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 16px;padding:2px 0 4px}
 .mkgrid .grp{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-.mkgrid .grp h3{font-size:12px;margin:0 0 10px;color:#334155;text-transform:uppercase;letter-spacing:.04em}
-.mkgrid .pair{display:flex;gap:10px}.mkgrid .pair .f label{font-size:10.5px}
+.mkgrid .grp h3{font-size:12px;margin:0 0 4px;color:#334155;text-transform:uppercase;letter-spacing:.04em}
+.mkgrid .grp .gsub{font-size:11px;color:var(--muted);margin-bottom:9px}
 .mkgrid input{width:100%;padding:7px 8px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;text-align:right}
+.mkgrid .f label{font-size:10.5px}
 .adminnote{font-size:12.5px;color:var(--muted);margin:0 0 14px}
 .chartbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px}
@@ -88,6 +91,8 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 .miniform{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .miniform .f input,.miniform .f select{padding:8px}.miniform .f label{font-size:10.5px}
 .rolechip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3}
+.scrow{display:flex;gap:16px;flex-wrap:wrap;align-items:end}
+.scrow .f input{width:120px;text-align:right}
 </style></head>
 <body><div class="wrap">
 
@@ -136,24 +141,30 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 <!-- SETTINGS (admin) -->
 <div id="settings" style="display:none">
   <div class="settingshead">
-    <button class="btn" id="backBtn">← Back to calculator</button>
-    <h1>Settings</h1>
+    <button class="btn" id="backBtn">← Back to calculator</button><h1>Settings</h1>
   </div>
   <div class="panel">
-    <h2>Pricing — markups</h2>
-    <p class="adminnote"><b>Customer sell = (base + fuel) × (1 + Sell%).</b> "Cost %" is your internal uplift (your price); "Sell %" is what the customer is charged. The cheapest service is judged on the customer sell price. Fuel is applied first, server-side (UPS list fuel already has your 25% discount). Saving here updates prices for everyone.</p>
+    <h2>Pricing — markup</h2>
+    <p class="adminnote"><b>Customer price = (base + fuel) marked up.</b> The markup is applied to the base rate; fuel then applies on both the cost and the customer figure. Cheapest is judged on the customer price. Fuel is server-side (UPS list fuel already has your 25% discount). Saving applies to everyone.</p>
     <div class="mkgrid">
-      <div class="grp"><h3>DPD Road<br><span style="font-weight:400;text-transform:none;color:var(--muted)">Classic Parcel &amp; ExpressPak</span></h3>
-        <div class="pair"><div class="f"><label>Cost %</label><input id="mkRoadCost" type="number" step="0.5"/></div>
-          <div class="f"><label>Sell %</label><input id="mkRoadSell" type="number" step="0.5"/></div></div></div>
-      <div class="grp"><h3>DPD Air<br><span style="font-weight:400;text-transform:none;color:var(--muted)">Classic Air &amp; Air Express</span></h3>
-        <div class="pair"><div class="f"><label>Cost %</label><input id="mkAirCost" type="number" step="0.5"/></div>
-          <div class="f"><label>Sell %</label><input id="mkAirSell" type="number" step="0.5"/></div></div></div>
-      <div class="grp"><h3>UPS<br><span style="font-weight:400;text-transform:none;color:var(--muted)">Express Saver &amp; Standard</span></h3>
-        <div class="pair"><div class="f"><label>Cost %</label><input id="mkUpsCost" type="number" step="0.5"/></div>
-          <div class="f"><label>Sell %</label><input id="mkUpsSell" type="number" step="0.5"/></div></div></div>
+      <div class="grp"><h3>DPD Road</h3><div class="gsub">Classic Parcel &amp; ExpressPak</div>
+        <div class="f"><label>Markup %</label><input id="mkRoad" type="number" step="0.5"/></div></div>
+      <div class="grp"><h3>DPD Air</h3><div class="gsub">Classic Air &amp; Air Express</div>
+        <div class="f"><label>Markup %</label><input id="mkAir" type="number" step="0.5"/></div></div>
+      <div class="grp"><h3>UPS</h3><div class="gsub">Express Saver &amp; Standard</div>
+        <div class="f"><label>Markup %</label><input id="mkUps" type="number" step="0.5"/></div></div>
     </div>
-    <div style="margin-top:14px"><button class="btn primary" id="mkSave">Save pricing</button><span class="ok" id="mkMsg"></span></div>
+  </div>
+  <div class="panel">
+    <h2>Surcharges</h2>
+    <p class="adminnote">Extra per-parcel costs added to the base before fuel &amp; markup. Residential applies when "Residential delivery" is ticked on the calculator. DPD don't charge for residential (leave 0). Add the UPS residential amount here.</p>
+    <div class="scrow">
+      <div class="f"><label>UPS residential (£)</label><input id="scUps" type="number" step="0.01"/></div>
+      <div class="f"><label>DPD residential (£)</label><input id="scDpd" type="number" step="0.01"/></div>
+    </div>
+  </div>
+  <div class="panel">
+    <button class="btn primary" id="mkSave">Save pricing &amp; surcharges</button><span class="ok" id="mkMsg"></span>
   </div>
   <div class="panel">
     <h2>Team members</h2>
@@ -179,6 +190,7 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
   <div class="f small"><label>L cm</label><input id="L" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>W cm</label><input id="W" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>H cm</label><input id="H" type="number" min="0" step="1" placeholder="—"/></div>
+  <label class="resitoggle"><input type="checkbox" id="resi"/> Residential delivery</label>
 </div>
 <div class="wt">
   <div><div class="lab">Volumetric</div><b id="volw">—</b></div>
@@ -192,8 +204,8 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 <div class="chartbar">
   <div class="legend" id="legend"></div>
   <div class="metricsel">Show: <select id="metric">
-    <option value="sell">Customer sell price</option>
-    <option value="cost">Carrier cost (base + fuel)</option>
+    <option value="sell">Customer price</option>
+    <option value="cost">Cost price (base + fuel)</option>
     <option value="base">Base rate only</option>
   </select></div>
 </div>
@@ -207,24 +219,27 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 let P, bands, FUEL, CAPS, current=null;
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
-const MK=()=>({dpdRoad:{cost:num('mkRoadCost'),sell:num('mkRoadSell')},
-               dpdAir:{cost:num('mkAirCost'),sell:num('mkAirSell')},
-               ups:{cost:num('mkUpsCost'),sell:num('mkUpsSell')}});
+const MK=()=>({dpdRoad:num('mkRoad'),dpdAir:num('mkAir'),ups:num('mkUps')});
+const SURCH=()=>({dpd:num('scDpd'),ups:num('scUps')});
+const resiOn=()=>$('resi').checked;
 const SERVICES=[
- {key:'ca',name:'DPD Classic Air',       fuel:'dpd', mk:'dpdAir', type:'band',src:'dpd_classic',    color:'#2563eb'},
- {key:'ae',name:'DPD Air Express',       fuel:'dpd', mk:'dpdAir', type:'band',src:'dpd_express',    color:'#7c3aed'},
- {key:'ep',name:'DPD Classic ExpressPak',fuel:'dpd', mk:'dpdRoad',type:'flat',src:'dpd_expresspak', cap:'ep', color:'#db2777'},
- {key:'cp',name:'DPD Classic Parcel',    fuel:'dpd', mk:'dpdRoad',type:'flat',src:'dpd_parcel',     cap:'cp', color:'#0891b2'},
- {key:'ux',name:'UPS Express Saver',     fuel:'upsx',mk:'ups',    type:'zone',src:'ups',            color:'#0f766e'},
- {key:'us',name:'UPS Standard',          fuel:'upss',mk:'ups',    type:'pending',                   color:'#ea580c'},
+ {key:'ca',name:'DPD Classic Air',       carrier:'dpd',fuel:'dpd', mk:'dpdAir', type:'band',src:'dpd_classic',    color:'#2563eb'},
+ {key:'ae',name:'DPD Air Express',       carrier:'dpd',fuel:'dpd', mk:'dpdAir', type:'band',src:'dpd_express',    color:'#7c3aed'},
+ {key:'ep',name:'DPD Classic ExpressPak',carrier:'dpd',fuel:'dpd', mk:'dpdRoad',type:'flat',src:'dpd_expresspak', cap:'ep', color:'#db2777'},
+ {key:'cp',name:'DPD Classic Parcel',    carrier:'dpd',fuel:'dpd', mk:'dpdRoad',type:'flat',src:'dpd_parcel',     cap:'cp', color:'#0891b2'},
+ {key:'ux',name:'UPS Express Saver',     carrier:'ups',fuel:'upsx',mk:'ups',    type:'zone',src:'ups',            color:'#0f766e'},
+ {key:'us',name:'UPS Standard',          carrier:'ups',fuel:'upss',mk:'ups',    type:'pending',                   color:'#ea580c'},
 ];
 const csel=$('country');
 const zoneFor=c=>P.c2zone[c]||'';
-function build(base,svc){
-  if(base==null) return {base:null};
-  const fp=FUEL[svc.fuel]||0, fuel=base*fp/100, cost=base+fuel;
-  const m=MK()[svc.mk]||{cost:0,sell:0};
-  return {base,fp,fuel,cost,mkCost:m.cost,mkSell:m.sell,our:cost*(1+m.cost/100),sell:cost*(1+m.sell/100)};
+function build(rawBase,svc){
+  if(rawBase==null) return {base:null};
+  const surch=resiOn()?(SURCH()[svc.carrier]||0):0;
+  const cbase=rawBase+surch, fp=FUEL[svc.fuel]||0;
+  const costFuel=cbase*fp/100, totalCost=cbase+costFuel;
+  const mk=MK()[svc.mk]||0;
+  const sellBase=cbase*(1+mk/100), sellFuel=sellBase*fp/100, sell=sellBase+sellFuel;
+  return {raw:rawBase,surch,cbase,fp,costFuel,totalCost,sellBase,sellFuel,sell,cost:totalCost,base:rawBase,markup:mk};
 }
 function baseRate(svc,c,chg){
   if(svc.type==='band'){const arr=P[svc.src][c];if(!arr)return{price:null,avail:false};
@@ -264,13 +279,19 @@ function calc(){
     else if(b.price==null)d.innerHTML=head+`<div class="pr">n/a</div><div class="brk">${b.note||'no rate'}</div>`;
     else{const badge=(built.sell===min&&sells.length>1)?'<span class="badge">CHEAPEST</span>':'';
       const bt=typeof b.band==='number'?b.band+' kg':b.band;
-      d.innerHTML=badge+head+`<div class="pr">${money(built.sell)}</div><div class="sub">customer sell price</div>
+      const resiLine=built.surch>0?`<div class="row"><span>Residential</span><span>${money(built.surch)}</span></div>`:'';
+      d.innerHTML=badge+head+`<div class="pr">${money(built.sell)}</div><div class="sub">customer price</div>
         <div class="brk">
-          <div class="row"><span>Base rate (${bt})</span><span>${money(built.base)}</span></div>
-          <div class="row"><span>+ Fuel ${built.fp.toFixed(1)}%</span><span>${money(built.fuel)}</span></div>
-          <div class="row cost"><span>= Carrier cost</span><span>${money(built.cost)}</span></div>
-          <div class="row"><span>Your price (+${built.mkCost}%)</span><span>${money(built.our)}</span></div>
-          <div class="row sell"><span>Customer sell (+${built.mkSell}%)</span><span>${money(built.sell)}</span></div></div>`;}
+          <div class="blk">Cost</div>
+          <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
+          ${resiLine}
+          <div class="row"><span>Fuel (${built.fp.toFixed(1)}%)</span><span>${money(built.costFuel)}</span></div>
+          <div class="row tot"><span>Total cost price</span><span>${money(built.totalCost)}</span></div>
+          <div class="blk">Customer${built.markup?` (+${built.markup}%)`:''}</div>
+          <div class="row"><span>Base rate</span><span>${money(built.sellBase)}</span></div>
+          <div class="row"><span>Fuel (${built.fp.toFixed(1)}%)</span><span>${money(built.sellFuel)}</span></div>
+          <div class="row tot"><span>Total customer price</span><span>${money(built.sell)}</span></div>
+        </div>`;}
     R.appendChild(d);
   });
   const v=$('verdict');
@@ -278,19 +299,20 @@ function calc(){
   else if(sells.length<2)v.innerHTML=`Only one priced service for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>.`;
   else{const w=rows.find(x=>x.b.price!=null&&x.built.sell===min);
     const o=sells.filter(p=>p!==min).sort((a,b)=>a-b),nb=o[0],save=nb-min,pct=save/nb*100;
-    v.innerHTML=`Cheapest for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>: <b style="color:var(--g)">${w.svc.name}</b> — customer <b>${money(w.built.sell)}</b>, <b>£${save.toFixed(2)}</b> (${pct.toFixed(1)}%) cheaper than next best. <span style="color:var(--muted)">Your cost ${money(w.built.cost)}.</span>`;}
+    v.innerHTML=`Cheapest for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>${resiOn()?' (residential)':''}: <b style="color:var(--g)">${w.svc.name}</b> — customer <b>${money(w.built.sell)}</b>, <b>£${save.toFixed(2)}</b> (${pct.toFixed(1)}%) cheaper than next best. <span style="color:var(--muted)">Your cost ${money(w.built.totalCost)}.</span>`;}
   drawChart(c);
 }
 function drawChart(c){
-  const metric=$('metric').value;const ds=[],leg=[];
+  const metric=$('metric').value, key={sell:'sell',cost:'cost',base:'base'}[metric];
+  const ds=[],leg=[];
   SERVICES.forEach(svc=>{let data=null;
-    if(svc.type==='band'){const arr=P[svc.src][c];if(arr)data=arr.map(p=>p==null?null:build(p,svc)[metric]);}
-    else if(svc.type==='flat'){const p=P[svc.src][c];if(p!=null){const cap=CAPS[svc.cap];data=bands.map(w=>w>cap+1e-9?null:build(p,svc)[metric]);}}
-    else if(svc.type==='zone'){const zone=zoneFor(c),z=P[svc.src][zone];if(zone&&z)data=bands.map(w=>{const r=baseRate(svc,c,w);return r.price==null?null:build(r.price,svc)[metric];});}
+    if(svc.type==='band'){const arr=P[svc.src][c];if(arr)data=arr.map(p=>p==null?null:build(p,svc)[key]);}
+    else if(svc.type==='flat'){const p=P[svc.src][c];if(p!=null){const cap=CAPS[svc.cap];data=bands.map(w=>w>cap+1e-9?null:build(p,svc)[key]);}}
+    else if(svc.type==='zone'){const zone=zoneFor(c),z=P[svc.src][zone];if(zone&&z)data=bands.map(w=>{const r=baseRate(svc,c,w);return r.price==null?null:build(r.price,svc)[key];});}
     if(data){ds.push({label:svc.name,data,borderColor:svc.color,borderWidth:2.4,tension:.12,pointRadius:0,spanGaps:false});
       leg.push(`<span><span class="dot" style="background:${svc.color}"></span>${svc.name}</span>`);}});
   $('legend').innerHTML=leg.join('');
-  const lbl={sell:'Customer sell (£)',cost:'Carrier cost (£, incl. fuel)',base:'Base rate (£)'}[metric];
+  const lbl={sell:'Customer price (£)',cost:'Cost price (£, incl. fuel)',base:'Base rate (£)'}[metric];
   const notes=[];if(!zoneFor(c))notes.push('UPS Express hidden — no zone mapped for this country.');
   if(P.dpd_parcel[c]!=null)notes.push('UPS Standard omitted (rate card pending).');
   $('chartnote').textContent=notes.join(' ');
@@ -301,43 +323,40 @@ function drawChart(c){
       scales:{x:{title:{display:true,text:'Chargeable weight (kg)'},ticks:{maxTicksLimit:16}},
         y:{title:{display:true,text:lbl},ticks:{callback:v=>'£'+v}}}}});
 }
-function setMarkupInputs(m){
-  $('mkRoadCost').value=m.dpdRoad.cost;$('mkRoadSell').value=m.dpdRoad.sell;
-  $('mkAirCost').value=m.dpdAir.cost;  $('mkAirSell').value=m.dpdAir.sell;
-  $('mkUpsCost').value=m.ups.cost;     $('mkUpsSell').value=m.ups.sell;
+const asNum=v=>(v&&typeof v==='object')?(v.sell!=null?v.sell:0):v;
+function loadSettingsInputs(s){
+  $('mkRoad').value=asNum(s.markups.dpdRoad);$('mkAir').value=asNum(s.markups.dpdAir);$('mkUps').value=asNum(s.markups.ups);
+  const sc=(s.surcharges&&s.surcharges.residential)||{dpd:0,ups:0};
+  $('scUps').value=sc.ups||0;$('scDpd').value=sc.dpd||0;
 }
 function bootCalc(){
   bands=P.bands;
-  const s=P.settings||{fuel:{dpd:18,upsxList:46.25,upssList:29,upsDiscount:0.25},caps:{cp:31.5,ep:3},markups:{dpdRoad:{cost:6,sell:12},dpdAir:{cost:12,sell:18},ups:{cost:0,sell:30}}};
+  const s=P.settings||{fuel:{dpd:18,upsxList:46.25,upssList:29,upsDiscount:0.25},caps:{cp:31.5,ep:3},markups:{dpdRoad:12,dpdAir:18,ups:30},surcharges:{residential:{dpd:0,ups:0}}};
   FUEL={dpd:s.fuel.dpd, upsx:s.fuel.upsxList*(1-s.fuel.upsDiscount), upss:s.fuel.upssList*(1-s.fuel.upsDiscount)};
   CAPS={cp:s.caps.cp, ep:s.caps.ep};
-  setMarkupInputs(s.markups);
+  loadSettingsInputs(s);
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
-    ['country','wt','L','W','H','metric','mkRoadCost','mkRoadSell','mkAirCost','mkAirSell','mkUpsCost','mkUpsSell']
+    ['country','wt','L','W','H','metric','resi','mkRoad','mkAir','mkUps','scUps','scDpd']
       .forEach(id=>$(id).addEventListener('input',calc));
     $('metric').addEventListener('change',calc);
+    $('resi').addEventListener('change',calc);
   }
   calc();
 }
 
-// ---------- screens / auth ----------
 const SCREENS=['loading','setup','login','app','settings'];
 function screen(id){SCREENS.forEach(s=>$(s).style.display='none');
-  const authed=(id==='app'||id==='settings');
-  $(id).style.display=(id==='app'||id==='settings')?'block':(id==='loading'?'block':'block');
-  $('hdr').style.display=authed?'flex':'none';
-  if(!authed){$('pwPanel').style.display='none';}
-}
+  const authed=(id==='app'||id==='settings');$(id).style.display='block';
+  $('hdr').style.display=authed?'flex':'none';if(!authed)$('pwPanel').style.display='none';}
 const jpost=(p,b)=>fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
 const jput =(p,b)=>fetch(p,{method:'PUT', headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
 const jpatch=(p,b)=>fetch(p,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
 const jdel=p=>fetch(p,{method:'DELETE'});
 
 async function loadConfigAndApp(){
-  const r=await fetch('/api/config');
-  if(r.status===401){screen('login');return;}
+  const r=await fetch('/api/config'); if(r.status===401){screen('login');return;}
   P=await r.json(); if(!P||!P.bands){screen('login');return;}
   bootCalc();
   $('who').textContent=current?((current.name||current.email)+' · '+current.role):'';
@@ -350,61 +369,48 @@ async function init(){
     if(!ns.authEnabled){current=null;await loadConfigAndApp();return;}
     if(ns.needsSetup){screen('setup');return;}
     const me=await fetch('/api/me');
-    if(me.ok){current=(await me.json()).user;await loadConfigAndApp();}
-    else screen('login');
+    if(me.ok){current=(await me.json()).user;await loadConfigAndApp();}else screen('login');
   }catch(e){$('loading').textContent='Failed to start: '+e.message;}
 }
 $('suBtn').onclick=async()=>{$('suErr').textContent='';
   const r=await jpost('/api/setup',{name:$('suName').value,email:$('suEmail').value,password:$('suPass').value});
-  const d=await r.json(); if(!r.ok){$('suErr').textContent=d.error||'Setup failed';return;}
-  current=d.user; await loadConfigAndApp();};
+  const d=await r.json(); if(!r.ok){$('suErr').textContent=d.error||'Setup failed';return;} current=d.user; await loadConfigAndApp();};
 $('liBtn').onclick=async()=>{$('liErr').textContent='';
   const r=await jpost('/api/login',{email:$('liEmail').value,password:$('liPass').value});
-  const d=await r.json(); if(!r.ok){$('liErr').textContent=d.error||'Login failed';return;}
-  current=d.user; await loadConfigAndApp();};
+  const d=await r.json(); if(!r.ok){$('liErr').textContent=d.error||'Login failed';return;} current=d.user; await loadConfigAndApp();};
 $('liPass').addEventListener('keydown',e=>{if(e.key==='Enter')$('liBtn').click();});
 $('logoutBtn').onclick=async()=>{await jpost('/api/logout',{});current=null;screen('login');};
 $('pwBtn').onclick=()=>{const p=$('pwPanel');p.style.display=p.style.display==='none'?'block':'none';$('pwMsg').textContent='';};
 $('pwCancel').onclick=()=>{$('pwPanel').style.display='none';};
-$('pwSave').onclick=async()=>{$('pwMsg').textContent='';$('pwMsg').className='ok';
+$('pwSave').onclick=async()=>{$('pwMsg').className='ok';$('pwMsg').textContent='';
   const r=await jpost('/api/me/password',{current:$('pwCur').value,next:$('pwNew').value});
   const d=await r.json(); if(!r.ok){$('pwMsg').className='err';$('pwMsg').textContent=d.error||'Failed';return;}
   $('pwMsg').textContent='Password updated.';$('pwCur').value='';$('pwNew').value='';};
-
 $('settingsBtn').onclick=async()=>{screen('settings');await refreshUsers();};
 $('backBtn').onclick=()=>{screen('app');calc();};
-$('mkSave').onclick=async()=>{
-  $('mkMsg').className='ok';$('mkMsg').textContent='';
-  const markups=MK();
-  const r=await jput('/api/settings',{markups});
+$('mkSave').onclick=async()=>{$('mkMsg').className='ok';$('mkMsg').textContent='';
+  const body={markups:MK(),surcharges:{residential:SURCH()}};
+  const r=await jput('/api/settings',body);
   const d=await r.json(); if(!r.ok){$('mkMsg').className='err';$('mkMsg').textContent=d.error||'Save failed';return;}
-  P.settings.markups=d.settings.markups; $('mkMsg').textContent='Saved. Applies to everyone.';
-};
+  P.settings.markups=d.settings.markups;P.settings.surcharges=d.settings.surcharges;
+  $('mkMsg').textContent='Saved. Applies to everyone.';};
 async function refreshUsers(){
   $('usersErr').textContent='';
   const r=await fetch('/api/users'); if(!r.ok){$('usersErr').textContent='Could not load users';return;}
   const {users}=await r.json(); const tb=$('usersBody'); tb.innerHTML='';
   users.forEach(u=>{const tr=document.createElement('tr');const self=current&&u.id===current.id;
     tr.innerHTML=`<td>${u.name||'—'}</td><td>${u.email}</td>
-      <td><select data-id="${u.id}" class="roleSel">
-        <option value="sales"${u.role==='sales'?' selected':''}>sales</option>
-        <option value="admin"${u.role==='admin'?' selected':''}>admin</option></select></td>
-      <td><input type="password" class="pwSet" data-id="${u.id}" placeholder="new pw" style="width:110px"/>
-          <button class="btn pwSetBtn" data-id="${u.id}">Set</button></td>
+      <td><select data-id="${u.id}" class="roleSel"><option value="sales"${u.role==='sales'?' selected':''}>sales</option><option value="admin"${u.role==='admin'?' selected':''}>admin</option></select></td>
+      <td><input type="password" class="pwSet" data-id="${u.id}" placeholder="new pw" style="width:110px"/> <button class="btn pwSetBtn" data-id="${u.id}">Set</button></td>
       <td>${self?'<span class="rolechip">you</span>':'<button class="btn danger delBtn" data-id="'+u.id+'">Delete</button>'}</td>`;
     tb.appendChild(tr);});
-  tb.querySelectorAll('.roleSel').forEach(s=>s.onchange=async()=>{
-    const r=await jpatch('/api/users/'+s.dataset.id,{role:s.value});
+  tb.querySelectorAll('.roleSel').forEach(s=>s.onchange=async()=>{const r=await jpatch('/api/users/'+s.dataset.id,{role:s.value});
     if(!r.ok){const d=await r.json();$('usersErr').textContent=d.error||'Update failed';await refreshUsers();}});
-  tb.querySelectorAll('.pwSetBtn').forEach(btn=>btn.onclick=async()=>{
-    const inp=tb.querySelector('.pwSet[data-id="'+btn.dataset.id+'"]');
-    const r=await jpatch('/api/users/'+btn.dataset.id,{password:inp.value});
-    const d=await r.json(); $('usersErr').className=r.ok?'ok':'err';
-    $('usersErr').textContent=r.ok?'Password updated.':(d.error||'Failed'); inp.value='';});
-  tb.querySelectorAll('.delBtn').forEach(btn=>btn.onclick=async()=>{
-    const r=await jdel('/api/users/'+btn.dataset.id);
-    if(!r.ok){const d=await r.json();$('usersErr').textContent=d.error||'Delete failed';return;}
-    await refreshUsers();});
+  tb.querySelectorAll('.pwSetBtn').forEach(btn=>btn.onclick=async()=>{const inp=tb.querySelector('.pwSet[data-id="'+btn.dataset.id+'"]');
+    const r=await jpatch('/api/users/'+btn.dataset.id,{password:inp.value});const d=await r.json();
+    $('usersErr').className=r.ok?'ok':'err';$('usersErr').textContent=r.ok?'Password updated.':(d.error||'Failed');inp.value='';});
+  tb.querySelectorAll('.delBtn').forEach(btn=>btn.onclick=async()=>{const r=await jdel('/api/users/'+btn.dataset.id);
+    if(!r.ok){const d=await r.json();$('usersErr').textContent=d.error||'Delete failed';return;}await refreshUsers();});
 }
 $('nuAdd').onclick=async()=>{$('usersErr').className='err';$('usersErr').textContent='';
   const r=await jpost('/api/users',{name:$('nuName').value,email:$('nuEmail').value,role:$('nuRole').value,password:$('nuPass').value});
