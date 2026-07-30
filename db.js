@@ -62,14 +62,19 @@ async function migrateConfig() {
   const r = await pool.query('SELECT data FROM rate_config WHERE id = 1');
   if (!r.rows[0]) return;
   const cfg = r.rows[0].data;
+  const seed = readSeed();
   let changed = false;
+  // Normalise markups to {cost, sell} objects, preserving any existing sell value.
   const m = cfg.settings && cfg.settings.markups;
-  if (m) {
-    for (const k of Object.keys(m)) {
-      const v = m[k];
-      if (v && typeof v === 'object') {
-        m[k] = (v.sell != null ? v.sell : (v.cost != null ? v.cost : 0));
-        changed = true;
+  if (m && seed.settings && seed.settings.markups) {
+    for (const g of Object.keys(seed.settings.markups)) {
+      const def = seed.settings.markups[g];
+      const cur = m[g];
+      if (cur == null) { m[g] = { ...def }; changed = true; }
+      else if (typeof cur === 'number') { m[g] = { cost: def.cost, sell: cur }; changed = true; }
+      else if (typeof cur === 'object') {
+        const fixed = { cost: cur.cost != null ? cur.cost : def.cost, sell: cur.sell != null ? cur.sell : def.sell };
+        if (fixed.cost !== cur.cost || fixed.sell !== cur.sell) { m[g] = fixed; changed = true; }
       }
     }
   }
@@ -79,7 +84,6 @@ async function migrateConfig() {
     if (!cfg.settings.surcharges.ddp) { cfg.settings.surcharges.ddp = { dpd: 0, ups: 0 }; changed = true; }
   }
   // Rate-data refresh: when seed.dataVersion changes, replace rate tables but preserve admin settings.
-  const seed = readSeed();
   if ((cfg.dataVersion || 0) !== (seed.dataVersion || 0)) {
     const RATE_KEYS = ['bands','countries','divisor','dpd_classic','dpd_express','dpd_parcel','dpd_expresspak','ups_express','ups_standard','c2zone_express','c2zone_standard'];
     for (const k of RATE_KEYS) cfg[k] = seed[k];

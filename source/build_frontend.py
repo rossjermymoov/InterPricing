@@ -154,11 +154,14 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
     <p class="adminnote"><b>Customer price = (base + fuel) marked up.</b> Markup applies to the base rate; fuel then applies to both the cost and customer figures. Cheapest is judged on the customer price. Fuel is server-side (UPS list fuel already has your 25% discount).</p>
     <div class="mkgrid">
       <div class="grp"><h3>DPD Road</h3><div class="gsub">Classic Parcel &amp; ExpressPak</div>
-        <div class="f"><label>Markup %</label><input id="mkRoad" type="number" step="0.5"/></div></div>
+        <div style="display:flex;gap:10px"><div class="f"><label>Cost %</label><input id="mkRoadCost" type="number" step="0.5"/></div>
+          <div class="f"><label>Sell %</label><input id="mkRoadSell" type="number" step="0.5"/></div></div></div>
       <div class="grp"><h3>DPD Air</h3><div class="gsub">Classic Air &amp; Air Express</div>
-        <div class="f"><label>Markup %</label><input id="mkAir" type="number" step="0.5"/></div></div>
+        <div style="display:flex;gap:10px"><div class="f"><label>Cost %</label><input id="mkAirCost" type="number" step="0.5"/></div>
+          <div class="f"><label>Sell %</label><input id="mkAirSell" type="number" step="0.5"/></div></div></div>
       <div class="grp"><h3>UPS</h3><div class="gsub">Express Saver &amp; Standard</div>
-        <div class="f"><label>Markup %</label><input id="mkUps" type="number" step="0.5"/></div></div>
+        <div style="display:flex;gap:10px"><div class="f"><label>Cost %</label><input id="mkUpsCost" type="number" step="0.5"/></div>
+          <div class="f"><label>Sell %</label><input id="mkUpsSell" type="number" step="0.5"/></div></div></div>
     </div>
   </div>
   <div class="panel">
@@ -229,7 +232,9 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 let P, bands, FUEL, CAPS, current=null, authEnabled=false;
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
-const MK=()=>({dpdRoad:num('mkRoad'),dpdAir:num('mkAir'),ups:num('mkUps')});
+const MK=()=>({dpdRoad:{cost:num('mkRoadCost'),sell:num('mkRoadSell')},
+               dpdAir:{cost:num('mkAirCost'),sell:num('mkAirSell')},
+               ups:{cost:num('mkUpsCost'),sell:num('mkUpsSell')}});
 const surcResi=()=>({dpd:num('scResiDpd'),ups:num('scResiUps')});
 const surcDdp=()=>({dpd:num('scDdpDpd'),ups:num('scDdpUps')});
 const resiOn=()=>$('resi').checked, ddpOn=()=>$('ddp').checked;
@@ -250,10 +255,12 @@ function build(rawBase,svc){
   if(ddpOn()){const v=surcDdp()[svc.carrier]||0; if(v)extras.push(['DDP',v]);}
   const extraTotal=extras.reduce((a,[,v])=>a+v,0);
   const cbase=rawBase+extraTotal, fp=FUEL[svc.fuel]||0;
-  const costFuel=cbase*fp/100, totalCost=cbase+costFuel;
-  const mk=MK()[svc.mk]||0;
-  const sellBase=cbase*(1+mk/100), sellFuel=sellBase*fp/100, sell=sellBase+sellFuel;
-  return {raw:rawBase,extras,fp,costFuel,totalCost,sellBase,sellFuel,sell,cost:totalCost,base:rawBase,markup:mk};
+  const m=MK()[svc.mk]||{cost:0,sell:0};
+  const costMargin=cbase*m.cost/100;
+  const costBase=cbase+costMargin;
+  const costFuel=costBase*fp/100, totalCost=costBase+costFuel;
+  const sellBase=cbase*(1+m.sell/100), sellFuel=sellBase*fp/100, sell=sellBase+sellFuel;
+  return {raw:rawBase,extras,fp,costMargin,costMk:m.cost,costBase,costFuel,totalCost,sellBase,sellFuel,sell,cost:totalCost,base:rawBase,markup:m.sell};
 }
 function baseRate(svc,c,chg){
   if(svc.type==='band'){const arr=P[svc.src][c];if(!arr)return{price:null,avail:false};
@@ -298,6 +305,7 @@ function calc(){
           <div class="blk">Cost</div>
           <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
           ${extraLines}
+          ${built.costMk?`<div class="row"><span>Cost margin (+${built.costMk}%)</span><span>${money(built.costMargin)}</span></div>`:''}
           <div class="row"><span>Fuel (${built.fp.toFixed(1)}%)</span><span>${money(built.costFuel)}</span></div>
           <div class="row tot"><span>Total cost price</span><span>${money(built.totalCost)}</span></div>
           <div class="blk">Customer${built.markup?` (+${built.markup}%)`:''}</div>
@@ -338,9 +346,12 @@ function drawChart(c){
       scales:{x:{title:{display:true,text:'Chargeable weight (kg)'},ticks:{maxTicksLimit:16}},
         y:{title:{display:true,text:lbl},ticks:{callback:v=>'£'+v}}}}});
 }
-const asNum=v=>(v&&typeof v==='object')?(v.sell!=null?v.sell:0):(v||0);
+const mkPair=v=>(v&&typeof v==='object')?{cost:v.cost||0,sell:v.sell||0}:{cost:0,sell:v||0};
 function loadSettingsInputs(s){
-  $('mkRoad').value=asNum(s.markups.dpdRoad);$('mkAir').value=asNum(s.markups.dpdAir);$('mkUps').value=asNum(s.markups.ups);
+  const r=mkPair(s.markups.dpdRoad),a=mkPair(s.markups.dpdAir),u=mkPair(s.markups.ups);
+  $('mkRoadCost').value=r.cost;$('mkRoadSell').value=r.sell;
+  $('mkAirCost').value=a.cost;$('mkAirSell').value=a.sell;
+  $('mkUpsCost').value=u.cost;$('mkUpsSell').value=u.sell;
   const sc=s.surcharges||{}; const rz=sc.residential||{dpd:0,ups:0}, dz=sc.ddp||{dpd:0,ups:0};
   $('scResiUps').value=rz.ups||0;$('scResiDpd').value=rz.dpd||0;$('scDdpUps').value=dz.ups||0;$('scDdpDpd').value=dz.dpd||0;
 }
@@ -353,7 +364,7 @@ function bootCalc(){
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
-    ['country','wt','L','W','H','metric','mkRoad','mkAir','mkUps','scResiUps','scResiDpd','scDdpUps','scDdpDpd']
+    ['country','wt','L','W','H','metric','mkRoadCost','mkRoadSell','mkAirCost','mkAirSell','mkUpsCost','mkUpsSell','scResiUps','scResiDpd','scDdpUps','scDdpDpd']
       .forEach(id=>$(id).addEventListener('input',calc));
     ['metric','resi','ddp'].forEach(id=>$(id).addEventListener('change',calc));
   }
