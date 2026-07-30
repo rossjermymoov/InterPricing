@@ -68,8 +68,18 @@ async function migrateConfig() {
     if (!cfg.settings.fuelByService && seed.settings && seed.settings.fuelByService) {
       cfg.settings.fuelByService = seed.settings.fuelByService; changed = true;
     }
-    if (!cfg.settings.accessorials && seed.settings && seed.settings.accessorials) {
-      cfg.settings.accessorials = seed.settings.accessorials; changed = true;
+    // Sync accessorial list from seed (adds new ones, updates structure) while keeping edited list/disc/dpd.
+    if (seed.settings && Array.isArray(seed.settings.accessorials)) {
+      const prev = cfg.settings.accessorials || [];
+      const byKey = {}; prev.forEach((a) => { byKey[a.key] = a; });
+      const merged = seed.settings.accessorials.map((sa) => {
+        const old = byKey[sa.key] || {};
+        return { ...sa,
+          list: old.list != null ? old.list : sa.list,
+          disc: old.disc != null ? old.disc : sa.disc,
+          dpd: old.dpd != null ? old.dpd : sa.dpd };
+      });
+      if (JSON.stringify(merged) !== JSON.stringify(prev)) { cfg.settings.accessorials = merged; changed = true; }
     }
   }
   // Rate-data refresh: when seed.dataVersion changes, replace rate tables but preserve admin settings.

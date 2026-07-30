@@ -207,13 +207,15 @@ const csel=$('country');
 const zoneFor=(svc,c)=>(P[svc.zmap]||{})[c]||'';
 function fuelOf(svc){const fc=$('fc_'+svc.key),fs=$('fs_'+svc.key);
   return {cost: fc?(parseFloat(fc.value)||0):0, sell: fs?(parseFloat(fs.value)||0):0};}
-function activeAcc(actual,L,W,H){
+function activeAcc(c,actual,L,W,H){
   const sides=[L,W,H].filter(x=>x>0).sort((a,b)=>b-a);
   const longest=sides[0]||0, second=sides[1]||0;
   const girth=(L&&W&&H)?(longest+2*(sides[1]||0)+2*(sides[2]||0)):0;
   const out=[];
   accList().forEach(a=>{let t=false;
     if(a.cond==='toggle') t=accOn(a);
+    else if(a.cond==='always') t=true;
+    else if(a.cond==='countryIn') t=(a.countries||[]).includes(c);
     else if(a.cond==='auto'){
       if(a.key==='addlHandling') t = actual>25 || longest>100 || second>76;
       else if(a.key==='largePackage') t = girth>300;
@@ -223,15 +225,15 @@ function activeAcc(actual,L,W,H){
   });
   return out;
 }
+function accAmount(a,svc){const amt=(a.applyTo==='all')?accNet(a):(svc.carrier==='ups'?accNet(a):accDpd(a));return Math.round((amt||0)*100)/100;}
 function build(rawBase,svc){
   if(rawBase==null) return {base:null};
-  const extras=[];
-  ACTIVE.forEach(a=>{const amt=svc.carrier==='ups'?accNet(a):accDpd(a); if(amt>0)extras.push([a.name,Math.round(amt*100)/100]);});
-  const extraTotal=extras.reduce((s,[,v])=>s+v,0);
-  const cbase=rawBase+extraTotal, f=fuelOf(svc);
-  const costFuel=cbase*f.cost/100, totalCost=cbase+costFuel;
-  const sellFuel=cbase*f.sell/100, sell=cbase+sellFuel;
-  return {raw:rawBase,extras,cbase,fc:f.cost,fs:f.sell,costFuel,totalCost,sellFuel,sell,cost:totalCost,base:rawBase};
+  const fuelExtras=[],flatExtras=[];let fuelable=0,flat=0;
+  ACTIVE.forEach(a=>{const amt=accAmount(a,svc);if(amt>0){if(a.fuelable){fuelable+=amt;fuelExtras.push([a.name,amt]);}else{flat+=amt;flatExtras.push([a.name,amt]);}}});
+  const cbase=rawBase+fuelable, f=fuelOf(svc);
+  const costFuel=cbase*f.cost/100, totalCost=cbase+costFuel+flat;
+  const sellFuel=cbase*f.sell/100, sell=cbase+sellFuel+flat;
+  return {raw:rawBase,fuelExtras,flatExtras,cbase,fc:f.cost,fs:f.sell,costFuel,totalCost,sellFuel,sell,cost:totalCost,base:rawBase};
 }
 function baseRate(svc,c,chg){
   if(svc.type==='band'){const arr=P[svc.src][c];if(!arr)return{price:null,avail:false};
@@ -252,7 +254,7 @@ let chart;
 function calc(){
   const c=csel.value,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
   const vol=(L&&W&&H)?(L*W*H)/P.divisor:0, chg=Math.max(actual,vol);
-  ACTIVE=activeAcc(actual,L,W,H);
+  ACTIVE=activeAcc(c,actual,L,W,H);
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
   $('driver').textContent=!chg?'—':(vol>actual?'volumetric':'actual weight');
@@ -270,18 +272,21 @@ function calc(){
     if(b.price==null)d.innerHTML=head+`<div class="pr">n/a</div><div class="brk">${b.note||'no rate'}</div>`;
     else{const badge=(built.sell===min&&sells.length>1)?'<span class="badge">CHEAPEST</span>':'';
       const bt=typeof b.band==='number'?b.band+' kg':b.band;
-      const extraLines=built.extras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');
+      const fuelLines=built.fuelExtras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');
+      const flatLines=built.flatExtras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');
       d.innerHTML=badge+head+`<div class="pr">${money(built.sell)}</div><div class="sub">customer price</div>
         <div class="brk">
           <div class="blk">Cost</div>
           <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
-          ${extraLines}
+          ${fuelLines}
           <div class="row"><span>Fuel (${built.fc.toFixed(1)}%)</span><span>${money(built.costFuel)}</span></div>
+          ${flatLines}
           <div class="row tot"><span>Total cost price</span><span>${money(built.totalCost)}</span></div>
           <div class="blk">Customer</div>
           <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
-          ${extraLines}
+          ${fuelLines}
           <div class="row"><span>Fuel (${built.fs.toFixed(1)}%)</span><span>${money(built.sellFuel)}</span></div>
+          ${flatLines}
           <div class="row tot"><span>Total customer price</span><span>${money(built.sell)}</span></div>
         </div>`;}
     R.appendChild(d);
@@ -327,8 +332,9 @@ function buildFuelTable(fbs){
 }
 function buildAccTable(){
   const tb=$('accBody');tb.innerHTML='';
+  const trg=a=>a.cond==='auto'?'auto (size/wt)':(a.cond==='always'?'always':(a.cond==='countryIn'?(a.countries||[]).join(','):'toggle'));
   accList().forEach(a=>{const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${a.name}</td><td><span class="tagpill${a.cond==='auto'?' auto':''}">${a.cond==='auto'?'auto':'toggle'}</span></td>
+    tr.innerHTML=`<td>${a.name}</td><td><span class="tagpill${a.cond!=='toggle'?' auto':''}">${trg(a)}</span></td>
       <td><input id="accList_${a.key}" type="number" step="0.01" value="${a.list}"/></td>
       <td><input id="accDisc_${a.key}" type="number" step="1" value="${a.disc}"/></td>
       <td><span id="accNet_${a.key}"></span></td>
