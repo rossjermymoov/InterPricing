@@ -136,7 +136,7 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
   <div class="panel">
     <h2>Accessorials</h2>
     <p class="adminnote">UPS accessorial charges. <b>Net</b> = list × (1 − discount). <span class="tagpill">toggle</span> ones apply when ticked on the calculator; <span class="tagpill auto">auto</span> ones apply automatically from weight &amp; dimensions. DPD £ defaults to 0 (DPD accessorials not loaded). Accessorials are added to the base and fuel applies on top.</p>
-    <table class="stable"><thead><tr><th>Accessorial</th><th>Trigger</th><th>List £</th><th>Disc %</th><th>Net (UPS)</th><th>DPD £</th></tr></thead><tbody id="accBody"></tbody></table>
+    <table class="stable"><thead><tr><th>Accessorial</th><th>Carrier</th><th>Trigger</th><th>List £ / Rate %</th><th>Disc % / Min £</th><th>Net</th></tr></thead><tbody id="accBody"></tbody></table>
   </div>
   <div class="panel"><button class="btn primary" id="saveBtn">Save settings</button><span class="ok" id="saveMsg"></span></div>
   <div class="panel" id="teamPanel">
@@ -162,6 +162,7 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
   <div class="f small"><label>L cm</label><input id="L" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>W cm</label><input id="W" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>H cm</label><input id="H" type="number" min="0" step="1" placeholder="—"/></div>
+  <div class="f small"><label>Value £</label><input id="goodsValue" type="number" min="0" step="1" value="0"/></div>
 </div>
 <div class="toggles" id="toggles"></div>
 <div class="wt">
@@ -192,8 +193,11 @@ let P, bands, CAPS, current=null, authEnabled=false, ACTIVE=[];
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const num=id=>{const el=$(id);const v=el?parseFloat(el.value):NaN;return isNaN(v)?0:v;};
 const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
-const accNet=a=>{const l=$('accList_'+a.key)?num('accList_'+a.key):(a.list||0);const d=$('accDisc_'+a.key)?num('accDisc_'+a.key):(a.disc||0);return l*(1-d/100);};
-const accDpd=a=>$('accDpd_'+a.key)?num('accDpd_'+a.key):(a.dpd||0);
+const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];if(c==='USA')return 'usa';if(eu.includes(c))return 'eu';return 'row';};
+function accVal(a){
+  if(a.basis==='pctValue'){const pct=$('accPct_'+a.key)?num('accPct_'+a.key):(a.pct||0);const mn=$('accMin_'+a.key)?num('accMin_'+a.key):(a.min||0);return Math.max(pct*num('goodsValue')/100, mn);}
+  const l=$('accList_'+a.key)?num('accList_'+a.key):(a.list||0);const d=$('accDisc_'+a.key)?num('accDisc_'+a.key):(a.disc||0);return l*(1-d/100);
+}
 const accOn=a=>{const el=$('acc_'+a.key);return el&&el.checked;};
 const SERVICES=[
  {key:'ca',name:'DPD Classic Air',       carrier:'dpd',type:'band',src:'dpd_classic',    color:'#2563eb'},
@@ -216,6 +220,7 @@ function activeAcc(c,actual,L,W,H){
     if(a.cond==='toggle') t=accOn(a);
     else if(a.cond==='always') t=true;
     else if(a.cond==='countryIn') t=(a.countries||[]).includes(c);
+    else if(a.cond==='region') t=region(c)===a.region;
     else if(a.cond==='auto'){
       if(a.key==='addlHandling') t = actual>25 || longest>100 || second>76;
       else if(a.key==='largePackage') t = girth>300;
@@ -225,7 +230,7 @@ function activeAcc(c,actual,L,W,H){
   });
   return out;
 }
-function accAmount(a,svc){const amt=(a.applyTo==='all')?accNet(a):(svc.carrier==='ups'?accNet(a):accDpd(a));return Math.round((amt||0)*100)/100;}
+function accAmount(a,svc){if(a.applyTo!==svc.carrier) return 0;return Math.round(accVal(a)*100)/100;}
 function build(rawBase,svc){
   if(rawBase==null) return {base:null};
   const fuelExtras=[],flatExtras=[];let fuelable=0,flat=0;
@@ -330,19 +335,23 @@ function buildFuelTable(fbs){
     tb.appendChild(tr);});
   SERVICES.forEach(svc=>{$('fc_'+svc.key).addEventListener('input',calc);$('fs_'+svc.key).addEventListener('input',calc);});
 }
+function accNetDisplay(a){
+  if(a.basis==='pctValue'){const pct=$('accPct_'+a.key)?num('accPct_'+a.key):(a.pct||0);const mn=$('accMin_'+a.key)?num('accMin_'+a.key):(a.min||0);return pct+'% · min '+money(mn);}
+  const l=$('accList_'+a.key)?num('accList_'+a.key):(a.list||0);const d=$('accDisc_'+a.key)?num('accDisc_'+a.key):(a.disc||0);return money(l*(1-d/100));
+}
 function buildAccTable(){
   const tb=$('accBody');tb.innerHTML='';
-  const trg=a=>a.cond==='auto'?'auto (size/wt)':(a.cond==='always'?'always':(a.cond==='countryIn'?(a.countries||[]).join(','):'toggle'));
+  const trg=a=>a.cond==='auto'?'auto (size/wt)':(a.cond==='always'?'always':(a.cond==='countryIn'?(a.countries||[]).join(','):(a.cond==='region'?a.region.toUpperCase():'toggle')));
   accList().forEach(a=>{const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${a.name}</td><td><span class="tagpill${a.cond!=='toggle'?' auto':''}">${trg(a)}</span></td>
-      <td><input id="accList_${a.key}" type="number" step="0.01" value="${a.list}"/></td>
-      <td><input id="accDisc_${a.key}" type="number" step="1" value="${a.disc}"/></td>
-      <td><span id="accNet_${a.key}"></span></td>
-      <td><input id="accDpd_${a.key}" type="number" step="0.01" value="${a.dpd||0}"/></td>`;
+    let cells;
+    if(a.basis==='pctValue') cells=`<td><input id="accPct_${a.key}" type="number" step="0.1" value="${a.pct||0}"/> %</td><td><input id="accMin_${a.key}" type="number" step="0.01" value="${a.min||0}"/></td>`;
+    else cells=`<td><input id="accList_${a.key}" type="number" step="0.01" value="${a.list||0}"/></td><td><input id="accDisc_${a.key}" type="number" step="1" value="${a.disc||0}"/></td>`;
+    tr.innerHTML=`<td>${a.name}</td><td>${(a.applyTo||'').toUpperCase()}</td><td><span class="tagpill${a.cond!=='toggle'?' auto':''}">${trg(a)}</span></td>${cells}<td><span id="accNet_${a.key}"></span></td>`;
     tb.appendChild(tr);});
-  accList().forEach(a=>{const upd=()=>{$('accNet_'+a.key).textContent=money(accNet(a));calc();};
-    $('accList_'+a.key).addEventListener('input',upd);$('accDisc_'+a.key).addEventListener('input',upd);
-    $('accDpd_'+a.key).addEventListener('input',calc);$('accNet_'+a.key).textContent=money(accNet(a));});
+  accList().forEach(a=>{const upd=()=>{$('accNet_'+a.key).textContent=accNetDisplay(a);calc();};
+    if(a.basis==='pctValue'){$('accPct_'+a.key).addEventListener('input',upd);$('accMin_'+a.key).addEventListener('input',upd);}
+    else{$('accList_'+a.key).addEventListener('input',upd);$('accDisc_'+a.key).addEventListener('input',upd);}
+    $('accNet_'+a.key).textContent=accNetDisplay(a);});
 }
 function renderToggles(){
   const t=$('toggles');t.innerHTML='';
@@ -360,7 +369,7 @@ function bootCalc(){
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
-    ['country','wt','L','W','H','metric'].forEach(id=>$(id).addEventListener('input',calc));
+    ['country','wt','L','W','H','goodsValue','metric'].forEach(id=>$(id).addEventListener('input',calc));
     $('metric').addEventListener('change',calc);
   }
   calc();
@@ -416,7 +425,7 @@ $('settingsBtn').onclick=async()=>{screen('settings');if(authEnabled)await refre
 $('backBtn').onclick=()=>{screen('app');calc();};
 $('saveBtn').onclick=async()=>{$('saveMsg').className='ok';$('saveMsg').textContent='';
   const fbs={};SERVICES.forEach(svc=>{fbs[svc.key]={name:svc.name,cost:num('fc_'+svc.key),sell:num('fs_'+svc.key)};});
-  const acc=accList().map(a=>({key:a.key,list:num('accList_'+a.key),disc:num('accDisc_'+a.key),dpd:num('accDpd_'+a.key)}));
+  const acc=accList().map(a=>{const o={key:a.key};if(a.basis==='pctValue'){o.pct=num('accPct_'+a.key);o.min=num('accMin_'+a.key);}else{o.list=num('accList_'+a.key);o.disc=num('accDisc_'+a.key);}return o;});
   const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc});const d=await r.json();
   if(!r.ok){$('saveMsg').className='err';$('saveMsg').textContent=(d.error||'Save failed')+(authEnabled?'':' — connect the database to save.');return;}
   P.settings=Object.assign(P.settings||{},d.settings);$('saveMsg').textContent='Saved. Applies to everyone.';calc();};

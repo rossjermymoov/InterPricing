@@ -68,16 +68,16 @@ async function migrateConfig() {
     if (!cfg.settings.fuelByService && seed.settings && seed.settings.fuelByService) {
       cfg.settings.fuelByService = seed.settings.fuelByService; changed = true;
     }
-    // Sync accessorial list from seed (adds new ones, updates structure) while keeping edited list/disc/dpd.
+    if (!cfg.settings.regions && seed.settings && seed.settings.regions) { cfg.settings.regions = seed.settings.regions; changed = true; }
+    // Sync accessorial list from seed (adds new ones, updates structure) while keeping edited rate fields.
     if (seed.settings && Array.isArray(seed.settings.accessorials)) {
       const prev = cfg.settings.accessorials || [];
       const byKey = {}; prev.forEach((a) => { byKey[a.key] = a; });
       const merged = seed.settings.accessorials.map((sa) => {
         const old = byKey[sa.key] || {};
-        return { ...sa,
-          list: old.list != null ? old.list : sa.list,
-          disc: old.disc != null ? old.disc : sa.disc,
-          dpd: old.dpd != null ? old.dpd : sa.dpd };
+        const keep = {};
+        for (const fld of ['list', 'disc', 'pct', 'min']) if (old[fld] != null) keep[fld] = old[fld];
+        return { ...sa, ...keep };
       });
       if (JSON.stringify(merged) !== JSON.stringify(prev)) { cfg.settings.accessorials = merged; changed = true; }
     }
