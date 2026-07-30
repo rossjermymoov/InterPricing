@@ -34,9 +34,16 @@ npm run build        # regenerates public/index.html + copies Chart.js
 - `PORT` — injected by Railway; defaults to 3000 locally.
 - `PGSSLMODE=disable` — only if connecting to a non-SSL local Postgres.
 
+## Auth
+In-house email/password with roles **admin** and **sales**. First visit shows a one-time
+setup screen to create the admin (no default password). JWT is stored in an httpOnly cookie;
+the signing secret is auto-generated and stored in the DB (`app_secrets`) so logins survive
+restarts. Set `SESSION_SECRET` to pin it explicitly. Admins manage users in-app; `/api/config`
+and all data require a login.
+
 ## Roadmap
 1. Foundation — Express + Postgres, rates server-side *(done)*
-2. User management — in-house email/password auth, admin & sales roles
+2. User management — in-house email/password auth, admin & sales roles *(done)*
 3. Rate-card upload — admin uploads DPD/UPS spreadsheets to update services & rates
 4. Customer rate-card outputs
 
