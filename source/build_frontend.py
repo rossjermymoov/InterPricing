@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Generates ../public/index.html — calculator + auth + admin Settings (fuel by service, surcharges, team).
+# Generates ../public/index.html — calculator + auth + admin Settings (fuel by service, accessorials, team).
 import os, shutil
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -31,7 +31,7 @@ h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em}
 .f input:focus,.f select:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 .f.country{flex:1;min-width:180px}.f.country select{width:100%}
 .f.small input{width:78px;text-align:right;font-variant-numeric:tabular-nums}
-.toggles{display:flex;flex-direction:column;gap:4px;padding-bottom:6px}
+.toggles{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
 .tg{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#334155}
 .tg input{width:16px;height:16px;accent-color:var(--teal)}
 .wt{display:flex;gap:20px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-size:13.5px}
@@ -82,7 +82,9 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 .stable{width:100%;border-collapse:collapse;font-size:13px}
 .stable th,.stable td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
 .stable th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#475569}
-.stable input{width:100px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:7px;text-align:right}
+.stable input{width:90px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:7px;text-align:right}
+.tagpill{font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:#eef2ff;color:#3730a3}
+.tagpill.auto{background:var(--a-bg);color:var(--a)}
 .utable{width:100%;border-collapse:collapse;font-size:13px}
 .utable th,.utable td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
 .utable th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#475569}
@@ -142,17 +144,13 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
   <div class="settingshead"><button class="btn" id="backBtn">← Back to calculator</button><h1>Settings</h1></div>
   <div class="panel">
     <h2>Fuel by service</h2>
-    <p class="adminnote">Fuel is applied to the base rate. <b>Cost %</b> = the fuel you pay (drives the cost price). <b>Sell %</b> = the fuel you charge the customer (drives the customer price). UPS cost and sell are the same (your discounted rate, passed on).</p>
+    <p class="adminnote">Fuel is applied to the base rate. <b>Cost %</b> = the fuel you pay; <b>Sell %</b> = the fuel you charge the customer. UPS cost and sell are the same (your discounted rate, passed on).</p>
     <table class="stable"><thead><tr><th>Service</th><th>Fuel cost %</th><th>Fuel sell %</th></tr></thead><tbody id="fuelBody"></tbody></table>
   </div>
   <div class="panel">
-    <h2>Surcharges (£ per parcel)</h2>
-    <p class="adminnote">Added to the base before fuel, when the matching toggle is ticked on the calculator. DPD don't charge residential (leave 0). DDP = delivered duty paid handling.</p>
-    <table class="stable" style="max-width:460px"><thead><tr><th>Surcharge</th><th>UPS</th><th>DPD</th></tr></thead>
-    <tbody>
-      <tr><td>Residential delivery</td><td><input id="scResiUps" type="number" step="0.01"/></td><td><input id="scResiDpd" type="number" step="0.01"/></td></tr>
-      <tr><td>DDP (duties paid)</td><td><input id="scDdpUps" type="number" step="0.01"/></td><td><input id="scDdpDpd" type="number" step="0.01"/></td></tr>
-    </tbody></table>
+    <h2>Accessorials</h2>
+    <p class="adminnote">UPS accessorial charges. <b>Net</b> = list × (1 − discount). <span class="tagpill">toggle</span> ones apply when ticked on the calculator; <span class="tagpill auto">auto</span> ones apply automatically from weight &amp; dimensions. DPD £ defaults to 0 (DPD accessorials not loaded). Accessorials are added to the base and fuel applies on top.</p>
+    <table class="stable"><thead><tr><th>Accessorial</th><th>Trigger</th><th>List £</th><th>Disc %</th><th>Net (UPS)</th><th>DPD £</th></tr></thead><tbody id="accBody"></tbody></table>
   </div>
   <div class="panel"><button class="btn primary" id="saveBtn">Save settings</button><span class="ok" id="saveMsg"></span></div>
   <div class="panel" id="teamPanel">
@@ -178,11 +176,8 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
   <div class="f small"><label>L cm</label><input id="L" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>W cm</label><input id="W" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>H cm</label><input id="H" type="number" min="0" step="1" placeholder="—"/></div>
-  <div class="toggles">
-    <label class="tg"><input type="checkbox" id="resi"/> Residential delivery</label>
-    <label class="tg"><input type="checkbox" id="ddp"/> DDP (duties paid)</label>
-  </div>
 </div>
+<div class="toggles" id="toggles"></div>
 <div class="wt">
   <div><div class="lab">Volumetric</div><b id="volw">—</b></div>
   <div><div class="lab">Chargeable</div><b id="chgw">—</b></div>
@@ -207,12 +202,13 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 
 </div>
 <script>
-let P, bands, CAPS, current=null, authEnabled=false;
+let P, bands, CAPS, current=null, authEnabled=false, ACTIVE=[];
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const num=id=>{const el=$(id);const v=el?parseFloat(el.value):NaN;return isNaN(v)?0:v;};
-const surcResi=()=>({dpd:num('scResiDpd'),ups:num('scResiUps')});
-const surcDdp=()=>({dpd:num('scDdpDpd'),ups:num('scDdpUps')});
-const resiOn=()=>$('resi').checked, ddpOn=()=>$('ddp').checked;
+const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
+const accNet=a=>{const l=$('accList_'+a.key)?num('accList_'+a.key):(a.list||0);const d=$('accDisc_'+a.key)?num('accDisc_'+a.key):(a.disc||0);return l*(1-d/100);};
+const accDpd=a=>$('accDpd_'+a.key)?num('accDpd_'+a.key):(a.dpd||0);
+const accOn=a=>{const el=$('acc_'+a.key);return el&&el.checked;};
 const SERVICES=[
  {key:'ca',name:'DPD Classic Air',       carrier:'dpd',type:'band',src:'dpd_classic',    color:'#2563eb'},
  {key:'ae',name:'DPD Air Express',       carrier:'dpd',type:'band',src:'dpd_express',    color:'#7c3aed'},
@@ -225,12 +221,27 @@ const csel=$('country');
 const zoneFor=(svc,c)=>(P[svc.zmap]||{})[c]||'';
 function fuelOf(svc){const fc=$('fc_'+svc.key),fs=$('fs_'+svc.key);
   return {cost: fc?(parseFloat(fc.value)||0):0, sell: fs?(parseFloat(fs.value)||0):0};}
+function activeAcc(actual,L,W,H){
+  const sides=[L,W,H].filter(x=>x>0).sort((a,b)=>b-a);
+  const longest=sides[0]||0, second=sides[1]||0;
+  const girth=(L&&W&&H)?(longest+2*(sides[1]||0)+2*(sides[2]||0)):0;
+  const out=[];
+  accList().forEach(a=>{let t=false;
+    if(a.cond==='toggle') t=accOn(a);
+    else if(a.cond==='auto'){
+      if(a.key==='addlHandling') t = actual>25 || longest>100 || second>76;
+      else if(a.key==='largePackage') t = girth>300;
+      else if(a.key==='overMax') t = actual>70 || longest>274 || girth>400;
+    }
+    if(t) out.push(a);
+  });
+  return out;
+}
 function build(rawBase,svc){
   if(rawBase==null) return {base:null};
   const extras=[];
-  if(resiOn()){const v=surcResi()[svc.carrier]||0; if(v)extras.push(['Residential',v]);}
-  if(ddpOn()){const v=surcDdp()[svc.carrier]||0; if(v)extras.push(['DDP',v]);}
-  const extraTotal=extras.reduce((a,[,v])=>a+v,0);
+  ACTIVE.forEach(a=>{const amt=svc.carrier==='ups'?accNet(a):accDpd(a); if(amt>0)extras.push([a.name,Math.round(amt*100)/100]);});
+  const extraTotal=extras.reduce((s,[,v])=>s+v,0);
   const cbase=rawBase+extraTotal, f=fuelOf(svc);
   const costFuel=cbase*f.cost/100, totalCost=cbase+costFuel;
   const sellFuel=cbase*f.sell/100, sell=cbase+sellFuel;
@@ -255,6 +266,7 @@ let chart;
 function calc(){
   const c=csel.value,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
   const vol=(L&&W&&H)?(L*W*H)/P.divisor:0, chg=Math.max(actual,vol);
+  ACTIVE=activeAcc(actual,L,W,H);
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
   $('driver').textContent=!chg?'—':(vol>actual?'volumetric':'actual weight');
@@ -292,7 +304,7 @@ function calc(){
   if(!chg)v.innerHTML='Enter a weight to compare.';
   else if(sells.length<2)v.innerHTML=`Only one priced service for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>.`;
   else{const w=rows.find(x=>x.b.price!=null&&x.built.sell===min);
-    const tags=[];if(resiOn())tags.push('residential');if(ddpOn())tags.push('DDP');
+    const tags=ACTIVE.map(a=>a.name);
     const o=sells.filter(p=>p!==min).sort((a,b)=>a-b),nb=o[0],save=nb-min,pct=save/nb*100;
     v.innerHTML=`Cheapest for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>${tags.length?' ('+tags.join(', ')+')':''}: <b style="color:var(--g)">${w.svc.name}</b> — customer <b>${money(w.built.sell)}</b>, <b>£${save.toFixed(2)}</b> (${pct.toFixed(1)}%) cheaper than next best. <span style="color:var(--muted)">Your cost ${money(w.built.totalCost)}.</span>`;}
   drawChart(c);
@@ -323,27 +335,41 @@ function buildFuelTable(fbs){
   const tb=$('fuelBody');tb.innerHTML='';
   SERVICES.forEach(svc=>{const cfg=(fbs&&fbs[svc.key])||{cost:0,sell:0};
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${svc.name}</td>
-      <td><input id="fc_${svc.key}" type="number" step="0.01" value="${cfg.cost}"/></td>
-      <td><input id="fs_${svc.key}" type="number" step="0.01" value="${cfg.sell}"/></td>`;
+    tr.innerHTML=`<td>${svc.name}</td><td><input id="fc_${svc.key}" type="number" step="0.01" value="${cfg.cost}"/></td><td><input id="fs_${svc.key}" type="number" step="0.01" value="${cfg.sell}"/></td>`;
     tb.appendChild(tr);});
   SERVICES.forEach(svc=>{$('fc_'+svc.key).addEventListener('input',calc);$('fs_'+svc.key).addEventListener('input',calc);});
 }
-function loadSettingsInputs(s){
-  buildFuelTable(s.fuelByService||{});
-  const sc=s.surcharges||{}; const rz=sc.residential||{dpd:0,ups:0}, dz=sc.ddp||{dpd:0,ups:0};
-  $('scResiUps').value=rz.ups||0;$('scResiDpd').value=rz.dpd||0;$('scDdpUps').value=dz.ups||0;$('scDdpDpd').value=dz.dpd||0;
+function buildAccTable(){
+  const tb=$('accBody');tb.innerHTML='';
+  accList().forEach(a=>{const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${a.name}</td><td><span class="tagpill${a.cond==='auto'?' auto':''}">${a.cond==='auto'?'auto':'toggle'}</span></td>
+      <td><input id="accList_${a.key}" type="number" step="0.01" value="${a.list}"/></td>
+      <td><input id="accDisc_${a.key}" type="number" step="1" value="${a.disc}"/></td>
+      <td><span id="accNet_${a.key}"></span></td>
+      <td><input id="accDpd_${a.key}" type="number" step="0.01" value="${a.dpd||0}"/></td>`;
+    tb.appendChild(tr);});
+  accList().forEach(a=>{const upd=()=>{$('accNet_'+a.key).textContent=money(accNet(a));calc();};
+    $('accList_'+a.key).addEventListener('input',upd);$('accDisc_'+a.key).addEventListener('input',upd);
+    $('accDpd_'+a.key).addEventListener('input',calc);$('accNet_'+a.key).textContent=money(accNet(a));});
+}
+function renderToggles(){
+  const t=$('toggles');t.innerHTML='';
+  accList().filter(a=>a.cond==='toggle').forEach(a=>{const lab=document.createElement('label');lab.className='tg';
+    lab.innerHTML=`<input type="checkbox" id="acc_${a.key}"/> ${a.name}`;t.appendChild(lab);
+    lab.querySelector('input').addEventListener('change',calc);});
 }
 function bootCalc(){
   bands=P.bands;
-  const s=P.settings||{fuelByService:{},caps:{cp:31.5,ep:3},surcharges:{residential:{dpd:0,ups:0},ddp:{dpd:0,ups:0}}};
-  CAPS={cp:s.caps.cp, ep:s.caps.ep};
-  loadSettingsInputs(s);
+  const s=P.settings||{fuelByService:{},caps:{cp:31.5,ep:3},accessorials:[]};
+  CAPS={cp:(s.caps&&s.caps.cp)||31.5, ep:(s.caps&&s.caps.ep)||3};
+  buildFuelTable(s.fuelByService||{});
+  buildAccTable();
+  renderToggles();
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
-    ['country','wt','L','W','H','metric','scResiUps','scResiDpd','scDdpUps','scDdpDpd'].forEach(id=>$(id).addEventListener('input',calc));
-    ['metric','resi','ddp'].forEach(id=>$(id).addEventListener('change',calc));
+    ['country','wt','L','W','H','metric'].forEach(id=>$(id).addEventListener('input',calc));
+    $('metric').addEventListener('change',calc);
   }
   calc();
 }
@@ -398,8 +424,8 @@ $('settingsBtn').onclick=async()=>{screen('settings');if(authEnabled)await refre
 $('backBtn').onclick=()=>{screen('app');calc();};
 $('saveBtn').onclick=async()=>{$('saveMsg').className='ok';$('saveMsg').textContent='';
   const fbs={};SERVICES.forEach(svc=>{fbs[svc.key]={name:svc.name,cost:num('fc_'+svc.key),sell:num('fs_'+svc.key)};});
-  const body={fuelByService:fbs,surcharges:{residential:surcResi(),ddp:surcDdp()}};
-  const r=await jput('/api/settings',body);const d=await r.json();
+  const acc=accList().map(a=>({key:a.key,list:num('accList_'+a.key),disc:num('accDisc_'+a.key),dpd:num('accDpd_'+a.key)}));
+  const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc});const d=await r.json();
   if(!r.ok){$('saveMsg').className='err';$('saveMsg').textContent=(d.error||'Save failed')+(authEnabled?'':' — connect the database to save.');return;}
   P.settings=Object.assign(P.settings||{},d.settings);$('saveMsg').textContent='Saved. Applies to everyone.';calc();};
 async function refreshUsers(){

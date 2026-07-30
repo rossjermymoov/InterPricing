@@ -93,7 +93,7 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
       for (const k in o) { const v = o[k]; r[k] = (v && typeof v === 'object') ? numify(v) : Number(v); }
       return r;
     };
-    const { fuelByService, caps, surcharges } = req.body || {};
+    const { fuelByService, caps, accessorials } = req.body || {};
     if (fuelByService) {
       cfg.settings.fuelByService = cfg.settings.fuelByService || {};
       for (const k of Object.keys(fuelByService)) {
@@ -107,10 +107,17 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
       }
     }
     if (caps) cfg.settings.caps = { ...cfg.settings.caps, ...numify(caps) };
-    if (surcharges) {
-      cfg.settings.surcharges = cfg.settings.surcharges || {};
-      if (surcharges.residential) cfg.settings.surcharges.residential = { ...(cfg.settings.surcharges.residential || {}), ...numify(surcharges.residential) };
-      if (surcharges.ddp) cfg.settings.surcharges.ddp = { ...(cfg.settings.surcharges.ddp || {}), ...numify(surcharges.ddp) };
+    if (Array.isArray(accessorials)) {
+      const cur = cfg.settings.accessorials || [];
+      cfg.settings.accessorials = cur.map((a) => {
+        const inc = accessorials.find((x) => x.key === a.key) || {};
+        return {
+          ...a,
+          list: inc.list != null ? Number(inc.list) : a.list,
+          disc: inc.disc != null ? Number(inc.disc) : a.disc,
+          dpd: inc.dpd != null ? Number(inc.dpd) : a.dpd,
+        };
+      });
     }
     await db.setConfig(cfg);
     res.json({ settings: cfg.settings });

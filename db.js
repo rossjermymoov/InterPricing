@@ -68,9 +68,9 @@ async function migrateConfig() {
     if (!cfg.settings.fuelByService && seed.settings && seed.settings.fuelByService) {
       cfg.settings.fuelByService = seed.settings.fuelByService; changed = true;
     }
-    cfg.settings.surcharges = cfg.settings.surcharges || {};
-    if (!cfg.settings.surcharges.residential) { cfg.settings.surcharges.residential = { dpd: 0, ups: 0 }; changed = true; }
-    if (!cfg.settings.surcharges.ddp) { cfg.settings.surcharges.ddp = { dpd: 0, ups: 0 }; changed = true; }
+    if (!cfg.settings.accessorials && seed.settings && seed.settings.accessorials) {
+      cfg.settings.accessorials = seed.settings.accessorials; changed = true;
+    }
   }
   // Rate-data refresh: when seed.dataVersion changes, replace rate tables but preserve admin settings.
   if ((cfg.dataVersion || 0) !== (seed.dataVersion || 0)) {
