@@ -64,21 +64,10 @@ async function migrateConfig() {
   const cfg = r.rows[0].data;
   const seed = readSeed();
   let changed = false;
-  // Normalise markups to {cost, sell} objects, preserving any existing sell value.
-  const m = cfg.settings && cfg.settings.markups;
-  if (m && seed.settings && seed.settings.markups) {
-    for (const g of Object.keys(seed.settings.markups)) {
-      const def = seed.settings.markups[g];
-      const cur = m[g];
-      if (cur == null) { m[g] = { ...def }; changed = true; }
-      else if (typeof cur === 'number') { m[g] = { cost: def.cost, sell: cur }; changed = true; }
-      else if (typeof cur === 'object') {
-        const fixed = { cost: cur.cost != null ? cur.cost : def.cost, sell: cur.sell != null ? cur.sell : def.sell };
-        if (fixed.cost !== cur.cost || fixed.sell !== cur.sell) { m[g] = fixed; changed = true; }
-      }
-    }
-  }
   if (cfg.settings) {
+    if (!cfg.settings.fuelByService && seed.settings && seed.settings.fuelByService) {
+      cfg.settings.fuelByService = seed.settings.fuelByService; changed = true;
+    }
     cfg.settings.surcharges = cfg.settings.surcharges || {};
     if (!cfg.settings.surcharges.residential) { cfg.settings.surcharges.residential = { dpd: 0, ups: 0 }; changed = true; }
     if (!cfg.settings.surcharges.ddp) { cfg.settings.surcharges.ddp = { dpd: 0, ups: 0 }; changed = true; }

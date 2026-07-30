@@ -93,9 +93,19 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
       for (const k in o) { const v = o[k]; r[k] = (v && typeof v === 'object') ? numify(v) : Number(v); }
       return r;
     };
-    const { markups, fuel, caps, surcharges } = req.body || {};
-    if (markups) cfg.settings.markups = { ...cfg.settings.markups, ...numify(markups) };
-    if (fuel) cfg.settings.fuel = { ...cfg.settings.fuel, ...numify(fuel) };
+    const { fuelByService, caps, surcharges } = req.body || {};
+    if (fuelByService) {
+      cfg.settings.fuelByService = cfg.settings.fuelByService || {};
+      for (const k of Object.keys(fuelByService)) {
+        const cur = cfg.settings.fuelByService[k] || {};
+        const inc = fuelByService[k] || {};
+        cfg.settings.fuelByService[k] = {
+          name: inc.name || cur.name || k,
+          cost: inc.cost != null ? Number(inc.cost) : (cur.cost || 0),
+          sell: inc.sell != null ? Number(inc.sell) : (cur.sell || 0),
+        };
+      }
+    }
     if (caps) cfg.settings.caps = { ...cfg.settings.caps, ...numify(caps) };
     if (surcharges) {
       cfg.settings.surcharges = cfg.settings.surcharges || {};
