@@ -99,7 +99,8 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
     if (caps) cfg.settings.caps = { ...cfg.settings.caps, ...numify(caps) };
     if (surcharges) {
       cfg.settings.surcharges = cfg.settings.surcharges || {};
-      cfg.settings.surcharges.residential = { ...(cfg.settings.surcharges.residential || {}), ...numify(surcharges.residential || {}) };
+      if (surcharges.residential) cfg.settings.surcharges.residential = { ...(cfg.settings.surcharges.residential || {}), ...numify(surcharges.residential) };
+      if (surcharges.ddp) cfg.settings.surcharges.ddp = { ...(cfg.settings.surcharges.ddp || {}), ...numify(surcharges.ddp) };
     }
     await db.setConfig(cfg);
     res.json({ settings: cfg.settings });

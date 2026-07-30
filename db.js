@@ -13,6 +13,8 @@ if (process.env.DATABASE_URL) {
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.PGSSLMODE === 'disable' ? false : { rejectUnauthorized: false },
   });
+  // Don't let a transient connection drop crash the process.
+  pool.on('error', (e) => console.error('[db] idle client error (recovering):', e.message));
 }
 
 async function initDb() {
@@ -62,9 +64,10 @@ async function migrateConfig() {
       }
     }
   }
-  if (cfg.settings && !cfg.settings.surcharges) {
-    cfg.settings.surcharges = { residential: { dpd: 0, ups: 0 } };
-    changed = true;
+  if (cfg.settings) {
+    cfg.settings.surcharges = cfg.settings.surcharges || {};
+    if (!cfg.settings.surcharges.residential) { cfg.settings.surcharges.residential = { dpd: 0, ups: 0 }; changed = true; }
+    if (!cfg.settings.surcharges.ddp) { cfg.settings.surcharges.ddp = { dpd: 0, ups: 0 }; changed = true; }
   }
   if (changed) {
     await pool.query('UPDATE rate_config SET data = $1 WHERE id = 1', [JSON.stringify(cfg)]);
