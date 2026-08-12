@@ -3,6 +3,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>International Rate Calculator</title>
 <script src="/chart.umd.js"></script>
+<script src="/xlsx.full.min.js"></script>
 <style>
 :root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f1f5f9;--card:#fff;
 --g:#15803d;--g-bg:#dcfce7;--a:#b45309;--a-bg:#fef3c7;--r:#b91c1c;--r-bg:#fee2e2;--teal:#0f766e;}
@@ -165,6 +166,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <div class="f small"><label>W cm</label><input id="W" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>H cm</label><input id="H" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>Value £</label><input id="goodsValue" type="number" min="0" step="1" value="0"/></div>
+  <div class="f small"><label>Markup %</label><input id="markup" type="number" min="0" step="1" value="0"/></div>
 </div>
 <div class="toggles" id="toggles"></div>
 <div class="wt">
@@ -189,7 +191,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 </div>
 <div class="panel" id="reportPanel">
   <h2>Cheapest by country — report</h2>
-  <p class="chartnote" style="margin:0 0 10px">Select destinations below. Uses the weight, dimensions, value and options set above. Run to preview, then open a printable report.</p>
+  <p class="chartnote" style="margin:0 0 10px">Select destinations below. Uses the weight, dimensions, value, <b>markup</b> and options set above. Run to preview, open a printable report, or export a full customer rate card to Excel. With destinations selected the export is limited to them; with none selected it exports every country.</p>
   <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:8px">
     <div style="flex:1;min-width:260px">
       <input id="repSearch" placeholder="Search countries…" style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:6px;font-size:13px"/>
@@ -202,6 +204,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
       <button class="btn" id="repClear">Clear</button>
       <button class="btn primary" id="repRun">Run report</button>
       <button class="btn" id="repDoc">Open printable report</button>
+      <button class="btn primary" id="repXls">Export rate card (Excel)</button>
     </div>
   </div>
   <div id="repMsg" class="chartnote" style="color:var(--r)"></div>
@@ -215,6 +218,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 let P, bands, CAPS, current=null, authEnabled=false, ACTIVE=[];
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const num=id=>{const el=$(id);const v=el?parseFloat(el.value):NaN;return isNaN(v)?0:v;};
+const markupPct=()=>num('markup');
 const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
 const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];if(c==='USA')return 'usa';if(eu.includes(c))return 'eu';return 'row';};
 function accVal(a){
@@ -260,8 +264,10 @@ function build(rawBase,svc){
   ACTIVE.forEach(a=>{const amt=accAmount(a,svc);if(amt>0){if(a.fuelable){fuelable+=amt;fuelExtras.push([a.name,amt]);}else{flat+=amt;flatExtras.push([a.name,amt]);}}});
   const cbase=rawBase+fuelable, f=fuelOf(svc);
   const costFuel=cbase*f.cost/100, totalCost=cbase+costFuel+flat;
-  const sellFuel=cbase*f.sell/100, sell=cbase+sellFuel+flat;
-  return {raw:rawBase,fuelExtras,flatExtras,cbase,fc:f.cost,fs:f.sell,costFuel,totalCost,sellFuel,sell,cost:totalCost,base:rawBase};
+  const sellFuel=cbase*f.sell/100, sellShip=cbase+sellFuel;
+  const mk=markupPct(), markupAmt=sellShip*mk/100;
+  const sell=sellShip+markupAmt+flat;
+  return {raw:rawBase,fuelExtras,flatExtras,cbase,fc:f.cost,fs:f.sell,costFuel,totalCost,sellFuel,mk,markupAmt,sell,cost:totalCost,base:rawBase};
 }
 function baseRate(svc,c,chg){
   if(svc.type==='band'){const arr=P[svc.src][c];if(!arr)return{price:null,avail:false};
@@ -314,6 +320,7 @@ function calc(){
           <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
           ${fuelLines}
           <div class="row"><span>Fuel (${built.fs.toFixed(1)}%)</span><span>${money(built.sellFuel)}</span></div>
+          ${built.mk?`<div class="row"><span>Markup (${built.mk.toFixed(0)}%)</span><span>${money(built.markupAmt)}</span></div>`:''}
           ${flatLines}
           <div class="row tot"><span>Total customer price</span><span>${money(built.sell)}</span></div>
         </div>`;}
@@ -393,7 +400,7 @@ function bootCalc(){
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
-    ['country','wt','L','W','H','goodsValue','metric'].forEach(id=>$(id).addEventListener('input',calc));
+    ['country','wt','L','W','H','goodsValue','markup','metric'].forEach(id=>$(id).addEventListener('input',calc));
     $('metric').addEventListener('change',calc);
   }
   calc();
@@ -545,6 +552,104 @@ function generateReport(){
     +'</body></html>';
   const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();}
 }
+// ---------- rate card export (Excel) ----------
+function zonePrice(z,weight){
+  if(!z||!z.bands)return null;
+  const b=z.bands,mB=b[b.length-1][0];
+  if(weight<=mB+1e-9){for(const[w,pr]of b)if(w>=weight-1e-9)return pr;}
+  return b[b.length-1][1];
+}
+function cardSell(svc,rawBase){
+  if(rawBase==null)return null;
+  const f=fuelOf(svc),mk=markupPct();
+  return rawBase*(1+f.sell/100)*(1+mk/100);
+}
+function exportRateCard(){
+  if(typeof XLSX==='undefined'){$('repMsg').textContent='Excel export library did not load — reload the page and try again.';return;}
+  $('repMsg').textContent='';
+  const sel=selectedCountries();
+  const countrySet=sel.length?new Set(sel):null;
+  const inSet=c=>!countrySet||countrySet.has(c);
+  const mk=markupPct();
+  const gbp=v=>v==null?'':Math.round(v*100)/100;
+  const wb=XLSX.utils.book_new();
+  const add=(rows,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name.slice(0,31));
+  const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+  // Cover
+  const cover=[
+    ['International Rate Card'],
+    ['Generated',now],
+    ['Markup applied',mk+'%'],
+    ['Scope',countrySet?(sel.length+' selected destinations'):'All destinations'],
+    [],
+    ['All rate-sheet prices are customer sell prices in GBP, including fuel and the markup above, excluding VAT.'],
+    ['Per-shipment surcharges and duty / clearance charges are on the Surcharges sheet and apply in addition to these rates.'],
+    ['The "Cheapest by country" sheet is a worked quote at the parcel spec below and includes applicable duty handling.'],
+    [],
+    ['Parcel spec used for the summary'],
+    ['Weight (kg)',num('wt')],
+    ['Dimensions (cm)',(num('L')&&num('W')&&num('H'))?(num('L')+' x '+num('W')+' x '+num('H')):'—'],
+    ['Goods value (£)',num('goodsValue')],
+    [],
+    ['Fuel by service (sell %)'],
+  ];
+  SERVICES.forEach(svc=>cover.push([svc.name,fuelOf(svc).sell+'%']));
+  add(cover,'Rate Card');
+
+  // UPS zone grids
+  [['ux','UPS Express Saver'],['us','UPS Standard']].forEach(([k,title])=>{
+    const svc=SERVICES.find(s=>s.key===k),src=P[svc.src]||{};
+    const zones=Object.keys(src).sort((a,b)=>parseFloat(a)-parseFloat(b));
+    const rows=[[title+' — customer prices (GBP)'],['Weight (kg)',...zones.map(z=>'Zone '+z)]];
+    bands.forEach(w=>{rows.push([w,...zones.map(z=>{const r=zonePrice(src[z],w);return r==null?'':gbp(cardSell(svc,r));})]);});
+    add(rows,title);
+  });
+
+  // UPS zone guide
+  const zg=[['Country','Express Saver zone','Standard zone']];
+  P.countries.filter(inSet).forEach(c=>{const ez=(P.c2zone_express||{})[c]||'',sz=(P.c2zone_standard||{})[c]||'';if(ez||sz)zg.push([c,ez,sz]);});
+  add(zg,'UPS Zone Guide');
+
+  // DPD banded services
+  [['ca','DPD Classic Air'],['ae','DPD Air Express']].forEach(([k,title])=>{
+    const svc=SERVICES.find(s=>s.key===k),src=P[svc.src]||{};
+    const rows=[[title+' — customer prices (GBP)'],['Country',...bands.map(w=>w+' kg')]];
+    Object.keys(src).sort().filter(inSet).forEach(c=>{const arr=src[c];if(arr)rows.push([c,...arr.map(p=>p==null?'':gbp(cardSell(svc,p)))]);});
+    add(rows,title);
+  });
+
+  // DPD flat services
+  [['cp','DPD Classic Parcel',CAPS.cp],['ep','DPD Classic ExpressPak',CAPS.ep]].forEach(([k,title,cap])=>{
+    const svc=SERVICES.find(s=>s.key===k),src=P[svc.src]||{};
+    const rows=[[title+' — customer prices (GBP)'],['Country','Price (<='+cap+' kg)']];
+    Object.keys(src).sort().filter(inSet).forEach(c=>{const p=src[c];if(p!=null)rows.push([c,gbp(cardSell(svc,p))]);});
+    add(rows,title);
+  });
+
+  // Surcharges
+  const trgTxt=a=>a.cond==='auto'?'Auto — by size/weight':(a.cond==='always'?'Every shipment':(a.cond==='countryIn'?(a.countries||[]).join(', '):(a.cond==='region'?a.region.toUpperCase()+' destinations':'When selected')));
+  const sur=[['Surcharge','Carrier','When it applies','Customer rate']];
+  accList().forEach(a=>{let rate;
+    if(a.basis==='pctValue')rate=(a.pct||0)+'% of goods value'+(a.min?' (min £'+Number(a.min).toFixed(2)+')':'');
+    else rate='£'+((a.list||0)*(1-(a.disc||0)/100)).toFixed(2)+' per shipment';
+    sur.push([a.name,(a.applyTo||'').toUpperCase(),trgTxt(a),rate]);});
+  add(sur,'Surcharges');
+
+  // Cheapest by country
+  const spec=num('wt')+' kg'+((num('L')&&num('W')&&num('H'))?(' ('+num('L')+'x'+num('W')+'x'+num('H')+' cm)'):'');
+  const summ=[['Cheapest by country at '+spec+' — includes duty handling'],['Country','Cheapest service','Customer price','Next best','You save']];
+  (sel.length?sel:P.countries).forEach(c=>{const priced=repPrice(c);
+    if(!priced.length){summ.push([c,'no services','','','']);return;}
+    const win=priced[0],next=priced[1];
+    summ.push([c,win.name,gbp(win.sell),next?next.name:'',next?gbp(next.sell-win.sell):'']);});
+  calc();
+  add(summ,'Cheapest by country');
+
+  XLSX.writeFile(wb,'Rate card '+now.replace(/ /g,'-')+'.xlsx');
+}
+$('repXls').onclick=exportRateCard;
+
 $('repSearch').addEventListener('input',()=>{const q=$('repSearch').value.toLowerCase();document.querySelectorAll('#repList .replab').forEach(l=>{l.style.display=l.textContent.toLowerCase().includes(q)?'':'none';});});
 $('repList').addEventListener('change',updateRepCount);
 $('repAll').onclick=()=>{document.querySelectorAll('.repC').forEach(x=>x.checked=true);updateRepCount();};
