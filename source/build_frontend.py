@@ -100,8 +100,12 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 .miniform{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .miniform .f input,.miniform .f select{padding:8px}.miniform .f label{font-size:10.5px}
 .rolechip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3}
-.rcchecks{display:flex;flex-direction:column;gap:9px}
-.rcchecks label{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:#334155;cursor:pointer}
+.rcchecks{display:flex;flex-direction:column;gap:14px}
+.rcgroup{display:flex;flex-direction:column;gap:7px}
+.rchead{display:flex;align-items:center;gap:8px;font-size:13px;color:#334155;cursor:pointer}
+.rchead b{font-size:13.5px;letter-spacing:.02em}
+.rchead .rcall{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.rcitem{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:#334155;cursor:pointer;padding-left:20px}
 .rcchecks .sw{width:11px;height:11px;border-radius:3px;flex:none}
 .rcchecks input{width:16px;height:16px;accent-color:var(--teal)}
 label.blk{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:700;margin-bottom:10px}
@@ -304,13 +308,14 @@ function accVal(a){
 }
 const accOn=a=>{const el=$('acc_'+a.key);return el&&el.checked;};
 const SERVICES=[
- {key:'ca',name:'DPD Classic Air',       carrier:'dpd',type:'band',src:'dpd_classic',    color:'#2563eb'},
- {key:'ae',name:'DPD Air Express',       carrier:'dpd',type:'band',src:'dpd_express',    color:'#7c3aed'},
- {key:'ep',name:'DPD Classic ExpressPak',carrier:'dpd',type:'flat',src:'dpd_expresspak', cap:'ep', color:'#db2777'},
- {key:'cp',name:'DPD Classic Parcel',    carrier:'dpd',type:'flat',src:'dpd_parcel',     cap:'cp', color:'#0891b2'},
- {key:'ux',name:'UPS Express Saver',     carrier:'ups',type:'zone',src:'ups_express', zmap:'c2zone_express',  color:'#0f766e'},
- {key:'us',name:'UPS Standard',          carrier:'ups',type:'zone',src:'ups_standard',zmap:'c2zone_standard', color:'#ea580c'},
+ {key:'ca',name:'DPD Classic Air',       carrier:'dpd',type:'band',src:'dpd_classic',    color:'#dc2626'},
+ {key:'ae',name:'DPD Air Express',       carrier:'dpd',type:'band',src:'dpd_express',    color:'#991b1b'},
+ {key:'ep',name:'DPD Classic ExpressPak',carrier:'dpd',type:'flat',src:'dpd_expresspak', cap:'ep', color:'#f87171'},
+ {key:'cp',name:'DPD Classic Parcel',    carrier:'dpd',type:'flat',src:'dpd_parcel',     cap:'cp', color:'#7f1d1d'},
+ {key:'ux',name:'UPS Express Saver',     carrier:'ups',type:'zone',src:'ups_express', zmap:'c2zone_express',  color:'#b45309'},
+ {key:'us',name:'UPS Standard',          carrier:'ups',type:'zone',src:'ups_standard',zmap:'c2zone_standard', color:'#eab308'},
 ];
+const CARRIERS=[{key:'dpd',name:'DPD',color:'#dc2626'},{key:'ups',name:'UPS',color:'#b45309'}];
 const csel=$('country');
 const zoneFor=(svc,c)=>(P[svc.zmap]||{})[c]||'';
 function fuelOf(svc){const fc=$('fc_'+svc.key),fs=$('fs_'+svc.key);
@@ -685,9 +690,24 @@ function cardSell(svc,rawBase){
 // ---- rate card options (customer-facing) ----
 function renderRcServices(){
   const box=$('rcServices');if(!box)return;box.innerHTML='';
-  SERVICES.forEach(svc=>{const lab=document.createElement('label');
-    lab.innerHTML=`<input type="checkbox" id="rcSvc_${svc.key}" checked/> <span class="sw" style="background:${svc.color}"></span>${svc.name}`;
-    box.appendChild(lab);});
+  CARRIERS.forEach(car=>{
+    const svcs=SERVICES.filter(s=>s.carrier===car.key);if(!svcs.length)return;
+    const grp=document.createElement('div');grp.className='rcgroup';
+    const head=document.createElement('label');head.className='rchead';
+    head.innerHTML=`<input type="checkbox" id="rcAll_${car.key}" checked/> <span class="sw" style="background:${car.color}"></span><b style="color:${car.color}">${car.name}</b> <span class="rcall">select all</span>`;
+    grp.appendChild(head);
+    svcs.forEach(svc=>{const lab=document.createElement('label');lab.className='rcitem';
+      lab.innerHTML=`<input type="checkbox" class="rc_${car.key}" id="rcSvc_${svc.key}" checked/> <span class="sw" style="background:${svc.color}"></span>${svc.name}`;
+      grp.appendChild(lab);});
+    box.appendChild(grp);
+  });
+  CARRIERS.forEach(car=>{const master=$('rcAll_'+car.key);if(!master)return;
+    const items=[...document.querySelectorAll('.rc_'+car.key)];
+    master.addEventListener('change',()=>{items.forEach(i=>i.checked=master.checked);});
+    items.forEach(i=>i.addEventListener('change',()=>{
+      const on=items.filter(x=>x.checked).length;
+      master.checked=on===items.length;master.indeterminate=on>0&&on<items.length;}));
+  });
 }
 function selectedServices(){return SERVICES.filter(s=>{const el=$('rcSvc_'+s.key);return !el||el.checked;});}
 function rcTitle(){return ($('rcTitle')&&$('rcTitle').value.trim())||'International Rate Card';}
