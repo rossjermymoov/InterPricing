@@ -5,8 +5,9 @@
 <script src="/chart.umd.js"></script>
 <script src="/xlsx.full.min.js"></script>
 <style>
-:root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--bg:#f1f5f9;--card:#fff;
---g:#15803d;--g-bg:#dcfce7;--a:#b45309;--a-bg:#fef3c7;--r:#b91c1c;--r-bg:#fee2e2;--teal:#0f766e;}
+:root{--ink:#171B2D;--muted:#64748b;--line:#e2e8f0;--bg:#f1f5f9;--card:#fff;
+--g:#15803d;--g-bg:#dcfce7;--a:#b45309;--a-bg:#fef3c7;--r:#b91c1c;--r-bg:#fee2e2;--teal:#0E9C63;
+--brand:#171B2D;--green:#1DFB9D;--pink:#CD1C69;}
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
 .wrap{max-width:1160px;margin:0 auto;padding:22px 22px 56px}
@@ -16,8 +17,10 @@ h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em}
 .f label{display:block;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
 .f input,.f select{padding:9px 10px;border:1px solid #cbd5e1;border-radius:9px;font-size:14px;background:#fff;color:var(--ink)}
 .f input:focus,.f select:focus{outline:2px solid var(--teal);border-color:var(--teal)}
-.f.country{flex:1;min-width:180px}.f.country select{width:100%}
-.f.small input{width:78px;text-align:right;font-variant-numeric:tabular-nums}
+.f.country select{width:220px;max-width:100%}
+.f.small input{width:82px;text-align:right;font-variant-numeric:tabular-nums}
+.calcrow input[type=number]::-webkit-inner-spin-button,.calcrow input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.calcrow input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .toggles{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
 .tg{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#334155}
 .tg input{width:16px;height:16px;accent-color:var(--teal)}
@@ -27,6 +30,9 @@ h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em}
 .res{border:1px solid var(--line);border-radius:14px;padding:15px;position:relative;background:#fff}
 .res .car{font-size:12.5px;font-weight:700;color:#334155;display:flex;align-items:center;gap:7px}
 .res .swatch{width:10px;height:10px;border-radius:3px;flex:none}
+.res .clogo{height:22px;width:auto;max-width:74px;object-fit:contain;display:inline-block;vertical-align:middle}
+.res .cbadge{font-size:9.5px;font-weight:800;color:#fff;padding:2px 7px;border-radius:5px;letter-spacing:.03em}
+.res .cbadge.dpd{background:#DC2626}.res .cbadge.ups{background:#8B4513}.res .cbadge.dhl{background:#D4A017}
 .res .pr{font-size:25px;font-weight:800;letter-spacing:-.02em;margin:6px 0 0}
 .res .sub{font-size:11px;color:var(--muted);margin-bottom:8px}
 .res .brk{font-size:11.5px;color:#475569;line-height:1.6}
@@ -57,10 +63,16 @@ h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em}
 .authbox button{margin-top:18px;width:100%;padding:11px;border:0;border-radius:9px;background:var(--teal);color:#fff;font-weight:700;font-size:14px;cursor:pointer}
 .err{color:var(--r);font-size:12.5px;margin-top:10px;min-height:16px}
 .ok{color:var(--g);font-size:12.5px;margin-left:10px}
-header#hdr{display:none;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
-header#hdr .brand{font-weight:800;letter-spacing:-.01em;font-size:15px}
+header#hdr{display:none;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap;
+  padding:13px 18px;background:#171B2D;color:#fff;border-radius:0 0 14px 14px;border-bottom:3px solid transparent;
+  background-image:linear-gradient(#171B2D,#171B2D),linear-gradient(90deg,var(--green),var(--pink));
+  background-origin:border-box;background-clip:padding-box,border-box}
+header#hdr .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:-.01em;font-size:14px}
+header#hdr .brand img{height:30px;width:auto;display:block}
+header#hdr .brand .fallback{font-weight:900;font-size:20px;color:var(--green)}
+header#hdr .brand .ttl{color:#9aa3b5;font-weight:600;border-left:1px solid #333a4d;padding-left:12px}
 header#hdr .actions{display:flex;gap:8px;align-items:center}
-header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
+header#hdr .who{color:#9aa3b5;font-size:13px;margin-right:4px}
 .btn{padding:6px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
 .btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
 .btn.danger{color:var(--r);border-color:#fca5a5}
@@ -106,7 +118,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 <body><div class="wrap">
 
 <header id="hdr">
-  <div class="brand">International Rate Calculator</div>
+  <div class="brand"><img src="/logo.png" alt="MOOV Parcel" onerror="this.outerHTML='&lt;span class=\'fallback\'&gt;moov parcel&lt;/span&gt;'"/><span class="ttl">Rate Calculator</span></div>
   <div class="actions">
     <span class="who" id="who"></span>
     <button class="btn" id="settingsBtn" style="display:none">Settings</button>
@@ -188,12 +200,12 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 <div id="app" style="display:none">
 <div class="panel">
 <div class="calcrow">
-  <div class="f country"><label>Country</label><select id="country"></select></div>
-  <div class="f small"><label>Weight kg</label><input id="wt" type="number" min="0" step="0.1" value="5"/></div>
-  <div class="f small"><label>L cm</label><input id="L" type="number" min="0" step="1" placeholder="—"/></div>
-  <div class="f small"><label>W cm</label><input id="W" type="number" min="0" step="1" placeholder="—"/></div>
-  <div class="f small"><label>H cm</label><input id="H" type="number" min="0" step="1" placeholder="—"/></div>
-  <div class="f small"><label>Value £</label><input id="goodsValue" type="number" min="0" step="1" value="0"/></div>
+  <div class="f country"><label>Destination</label><select id="country"></select></div>
+  <div class="f small"><label>Weight (kg)</label><input id="wt" type="number" min="0" step="0.1" value="5"/></div>
+  <div class="f small"><label>Length (cm)</label><input id="L" type="number" min="0" step="1"/></div>
+  <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
+  <div class="f small"><label>Height (cm)</label><input id="H" type="number" min="0" step="1"/></div>
+  <div class="f small"><label>Value (£)</label><input id="goodsValue" type="number" min="0" step="1" value="0"/></div>
 </div>
 <div class="toggles" id="toggles"></div>
 <div class="wt">
@@ -293,6 +305,10 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 <script>
 let P, bands, CAPS, current=null, authEnabled=false, ACTIVE=[];
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
+const CARRIER_LOGOS={dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
+function carrierLogo(carrier){const k=(carrier||'').toLowerCase();const src=CARRIER_LOGOS[k]||('/carrier-'+k+'.svg');
+  return '<img class="clogo" src="'+src+'" data-k="'+k+'" data-c="'+k.toUpperCase()+'" alt="'+k+'"/>';}
+function wireLogos(box){box.querySelectorAll('img.clogo').forEach(img=>{const fb=()=>{img.outerHTML='<span class="cbadge '+img.dataset.k+'">'+img.dataset.c+'</span>';};img.onerror=fb;if(img.complete&&!img.naturalWidth)fb();});}
 const num=id=>{const el=$(id);const v=el?parseFloat(el.value):NaN;return isNaN(v)?0:v;};
 function markupPct(svc){
   return svc&&$('mk_'+svc.key) ? num('mk_'+svc.key) : num('mkGlobal');
@@ -382,7 +398,7 @@ function calc(){
     else if(built.sell===min&&sells.length>1)cls+=' win';
     else if(built.sell===max&&sells.length>1)cls+=' lose';else cls+=' mid';
     d.className=cls;
-    const head=`<div class="car"><span class="swatch" style="background:${svc.color}"></span>${svc.name}</div>`;
+    const head=`<div class="car">${carrierLogo(svc.carrier)}<span>${svc.name}</span></div>`;
     if(b.price==null)d.innerHTML=head+`<div class="pr">n/a</div><div class="brk">${b.note||'no rate'}</div>`;
     else{const badge=(built.sell===min&&sells.length>1)?'<span class="badge">CHEAPEST</span>':'';
       const bt=typeof b.band==='number'?b.band+' kg':b.band;
@@ -406,6 +422,7 @@ function calc(){
         </div>`;}
     R.appendChild(d);
   });
+  wireLogos(R);
   const v=$('verdict');
   if(!chg)v.innerHTML='Enter a weight to compare.';
   else if(sells.length<2)v.innerHTML=`Only one priced service for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>.`;
