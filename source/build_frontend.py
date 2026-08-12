@@ -185,6 +185,12 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     <table class="stable"><thead><tr><th>Accessorial</th><th>Carrier</th><th>Trigger</th><th>List £ / Rate %</th><th>Disc % / Min £</th><th>Net</th></tr></thead><tbody id="accBody"></tbody></table>
   </div>
   <div class="panel"><button class="btn primary" id="saveBtn">Save settings</button><span class="ok" id="saveMsg"></span></div>
+  <div class="panel" id="ratesPanel">
+    <h2>Rate data</h2>
+    <p class="adminnote">Export all current DPD &amp; UPS base (cost) rates to Excel to review them — one sheet per service, plus zones, fuel and accessorials. These are your raw rates, not customer prices. Re-import to update them (coming next once you've confirmed the layout).</p>
+    <button class="btn primary" id="ratesExport">Export current rates (Excel)</button>
+    <span class="ok" id="ratesMsg"></span>
+  </div>
   <div class="panel" id="teamPanel">
     <h2>Team members</h2>
     <table class="utable"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Reset password</th><th></th></tr></thead><tbody id="usersBody"></tbody></table>
@@ -285,10 +291,6 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
       <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcCheapest" checked/> Show a “best price” column on the combined card</label>
       <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcBreakdown"/> Show base price and fuel separately</label>
     </div>
-  </div>
-  <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-    <button class="btn primary" id="repXls">Export card — one page per service</button>
-    <button class="btn primary" id="repMix">Export combined card — all options together</button>
   </div>
   <div id="rcMsg" class="chartnote" style="color:var(--r);margin-top:8px"></div>
 </div>
@@ -831,7 +833,6 @@ function exportRateCard(){
   const safeCo=co.replace(/[\\/:*?"<>|]/g,'').trim();
   XLSX.writeFile(wb,(rcTitle().replace(/[\\/:*?"<>|]/g,''))+(safeCo?' - '+safeCo:'')+' '+now.replace(/ /g,'-')+'.xlsx');
 }
-$('repXls').onclick=exportRateCard;
 function exportMixedCard(){
   if(typeof XLSX==='undefined'){$('rcMsg').textContent='Excel export library did not load — reload the page and try again.';return;}
   $('rcMsg').textContent='';
@@ -871,7 +872,6 @@ function exportMixedCard(){
   const safeCo=co.replace(/[\\/:*?"<>|]/g,'').trim();
   XLSX.writeFile(wb,(rcTitle().replace(/[\\/:*?"<>|]/g,''))+(safeCo?' - '+safeCo:'')+' options '+now.replace(/ /g,'-')+'.xlsx');
 }
-$('repMix').onclick=exportMixedCard;
 
 // ---------- customer rate cards (shareable links) ----------
 let cardsCache=[];
@@ -898,19 +898,44 @@ async function refreshCards(){
   cardsCache=(cards||[]).slice().sort((a,b)=>(a.customer||'').toLowerCase().localeCompare((b.customer||'').toLowerCase()));
   renderCards();
 }
+const svcName=k=>{const s=SERVICES.find(x=>x.key===k);return s?s.name:k;};
+const svcColor=k=>{const s=SERVICES.find(x=>x.key===k);return s?s.color:'#94a3b8';};
+function cardDetailHTML(c){
+  const cfg=c.config||{};
+  const svcs=(cfg.services&&cfg.services.length)?cfg.services:SERVICES.map(s=>s.key);
+  const mk=cfg.markup;
+  const rows=svcs.map(k=>{const m=(typeof mk==='number')?mk:((mk&&mk[k])||0);
+    return `<tr><td style="padding:3px 16px 3px 0"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${svcColor(k)};margin-right:7px"></span>${svcName(k)}</td>`
+      +`<td style="padding:3px 0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">${m}% markup</td></tr>`;}).join('');
+  const extras=[];
+  if(cfg.title)extras.push('Title: '+cfg.title);
+  if(cfg.breakdown)extras.push('Shows base price + fuel separately');
+  if(cfg.includeSurcharges===false)extras.push('No surcharges page');
+  const created=c.created_at?new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+  return `<div style="padding:8px 10px 14px 40px">`
+    +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px">Markup quoted to this customer${created?' · created '+created:''}</div>`
+    +`<table style="width:auto;border:none"><tbody>${rows}</tbody></table>`
+    +(extras.length?`<div style="margin-top:9px;color:var(--muted);font-size:12px">${extras.join(' · ')}</div>`:'')
+    +`</div>`;
+}
 function renderCards(){
   const q=($('custSearch').value||'').toLowerCase();
   const list=cardsCache.filter(c=>(c.customer||'').toLowerCase().includes(q));
   const tb=$('custBody');tb.innerHTML='';
   list.forEach(c=>{const url=cardUrl(c.token);const tr=document.createElement('tr');
-    tr.innerHTML=`<td><b>${c.customer||'—'}</b></td>`
+    tr.innerHTML=`<td style="white-space:nowrap"><button class="btn exBtn" data-id="${c.id}" style="padding:2px 9px;margin-right:6px">▸</button><b>${c.customer||'—'}</b></td>`
       +`<td><a href="${url}" target="_blank" rel="noopener" style="color:var(--teal);word-break:break-all">${url}</a></td>`
       +`<td>${c.enabled?'<span class="rolechip" style="background:var(--g-bg);color:var(--g)">live</span>':'<span class="rolechip" style="background:#fee2e2;color:var(--r)">off</span>'}</td>`
       +`<td style="white-space:nowrap"><button class="btn copyBtn" data-u="${url}">Copy</button> `
       +`<button class="btn tglBtn" data-id="${c.id}" data-en="${c.enabled?0:1}">${c.enabled?'Disable':'Enable'}</button> `
       +`<button class="btn danger delCardBtn" data-id="${c.id}">Delete</button></td>`;
-    tb.appendChild(tr);});
+    tb.appendChild(tr);
+    const dr=document.createElement('tr');dr.className='detailRow';dr.dataset.id=c.id;dr.style.display='none';
+    dr.innerHTML=`<td colspan="4" style="background:#f8fafc">${cardDetailHTML(c)}</td>`;
+    tb.appendChild(dr);});
   $('custEmpty').textContent=cardsCache.length?(list.length?'':'No customers match your search.'):'No customer links yet — save one above.';
+  tb.querySelectorAll('.exBtn').forEach(b=>b.onclick=()=>{const dr=tb.querySelector('.detailRow[data-id="'+b.dataset.id+'"]');
+    const open=dr.style.display!=='none';dr.style.display=open?'none':'';b.textContent=open?'▸':'▾';});
   tb.querySelectorAll('.copyBtn').forEach(b=>b.onclick=()=>{const t=b.dataset.u;
     if(navigator.clipboard)navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200);});
   tb.querySelectorAll('.tglBtn').forEach(b=>b.onclick=async()=>{await jpatch('/api/cards/'+b.dataset.id,{enabled:b.dataset.en==='1'});await refreshCards();});
@@ -918,6 +943,55 @@ function renderCards(){
 }
 $('custSave').onclick=saveCard;
 $('custSearch').addEventListener('input',renderCards);
+
+// ---------- Settings: export raw rate data ----------
+function exportRates(){
+  if(typeof XLSX==='undefined'){$('ratesMsg').className='err';$('ratesMsg').textContent='Excel library did not load — reload and try again.';return;}
+  $('ratesMsg').className='ok';$('ratesMsg').textContent='';
+  const wb=XLSX.utils.book_new();
+  const add=(rows,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name.slice(0,31));
+  const B=P.bands;
+  // DPD banded (country x weight band)
+  [['dpd_classic','DPD Air Classic'],['dpd_express','DPD Air Express']].forEach(([src,title])=>{
+    const rows=[['Country',...B]];
+    Object.keys(P[src]).sort().forEach(c=>rows.push([c,...P[src][c].map(v=>v==null?'':v)]));
+    add(rows,title);
+  });
+  // DPD flat (country -> price)
+  [['dpd_parcel','DPD Classic Parcel'],['dpd_expresspak','DPD Classic ExpressPak']].forEach(([src,title])=>{
+    const rows=[['Country','Rate']];
+    Object.keys(P[src]).sort().forEach(c=>{if(P[src][c]!=null)rows.push([c,P[src][c]]);});
+    add(rows,title);
+  });
+  // UPS zone grids (weight x zone)
+  [['ups_express','UPS Express Saver'],['ups_standard','UPS Standard']].forEach(([src,title])=>{
+    const zones=Object.keys(P[src]).sort((a,b)=>parseFloat(a)-parseFloat(b));
+    const wset=new Set();zones.forEach(z=>(P[src][z].bands||[]).forEach(([w])=>wset.add(w)));
+    const weights=[...wset].sort((a,b)=>a-b);
+    const rows=[['Up to kg',...zones.map(z=>'Zone '+z)]];
+    weights.forEach(w=>{rows.push([w,...zones.map(z=>{const b=(P[src][z].bands||[]).find(x=>x[0]===w);return b?b[1]:'';})]);});
+    add(rows,title);
+  });
+  // UPS country -> zone
+  const zr=[['Country','Express Saver zone','Standard zone']];
+  P.countries.forEach(c=>{const e=(P.c2zone_express||{})[c]||'',s=(P.c2zone_standard||{})[c]||'';if(e||s)zr.push([c,e,s]);});
+  add(zr,'UPS Zones');
+  // Fuel
+  const f=(P.settings&&P.settings.fuelByService)||{};
+  const fr=[['Service key','Service','Fuel cost %','Fuel sell %']];
+  SERVICES.forEach(s=>{const cf=f[s.key]||{};fr.push([s.key,s.name,cf.cost||0,cf.sell||0]);});
+  add(fr,'Fuel');
+  // Caps
+  add([['Cap','kg'],['cp (Classic Parcel)',CAPS.cp],['ep (ExpressPak)',CAPS.ep]],'Caps');
+  // Accessorials
+  const ar=[['key','name','carrier','basis','list','disc','pct','min']];
+  accList().forEach(a=>ar.push([a.key,a.name,a.applyTo,a.basis,a.list==null?'':a.list,a.disc==null?'':a.disc,a.pct==null?'':a.pct,a.min==null?'':a.min]));
+  add(ar,'Accessorials');
+  const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}).replace(/ /g,'-');
+  XLSX.writeFile(wb,'MOOV rates '+now+'.xlsx');
+  $('ratesMsg').textContent='Exported.';
+}
+$('ratesExport').onclick=exportRates;
 
 $('repSearch').addEventListener('input',()=>{const q=$('repSearch').value.toLowerCase();document.querySelectorAll('#repList .replab').forEach(l=>{l.style.display=l.textContent.toLowerCase().includes(q)?'':'none';});});
 $('repList').addEventListener('change',updateRepCount);

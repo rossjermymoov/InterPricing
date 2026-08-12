@@ -107,8 +107,11 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
 let RC=null;
-function carrierMark(c){const k=c.toLowerCase();
-  return '<img class="cmark" src="/carrier-'+k+'.svg" data-k="'+k+'" data-c="'+c+'" alt="'+c+'"/>';}
+const CARRIER_LOGOS={
+  dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',
+  ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
+function carrierMark(c){const k=c.toLowerCase();const src=CARRIER_LOGOS[k]||('/carrier-'+k+'.svg');
+  return '<img class="cmark" src="'+src+'" data-k="'+k+'" data-c="'+c+'" alt="'+c+'"/>';}
 function wireCarrierMarks(box){box.querySelectorAll('img.cmark').forEach(img=>{
   const fb=()=>{img.outerHTML='<span class="cbadge '+img.dataset.k+'">'+img.dataset.c+'</span>';};
   img.onerror=fb; if(img.complete&&!img.naturalWidth)fb();});}
