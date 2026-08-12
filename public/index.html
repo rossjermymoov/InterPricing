@@ -166,7 +166,6 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <div class="f small"><label>W cm</label><input id="W" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>H cm</label><input id="H" type="number" min="0" step="1" placeholder="—"/></div>
   <div class="f small"><label>Value £</label><input id="goodsValue" type="number" min="0" step="1" value="0"/></div>
-  <div class="f small"><label>Markup %</label><input id="markup" type="number" min="0" step="1" value="0"/></div>
 </div>
 <div class="toggles" id="toggles"></div>
 <div class="wt">
@@ -188,6 +187,21 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 </div>
 <div class="chartbox"><canvas id="chart"></canvas></div>
 <p class="chartnote" id="chartnote"></p>
+</div>
+<div class="panel" id="cardPanel">
+  <h2>Create rate card</h2>
+  <div class="calcrow">
+    <div class="f" style="flex:1;min-width:220px"><label>Customer / company name</label><input id="cardCo" type="text" placeholder="e.g. Slumba Ltd" style="width:100%"/></div>
+    <div class="f"><label>Markup type</label>
+      <div style="display:flex;gap:16px;padding:8px 0 2px">
+        <label class="tg"><input type="radio" name="mkMode" value="flat" checked/> Flat</label>
+        <label class="tg"><input type="radio" name="mkMode" value="service"/> Per service</label>
+      </div>
+    </div>
+    <div class="f small" id="mkFlatWrap"><label>Markup %</label><input id="mkFlat" type="number" min="0" step="1" value="0"/></div>
+  </div>
+  <div id="mkServiceWrap" style="display:none;flex-wrap:wrap;gap:16px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)"></div>
+  <p class="chartnote" style="margin-top:10px">Markup applies to the base rate and fuel only — duties and per-shipment surcharges are passed through without markup. It drives the on-screen customer prices, the report, and the exported rate card.</p>
 </div>
 <div class="panel" id="reportPanel">
   <h2>Cheapest by country — report</h2>
@@ -218,7 +232,11 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 let P, bands, CAPS, current=null, authEnabled=false, ACTIVE=[];
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const num=id=>{const el=$(id);const v=el?parseFloat(el.value):NaN;return isNaN(v)?0:v;};
-const markupPct=()=>num('markup');
+function markupPct(svc){
+  const m=document.querySelector('input[name="mkMode"]:checked');
+  if(!m||m.value==='flat'||!svc) return num('mkFlat');
+  return num('mk_'+svc.key);
+}
 const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
 const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];if(c==='USA')return 'usa';if(eu.includes(c))return 'eu';return 'row';};
 function accVal(a){
@@ -265,7 +283,7 @@ function build(rawBase,svc){
   const cbase=rawBase+fuelable, f=fuelOf(svc);
   const costFuel=cbase*f.cost/100, totalCost=cbase+costFuel+flat;
   const sellFuel=cbase*f.sell/100, sellShip=cbase+sellFuel;
-  const mk=markupPct(), markupAmt=sellShip*mk/100;
+  const mk=markupPct(svc), markupAmt=sellShip*mk/100;
   const sell=sellShip+markupAmt+flat;
   return {raw:rawBase,fuelExtras,flatExtras,cbase,fc:f.cost,fs:f.sell,costFuel,totalCost,sellFuel,mk,markupAmt,sell,cost:totalCost,base:rawBase};
 }
@@ -389,6 +407,19 @@ function renderToggles(){
     lab.innerHTML=`<input type="checkbox" id="acc_${a.key}"/> ${a.name}`;t.appendChild(lab);
     lab.querySelector('input').addEventListener('change',calc);});
 }
+function renderMarkup(){
+  const wrap=$('mkServiceWrap');if(!wrap)return;wrap.innerHTML='';
+  SERVICES.forEach(svc=>{const d=document.createElement('div');d.className='f small';
+    d.innerHTML=`<label>${svc.name}</label><input id="mk_${svc.key}" type="number" min="0" step="1" value="0"/>`;
+    wrap.appendChild(d);});
+  SERVICES.forEach(svc=>$('mk_'+svc.key).addEventListener('input',calc));
+}
+function mkModeChange(){
+  const per=(document.querySelector('input[name="mkMode"]:checked')||{}).value==='service';
+  $('mkServiceWrap').style.display=per?'flex':'none';
+  $('mkFlatWrap').style.display=per?'none':'block';
+  calc();
+}
 function bootCalc(){
   bands=P.bands;
   const s=P.settings||{fuelByService:{},caps:{cp:31.5,ep:3},accessorials:[]};
@@ -396,12 +427,15 @@ function bootCalc(){
   buildFuelTable(s.fuelByService||{});
   buildAccTable();
   renderToggles();
+  renderMarkup();
   buildRepList();
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
-    ['country','wt','L','W','H','goodsValue','markup','metric'].forEach(id=>$(id).addEventListener('input',calc));
+    ['country','wt','L','W','H','goodsValue','metric'].forEach(id=>$(id).addEventListener('input',calc));
     $('metric').addEventListener('change',calc);
+    $('mkFlat').addEventListener('input',calc);
+    document.querySelectorAll('input[name="mkMode"]').forEach(r=>r.addEventListener('change',mkModeChange));
   }
   calc();
 }
@@ -532,6 +566,7 @@ function generateReport(){
   const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const trs=data.map(r=>r.none?`<tr><td>${r.c}</td><td colspan="4" style="color:#94a3b8">no services available</td></tr>`
     :`<tr><td>${r.c}</td><td><b>${r.win.name}</b></td><td>£${r.win.sell.toFixed(2)}</td><td>${r.next?r.next.name+' · £'+r.next.sell.toFixed(2):'—'}</td><td>${r.next?'£'+r.save.toFixed(2):'—'}</td></tr>`).join('');
+  const co=($('cardCo').value||'').trim();
   const spec=['<b>'+actual+' kg</b>',dims,val?'value £'+val:'',tog.join(', ')].filter(Boolean).join(' · ');
   const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Shipping Rate Report</title>'
     +'<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#0f172a;max-width:900px;margin:24px auto;padding:0 22px}'
@@ -544,6 +579,7 @@ function generateReport(){
     +'@media print{.noprint{display:none}}</style></head><body>'
     +'<div class="noprint"><button onclick="window.print()">Print / Save as PDF</button></div>'
     +'<h1>International Shipping Rate Report</h1>'
+    +(co?'<p class="sub" style="font-size:15px;color:#0f172a;margin:0 0 2px">Prepared for <b>'+co+'</b></p>':'')
     +'<p class="sub">Cheapest carrier by destination · generated '+now+'</p>'
     +'<div class="spec">Parcel: '+spec+'</div>'
     +'<div class="sum"><b>'+countries.length+'</b> destinations — cheapest is UPS in <b>'+up+'</b>, DPD in <b>'+dp+'</b>.</div>'
@@ -561,7 +597,7 @@ function zonePrice(z,weight){
 }
 function cardSell(svc,rawBase){
   if(rawBase==null)return null;
-  const f=fuelOf(svc),mk=markupPct();
+  const f=fuelOf(svc),mk=markupPct(svc);
   return rawBase*(1+f.sell/100)*(1+mk/100);
 }
 function exportRateCard(){
@@ -570,7 +606,8 @@ function exportRateCard(){
   const sel=selectedCountries();
   const countrySet=sel.length?new Set(sel):null;
   const inSet=c=>!countrySet||countrySet.has(c);
-  const mk=markupPct();
+  const co=($('cardCo').value||'').trim();
+  const mode=(document.querySelector('input[name="mkMode"]:checked')||{}).value==='service'?'Per service':'Flat';
   const gbp=v=>v==null?'':Math.round(v*100)/100;
   const wb=XLSX.utils.book_new();
   const add=(rows,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name.slice(0,31));
@@ -579,11 +616,12 @@ function exportRateCard(){
   // Cover
   const cover=[
     ['International Rate Card'],
+    ['Prepared for',co||'—'],
     ['Generated',now],
-    ['Markup applied',mk+'%'],
+    ['Markup type',mode],
     ['Scope',countrySet?(sel.length+' selected destinations'):'All destinations'],
     [],
-    ['All rate-sheet prices are customer sell prices in GBP, including fuel and the markup above, excluding VAT.'],
+    ['All rate-sheet prices are customer sell prices in GBP, including fuel and markup, excluding VAT.'],
     ['Per-shipment surcharges and duty / clearance charges are on the Surcharges sheet and apply in addition to these rates.'],
     ['The "Cheapest by country" sheet is a worked quote at the parcel spec below and includes applicable duty handling.'],
     [],
@@ -592,9 +630,9 @@ function exportRateCard(){
     ['Dimensions (cm)',(num('L')&&num('W')&&num('H'))?(num('L')+' x '+num('W')+' x '+num('H')):'—'],
     ['Goods value (£)',num('goodsValue')],
     [],
-    ['Fuel by service (sell %)'],
+    ['Service','Fuel sell %','Markup %'],
   ];
-  SERVICES.forEach(svc=>cover.push([svc.name,fuelOf(svc).sell+'%']));
+  SERVICES.forEach(svc=>cover.push([svc.name,fuelOf(svc).sell+'%',markupPct(svc)+'%']));
   add(cover,'Rate Card');
 
   // UPS zone grids
@@ -646,7 +684,8 @@ function exportRateCard(){
   calc();
   add(summ,'Cheapest by country');
 
-  XLSX.writeFile(wb,'Rate card '+now.replace(/ /g,'-')+'.xlsx');
+  const safeCo=co.replace(/[\\/:*?"<>|]/g,'').trim();
+  XLSX.writeFile(wb,'Rate card'+(safeCo?' - '+safeCo:'')+' '+now.replace(/ /g,'-')+'.xlsx');
 }
 $('repXls').onclick=exportRateCard;
 
