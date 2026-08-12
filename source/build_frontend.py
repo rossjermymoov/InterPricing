@@ -100,6 +100,14 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 .miniform{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .miniform .f input,.miniform .f select{padding:8px}.miniform .f label{font-size:10.5px}
 .rolechip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3}
+.mklist{border:1px solid var(--line);border-radius:12px;overflow:hidden;max-width:520px;margin-top:14px}
+.mkrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
+.mkrow:last-child{border-bottom:none}
+.mkrow .nm{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:#334155}
+.mkrow .sw{width:11px;height:11px;border-radius:3px;flex:none}
+.mkrow input{width:82px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:8px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums}
+.mkrow input:focus{outline:2px solid var(--teal);border-color:var(--teal)}
+.mkrow .pct{color:var(--muted);font-size:13px;margin-left:6px}
 textarea{font-family:inherit;padding:9px 10px;border:1px solid #cbd5e1;border-radius:9px;font-size:13px;resize:vertical}
 textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 </style></head>
@@ -213,15 +221,11 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <h2>Create rate card</h2>
   <div class="calcrow">
     <div class="f" style="flex:1;min-width:220px"><label>Customer / company name</label><input id="cardCo" type="text" placeholder="e.g. Slumba Ltd" style="width:100%"/></div>
-    <div class="f"><label>Markup type</label>
-      <div style="display:flex;gap:16px;padding:8px 0 2px">
-        <label class="tg"><input type="radio" name="mkMode" value="flat" checked/> Flat</label>
-        <label class="tg"><input type="radio" name="mkMode" value="service"/> Per service</label>
-      </div>
-    </div>
-    <div class="f small" id="mkFlatWrap"><label>Markup %</label><input id="mkFlat" type="number" min="0" step="1" value="0"/></div>
+    <div class="f small"><label>Global markup %</label><input id="mkGlobal" type="number" min="0" step="1" value="0"/></div>
+    <button class="btn" id="mkApply">Apply to all</button>
   </div>
-  <div id="mkServiceWrap" style="display:none;flex-wrap:wrap;gap:16px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)"></div>
+  <p class="chartnote" style="margin:10px 0 0">Set a global markup to fill every service, then fine-tune any of them below (e.g. a lower margin on air, higher on road).</p>
+  <div id="mkList" class="mklist"></div>
   <p class="chartnote" style="margin-top:10px">Markup applies to the base rate and fuel only — duties and per-shipment surcharges are passed through without markup. It drives the on-screen customer prices, the report, and the exported rate card.</p>
 </div>
 <div class="panel" id="reportPanel">
@@ -254,9 +258,7 @@ let P, bands, CAPS, current=null, authEnabled=false, ACTIVE=[];
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const num=id=>{const el=$(id);const v=el?parseFloat(el.value):NaN;return isNaN(v)?0:v;};
 function markupPct(svc){
-  const m=document.querySelector('input[name="mkMode"]:checked');
-  if(!m||m.value==='flat'||!svc) return num('mkFlat');
-  return num('mk_'+svc.key);
+  return svc&&$('mk_'+svc.key) ? num('mk_'+svc.key) : num('mkGlobal');
 }
 const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
 const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];if(c==='USA')return 'usa';if(eu.includes(c))return 'eu';return 'row';};
@@ -429,18 +431,16 @@ function renderToggles(){
     lab.querySelector('input').addEventListener('change',calc);});
 }
 function renderMarkup(){
-  const wrap=$('mkServiceWrap');if(!wrap)return;wrap.innerHTML='';
-  SERVICES.forEach(svc=>{const d=document.createElement('div');d.className='f small';
-    d.innerHTML=`<label>${svc.name}</label><input id="mk_${svc.key}" type="number" min="0" step="1" value="0"/>`;
-    wrap.appendChild(d);});
+  const wrap=$('mkList');if(!wrap)return;wrap.innerHTML='';
+  const g=num('mkGlobal');
+  SERVICES.forEach(svc=>{const row=document.createElement('div');row.className='mkrow';
+    row.innerHTML=`<div class="nm"><span class="sw" style="background:${svc.color}"></span>${svc.name}</div>`
+      +`<div><input id="mk_${svc.key}" type="number" min="0" step="1" value="${g}"/><span class="pct">%</span></div>`;
+    wrap.appendChild(row);});
   SERVICES.forEach(svc=>$('mk_'+svc.key).addEventListener('input',calc));
 }
-function mkModeChange(){
-  const per=(document.querySelector('input[name="mkMode"]:checked')||{}).value==='service';
-  $('mkServiceWrap').style.display=per?'flex':'none';
-  $('mkFlatWrap').style.display=per?'none':'block';
-  calc();
-}
+function applyGlobalMarkup(){const g=num('mkGlobal');
+  SERVICES.forEach(svc=>{const el=$('mk_'+svc.key);if(el)el.value=g;});calc();}
 function bootCalc(){
   bands=P.bands;
   const s=P.settings||{fuelByService:{},caps:{cp:31.5,ep:3},accessorials:[]};
@@ -455,8 +455,8 @@ function bootCalc(){
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
     ['country','wt','L','W','H','goodsValue','metric'].forEach(id=>$(id).addEventListener('input',calc));
     $('metric').addEventListener('change',calc);
-    $('mkFlat').addEventListener('input',calc);
-    document.querySelectorAll('input[name="mkMode"]').forEach(r=>r.addEventListener('change',mkModeChange));
+    $('mkGlobal').addEventListener('input',applyGlobalMarkup);
+    $('mkApply').addEventListener('click',applyGlobalMarkup);
   }
   calc();
 }
@@ -628,7 +628,6 @@ function exportRateCard(){
   const countrySet=sel.length?new Set(sel):null;
   const inSet=c=>!countrySet||countrySet.has(c);
   const co=($('cardCo').value||'').trim();
-  const mode=(document.querySelector('input[name="mkMode"]:checked')||{}).value==='service'?'Per service':'Flat';
   const gbp=v=>v==null?'':Math.round(v*100)/100;
   const wb=XLSX.utils.book_new();
   const add=(rows,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name.slice(0,31));
@@ -639,7 +638,7 @@ function exportRateCard(){
     ['International Rate Card'],
     ['Prepared for',co||'—'],
     ['Generated',now],
-    ['Markup type',mode],
+    ['Global markup',num('mkGlobal')+'%'],
     ['Scope',countrySet?(sel.length+' selected destinations'):'All destinations'],
     [],
     ['All rate-sheet prices are customer sell prices in GBP, including fuel and markup, excluding VAT.'],
