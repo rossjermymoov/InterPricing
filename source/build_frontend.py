@@ -100,6 +100,11 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 .miniform{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .miniform .f input,.miniform .f select{padding:8px}.miniform .f label{font-size:10.5px}
 .rolechip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3}
+.rcchecks{display:flex;flex-direction:column;gap:9px}
+.rcchecks label{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:#334155;cursor:pointer}
+.rcchecks .sw{width:11px;height:11px;border-radius:3px;flex:none}
+.rcchecks input{width:16px;height:16px;accent-color:var(--teal)}
+label.blk{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:700;margin-bottom:10px}
 .voltabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .voltab{padding:7px 14px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#334155}
 .voltab:hover{border-color:var(--teal)}
@@ -254,13 +259,32 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
       <button class="btn" id="repClear">Clear</button>
       <button class="btn primary" id="repRun">Run report</button>
       <button class="btn" id="repDoc">Open printable report</button>
-      <button class="btn primary" id="repXls">Export rate card (Excel)</button>
-      <button class="btn primary" id="repMix">Export mixed card (Excel)</button>
     </div>
   </div>
   <div id="repMsg" class="chartnote" style="color:var(--r)"></div>
   <div id="repSummary" style="margin:8px 0;font-size:14px"></div>
   <div style="overflow:auto;max-height:520px"><table class="stable" id="repTable"><thead><tr><th>Country</th><th>Cheapest service</th><th>Customer price</th><th>Next best</th><th>You save</th></tr></thead><tbody id="repBody"></tbody></table></div>
+</div>
+<div class="panel" id="rcOptions">
+  <h2>Build the rate card</h2>
+  <p class="chartnote" style="margin:0 0 14px">Configure the customer-facing card. It shows final prices only — markups, fuel and cost are never included. Uses the destinations selected above (or all if none) and the parcel details from the calculator.</p>
+  <div style="display:flex;gap:28px;flex-wrap:wrap">
+    <div>
+      <label class="blk">Services to show</label>
+      <div id="rcServices" class="rcchecks"></div>
+    </div>
+    <div style="flex:1;min-width:260px">
+      <div class="f"><label>Rate card title</label><input id="rcTitle" type="text" value="International Rate Card" style="width:100%"/></div>
+      <div class="f" style="margin-top:12px"><label>Notes to customer (optional)</label><textarea id="rcNotes" rows="3" style="width:100%" placeholder="e.g. Prices valid for 30 days from the date above."></textarea></div>
+      <label class="tg" style="margin-top:12px"><input type="checkbox" id="rcSur" checked/> Include a surcharges page</label>
+      <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcCheapest" checked/> Show a “best price” column on the combined card</label>
+    </div>
+  </div>
+  <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn primary" id="repXls">Export card — one page per service</button>
+    <button class="btn primary" id="repMix">Export combined card — all options together</button>
+  </div>
+  <div id="rcMsg" class="chartnote" style="color:var(--r);margin-top:8px"></div>
 </div>
 </div>
 
@@ -464,6 +488,7 @@ function bootCalc(){
   buildAccTable();
   renderToggles();
   renderMarkup();
+  renderRcServices();
   buildRepList();
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
@@ -657,152 +682,122 @@ function cardSell(svc,rawBase){
   const f=fuelOf(svc),mk=markupPct(svc);
   return rawBase*(1+f.sell/100)*(1+mk/100);
 }
-function exportRateCard(){
-  if(typeof XLSX==='undefined'){$('repMsg').textContent='Excel export library did not load — reload the page and try again.';return;}
-  $('repMsg').textContent='';
+// ---- rate card options (customer-facing) ----
+function renderRcServices(){
+  const box=$('rcServices');if(!box)return;box.innerHTML='';
+  SERVICES.forEach(svc=>{const lab=document.createElement('label');
+    lab.innerHTML=`<input type="checkbox" id="rcSvc_${svc.key}" checked/> <span class="sw" style="background:${svc.color}"></span>${svc.name}`;
+    box.appendChild(lab);});
+}
+function selectedServices(){return SERVICES.filter(s=>{const el=$('rcSvc_'+s.key);return !el||el.checked;});}
+function rcTitle(){return ($('rcTitle')&&$('rcTitle').value.trim())||'International Rate Card';}
+// Customer-facing cover — deliberately no markup / fuel / cost / recommendation.
+function rcCoverRows(){
+  const co=($('cardCo').value||'').trim();
   const sel=selectedCountries();
-  const countrySet=sel.length?new Set(sel):null;
-  const inSet=c=>!countrySet||countrySet.has(c);
+  const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const rows=[[rcTitle()],['Prepared for',co||'—'],['Date',now],
+    ['Scope',sel.length?(sel.length+' destinations'):'All destinations'],[],
+    ['Shipping charges'],
+    ['Weight (kg)',num('wt')],
+    ['Dimensions (cm)',(num('L')&&num('W')&&num('H'))?(num('L')+' x '+num('W')+' x '+num('H')):'—'],
+    ['Goods value (£)',num('goodsValue')],[],
+    ['Prices are in GBP and include fuel and applicable duty handling. VAT is not included.'],
+    ['Per-shipment surcharges apply in addition — see the Surcharges sheet.']];
+  const notes=($('rcNotes')&&$('rcNotes').value||'').trim();
+  if(notes){rows.push([]);notes.split(/\r?\n/).forEach(l=>rows.push([l]));}
+  return rows;
+}
+function rcSurchargeRows(carriers){
+  const trg=a=>a.cond==='auto'?'By size / weight':(a.cond==='always'?'Every shipment':(a.cond==='countryIn'?(a.countries||[]).join(', '):(a.cond==='region'?a.region.toUpperCase()+' destinations':'When selected')));
+  const sur=[['Surcharge','Carrier','When it applies','Charge']];
+  accList().filter(a=>!carriers||carriers.has(a.applyTo)).forEach(a=>{let rate;
+    if(a.basis==='pctValue')rate=(a.pct||0)+'% of goods value'+(a.min?' (min £'+Number(a.min).toFixed(2)+')':'');
+    else rate='£'+((a.list||0)*(1-(a.disc||0)/100)).toFixed(2)+' per shipment';
+    sur.push([a.name,(a.applyTo||'').toUpperCase(),trg(a),rate]);});
+  return sur;
+}
+function exportRateCard(){
+  if(typeof XLSX==='undefined'){$('rcMsg').textContent='Excel export library did not load — reload the page and try again.';return;}
+  $('rcMsg').textContent='';
+  const svcs=selectedServices();
+  if(!svcs.length){$('rcMsg').textContent='Choose at least one service to include.';return;}
+  const keys=new Set(svcs.map(s=>s.key)), carriers=new Set(svcs.map(s=>s.carrier));
+  const sel=selectedCountries();
+  const inSet=c=>!sel.length||sel.includes(c);
   const co=($('cardCo').value||'').trim();
   const gbp=v=>v==null?'':Math.round(v*100)/100;
   const wb=XLSX.utils.book_new();
   const add=(rows,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name.slice(0,31));
   const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  add(rcCoverRows(),'Rate Card');
 
-  // Cover
-  const cover=[
-    ['International Rate Card'],
-    ['Prepared for',co||'—'],
-    ['Generated',now],
-    ['Global markup',num('mkGlobal')+'%'],
-    ['Scope',countrySet?(sel.length+' selected destinations'):'All destinations'],
-    [],
-    ['All rate-sheet prices are customer sell prices in GBP, including fuel and markup, excluding VAT.'],
-    ['Per-shipment surcharges and duty / clearance charges are on the Surcharges sheet and apply in addition to these rates.'],
-    ['The "Cheapest by country" sheet is a worked quote at the parcel spec below and includes applicable duty handling.'],
-    [],
-    ['Parcel spec used for the summary'],
-    ['Weight (kg)',num('wt')],
-    ['Dimensions (cm)',(num('L')&&num('W')&&num('H'))?(num('L')+' x '+num('W')+' x '+num('H')):'—'],
-    ['Goods value (£)',num('goodsValue')],
-    [],
-    ['Service','Fuel sell %','Markup %'],
-  ];
-  SERVICES.forEach(svc=>cover.push([svc.name,fuelOf(svc).sell+'%',markupPct(svc)+'%']));
-  add(cover,'Rate Card');
-
-  // UPS zone grids
+  // UPS zone grids (weight x zone)
   [['ux','UPS Express Saver'],['us','UPS Standard']].forEach(([k,title])=>{
+    if(!keys.has(k))return;
     const svc=SERVICES.find(s=>s.key===k),src=P[svc.src]||{};
     const zones=Object.keys(src).sort((a,b)=>parseFloat(a)-parseFloat(b));
-    const rows=[[title+' — customer prices (GBP)'],['Weight (kg)',...zones.map(z=>'Zone '+z)]];
+    const rows=[[title+' — prices (GBP)'],['Weight (kg)',...zones.map(z=>'Zone '+z)]];
     bands.forEach(w=>{rows.push([w,...zones.map(z=>{const r=zonePrice(src[z],w);return r==null?'':gbp(cardSell(svc,r));})]);});
     add(rows,title);
   });
-
-  // UPS zone guide
-  const zg=[['Country','Express Saver zone','Standard zone']];
-  P.countries.filter(inSet).forEach(c=>{const ez=(P.c2zone_express||{})[c]||'',sz=(P.c2zone_standard||{})[c]||'';if(ez||sz)zg.push([c,ez,sz]);});
-  add(zg,'UPS Zone Guide');
-
-  // DPD banded services
+  // UPS zone guide (only if a UPS service is shown)
+  if(keys.has('ux')||keys.has('us')){
+    const zg=[['Country',...(keys.has('ux')?['Express Saver zone']:[]),...(keys.has('us')?['Standard zone']:[])]];
+    P.countries.filter(inSet).forEach(c=>{const ez=(P.c2zone_express||{})[c]||'',sz=(P.c2zone_standard||{})[c]||'';
+      if((keys.has('ux')&&ez)||(keys.has('us')&&sz))zg.push([c,...(keys.has('ux')?[ez]:[]),...(keys.has('us')?[sz]:[])]);});
+    add(zg,'UPS Zone Guide');
+  }
+  // DPD banded services (country x weight band)
   [['ca','DPD Classic Air'],['ae','DPD Air Express']].forEach(([k,title])=>{
+    if(!keys.has(k))return;
     const svc=SERVICES.find(s=>s.key===k),src=P[svc.src]||{};
-    const rows=[[title+' — customer prices (GBP)'],['Country',...bands.map(w=>w+' kg')]];
+    const rows=[[title+' — prices (GBP)'],['Country',...bands.map(w=>w+' kg')]];
     Object.keys(src).sort().filter(inSet).forEach(c=>{const arr=src[c];if(arr)rows.push([c,...arr.map(p=>p==null?'':gbp(cardSell(svc,p)))]);});
     add(rows,title);
   });
-
-  // DPD flat services
+  // DPD flat services (country -> price)
   [['cp','DPD Classic Parcel',CAPS.cp],['ep','DPD Classic ExpressPak',CAPS.ep]].forEach(([k,title,cap])=>{
+    if(!keys.has(k))return;
     const svc=SERVICES.find(s=>s.key===k),src=P[svc.src]||{};
-    const rows=[[title+' — customer prices (GBP)'],['Country','Price (<='+cap+' kg)']];
+    const rows=[[title+' — prices (GBP)'],['Country','Price (<='+cap+' kg)']];
     Object.keys(src).sort().filter(inSet).forEach(c=>{const p=src[c];if(p!=null)rows.push([c,gbp(cardSell(svc,p))]);});
     add(rows,title);
   });
-
-  // Surcharges
-  const trgTxt=a=>a.cond==='auto'?'Auto — by size/weight':(a.cond==='always'?'Every shipment':(a.cond==='countryIn'?(a.countries||[]).join(', '):(a.cond==='region'?a.region.toUpperCase()+' destinations':'When selected')));
-  const sur=[['Surcharge','Carrier','When it applies','Customer rate']];
-  accList().forEach(a=>{let rate;
-    if(a.basis==='pctValue')rate=(a.pct||0)+'% of goods value'+(a.min?' (min £'+Number(a.min).toFixed(2)+')':'');
-    else rate='£'+((a.list||0)*(1-(a.disc||0)/100)).toFixed(2)+' per shipment';
-    sur.push([a.name,(a.applyTo||'').toUpperCase(),trgTxt(a),rate]);});
-  add(sur,'Surcharges');
-
-  // Cheapest by country
-  const spec=num('wt')+' kg'+((num('L')&&num('W')&&num('H'))?(' ('+num('L')+'x'+num('W')+'x'+num('H')+' cm)'):'');
-  const summ=[['Cheapest by country at '+spec+' — includes duty handling'],['Country','Cheapest service','Customer price','Next best','You save']];
-  (sel.length?sel:P.countries).forEach(c=>{const priced=repPrice(c);
-    if(!priced.length){summ.push([c,'no services','','','']);return;}
-    const win=priced[0],next=priced[1];
-    summ.push([c,win.name,gbp(win.sell),next?next.name:'',next?gbp(next.sell-win.sell):'']);});
-  calc();
-  add(summ,'Cheapest by country');
+  if($('rcSur').checked) add(rcSurchargeRows(carriers),'Surcharges');
 
   const safeCo=co.replace(/[\\/:*?"<>|]/g,'').trim();
-  XLSX.writeFile(wb,'Rate card'+(safeCo?' - '+safeCo:'')+' '+now.replace(/ /g,'-')+'.xlsx');
+  XLSX.writeFile(wb,(rcTitle().replace(/[\\/:*?"<>|]/g,''))+(safeCo?' - '+safeCo:'')+' '+now.replace(/ /g,'-')+'.xlsx');
 }
 $('repXls').onclick=exportRateCard;
 function exportMixedCard(){
-  if(typeof XLSX==='undefined'){$('repMsg').textContent='Excel export library did not load — reload the page and try again.';return;}
-  $('repMsg').textContent='';
+  if(typeof XLSX==='undefined'){$('rcMsg').textContent='Excel export library did not load — reload the page and try again.';return;}
+  $('rcMsg').textContent='';
+  const svcs=selectedServices();
+  if(!svcs.length){$('rcMsg').textContent='Choose at least one service to include.';return;}
+  const carriers=new Set(svcs.map(s=>s.carrier));
   const sel=selectedCountries();
   const list=sel.length?sel:P.countries;
   const co=($('cardCo').value||'').trim();
+  const showBest=$('rcCheapest').checked;
   const gbp=v=>v==null?'':Math.round(v*100)/100;
   const wb=XLSX.utils.book_new();
   const add=(rows,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name.slice(0,31));
   const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
 
-  // All-options matrix + cheapest tally
-  const rows=[['Customer options — all available services (customer sell price, GBP)'],
-    ['Country',...SERVICES.map(s=>s.name),'Cheapest','Cheapest price']];
-  let up=0,dp=0;
+  const rows=[['Delivery options — prices in GBP'],
+    ['Country',...svcs.map(s=>s.name),...(showBest?['Best price','']:[])]];
   list.forEach(c=>{const pm=pricedByService(c);
-    let best=null;SERVICES.forEach(s=>{const p=pm[s.key];if(p!=null&&(best==null||p<best.p))best={p,svc:s};});
-    if(best){best.svc.carrier==='ups'?up++:dp++;}
-    rows.push([c,...SERVICES.map(s=>pm[s.key]==null?'':gbp(pm[s.key])),best?best.svc.name:'—',best?gbp(best.p):'']);});
+    let best=null;svcs.forEach(s=>{const p=pm[s.key];if(p!=null&&(best==null||p<best.p))best={p,svc:s};});
+    rows.push([c,...svcs.map(s=>pm[s.key]==null?'':gbp(pm[s.key])),...(showBest?[best?best.svc.name:'—',best?gbp(best.p):'']:[])]);});
   calc();
-  const v=verdictText(up,dp);
 
-  const spec=num('wt')+' kg'+((num('L')&&num('W')&&num('H'))?(' ('+num('L')+'x'+num('W')+'x'+num('H')+' cm)'):'');
-  const cover=[
-    ['Mixed Rate Card — DPD & UPS'],
-    ['Prepared for',co||'—'],
-    ['Generated',now],
-    ['Scope',sel.length?(sel.length+' selected destinations'):'All destinations'],
-    [],
-    ['Recommendation'],
-    [v.msg],
-    ['DPD cheapest in',dp],
-    ['UPS cheapest in',up],
-    [],
-    ['Every available DPD and UPS service is listed per country on the "All options" sheet so the customer can choose.'],
-    ['Prices are customer sell in GBP at the parcel spec below — including fuel, markup and applicable duty handling, excluding VAT.'],
-    ['Per-shipment surcharges are on the Surcharges sheet and apply in addition.'],
-    [],
-    ['Parcel spec'],
-    ['Weight (kg)',num('wt')],
-    ['Dimensions (cm)',(num('L')&&num('W')&&num('H'))?(num('L')+' x '+num('W')+' x '+num('H')):'—'],
-    ['Goods value (£)',num('goodsValue')],
-    [],
-    ['Service','Fuel sell %','Markup %'],
-  ];
-  SERVICES.forEach(svc=>cover.push([svc.name,fuelOf(svc).sell+'%',markupPct(svc)+'%']));
-  add(cover,'Rate Card');
-  add(rows,'All options');
-
-  const trgTxt=a=>a.cond==='auto'?'Auto — by size/weight':(a.cond==='always'?'Every shipment':(a.cond==='countryIn'?(a.countries||[]).join(', '):(a.cond==='region'?a.region.toUpperCase()+' destinations':'When selected')));
-  const sur=[['Surcharge','Carrier','When it applies','Customer rate']];
-  accList().forEach(a=>{let rate;
-    if(a.basis==='pctValue')rate=(a.pct||0)+'% of goods value'+(a.min?' (min £'+Number(a.min).toFixed(2)+')':'');
-    else rate='£'+((a.list||0)*(1-(a.disc||0)/100)).toFixed(2)+' per shipment';
-    sur.push([a.name,(a.applyTo||'').toUpperCase(),trgTxt(a),rate]);});
-  add(sur,'Surcharges');
+  add(rcCoverRows(),'Rate Card');
+  add(rows,'Delivery options');
+  if($('rcSur').checked) add(rcSurchargeRows(carriers),'Surcharges');
 
   const safeCo=co.replace(/[\\/:*?"<>|]/g,'').trim();
-  XLSX.writeFile(wb,'Mixed rate card'+(safeCo?' - '+safeCo:'')+' '+now.replace(/ /g,'-')+'.xlsx');
+  XLSX.writeFile(wb,(rcTitle().replace(/[\\/:*?"<>|]/g,''))+(safeCo?' - '+safeCo:'')+' options '+now.replace(/ /g,'-')+'.xlsx');
 }
 $('repMix').onclick=exportMixedCard;
 
