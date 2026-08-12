@@ -50,6 +50,13 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .card.win .price{color:var(--accent-2)}
 .card .badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#0B1220;background:var(--green);padding:3px 9px;border-radius:999px;letter-spacing:.03em}
 .card.na{background:#f8fafc;color:var(--muted)} .card.na .price{font-size:17px;color:#94a3b8;margin-top:12px}
+.card .brk{font-size:11.5px;color:#475569;line-height:1.65;margin-top:11px;border-top:1px dashed var(--line);padding-top:9px}
+.card .brk .row{display:flex;justify-content:space-between;gap:10px}
+.card .brk .row.tot{font-weight:800;color:var(--ink);border-top:1px solid var(--line);margin-top:5px;padding-top:5px}
+.toggles{display:flex;flex-wrap:wrap;gap:9px 20px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.tg{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#334155;cursor:pointer}
+.tg input{width:16px;height:16px;accent-color:var(--accent)}
+.surlogo{height:24px;width:auto;max-width:74px;object-fit:contain;vertical-align:middle}
 .note{font-size:12.5px;color:var(--muted);margin-top:14px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:18px}
 .panel h3{font-size:15px;margin:0 0 4px}
@@ -86,7 +93,9 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
         <div class="f small"><label>Length (cm)</label><input id="L" type="number" min="0" step="1"/></div>
         <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
         <div class="f small"><label>Height (cm)</label><input id="H" type="number" min="0" step="1"/></div>
+        <div class="f small"><label>Value (£)</label><input id="V" type="number" min="0" step="1" value="0"/></div>
       </div>
+      <div class="toggles" id="toggles"></div>
       <div class="meta">
         <div><div class="lab">Volumetric</div><b id="volw">—</b></div>
         <div><div class="lab">Chargeable</div><b id="chgw">—</b></div>
@@ -101,7 +110,6 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
       <table><thead><tr><th>Surcharge</th><th>Carrier</th><th>When it applies</th><th>Charge</th></tr></thead><tbody id="surBody"></tbody></table>
     </div>
     <div class="notes" id="notesBox"></div>
-    <div style="text-align:center;margin-top:20px"><button class="print" onclick="window.print()">Print / Save as PDF</button></div>
     <div class="foot" id="foot"></div>
   </div>
 </div>
@@ -112,11 +120,28 @@ let RC=null;
 const CARRIER_LOGOS={
   dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',
   ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
-function carrierMark(c){const k=c.toLowerCase();const src=CARRIER_LOGOS[k]||('/carrier-'+k+'.svg');
-  return '<img class="cmark" src="'+src+'" data-k="'+k+'" data-c="'+c+'" alt="'+c+'"/>';}
+function carrierMark(c,cls){const k=c.toLowerCase();const src=CARRIER_LOGOS[k]||('/carrier-'+k+'.svg');
+  return '<img class="'+(cls||'cmark')+'" src="'+src+'" data-k="'+k+'" data-c="'+c+'" alt="'+c+'"/>';}
 function wireCarrierMarks(box){box.querySelectorAll('img.cmark').forEach(img=>{
   const fb=()=>{img.outerHTML='<span class="cbadge '+img.dataset.k+'">'+img.dataset.c+'</span>';};
   img.onerror=fb; if(img.complete&&!img.naturalWidth)fb();});}
+const region=c=>{if(c==='USA')return 'usa';return (RC.eu||[]).includes(c)?'eu':'row';};
+const accList=()=>RC.accessorials||[];
+function accGeom(){const L=num('L'),W=num('W'),H=num('H');const s=[L,W,H].filter(x=>x>0).sort((a,b)=>b-a);
+  return {longest:s[0]||0,second:s[1]||0,girth:(L&&W&&H)?(s[0]+2*(s[1]||0)+2*(s[2]||0)):0};}
+function accApplies(a,c,actual){const g=accGeom();
+  if(a.cond==='toggle'){const el=$('tg_'+a.key);return !!(el&&el.checked);}
+  if(a.cond==='always')return true;
+  if(a.cond==='countryIn')return (a.countries||[]).includes(c);
+  if(a.cond==='region')return region(c)===a.region;
+  if(a.cond==='auto'){
+    if(a.key==='addlHandling')return actual>25||g.longest>100||g.second>76;
+    if(a.key==='largePackage')return g.girth>300;
+    if(a.key==='overMax')return actual>70||g.longest>274||g.girth>400;}
+  return false;}
+function accAmount(a){if(a.basis==='pctValue')return Math.max((a.pct||0)*num('V')/100,a.min||0);return a.amount||0;}
+function whenText(a){return a.cond==='auto'?'By size / weight':a.cond==='always'?'Every shipment':a.cond==='countryIn'?((a.countries||[]).join(', ')):a.cond==='region'?((a.region||'').toUpperCase()+' destinations'):'When selected';}
+function rateText(a){return a.basis==='pctValue'?((a.pct||0)+'% of goods value'+(a.min?(' (min £'+Number(a.min).toFixed(2)+')'):'')):('£'+Number(a.amount||0).toFixed(2)+' per shipment');}
 function priceOf(s,c,chg){
   const B=RC.bands;
   if(s.type==='band'){const arr=s.prices[c];if(!arr)return{p:null,avail:false};
@@ -131,31 +156,53 @@ function priceOf(s,c,chg){
   if(chg<=mB+1e-9){for(const[w,pr]of zd)if(w>=chg-1e-9)return{p:pr,avail:true,band:w};}
   return{p:zd[zd.length-1][1],avail:true,band:'>'+mB+'kg'};
 }
+function renderToggles(){const box=$('toggles');if(!box)return;box.innerHTML='';
+  const toggles=accList().filter(a=>a.cond==='toggle');
+  if(!toggles.length){box.style.display='none';return;}
+  box.style.display='flex';
+  toggles.forEach(a=>{const lab=document.createElement('label');lab.className='tg';
+    lab.innerHTML='<input type="checkbox" id="tg_'+a.key+'"/> '+a.name+' <span style="color:var(--muted);font-weight:500">('+rateText(a)+')</span>';
+    box.appendChild(lab);lab.querySelector('input').addEventListener('change',calc);});}
 function calc(){
   const c=$('country').value,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
   const vol=(L&&W&&H)?(L*W*H)/RC.divisor:0, chg=Math.max(actual,vol);
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
   $('driver').textContent=!chg?'—':(vol>actual?'volumetric':'actual weight');
-  const rows=RC.services.map(s=>({s,r:priceOf(s,c,chg)})).filter(x=>x.r.avail);
-  const priced=rows.filter(x=>x.r.p!=null).map(x=>x.r.p);
-  const min=priced.length?Math.min(...priced):null;
+  const applicable=accList().filter(a=>accApplies(a,c,actual));
+  const rows=RC.services.map(s=>{const r=priceOf(s,c,chg);
+    if(!r.avail||r.p==null)return {s,r,total:null};
+    const base=r.p, fuel=Math.round(base*(s.fuel||0)/100*100)/100, carr=s.carrier.toLowerCase();
+    const sur=applicable.filter(a=>a.carrier.toLowerCase()===carr).map(a=>({name:a.name,amt:Math.round(accAmount(a)*100)/100})).filter(x=>x.amt>0);
+    const surTotal=sur.reduce((t,x)=>t+x.amt,0);
+    return {s,r,base,fuel,sur,total:Math.round((base+fuel+surTotal)*100)/100};
+  }).filter(x=>x.r.avail);
+  const totals=rows.filter(x=>x.total!=null).map(x=>x.total);
+  const min=totals.length?Math.min(...totals):null;
   const box=$('cards');box.innerHTML='';
-  rows.forEach(({s,r})=>{
+  rows.forEach(({s,r,base,fuel,sur,total})=>{
     const d=document.createElement('div');let cls='card '+s.carrier.toLowerCase();
-    if(r.p==null)cls+=' na'; else if(RC.showBest&&r.p===min&&priced.length>1)cls+=' win';
+    if(total==null)cls+=' na'; else if(RC.showBest&&total===min&&totals.length>1)cls+=' win';
     d.className=cls;
     const head=`<div>${carrierMark(s.carrier)}</div><div class="svc">${s.name}</div>`;
-    if(r.p==null){d.innerHTML=head+`<div class="price">n/a</div><div class="unit">${r.note||'not available'}</div>`;}
+    if(total==null){d.innerHTML=head+`<div class="price">n/a</div><div class="unit">${r.note||'not available'}</div>`;}
     else{
-      const badge=(RC.showBest&&r.p===min&&priced.length>1)?'<span class="badge">BEST PRICE</span>':'';
-      const unit=RC.breakdown?('base · + '+(s.fuel||0)+'% fuel'):('delivery, incl. fuel'+(r.band?(' · '+(typeof r.band==='number'?r.band+' kg band':r.band)):''));
-      d.innerHTML=badge+head+`<div class="price">${money(r.p)}</div><div class="unit">${unit}</div>`;
+      const badge=(RC.showBest&&total===min&&totals.length>1)?'<span class="badge">BEST PRICE</span>':'';
+      const bt=(typeof r.band==='number'?r.band+' kg band':r.band);
+      const surLines=sur.map(x=>`<div class="row"><span>${x.name}</span><span>${money(x.amt)}</span></div>`).join('');
+      d.innerHTML=badge+head
+        +`<div class="price">${money(total)}</div><div class="unit">total incl. fuel${sur.length?' &amp; surcharges':''}</div>`
+        +`<div class="brk">`
+        +`<div class="row"><span>Base rate${bt?' ('+bt+')':''}</span><span>${money(base)}</span></div>`
+        +`<div class="row"><span>Fuel (${s.fuel||0}%)</span><span>${money(fuel)}</span></div>`
+        +surLines
+        +`<div class="row tot"><span>Total</span><span>${money(total)}</span></div>`
+        +`</div>`;
     }
     box.appendChild(d);
   });
   wireCarrierMarks(box);
-  $('cnote').textContent=chg?(priced.length?('Showing '+priced.length+' service'+(priced.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable.'):('No services available to '+c+' at this weight.')):'Enter a weight to see prices.';
+  $('cnote').textContent=chg?(totals.length?('Showing '+totals.length+' service'+(totals.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable. Every price is a full quote including fuel, duties and any options selected.'):('No services available to '+c+' at this weight.')):'Enter a weight to see prices.';
 }
 async function boot(){
   const token=location.pathname.split('/').filter(Boolean).pop();
@@ -170,13 +217,16 @@ async function boot(){
   $('today').textContent=' · '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   RC.countries.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;$('country').appendChild(o);});
   $('country').value=RC.countries.includes('USA')?'USA':RC.countries[0];
-  ['country','wt','L','W','H'].forEach(id=>$(id).addEventListener('input',calc));
-  if(RC.surcharges&&RC.surcharges.length){const sb=$('surBody');
-    RC.surcharges.forEach(a=>{const tr=document.createElement('tr');
-      tr.innerHTML=`<td>${a.name}</td><td><span class="tag2 ${a.carrier}">${a.carrier}</span></td><td>${a.when}</td><td class="r">${a.rate}</td>`;sb.appendChild(tr);});
+  renderToggles();
+  ['country','wt','L','W','H','V'].forEach(id=>$(id).addEventListener('input',calc));
+  const acc=accList();
+  if(acc.length){const sb=$('surBody');
+    acc.forEach(a=>{const tr=document.createElement('tr');
+      tr.innerHTML='<td>'+a.name+'</td><td>'+carrierMark(a.carrier,'surlogo')+'</td><td>'+whenText(a)+'</td><td class="r">'+rateText(a)+'</td>';sb.appendChild(tr);});
+    wireCarrierMarks($('surBody'));
   }else $('surPanel').style.display='none';
   $('notesBox').textContent=RC.notes||'';
-  $('foot').textContent='Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor '+RC.divisor+'.'+(RC.breakdown?' Prices shown are base freight — add the stated fuel % and any surcharges.':'');
+  $('foot').textContent='Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor '+RC.divisor+'.';
   calc();
 }
 boot();

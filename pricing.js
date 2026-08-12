@@ -1,6 +1,7 @@
 // Server-side pricing for public customer cards.
-// Produces a customer-facing payload with FINAL prices only — markup/fuel/cost never included
-// (unless breakdown mode, which exposes only the fuel surcharge %, a normal customer-facing figure).
+// The payload carries BASE prices with the customer markup already folded in (markup is never
+// sent as a number), per-service fuel %, and sanitised accessorial definitions (net customer
+// amounts only — never our list price or discount). The card computes base + fuel + surcharges.
 
 const SERVICES = [
   { key: 'ca', name: 'DPD Classic Air',        carrier: 'DPD', type: 'band', src: 'dpd_classic' },
@@ -27,34 +28,29 @@ function buildCardPayload(cfg, card) {
   const CAPS = (S.caps || cfg.caps || { cp: 31.5, ep: 3 });
   const conf = (card && card.config) || {};
   const include = Array.isArray(conf.services) && conf.services.length ? conf.services : SERVICES.map((s) => s.key);
-  const breakdown = !!conf.breakdown;
 
-  const sell = (key, raw) => {
-    if (raw == null) return null;
-    const f = (FUEL[key] && FUEL[key].sell) || 0;
-    const base = raw * (1 + markupFor(card, key) / 100);
-    return breakdown ? r2(base) : r2(base * (1 + f / 100));
-  };
+  // Base delivery price with the customer markup folded in (fuel NOT applied — card adds it).
+  const base = (key, raw) => (raw == null ? null : r2(raw * (1 + markupFor(card, key) / 100)));
 
   const countries = new Set();
   const services = [];
   for (const s of SERVICES) {
     if (!include.includes(s.key)) continue;
-    const o = { key: s.key, name: s.name, carrier: s.carrier, type: s.type };
-    if (breakdown) o.fuel = Math.round(((FUEL[s.key] && FUEL[s.key].sell) || 0) * 100) / 100;
+    const o = { key: s.key, name: s.name, carrier: s.carrier, type: s.type,
+      fuel: Math.round(((FUEL[s.key] && FUEL[s.key].sell) || 0) * 100) / 100 };
     if (s.type === 'band') {
       const src = cfg[s.src] || {};
       o.prices = {};
-      for (const c of Object.keys(src)) { o.prices[c] = src[c].map((p) => sell(s.key, p)); countries.add(c); }
+      for (const c of Object.keys(src)) { o.prices[c] = src[c].map((p) => base(s.key, p)); countries.add(c); }
     } else if (s.type === 'flat') {
       const src = cfg[s.src] || {};
       o.cap = CAPS[s.cap];
       o.prices = {};
-      for (const c of Object.keys(src)) { if (src[c] != null) { o.prices[c] = sell(s.key, src[c]); countries.add(c); } }
+      for (const c of Object.keys(src)) { if (src[c] != null) { o.prices[c] = base(s.key, src[c]); countries.add(c); } }
     } else {
       const src = cfg[s.src] || {}, zmap = cfg[s.zmap] || {};
       o.zones = {};
-      for (const z of Object.keys(src)) o.zones[z] = (src[z].bands || []).map(([w, p]) => [w, sell(s.key, p)]);
+      for (const z of Object.keys(src)) o.zones[z] = (src[z].bands || []).map(([w, p]) => [w, base(s.key, p)]);
       o.zmap = zmap;
       for (const c of Object.keys(zmap)) if (src[zmap[c]]) countries.add(c);
     }
@@ -68,31 +64,33 @@ function buildCardPayload(cfg, card) {
     countryList = countryList.filter((c) => allow.has(c));
   }
 
-  // surcharges (customer amounts only), filtered to carriers shown
+  // Sanitised accessorial definitions — net customer amounts only (no list price / discount).
   const carriersShown = new Set(services.map((s) => s.carrier.toLowerCase()));
-  const when = (a) => a.cond === 'auto' ? 'By size / weight'
-    : a.cond === 'always' ? 'Every shipment'
-    : a.cond === 'countryIn' ? (a.countries || []).join(', ')
-    : a.cond === 'region' ? (a.region || '').toUpperCase() + ' destinations' : 'On request';
-  const rate = (a) => a.basis === 'pctValue'
-    ? `${a.pct || 0}% of goods value${a.min ? ` (min £${Number(a.min).toFixed(2)})` : ''}`
-    : `£${((a.list || 0) * (1 - (a.disc || 0) / 100)).toFixed(2)} per shipment`;
-  const surcharges = (conf.includeSurcharges === false) ? [] :
-    (S.accessorials || []).filter((a) => carriersShown.has(a.applyTo))
-      .map((a) => ({ name: a.name, carrier: (a.applyTo || '').toUpperCase(), when: when(a), rate: rate(a) }));
+  const includeSur = conf.includeSurcharges !== false;
+  const accessorials = !includeSur ? [] : (S.accessorials || [])
+    .filter((a) => carriersShown.has(a.applyTo))
+    .map((a) => {
+      const o = { key: a.key, name: a.name, cond: a.cond, basis: a.basis,
+        carrier: (a.applyTo || '').toUpperCase(), fuelable: !!a.fuelable };
+      if (a.basis === 'pctValue') { o.pct = a.pct || 0; o.min = a.min || 0; }
+      else { o.amount = Math.round((a.list || 0) * (1 - (a.disc || 0) / 100) * 100) / 100; }
+      if (a.region) o.region = a.region;
+      if (a.countries) o.countries = a.countries;
+      return o;
+    });
 
   return {
     customer: card.customer || '',
     title: conf.title || 'International Rate Card',
     notes: conf.notes || '',
-    breakdown,
     showBest: conf.showBest !== false,
     divisor: cfg.divisor,
     bands: cfg.bands,
     caps: { cp: CAPS.cp, ep: CAPS.ep },
+    eu: (S.regions && S.regions.eu) || [],
     countries: countryList,
     services,
-    surcharges,
+    accessorials,
   };
 }
 
