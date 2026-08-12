@@ -78,6 +78,8 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 .miniform{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .miniform .f input,.miniform .f select{padding:8px}.miniform .f label{font-size:10.5px}
 .rolechip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3}
+textarea{font-family:inherit;padding:9px 10px;border:1px solid #cbd5e1;border-radius:9px;font-size:13px;resize:vertical}
+textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 </style></head>
 <body><div class="wrap">
 
@@ -184,6 +186,27 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 </div>
 <div class="chartbox"><canvas id="chart"></canvas></div>
 <p class="chartnote" id="chartnote"></p>
+</div>
+<div class="panel" id="reportPanel">
+  <h2>Cheapest by country — report</h2>
+  <p class="chartnote" style="margin:0 0 10px">Select destinations below. Uses the weight, dimensions, value and options set above. Run to preview, then open a printable report.</p>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:8px">
+    <div style="flex:1;min-width:260px">
+      <input id="repSearch" placeholder="Search countries…" style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:6px;font-size:13px"/>
+      <div id="repList" style="max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px 8px"></div>
+      <div id="repCount" class="chartnote" style="margin-top:5px"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="btn" id="repAll">Select all</button>
+      <button class="btn" id="repEU">EU</button>
+      <button class="btn" id="repClear">Clear</button>
+      <button class="btn primary" id="repRun">Run report</button>
+      <button class="btn" id="repDoc">Open printable report</button>
+    </div>
+  </div>
+  <div id="repMsg" class="chartnote" style="color:var(--r)"></div>
+  <div id="repSummary" style="margin:8px 0;font-size:14px"></div>
+  <div style="overflow:auto;max-height:520px"><table class="stable" id="repTable"><thead><tr><th>Country</th><th>Cheapest service</th><th>Customer price</th><th>Next best</th><th>You save</th></tr></thead><tbody id="repBody"></tbody></table></div>
 </div>
 </div>
 
@@ -366,6 +389,7 @@ function bootCalc(){
   buildFuelTable(s.fuelByService||{});
   buildAccTable();
   renderToggles();
+  buildRepList();
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
@@ -451,6 +475,84 @@ $('nuAdd').onclick=async()=>{$('usersErr').className='err';$('usersErr').textCon
   const r=await jpost('/api/users',{name:$('nuName').value,email:$('nuEmail').value,role:$('nuRole').value,password:$('nuPass').value});
   const d=await r.json(); if(!r.ok){$('usersErr').textContent=d.error||'Could not add user';return;}
   $('nuName').value='';$('nuEmail').value='';$('nuPass').value='';await refreshUsers();};
+
+// ---------- multi-country report ----------
+function buildRepList(){
+  const box=$('repList');if(!box)return;box.innerHTML='';
+  P.countries.forEach(c=>{const lab=document.createElement('label');lab.className='replab';lab.style.cssText='display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer';
+    lab.innerHTML=`<input type="checkbox" class="repC" value="${c}"/> <span>${c}</span>`;box.appendChild(lab);});
+  updateRepCount();
+}
+const selectedCountries=()=>[...document.querySelectorAll('.repC:checked')].map(x=>x.value);
+function updateRepCount(){const n=selectedCountries().length;const el=$('repCount');if(el)el.textContent=n+' selected';}
+function repPrice(c){
+  const actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
+  const vol=(L&&W&&H)?(L*W*H)/P.divisor:0, chg=Math.max(actual,vol);
+  ACTIVE=activeAcc(c,actual,L,W,H);
+  return SERVICES.map(svc=>{const b=baseRate(svc,c,chg);return{svc,b,built:build(b.price,svc)};})
+    .filter(x=>x.b.avail&&x.b.price!=null)
+    .map(x=>({name:x.svc.name,carrier:x.svc.carrier,sell:x.built.sell}))
+    .sort((a,b)=>a.sell-b.sell);
+}
+function reportRows(countries){
+  let up=0,dp=0;const data=[];
+  countries.forEach(c=>{const priced=repPrice(c);if(!priced.length){data.push({c,none:true});return;}
+    const win=priced[0],next=priced[1];if(win.carrier==='ups')up++;else dp++;
+    data.push({c,win,next,save:next?next.sell-win.sell:0});});
+  calc(); // restore on-screen single-country view
+  return {data,up,dp};
+}
+function runReport(){
+  const countries=selectedCountries();
+  if(!countries.length){$('repMsg').textContent='Select at least one country.';$('repBody').innerHTML='';$('repSummary').textContent='';return;}
+  $('repMsg').textContent='';
+  const {data,up,dp}=reportRows(countries);
+  const tb=$('repBody');tb.innerHTML='';
+  data.forEach(r=>{const tr=document.createElement('tr');
+    if(r.none){tr.innerHTML=`<td>${r.c}</td><td colspan="4" class="chartnote">no services available</td>`;tb.appendChild(tr);return;}
+    tr.innerHTML=`<td>${r.c}</td><td><b style="color:${r.win.carrier==='ups'?'#0f766e':'#2563eb'}">${r.win.name}</b></td><td><b>${money(r.win.sell)}</b></td><td>${r.next?r.next.name+' · '+money(r.next.sell):'—'}</td><td>${r.next?money(r.save):'—'}</td>`;
+    tb.appendChild(tr);});
+  $('repSummary').innerHTML=`<b>${countries.length}</b> countries priced — cheapest is UPS in <b>${up}</b>, DPD in <b>${dp}</b>.`;
+}
+function generateReport(){
+  const countries=selectedCountries();
+  if(!countries.length){$('repMsg').textContent='Select at least one country.';return;}
+  $('repMsg').textContent='';
+  const {data,up,dp}=reportRows(countries);
+  const actual=num('wt'),L=num('L'),W=num('W'),H=num('H'),val=num('goodsValue');
+  const dims=(L&&W&&H)?(L+'×'+W+'×'+H+' cm'):'';
+  const tog=accList().filter(a=>a.cond==='toggle'&&accOn(a)).map(a=>a.name);
+  const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const trs=data.map(r=>r.none?`<tr><td>${r.c}</td><td colspan="4" style="color:#94a3b8">no services available</td></tr>`
+    :`<tr><td>${r.c}</td><td><b>${r.win.name}</b></td><td>£${r.win.sell.toFixed(2)}</td><td>${r.next?r.next.name+' · £'+r.next.sell.toFixed(2):'—'}</td><td>${r.next?'£'+r.save.toFixed(2):'—'}</td></tr>`).join('');
+  const spec=['<b>'+actual+' kg</b>',dims,val?'value £'+val:'',tog.join(', ')].filter(Boolean).join(' · ');
+  const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Shipping Rate Report</title>'
+    +'<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#0f172a;max-width:900px;margin:24px auto;padding:0 22px}'
+    +'h1{font-size:22px;margin:0 0 4px;letter-spacing:-.02em}.sub{color:#64748b;font-size:13px;margin:0 0 18px}'
+    +'.spec{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;font-size:13px;margin-bottom:16px}'
+    +'table{border-collapse:collapse;width:100%;font-size:13px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #e2e8f0}'
+    +'th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#475569}'
+    +'.sum{margin:14px 0;font-size:14px}.noprint{margin:0 0 16px}'
+    +'button{padding:9px 15px;border:0;border-radius:8px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer;font-size:14px}'
+    +'@media print{.noprint{display:none}}</style></head><body>'
+    +'<div class="noprint"><button onclick="window.print()">Print / Save as PDF</button></div>'
+    +'<h1>International Shipping Rate Report</h1>'
+    +'<p class="sub">Cheapest carrier by destination · generated '+now+'</p>'
+    +'<div class="spec">Parcel: '+spec+'</div>'
+    +'<div class="sum"><b>'+countries.length+'</b> destinations — cheapest is UPS in <b>'+up+'</b>, DPD in <b>'+dp+'</b>.</div>'
+    +'<table><thead><tr><th>Country</th><th>Cheapest service</th><th>Customer price</th><th>Next best</th><th>You save</th></tr></thead><tbody>'+trs+'</tbody></table>'
+    +'<p class="sub" style="margin-top:20px">Customer sell prices incl. fuel and duty handling, excl. VAT. Indicative and subject to final confirmation.</p>'
+    +'</body></html>';
+  const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();}
+}
+$('repSearch').addEventListener('input',()=>{const q=$('repSearch').value.toLowerCase();document.querySelectorAll('#repList .replab').forEach(l=>{l.style.display=l.textContent.toLowerCase().includes(q)?'':'none';});});
+$('repList').addEventListener('change',updateRepCount);
+$('repAll').onclick=()=>{document.querySelectorAll('.repC').forEach(x=>x.checked=true);updateRepCount();};
+$('repEU').onclick=()=>{const eu=(P.settings.regions&&P.settings.regions.eu)||[];document.querySelectorAll('.repC').forEach(x=>x.checked=eu.includes(x.value));updateRepCount();};
+$('repClear').onclick=()=>{document.querySelectorAll('.repC').forEach(x=>x.checked=false);updateRepCount();};
+$('repRun').onclick=runReport;
+$('repDoc').onclick=generateReport;
+
 init();
 </script>
 </body></html>
