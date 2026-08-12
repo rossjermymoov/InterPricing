@@ -31,14 +31,16 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .f label{display:block;font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
 .f input,.f select{padding:11px 12px;border:1px solid #cbd5e1;border-radius:11px;font-size:15px;background:#fff;color:var(--ink)}
 .f input:focus,.f select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
-.f.country{flex:1;min-width:200px}.f.country select{width:100%}
-.f.small input{width:84px;text-align:right;font-variant-numeric:tabular-nums}
+.f.country select{width:230px;max-width:100%}
+.f.small input{width:88px;text-align:right;font-variant-numeric:tabular-nums}
+.rowf input[type=number]::-webkit-inner-spin-button,.rowf input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.rowf input[type=number]{-moz-appearance:textfield;appearance:textfield}
 .meta{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-size:13px}
 .meta .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800}
 .meta b{font-size:16px}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px}
 .card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;position:relative}
-.card .cmark{height:18px;width:auto;display:inline-block;vertical-align:middle}
+.card .cmark{height:34px;width:auto;max-width:120px;object-fit:contain;display:inline-block;vertical-align:middle}
 .cbadge{display:inline-block;font-size:10px;font-weight:800;color:#fff;padding:3px 9px;border-radius:6px;letter-spacing:.03em}
 .cbadge.dpd{background:var(--dpd)} .cbadge.ups{background:var(--ups)} .cbadge.dhl{background:var(--dhl)}
 .card .svc{font-size:14.5px;font-weight:700;margin:8px 0 2px;color:var(--brand)}
@@ -79,11 +81,11 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
     <div class="calc">
       <h2>Price calculator</h2>
       <div class="rowf">
-        <div class="f country"><label>Destination country</label><select id="country"></select></div>
-        <div class="f small"><label>Weight kg</label><input id="wt" type="number" min="0" step="0.1" value="5"/></div>
-        <div class="f small"><label>Length cm</label><input id="L" type="number" min="0" step="1" placeholder="—"/></div>
-        <div class="f small"><label>Width cm</label><input id="W" type="number" min="0" step="1" placeholder="—"/></div>
-        <div class="f small"><label>Height cm</label><input id="H" type="number" min="0" step="1" placeholder="—"/></div>
+        <div class="f country"><label>Destination</label><select id="country"></select></div>
+        <div class="f small"><label>Weight (kg)</label><input id="wt" type="number" min="0" step="0.1" value="5"/></div>
+        <div class="f small"><label>Length (cm)</label><input id="L" type="number" min="0" step="1"/></div>
+        <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
+        <div class="f small"><label>Height (cm)</label><input id="H" type="number" min="0" step="1"/></div>
       </div>
       <div class="meta">
         <div><div class="lab">Volumetric</div><b id="volw">—</b></div>
