@@ -3,6 +3,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const db = require('./db');
 const auth = require('./auth');
+const pricing = require('./pricing');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -177,6 +178,48 @@ app.delete('/api/users/:id', auth.requireAdmin, async (req, res) => {
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// ---- shareable customer rate cards (admin/sales manage; public views) ----
+app.post('/api/cards', auth.requireAuth, async (req, res) => {
+  if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
+  try {
+    const { customer, config } = req.body || {};
+    const card = await db.createCard({ customer, config: config || {}, created_by: req.user.id });
+    res.json({ card });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/cards', auth.requireAuth, async (req, res) => {
+  if (!db.hasDb) return res.json({ cards: [] });
+  try { res.json({ cards: await db.listCards() }); } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.patch('/api/cards/:id', auth.requireAuth, async (req, res) => {
+  if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!(await db.getCardById(id))) return res.status(404).json({ error: 'Card not found' });
+    const { customer, config, enabled } = req.body || {};
+    res.json({ card: await db.updateCard(id, { customer, config, enabled }) });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/api/cards/:id', auth.requireAuth, async (req, res) => {
+  if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!(await db.getCardById(id))) return res.status(404).json({ error: 'Card not found' });
+    await db.deleteCard(id); res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// PUBLIC: customer-facing payload (final prices only) — no auth.
+app.get('/api/card/:token', async (req, res) => {
+  try {
+    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'This rate card is not available.' });
+    res.set('Cache-Control', 'no-store');
+    res.json(pricing.buildCardPayload(await db.getConfig(), card));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+// PUBLIC: branded card page.
+app.get('/card/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'card.html')));
 
 // ---- static front end + SPA fallback ----
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));

@@ -181,6 +181,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <div class="panel">
     <h2>Accessorials</h2>
     <p class="adminnote">UPS accessorial charges. <b>Net</b> = list × (1 − discount). <span class="tagpill">toggle</span> ones apply when ticked on the calculator; <span class="tagpill auto">auto</span> ones apply automatically from weight &amp; dimensions. DPD £ defaults to 0 (DPD accessorials not loaded). Accessorials are added to the base and fuel applies on top.</p>
+    <div class="voltabs" id="accTabs" style="margin-bottom:12px"></div>
     <table class="stable"><thead><tr><th>Accessorial</th><th>Carrier</th><th>Trigger</th><th>List £ / Rate %</th><th>Disc % / Min £</th><th>Net</th></tr></thead><tbody id="accBody"></tbody></table>
   </div>
   <div class="panel"><button class="btn primary" id="saveBtn">Save settings</button><span class="ok" id="saveMsg"></span></div>
@@ -290,6 +291,20 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     <button class="btn primary" id="repMix">Export combined card — all options together</button>
   </div>
   <div id="rcMsg" class="chartnote" style="color:var(--r);margin-top:8px"></div>
+</div>
+<div class="panel" id="customersPanel">
+  <h2>Customer rate cards &amp; links</h2>
+  <p class="chartnote" id="custNote" style="margin:0 0 12px">Save the setup above as a private link for a customer. Each link is unguessable and shows only that customer’s prices — no one can see another customer’s rates, and there is no public list. Links always reflect your latest rates.</p>
+  <div class="miniform">
+    <div class="f"><label>Customer name</label><input id="custName" type="text" placeholder="e.g. Slumba Ltd"/></div>
+    <button class="btn primary" id="custSave">Save as customer link</button>
+    <span class="ok" id="custMsg"></span>
+  </div>
+  <div style="margin-top:16px">
+    <input id="custSearch" placeholder="Search customers…" style="width:100%;max-width:320px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;margin-bottom:8px"/>
+    <div style="overflow:auto"><table class="utable"><thead><tr><th>Customer</th><th>Private link</th><th>Status</th><th></th></tr></thead><tbody id="custBody"></tbody></table></div>
+    <div id="custEmpty" class="chartnote" style="margin-top:8px"></div>
+  </div>
 </div>
 </div>
 
@@ -453,16 +468,28 @@ function accNetDisplay(a){
   if(a.basis==='pctValue'){const pct=$('accPct_'+a.key)?num('accPct_'+a.key):(a.pct||0);const mn=$('accMin_'+a.key)?num('accMin_'+a.key):(a.min||0);return pct+'% · min '+money(mn);}
   const l=$('accList_'+a.key)?num('accList_'+a.key):(a.list||0);const d=$('accDisc_'+a.key)?num('accDisc_'+a.key):(a.disc||0);return money(l*(1-d/100));
 }
+let accCarrier='all';
+const CARRIER_NAME={ups:'UPS',dpd:'DPD',dhl:'DHL',all:'All carriers'};
+function renderAccTabs(){
+  const box=$('accTabs');if(!box)return;box.innerHTML='';
+  const present=[...new Set(accList().map(a=>a.applyTo))].sort();
+  if(!present.includes(accCarrier)&&accCarrier!=='all')accCarrier='all';
+  ['all',...present].forEach(t=>{const b=document.createElement('button');
+    b.className='voltab'+(t===accCarrier?' active':'');
+    b.textContent=CARRIER_NAME[t]||t.toUpperCase();
+    b.onclick=()=>{accCarrier=t;renderAccTabs();buildAccTable();};
+    box.appendChild(b);});
+}
 function buildAccTable(){
   const tb=$('accBody');tb.innerHTML='';
   const trg=a=>a.cond==='auto'?'auto (size/wt)':(a.cond==='always'?'always':(a.cond==='countryIn'?(a.countries||[]).join(','):(a.cond==='region'?a.region.toUpperCase():'toggle')));
-  accList().forEach(a=>{const tr=document.createElement('tr');
+  accList().filter(a=>accCarrier==='all'||a.applyTo===accCarrier).forEach(a=>{const tr=document.createElement('tr');
     let cells;
     if(a.basis==='pctValue') cells=`<td><input id="accPct_${a.key}" type="number" step="0.1" value="${a.pct||0}"/> %</td><td><input id="accMin_${a.key}" type="number" step="0.01" value="${a.min||0}"/></td>`;
     else cells=`<td><input id="accList_${a.key}" type="number" step="0.01" value="${a.list||0}"/></td><td><input id="accDisc_${a.key}" type="number" step="1" value="${a.disc||0}"/></td>`;
     tr.innerHTML=`<td>${a.name}</td><td>${(a.applyTo||'').toUpperCase()}</td><td><span class="tagpill${a.cond!=='toggle'?' auto':''}">${trg(a)}</span></td>${cells}<td><span id="accNet_${a.key}"></span></td>`;
     tb.appendChild(tr);});
-  accList().forEach(a=>{const upd=()=>{$('accNet_'+a.key).textContent=accNetDisplay(a);calc();};
+  accList().filter(a=>accCarrier==='all'||a.applyTo===accCarrier).forEach(a=>{const upd=()=>{$('accNet_'+a.key).textContent=accNetDisplay(a);calc();};
     if(a.basis==='pctValue'){$('accPct_'+a.key).addEventListener('input',upd);$('accMin_'+a.key).addEventListener('input',upd);}
     else{$('accList_'+a.key).addEventListener('input',upd);$('accDisc_'+a.key).addEventListener('input',upd);}
     $('accNet_'+a.key).textContent=accNetDisplay(a);});
@@ -492,6 +519,7 @@ function bootCalc(){
   const s=P.settings||{fuelByService:{},caps:{cp:31.5,ep:3},accessorials:[]};
   CAPS={cp:(s.caps&&s.caps.cp)||31.5, ep:(s.caps&&s.caps.ep)||3};
   buildFuelTable(s.fuelByService||{});
+  renderAccTabs();
   buildAccTable();
   renderToggles();
   renderMarkup();
@@ -523,13 +551,14 @@ function applyChrome(){
   $('pwBtn').style.display=authEnabled?'':'none';
   $('logoutBtn').style.display=authEnabled?'':'none';
   $('teamPanel').style.display=authEnabled?'block':'none';
+  $('customersPanel').style.display=authEnabled?'block':'none';
   $('banner').style.display=authEnabled?'none':'block';
   $('who').textContent=current?((current.name||current.email)+' · '+current.role):'';
 }
 async function loadConfigAndApp(){
   const r=await fetch('/api/config'); if(r.status===401){screen('login');return;}
   P=await r.json(); if(!P||!P.bands){screen('login');return;}
-  bootCalc(); applyChrome(); screen('app');
+  bootCalc(); applyChrome(); screen('app'); refreshCards();
 }
 async function init(){
   try{
@@ -559,7 +588,7 @@ $('settingsBtn').onclick=async()=>{screen('settings');if(authEnabled)await refre
 $('backBtn').onclick=()=>{screen('app');calc();};
 $('saveBtn').onclick=async()=>{$('saveMsg').className='ok';$('saveMsg').textContent='';
   const fbs={};SERVICES.forEach(svc=>{fbs[svc.key]={name:svc.name,cost:num('fc_'+svc.key),sell:num('fs_'+svc.key)};});
-  const acc=accList().map(a=>{const o={key:a.key};if(a.basis==='pctValue'){o.pct=num('accPct_'+a.key);o.min=num('accMin_'+a.key);}else{o.list=num('accList_'+a.key);o.disc=num('accDisc_'+a.key);}return o;});
+  const acc=accList().filter(a=>$('accList_'+a.key)||$('accPct_'+a.key)).map(a=>{const o={key:a.key};if(a.basis==='pctValue'){o.pct=num('accPct_'+a.key);o.min=num('accMin_'+a.key);}else{o.list=num('accList_'+a.key);o.disc=num('accDisc_'+a.key);}return o;});
   const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc});const d=await r.json();
   if(!r.ok){$('saveMsg').className='err';$('saveMsg').textContent=(d.error||'Save failed')+(authEnabled?'':' — connect the database to save.');return;}
   P.settings=Object.assign(P.settings||{},d.settings);$('saveMsg').textContent='Saved. Applies to everyone.';calc();};
@@ -843,6 +872,52 @@ function exportMixedCard(){
   XLSX.writeFile(wb,(rcTitle().replace(/[\\/:*?"<>|]/g,''))+(safeCo?' - '+safeCo:'')+' options '+now.replace(/ /g,'-')+'.xlsx');
 }
 $('repMix').onclick=exportMixedCard;
+
+// ---------- customer rate cards (shareable links) ----------
+let cardsCache=[];
+function currentCardConfig(){
+  const markup={};SERVICES.forEach(s=>markup[s.key]=num('mk_'+s.key));
+  return {services:selectedServices().map(s=>s.key),markup,
+    breakdown:$('rcBreakdown').checked,showBest:$('rcCheapest').checked,includeSurcharges:$('rcSur').checked,
+    title:($('rcTitle').value||'').trim(),notes:($('rcNotes').value||'').trim(),countries:selectedCountries()};
+}
+const cardUrl=t=>location.origin+'/card/'+t;
+async function saveCard(){
+  const customer=($('custName').value||'').trim();
+  $('custMsg').className='ok';$('custMsg').textContent='';
+  if(!customer){$('custMsg').className='err';$('custMsg').textContent='Enter a customer name.';return;}
+  if(!selectedServices().length){$('custMsg').className='err';$('custMsg').textContent='Pick at least one service above first.';return;}
+  const r=await jpost('/api/cards',{customer,config:currentCardConfig()});const d=await r.json();
+  if(!r.ok){$('custMsg').className='err';$('custMsg').textContent=(d.error||'Could not save')+(authEnabled?'':' — connect the database to save links.');return;}
+  $('custName').value='';$('custMsg').textContent='Link created.';await refreshCards();
+}
+async function refreshCards(){
+  if(!authEnabled){$('custEmpty').textContent='';return;}
+  const r=await fetch('/api/cards');if(!r.ok)return;
+  const {cards}=await r.json();
+  cardsCache=(cards||[]).slice().sort((a,b)=>(a.customer||'').toLowerCase().localeCompare((b.customer||'').toLowerCase()));
+  renderCards();
+}
+function renderCards(){
+  const q=($('custSearch').value||'').toLowerCase();
+  const list=cardsCache.filter(c=>(c.customer||'').toLowerCase().includes(q));
+  const tb=$('custBody');tb.innerHTML='';
+  list.forEach(c=>{const url=cardUrl(c.token);const tr=document.createElement('tr');
+    tr.innerHTML=`<td><b>${c.customer||'—'}</b></td>`
+      +`<td><a href="${url}" target="_blank" rel="noopener" style="color:var(--teal);word-break:break-all">${url}</a></td>`
+      +`<td>${c.enabled?'<span class="rolechip" style="background:var(--g-bg);color:var(--g)">live</span>':'<span class="rolechip" style="background:#fee2e2;color:var(--r)">off</span>'}</td>`
+      +`<td style="white-space:nowrap"><button class="btn copyBtn" data-u="${url}">Copy</button> `
+      +`<button class="btn tglBtn" data-id="${c.id}" data-en="${c.enabled?0:1}">${c.enabled?'Disable':'Enable'}</button> `
+      +`<button class="btn danger delCardBtn" data-id="${c.id}">Delete</button></td>`;
+    tb.appendChild(tr);});
+  $('custEmpty').textContent=cardsCache.length?(list.length?'':'No customers match your search.'):'No customer links yet — save one above.';
+  tb.querySelectorAll('.copyBtn').forEach(b=>b.onclick=()=>{const t=b.dataset.u;
+    if(navigator.clipboard)navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200);});
+  tb.querySelectorAll('.tglBtn').forEach(b=>b.onclick=async()=>{await jpatch('/api/cards/'+b.dataset.id,{enabled:b.dataset.en==='1'});await refreshCards();});
+  tb.querySelectorAll('.delCardBtn').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this customer link? It will stop working immediately.'))return;await jdel('/api/cards/'+b.dataset.id);await refreshCards();});
+}
+$('custSave').onclick=saveCard;
+$('custSearch').addEventListener('input',renderCards);
 
 $('repSearch').addEventListener('input',()=>{const q=$('repSearch').value.toLowerCase();document.querySelectorAll('#repList .replab').forEach(l=>{l.style.display=l.textContent.toLowerCase().includes(q)?'':'none';});});
 $('repList').addEventListener('change',updateRepCount);

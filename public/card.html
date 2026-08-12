@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>International Rate Card</title>
+<style>
+/* ===== BRAND (placeholder — swap for the approved MOOV Parcel palette + logo) ===== */
+:root{
+  --brand:#0B1F3A; --accent:#21C2A6; --accent-2:#12A594;
+  --dpd:#DC2626; --ups:#8B4513; --dhl:#D4A017;
+  --bg:#f4f6f9; --card:#fff; --line:#e5e9f0; --muted:#64748b; --ink:#0f172a; --g:#15803d;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
+.wrap{max-width:1000px;margin:0 auto;padding:0 20px 60px}
+.hero{background:linear-gradient(120deg,var(--brand),#12315a);color:#fff;border-radius:0 0 22px 22px;padding:26px 26px 30px;box-shadow:0 8px 26px rgba(11,31,58,.18)}
+.hero .top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.logo{display:flex;align-items:baseline;gap:2px;font-weight:900;font-size:30px;letter-spacing:-.02em}
+.logo .m{color:#fff}.logo .p{color:var(--accent)}
+.logo .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block;margin-left:3px}
+.hero .tag{font-size:13px;color:#cfe0f5;margin-top:3px;font-weight:500}
+.hero .cust{text-align:right;font-size:13px;color:#cfe0f5}
+.hero .cust b{display:block;color:#fff;font-size:15px}
+.hero h1{font-size:22px;margin:22px 0 2px;letter-spacing:-.02em}
+.hero p.lede{margin:0;color:#cfe0f5;font-size:13.5px;max-width:640px}
+.calc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:-18px;position:relative;box-shadow:0 6px 22px rgba(15,23,42,.07)}
+.calc h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 14px}
+.rowf{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.f label{display:block;font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.f input,.f select{padding:11px 12px;border:1px solid #cbd5e1;border-radius:11px;font-size:15px;background:#fff;color:var(--ink)}
+.f input:focus,.f select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.f.country{flex:1;min-width:200px}.f.country select{width:100%}
+.f.small input{width:84px;text-align:right;font-variant-numeric:tabular-nums}
+.meta{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-size:13px}
+.meta .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800}
+.meta b{font-size:16px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px}
+.card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;position:relative}
+.card .pill{font-size:10px;font-weight:800;color:#fff;padding:2px 8px;border-radius:999px}
+.card.dpd .pill{background:var(--dpd)} .card.ups .pill{background:var(--ups)} .card.dhl .pill{background:var(--dhl)}
+.card .svc{font-size:14.5px;font-weight:700;margin:8px 0 2px;color:var(--brand)}
+.card .price{font-size:30px;font-weight:900;letter-spacing:-.02em;margin:6px 0 0}
+.card .unit{font-size:11px;color:var(--muted)}
+.card.win{border:2px solid var(--accent);box-shadow:0 6px 18px rgba(33,194,166,.18)}
+.card.win .price{color:var(--accent-2)}
+.card .badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#fff;background:var(--accent);padding:3px 9px;border-radius:999px;letter-spacing:.03em}
+.card.na{background:#f8fafc;color:var(--muted)} .card.na .price{font-size:17px;color:#94a3b8;margin-top:12px}
+.note{font-size:12.5px;color:var(--muted);margin-top:14px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:18px}
+.panel h3{font-size:15px;margin:0 0 4px}
+.panel p.sub{color:var(--muted);font-size:12.5px;margin:0 0 14px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569}
+td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.tag2{font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;color:#fff}
+.tag2.DPD{background:var(--dpd)} .tag2.UPS{background:var(--ups)} .tag2.DHL{background:var(--dhl)}
+.notes{white-space:pre-line;font-size:12.5px;color:#475569;margin-top:8px}
+.foot{font-size:12px;color:var(--muted);margin-top:22px;text-align:center}
+.print{display:inline-flex;gap:8px;align-items:center;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:13.5px}
+.state{max-width:520px;margin:16vh auto;text-align:center;color:var(--muted);font-size:15px}
+@media print{.calc,.print{box-shadow:none}.print{display:none}.hero{border-radius:0}}
+</style></head>
+<body>
+<div id="state" class="state">Loading rate card…</div>
+<div id="app" style="display:none">
+  <div class="hero">
+    <div class="top">
+      <div>
+        <div class="logo"><span class="m">moov</span><span class="p">parcel</span><span class="dot"></span></div>
+        <div class="tag">International delivery, simplified.</div>
+      </div>
+      <div class="cust">Rate card prepared for<b id="cust"></b><span id="today"></span></div>
+    </div>
+    <h1 id="title">International Rate Card</h1>
+    <p class="lede">Enter a destination, weight and dimensions to see your delivery price instantly. Prices are in GBP; per-shipment surcharges are listed below.</p>
+  </div>
+  <div class="wrap">
+    <div class="calc">
+      <h2>Price calculator</h2>
+      <div class="rowf">
+        <div class="f country"><label>Destination country</label><select id="country"></select></div>
+        <div class="f small"><label>Weight kg</label><input id="wt" type="number" min="0" step="0.1" value="5"/></div>
+        <div class="f small"><label>Length cm</label><input id="L" type="number" min="0" step="1" placeholder="—"/></div>
+        <div class="f small"><label>Width cm</label><input id="W" type="number" min="0" step="1" placeholder="—"/></div>
+        <div class="f small"><label>Height cm</label><input id="H" type="number" min="0" step="1" placeholder="—"/></div>
+      </div>
+      <div class="meta">
+        <div><div class="lab">Volumetric</div><b id="volw">—</b></div>
+        <div><div class="lab">Chargeable</div><b id="chgw">—</b></div>
+        <div><div class="lab">Priced on</div><b id="driver">—</b></div>
+      </div>
+      <div class="cards" id="cards"></div>
+      <div class="note" id="cnote"></div>
+    </div>
+    <div class="panel" id="surPanel">
+      <h3>Surcharges</h3>
+      <p class="sub">Applied per shipment in addition to the delivery price where relevant. Duties &amp; taxes are passed on at cost.</p>
+      <table><thead><tr><th>Surcharge</th><th>Carrier</th><th>When it applies</th><th>Charge</th></tr></thead><tbody id="surBody"></tbody></table>
+    </div>
+    <div class="notes" id="notesBox"></div>
+    <div style="text-align:center;margin-top:20px"><button class="print" onclick="window.print()">Print / Save as PDF</button></div>
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+<script>
+const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
+const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
+let RC=null;
+function priceOf(s,c,chg){
+  const B=RC.bands;
+  if(s.type==='band'){const arr=s.prices[c];if(!arr)return{p:null,avail:false};
+    if(chg>B[B.length-1]+1e-9)return{p:null,avail:true,note:'over '+B[B.length-1]+' kg'};
+    for(let i=0;i<B.length;i++)if(B[i]>=chg-1e-9)return{p:arr[i],avail:true,band:B[i]};
+    return{p:null,avail:true};}
+  if(s.type==='flat'){const p=s.prices[c];if(p==null)return{p:null,avail:false};
+    if(chg>s.cap+1e-9)return{p:null,avail:true,note:'over '+s.cap+' kg'};
+    return{p:p,avail:true,band:'≤'+s.cap+'kg'};}
+  const z=s.zmap[c], zd=z&&s.zones[z];if(!z||!zd)return{p:null,avail:false};
+  const mB=zd[zd.length-1][0];
+  if(chg<=mB+1e-9){for(const[w,pr]of zd)if(w>=chg-1e-9)return{p:pr,avail:true,band:w};}
+  return{p:zd[zd.length-1][1],avail:true,band:'>'+mB+'kg'};
+}
+function calc(){
+  const c=$('country').value,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
+  const vol=(L&&W&&H)?(L*W*H)/RC.divisor:0, chg=Math.max(actual,vol);
+  $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
+  $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
+  $('driver').textContent=!chg?'—':(vol>actual?'volumetric':'actual weight');
+  const rows=RC.services.map(s=>({s,r:priceOf(s,c,chg)})).filter(x=>x.r.avail);
+  const priced=rows.filter(x=>x.r.p!=null).map(x=>x.r.p);
+  const min=priced.length?Math.min(...priced):null;
+  const box=$('cards');box.innerHTML='';
+  rows.forEach(({s,r})=>{
+    const d=document.createElement('div');let cls='card '+s.carrier.toLowerCase();
+    if(r.p==null)cls+=' na'; else if(RC.showBest&&r.p===min&&priced.length>1)cls+=' win';
+    d.className=cls;
+    const head=`<div><span class="pill">${s.carrier}</span></div><div class="svc">${s.name}</div>`;
+    if(r.p==null){d.innerHTML=head+`<div class="price">n/a</div><div class="unit">${r.note||'not available'}</div>`;}
+    else{
+      const badge=(RC.showBest&&r.p===min&&priced.length>1)?'<span class="badge">BEST PRICE</span>':'';
+      const unit=RC.breakdown?('base · + '+(s.fuel||0)+'% fuel'):('delivery, incl. fuel'+(r.band?(' · '+(typeof r.band==='number'?r.band+' kg band':r.band)):''));
+      d.innerHTML=badge+head+`<div class="price">${money(r.p)}</div><div class="unit">${unit}</div>`;
+    }
+    box.appendChild(d);
+  });
+  $('cnote').textContent=chg?(priced.length?('Showing '+priced.length+' service'+(priced.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable.'):('No services available to '+c+' at this weight.')):'Enter a weight to see prices.';
+}
+async function boot(){
+  const token=location.pathname.split('/').filter(Boolean).pop();
+  try{
+    const res=await fetch('/api/card/'+encodeURIComponent(token));
+    if(!res.ok){$('state').textContent='This rate card link is not available.';return;}
+    RC=await res.json();
+  }catch(e){$('state').textContent='Could not load this rate card.';return;}
+  $('state').style.display='none';$('app').style.display='block';
+  $('title').textContent=RC.title||'International Rate Card';
+  $('cust').textContent=RC.customer||'';
+  $('today').textContent=' · '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  RC.countries.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;$('country').appendChild(o);});
+  $('country').value=RC.countries.includes('USA')?'USA':RC.countries[0];
+  ['country','wt','L','W','H'].forEach(id=>$(id).addEventListener('input',calc));
+  if(RC.surcharges&&RC.surcharges.length){const sb=$('surBody');
+    RC.surcharges.forEach(a=>{const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${a.name}</td><td><span class="tag2 ${a.carrier}">${a.carrier}</span></td><td>${a.when}</td><td class="r">${a.rate}</td>`;sb.appendChild(tr);});
+  }else $('surPanel').style.display='none';
+  $('notesBox').textContent=RC.notes||'';
+  $('foot').textContent='Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor '+RC.divisor+'.'+(RC.breakdown?' Prices shown are base freight — add the stated fuel % and any surcharges.':'');
+  calc();
+}
+boot();
+</script>
+</body></html>

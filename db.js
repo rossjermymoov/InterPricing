@@ -53,6 +53,17 @@ async function initDb() {
       role text NOT NULL DEFAULT 'sales',
       created_at timestamptz NOT NULL DEFAULT now()
     );`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rate_cards (
+      id serial PRIMARY KEY,
+      token text UNIQUE NOT NULL,
+      customer text,
+      config jsonb NOT NULL DEFAULT '{}'::jsonb,
+      enabled boolean NOT NULL DEFAULT true,
+      created_by integer,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );`);
   await migrateConfig();
   console.log('[db] schema ready (rate_config, users, app_secrets)');
 }
@@ -172,8 +183,47 @@ async function deleteUser(id) {
   return true;
 }
 
+// ---- rate cards (shareable customer links) ----
+const newToken = () => crypto.randomBytes(9).toString('base64').replace(/[+/=]/g, (m) => ({ '+': 'a', '/': 'b', '=': '' }[m]));
+async function createCard({ customer, config, created_by }) {
+  const token = newToken();
+  const { rows } = await pool.query(
+    `INSERT INTO rate_cards (token, customer, config, created_by) VALUES ($1,$2,$3,$4) RETURNING *`,
+    [token, customer || null, JSON.stringify(config || {}), created_by || null]
+  );
+  return rows[0];
+}
+async function listCards() {
+  const { rows } = await pool.query('SELECT * FROM rate_cards ORDER BY created_at DESC');
+  return rows;
+}
+async function getCardByToken(token) {
+  const { rows } = await pool.query('SELECT * FROM rate_cards WHERE token = $1', [token]);
+  return rows[0] || null;
+}
+async function getCardById(id) {
+  const { rows } = await pool.query('SELECT * FROM rate_cards WHERE id = $1', [id]);
+  return rows[0] || null;
+}
+async function updateCard(id, { customer, config, enabled }) {
+  const sets = [], vals = [];
+  if (customer !== undefined) { vals.push(customer); sets.push(`customer = $${vals.length}`); }
+  if (config !== undefined) { vals.push(JSON.stringify(config)); sets.push(`config = $${vals.length}`); }
+  if (enabled !== undefined) { vals.push(!!enabled); sets.push(`enabled = $${vals.length}`); }
+  if (!sets.length) return getCardById(id);
+  sets.push('updated_at = now()');
+  vals.push(id);
+  const { rows } = await pool.query(`UPDATE rate_cards SET ${sets.join(', ')} WHERE id = $${vals.length} RETURNING *`, vals);
+  return rows[0];
+}
+async function deleteCard(id) {
+  await pool.query('DELETE FROM rate_cards WHERE id = $1', [id]);
+  return true;
+}
+
 module.exports = {
   initDb, getConfig, setConfig, getSecret,
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
+  createCard, listCards, getCardByToken, getCardById, updateCard, deleteCard,
   hasDb: !!pool,
 };
