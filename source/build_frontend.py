@@ -100,6 +100,10 @@ header#hdr .who{color:var(--muted);font-size:13px;margin-right:4px}
 .miniform{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .miniform .f input,.miniform .f select{padding:8px}.miniform .f label{font-size:10.5px}
 .rolechip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3}
+.voltabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.voltab{padding:7px 14px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#334155}
+.voltab:hover{border-color:var(--teal)}
+.voltab.active{background:var(--teal);color:#fff;border-color:var(--teal)}
 .mklist{border:1px solid var(--line);border-radius:12px;overflow:hidden;max-width:520px;margin-top:14px}
 .mkrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
 .mkrow:last-child{border-bottom:none}
@@ -224,6 +228,13 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     <div class="f small"><label>Global markup %</label><input id="mkGlobal" type="number" min="0" step="1" value="0"/></div>
     <button class="btn" id="mkApply">Apply to all</button>
   </div>
+  <div class="f" style="margin-top:12px"><label>Volume preset</label>
+    <div class="voltabs" id="volTabs">
+      <button class="voltab" data-mk="70">Low volume · 70%</button>
+      <button class="voltab" data-mk="50">Medium volume · 50%</button>
+      <button class="voltab" data-mk="30">High volume · 30%</button>
+    </div>
+  </div>
   <p class="chartnote" style="margin:10px 0 0">Set a global markup to fill every service, then fine-tune any of them below (e.g. a lower margin on air, higher on road).</p>
   <div id="mkList" class="mklist"></div>
   <p class="chartnote" style="margin-top:10px">Markup applies to the base rate and fuel only — duties and per-shipment surcharges are passed through without markup. It drives the on-screen customer prices, the report, and the exported rate card.</p>
@@ -244,6 +255,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
       <button class="btn primary" id="repRun">Run report</button>
       <button class="btn" id="repDoc">Open printable report</button>
       <button class="btn primary" id="repXls">Export rate card (Excel)</button>
+      <button class="btn primary" id="repMix">Export mixed card (Excel)</button>
     </div>
   </div>
   <div id="repMsg" class="chartnote" style="color:var(--r)"></div>
@@ -439,8 +451,11 @@ function renderMarkup(){
     wrap.appendChild(row);});
   SERVICES.forEach(svc=>$('mk_'+svc.key).addEventListener('input',calc));
 }
+function syncVolTabs(){const g=String(num('mkGlobal'));
+  document.querySelectorAll('#volTabs .voltab').forEach(b=>b.classList.toggle('active',b.dataset.mk===g));}
 function applyGlobalMarkup(){const g=num('mkGlobal');
-  SERVICES.forEach(svc=>{const el=$('mk_'+svc.key);if(el)el.value=g;});calc();}
+  SERVICES.forEach(svc=>{const el=$('mk_'+svc.key);if(el)el.value=g;});syncVolTabs();calc();}
+function volTabClick(pct){$('mkGlobal').value=pct;applyGlobalMarkup();}
 function bootCalc(){
   bands=P.bands;
   const s=P.settings||{fuelByService:{},caps:{cp:31.5,ep:3},accessorials:[]};
@@ -457,6 +472,7 @@ function bootCalc(){
     $('metric').addEventListener('change',calc);
     $('mkGlobal').addEventListener('input',applyGlobalMarkup);
     $('mkApply').addEventListener('click',applyGlobalMarkup);
+    document.querySelectorAll('#volTabs .voltab').forEach(b=>b.addEventListener('click',()=>volTabClick(b.dataset.mk)));
   }
   calc();
 }
@@ -556,6 +572,21 @@ function repPrice(c){
     .map(x=>({name:x.svc.name,carrier:x.svc.carrier,sell:x.built.sell}))
     .sort((a,b)=>a.sell-b.sell);
 }
+function pricedByService(c){
+  const actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
+  const vol=(L&&W&&H)?(L*W*H)/P.divisor:0, chg=Math.max(actual,vol);
+  ACTIVE=activeAcc(c,actual,L,W,H);
+  const out={};
+  SERVICES.forEach(svc=>{const b=baseRate(svc,c,chg);out[svc.key]=(b.avail&&b.price!=null)?build(b.price,svc).sell:null;});
+  return out;
+}
+function verdictText(up,dp){
+  const t=up+dp;
+  if(!t) return {msg:'No priced destinations in this selection.',cls:'r'};
+  if(dp>up){const p=Math.round(dp/t*100);return {msg:'DPD is cheapest for '+dp+' of '+t+' destinations ('+p+'%). A DPD-led card is likely best overall.',cls:'g'};}
+  if(up>dp){const p=Math.round(up/t*100);return {msg:'UPS is cheapest for '+up+' of '+t+' destinations ('+p+'%). A UPS-led card is likely best overall.',cls:'g'};}
+  return {msg:'Evenly split — DPD and UPS each win '+dp+'. A mixed card gives the best coverage.',cls:'a'};
+}
 function reportRows(countries){
   let up=0,dp=0;const data=[];
   countries.forEach(c=>{const priced=repPrice(c);if(!priced.length){data.push({c,none:true});return;}
@@ -574,7 +605,12 @@ function runReport(){
     if(r.none){tr.innerHTML=`<td>${r.c}</td><td colspan="4" class="chartnote">no services available</td>`;tb.appendChild(tr);return;}
     tr.innerHTML=`<td>${r.c}</td><td><b style="color:${r.win.carrier==='ups'?'#0f766e':'#2563eb'}">${r.win.name}</b></td><td><b>${money(r.win.sell)}</b></td><td>${r.next?r.next.name+' · '+money(r.next.sell):'—'}</td><td>${r.next?money(r.save):'—'}</td>`;
     tb.appendChild(tr);});
-  $('repSummary').innerHTML=`<b>${countries.length}</b> countries priced — cheapest is UPS in <b>${up}</b>, DPD in <b>${dp}</b>.`;
+  const v=verdictText(up,dp);
+  const col=v.cls==='g'?'var(--g)':(v.cls==='a'?'var(--a)':'var(--r)');
+  const bg=v.cls==='g'?'var(--g-bg)':(v.cls==='a'?'var(--a-bg)':'var(--r-bg)');
+  $('repSummary').innerHTML=`<div style="border:1px solid ${col};background:${bg};border-radius:10px;padding:11px 13px">`
+    +`<b style="color:${col}">Recommendation:</b> ${v.msg}`
+    +`<div style="margin-top:4px;color:var(--muted);font-size:13px">Across <b>${countries.length}</b> selected: DPD cheapest in <b>${dp}</b>, UPS cheapest in <b>${up}</b>.</div></div>`;
 }
 function generateReport(){
   const countries=selectedCountries();
@@ -708,6 +744,67 @@ function exportRateCard(){
   XLSX.writeFile(wb,'Rate card'+(safeCo?' - '+safeCo:'')+' '+now.replace(/ /g,'-')+'.xlsx');
 }
 $('repXls').onclick=exportRateCard;
+function exportMixedCard(){
+  if(typeof XLSX==='undefined'){$('repMsg').textContent='Excel export library did not load — reload the page and try again.';return;}
+  $('repMsg').textContent='';
+  const sel=selectedCountries();
+  const list=sel.length?sel:P.countries;
+  const co=($('cardCo').value||'').trim();
+  const gbp=v=>v==null?'':Math.round(v*100)/100;
+  const wb=XLSX.utils.book_new();
+  const add=(rows,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name.slice(0,31));
+  const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+  // All-options matrix + cheapest tally
+  const rows=[['Customer options — all available services (customer sell price, GBP)'],
+    ['Country',...SERVICES.map(s=>s.name),'Cheapest','Cheapest price']];
+  let up=0,dp=0;
+  list.forEach(c=>{const pm=pricedByService(c);
+    let best=null;SERVICES.forEach(s=>{const p=pm[s.key];if(p!=null&&(best==null||p<best.p))best={p,svc:s};});
+    if(best){best.svc.carrier==='ups'?up++:dp++;}
+    rows.push([c,...SERVICES.map(s=>pm[s.key]==null?'':gbp(pm[s.key])),best?best.svc.name:'—',best?gbp(best.p):'']);});
+  calc();
+  const v=verdictText(up,dp);
+
+  const spec=num('wt')+' kg'+((num('L')&&num('W')&&num('H'))?(' ('+num('L')+'x'+num('W')+'x'+num('H')+' cm)'):'');
+  const cover=[
+    ['Mixed Rate Card — DPD & UPS'],
+    ['Prepared for',co||'—'],
+    ['Generated',now],
+    ['Scope',sel.length?(sel.length+' selected destinations'):'All destinations'],
+    [],
+    ['Recommendation'],
+    [v.msg],
+    ['DPD cheapest in',dp],
+    ['UPS cheapest in',up],
+    [],
+    ['Every available DPD and UPS service is listed per country on the "All options" sheet so the customer can choose.'],
+    ['Prices are customer sell in GBP at the parcel spec below — including fuel, markup and applicable duty handling, excluding VAT.'],
+    ['Per-shipment surcharges are on the Surcharges sheet and apply in addition.'],
+    [],
+    ['Parcel spec'],
+    ['Weight (kg)',num('wt')],
+    ['Dimensions (cm)',(num('L')&&num('W')&&num('H'))?(num('L')+' x '+num('W')+' x '+num('H')):'—'],
+    ['Goods value (£)',num('goodsValue')],
+    [],
+    ['Service','Fuel sell %','Markup %'],
+  ];
+  SERVICES.forEach(svc=>cover.push([svc.name,fuelOf(svc).sell+'%',markupPct(svc)+'%']));
+  add(cover,'Rate Card');
+  add(rows,'All options');
+
+  const trgTxt=a=>a.cond==='auto'?'Auto — by size/weight':(a.cond==='always'?'Every shipment':(a.cond==='countryIn'?(a.countries||[]).join(', '):(a.cond==='region'?a.region.toUpperCase()+' destinations':'When selected')));
+  const sur=[['Surcharge','Carrier','When it applies','Customer rate']];
+  accList().forEach(a=>{let rate;
+    if(a.basis==='pctValue')rate=(a.pct||0)+'% of goods value'+(a.min?' (min £'+Number(a.min).toFixed(2)+')':'');
+    else rate='£'+((a.list||0)*(1-(a.disc||0)/100)).toFixed(2)+' per shipment';
+    sur.push([a.name,(a.applyTo||'').toUpperCase(),trgTxt(a),rate]);});
+  add(sur,'Surcharges');
+
+  const safeCo=co.replace(/[\\/:*?"<>|]/g,'').trim();
+  XLSX.writeFile(wb,'Mixed rate card'+(safeCo?' - '+safeCo:'')+' '+now.replace(/ /g,'-')+'.xlsx');
+}
+$('repMix').onclick=exportMixedCard;
 
 $('repSearch').addEventListener('input',()=>{const q=$('repSearch').value.toLowerCase();document.querySelectorAll('#repList .replab').forEach(l=>{l.style.display=l.textContent.toLowerCase().includes(q)?'':'none';});});
 $('repList').addEventListener('change',updateRepCount);
