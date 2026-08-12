@@ -261,6 +261,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
       <div class="f" style="margin-top:12px"><label>Notes to customer (optional)</label><textarea id="rcNotes" rows="3" style="width:100%" placeholder="e.g. Prices valid for 30 days from the date above."></textarea></div>
       <label class="tg" style="margin-top:12px"><input type="checkbox" id="rcSur" checked/> Include a surcharges page</label>
       <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcCheapest" checked/> Show a “best price” column on the combined card</label>
+      <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcBreakdown"/> Show base price and fuel separately</label>
     </div>
   </div>
   <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
@@ -667,6 +668,9 @@ function cardSell(svc,rawBase){
   const f=fuelOf(svc),mk=markupPct(svc);
   return rawBase*(1+f.sell/100)*(1+mk/100);
 }
+// Base freight only (markup hidden inside; fuel NOT applied) — for the base/fuel breakdown mode.
+function cardBase(svc,rawBase){if(rawBase==null)return null;return rawBase*(1+markupPct(svc)/100);}
+const fuelPctText=svc=>(Math.round(fuelOf(svc).sell*100)/100)+'%';
 // ---- rate card options (customer-facing) ----
 function renderRcServices(){
   const box=$('rcServices');if(!box)return;box.innerHTML='';
@@ -691,19 +695,24 @@ function renderRcServices(){
 }
 function selectedServices(){return SERVICES.filter(s=>{const el=$('rcSvc_'+s.key);return !el||el.checked;});}
 function rcTitle(){return ($('rcTitle')&&$('rcTitle').value.trim())||'International Rate Card';}
-// Customer-facing cover — deliberately no markup / fuel / cost / recommendation.
-function rcCoverRows(){
+// Customer-facing cover — deliberately no markup / cost / recommendation.
+function rcCoverRows(svcs,breakdown){
   const co=($('cardCo').value||'').trim();
   const sel=selectedCountries();
   const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const rows=[[rcTitle()],['Prepared for',co||'—'],['Date',now],
     ['Scope',sel.length?(sel.length+' destinations'):'All destinations'],[],
-    ['Shipping charges'],
-    ['Weight (kg)',num('wt')],
-    ['Dimensions (cm)',(num('L')&&num('W')&&num('H'))?(num('L')+' x '+num('W')+' x '+num('H')):'—'],
-    ['Goods value (£)',num('goodsValue')],[],
-    ['Prices are in GBP and include fuel and applicable duty handling. VAT is not included.'],
-    ['Per-shipment surcharges apply in addition — see the Surcharges sheet.']];
+    ['Parcel',num('wt')+' kg'+((num('L')&&num('W')&&num('H'))?(', '+num('L')+' x '+num('W')+' x '+num('H')+' cm'):'')+(num('goodsValue')?(', value £'+num('goodsValue')):'')],[]];
+  if(breakdown){
+    rows.push(['Prices shown are base freight in GBP. Add the fuel surcharge below, plus any per-shipment surcharges (Surcharges sheet). VAT is not included.']);
+    rows.push([]);
+    rows.push(['Fuel surcharge — applied to the price of each service']);
+    rows.push(['Service','Fuel']);
+    (svcs||SERVICES).forEach(s=>rows.push([s.name,fuelPctText(s)]));
+  }else{
+    rows.push(['Prices are in GBP and include fuel and applicable duty handling. VAT is not included.']);
+    rows.push(['Per-shipment surcharges apply in addition — see the Surcharges sheet.']);
+  }
   const notes=($('rcNotes')&&$('rcNotes').value||'').trim();
   if(notes){rows.push([]);notes.split(/\r?\n/).forEach(l=>rows.push([l]));}
   return rows;
@@ -727,18 +736,21 @@ function exportRateCard(){
   const inSet=c=>!sel.length||sel.includes(c);
   const co=($('cardCo').value||'').trim();
   const gbp=v=>v==null?'':Math.round(v*100)/100;
+  const bd=$('rcBreakdown').checked;
+  const pf=(svc,raw)=>bd?cardBase(svc,raw):cardSell(svc,raw);
+  const plabel=bd?'base prices (GBP)':'prices (GBP)';
   const wb=XLSX.utils.book_new();
   const add=(rows,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name.slice(0,31));
   const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  add(rcCoverRows(),'Rate Card');
+  add(rcCoverRows(svcs,bd),'Rate Card');
 
   // UPS zone grids (weight x zone)
   [['ux','UPS Express Saver'],['us','UPS Standard']].forEach(([k,title])=>{
     if(!keys.has(k))return;
     const svc=SERVICES.find(s=>s.key===k),src=P[svc.src]||{};
     const zones=Object.keys(src).sort((a,b)=>parseFloat(a)-parseFloat(b));
-    const rows=[[title+' — prices (GBP)'],['Weight (kg)',...zones.map(z=>'Zone '+z)]];
-    bands.forEach(w=>{rows.push([w,...zones.map(z=>{const r=zonePrice(src[z],w);return r==null?'':gbp(cardSell(svc,r));})]);});
+    const rows=[[title+' — '+plabel],['Weight (kg)',...zones.map(z=>'Zone '+z)]];
+    bands.forEach(w=>{rows.push([w,...zones.map(z=>{const r=zonePrice(src[z],w);return r==null?'':gbp(pf(svc,r));})]);});
     add(rows,title);
   });
   // UPS zone guide (only if a UPS service is shown)
@@ -752,16 +764,16 @@ function exportRateCard(){
   [['ca','DPD Classic Air'],['ae','DPD Air Express']].forEach(([k,title])=>{
     if(!keys.has(k))return;
     const svc=SERVICES.find(s=>s.key===k),src=P[svc.src]||{};
-    const rows=[[title+' — prices (GBP)'],['Country',...bands.map(w=>w+' kg')]];
-    Object.keys(src).sort().filter(inSet).forEach(c=>{const arr=src[c];if(arr)rows.push([c,...arr.map(p=>p==null?'':gbp(cardSell(svc,p)))]);});
+    const rows=[[title+' — '+plabel],['Country',...bands.map(w=>w+' kg')]];
+    Object.keys(src).sort().filter(inSet).forEach(c=>{const arr=src[c];if(arr)rows.push([c,...arr.map(p=>p==null?'':gbp(pf(svc,p)))]);});
     add(rows,title);
   });
   // DPD flat services (country -> price)
   [['cp','DPD Classic Parcel',CAPS.cp],['ep','DPD Classic ExpressPak',CAPS.ep]].forEach(([k,title,cap])=>{
     if(!keys.has(k))return;
     const svc=SERVICES.find(s=>s.key===k),src=P[svc.src]||{};
-    const rows=[[title+' — prices (GBP)'],['Country','Price (<='+cap+' kg)']];
-    Object.keys(src).sort().filter(inSet).forEach(c=>{const p=src[c];if(p!=null)rows.push([c,gbp(cardSell(svc,p))]);});
+    const rows=[[title+' — '+plabel],['Country','Price (<='+cap+' kg)']];
+    Object.keys(src).sort().filter(inSet).forEach(c=>{const p=src[c];if(p!=null)rows.push([c,gbp(pf(svc,p))]);});
     add(rows,title);
   });
   if($('rcSur').checked) add(rcSurchargeRows(carriers),'Surcharges');
@@ -785,14 +797,24 @@ function exportMixedCard(){
   const add=(rows,name)=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),name.slice(0,31));
   const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
 
-  const rows=[['Delivery options — prices in GBP'],
-    ['Country',...svcs.map(s=>s.name),...(showBest?['Best price','']:[])]];
-  list.forEach(c=>{const pm=pricedByService(c);
-    let best=null;svcs.forEach(s=>{const p=pm[s.key];if(p!=null&&(best==null||p<best.p))best={p,svc:s};});
-    rows.push([c,...svcs.map(s=>pm[s.key]==null?'':gbp(pm[s.key])),...(showBest?[best?best.svc.name:'—',best?gbp(best.p):'']:[])]);});
+  const bd=$('rcBreakdown').checked;
+  const bestLabel=bd?'Cheapest (incl. fuel)':'Best price';
+  const rows=[['Delivery options — '+(bd?'base prices in GBP (fuel & surcharges extra)':'prices in GBP')],
+    ['Country',...svcs.map(s=>s.name),...(showBest?[bestLabel,'']:[])]];
+  const actual=num('wt'),Lx=num('L'),Wx=num('W'),Hx=num('H');
+  list.forEach(c=>{
+    const vol=(Lx&&Wx&&Hx)?(Lx*Wx*Hx)/P.divisor:0, chg=Math.max(actual,vol);
+    ACTIVE=activeAcc(c,actual,Lx,Wx,Hx);
+    const base={},sell={};
+    svcs.forEach(s=>{const b=baseRate(s,c,chg);
+      if(b.avail&&b.price!=null){base[s.key]=cardBase(s,b.price);sell[s.key]=build(b.price,s).sell;}
+      else{base[s.key]=null;sell[s.key]=null;}});
+    let best=null;svcs.forEach(s=>{const p=sell[s.key];if(p!=null&&(best==null||p<best.p))best={p,svc:s};});
+    const show=bd?base:sell;
+    rows.push([c,...svcs.map(s=>show[s.key]==null?'':gbp(show[s.key])),...(showBest?[best?best.svc.name:'—',best?gbp(best.p):'']:[])]);});
   calc();
 
-  add(rcCoverRows(),'Rate Card');
+  add(rcCoverRows(svcs,bd),'Rate Card');
   add(rows,'Delivery options');
   if($('rcSur').checked) add(rcSurchargeRows(carriers),'Surcharges');
 
