@@ -307,15 +307,16 @@ function accVal(a){
   const l=$('accList_'+a.key)?num('accList_'+a.key):(a.list||0);const d=$('accDisc_'+a.key)?num('accDisc_'+a.key):(a.disc||0);return l*(1-d/100);
 }
 const accOn=a=>{const el=$('acc_'+a.key);return el&&el.checked;};
+const DPD_COLOR='#dc2626', UPS_COLOR='#8B4513';
 const SERVICES=[
- {key:'ca',name:'DPD Classic Air',       carrier:'dpd',type:'band',src:'dpd_classic',    color:'#dc2626'},
- {key:'ae',name:'DPD Air Express',       carrier:'dpd',type:'band',src:'dpd_express',    color:'#991b1b'},
- {key:'ep',name:'DPD Classic ExpressPak',carrier:'dpd',type:'flat',src:'dpd_expresspak', cap:'ep', color:'#f87171'},
- {key:'cp',name:'DPD Classic Parcel',    carrier:'dpd',type:'flat',src:'dpd_parcel',     cap:'cp', color:'#7f1d1d'},
- {key:'ux',name:'UPS Express Saver',     carrier:'ups',type:'zone',src:'ups_express', zmap:'c2zone_express',  color:'#b45309'},
- {key:'us',name:'UPS Standard',          carrier:'ups',type:'zone',src:'ups_standard',zmap:'c2zone_standard', color:'#eab308'},
+ {key:'ca',name:'DPD Classic Air',       carrier:'dpd',type:'band',src:'dpd_classic',    color:DPD_COLOR, dash:[]},
+ {key:'ae',name:'DPD Air Express',       carrier:'dpd',type:'band',src:'dpd_express',    color:DPD_COLOR, dash:[7,4]},
+ {key:'ep',name:'DPD Classic ExpressPak',carrier:'dpd',type:'flat',src:'dpd_expresspak', cap:'ep', color:DPD_COLOR, dash:[2,3]},
+ {key:'cp',name:'DPD Classic Parcel',    carrier:'dpd',type:'flat',src:'dpd_parcel',     cap:'cp', color:DPD_COLOR, dash:[9,4,2,4]},
+ {key:'ux',name:'UPS Express Saver',     carrier:'ups',type:'zone',src:'ups_express', zmap:'c2zone_express',  color:UPS_COLOR, dash:[]},
+ {key:'us',name:'UPS Standard',          carrier:'ups',type:'zone',src:'ups_standard',zmap:'c2zone_standard', color:UPS_COLOR, dash:[7,4]},
 ];
-const CARRIERS=[{key:'dpd',name:'DPD',color:'#dc2626'},{key:'ups',name:'UPS',color:'#b45309'}];
+const CARRIERS=[{key:'dpd',name:'DPD',color:DPD_COLOR},{key:'ups',name:'UPS',color:UPS_COLOR}];
 const csel=$('country');
 const zoneFor=(svc,c)=>(P[svc.zmap]||{})[c]||'';
 function fuelOf(svc){const fc=$('fc_'+svc.key),fs=$('fs_'+svc.key);
@@ -424,7 +425,7 @@ function drawChart(c){
     if(svc.type==='band'){const arr=P[svc.src][c];if(arr)data=arr.map(p=>p==null?null:build(p,svc)[key]);}
     else if(svc.type==='flat'){const p=P[svc.src][c];if(p!=null){const cap=CAPS[svc.cap];data=bands.map(w=>w>cap+1e-9?null:build(p,svc)[key]);}}
     else if(svc.type==='zone'){const zone=zoneFor(svc,c),z=zone&&P[svc.src][zone];if(zone&&z)data=bands.map(w=>{const r=baseRate(svc,c,w);return r.price==null?null:build(r.price,svc)[key];});}
-    if(data){ds.push({label:svc.name,data,borderColor:svc.color,borderWidth:2.4,tension:.12,pointRadius:0,spanGaps:false});
+    if(data){ds.push({label:svc.name,data,borderColor:svc.color,borderDash:svc.dash||[],borderWidth:2.4,tension:.12,pointRadius:0,spanGaps:false});
       leg.push(`<span><span class="dot" style="background:${svc.color}"></span>${svc.name}</span>`);}});
   $('legend').innerHTML=leg.join('');
   const lbl={sell:'Customer price (£)',cost:'Cost price (£)',base:'Base rate (£)'}[metric];
