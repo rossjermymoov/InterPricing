@@ -3,7 +3,7 @@
 # Prices are baked in as final customer prices (markup + fuel already applied) so the
 # markup is never exposed. Branding lives in the BRAND block near the top of the HTML and
 # is trivial to swap once real MOOV Parcel assets (logo + hex codes) are supplied.
-import json, os, html
+import json, os, html, base64
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -97,28 +97,27 @@ TEMPLATE = r'''<!DOCTYPE html>
 <style>
 /* ===== BRAND (placeholder — swap for the approved MOOV Parcel palette + logo) ===== */
 :root{
-  --brand:#0B1F3A;        /* primary / ink */
-  --accent:#21C2A6;       /* accent */
-  --accent-2:#12A594;
-  --dpd:#DC2626;          /* DPD red */
-  --ups:#8B4513;          /* UPS brown */
-  --bg:#f4f6f9; --card:#fff; --line:#e5e9f0; --muted:#64748b; --ink:#0f172a;
-  --g:#15803d; --g-bg:#e7f6ec;
+  --brand:#171B2D; --green:#1DFB9D; --pink:#CD1C69;   /* MOOV brand */
+  --accent:#1DFB9D; --accent-2:#0E9C63;
+  --dpd:#DC2626; --ups:#8B4513; --dhl:#D4A017;   /* carrier chip colours */
+  --bg:#f4f6f6; --card:#fff; --line:#e6e9ee; --muted:#6b7280; --ink:#171B2D;
+  --g:#0E9C63; --g-bg:#e7f6ec;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
 .wrap{max-width:1000px;margin:0 auto;padding:0 20px 60px}
 /* header / brand bar */
-.hero{background:linear-gradient(120deg,var(--brand),#12315a);color:#fff;border-radius:0 0 22px 22px;padding:26px 26px 30px;box-shadow:0 8px 26px rgba(11,31,58,.18)}
+.hero{background:#171B2D;color:#fff;padding:22px 26px 26px;border-bottom:3px solid transparent;
+  background-image:linear-gradient(#171B2D,#171B2D),linear-gradient(90deg,var(--green),var(--pink));
+  background-origin:border-box;background-clip:padding-box,border-box}
+.hero .inner{max-width:1000px;margin:0 auto}
 .hero .top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.logo{display:flex;align-items:baseline;gap:2px;font-weight:900;font-size:30px;letter-spacing:-.02em}
-.logo .m{color:#fff}.logo .p{color:var(--accent)}
-.logo .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block;margin-left:3px}
-.hero .tag{font-size:13px;color:#cfe0f5;margin-top:3px;font-weight:500}
-.hero .cust{text-align:right;font-size:13px;color:#cfe0f5}
+.brandlogo{height:34px;width:auto;display:block}
+.brandlogo.fallback{font-weight:900;font-size:24px;letter-spacing:-.02em;color:var(--green)}
+.hero .cust{text-align:right;font-size:13px;color:#9aa3b5}
 .hero .cust b{display:block;color:#fff;font-size:15px}
-.hero h1{font-size:22px;margin:22px 0 2px;letter-spacing:-.02em}
-.hero p.lede{margin:0;color:#cfe0f5;font-size:13.5px;max-width:640px}
+.hero h1{font-size:22px;margin:18px 0 3px;letter-spacing:-.02em}
+.hero p.lede{margin:0;color:#9aa3b5;font-size:13.5px;max-width:640px}
 /* calculator */
 .calc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:-18px;position:relative;box-shadow:0 6px 22px rgba(15,23,42,.07)}
 .calc h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 14px}
@@ -134,15 +133,16 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 /* result cards */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px}
 .card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;position:relative}
-.card .car{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.02em;text-transform:uppercase}
-.card .pill{font-size:10px;font-weight:800;color:#fff;padding:2px 8px;border-radius:999px}
-.card.dpd .pill{background:var(--dpd)} .card.ups .pill{background:var(--ups)}
+.card .car{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.02em}
+.card .cmark{height:18px;width:auto;display:inline-block;vertical-align:middle}
+.cbadge{display:inline-block;font-size:10px;font-weight:800;color:#fff;padding:3px 9px;border-radius:6px;letter-spacing:.03em}
+.cbadge.dpd{background:var(--dpd)} .cbadge.ups{background:var(--ups)} .cbadge.dhl{background:var(--dhl)}
 .card .svc{font-size:14.5px;font-weight:700;margin:8px 0 2px;color:var(--brand)}
 .card .price{font-size:30px;font-weight:900;letter-spacing:-.02em;margin:6px 0 0}
 .card .unit{font-size:11px;color:var(--muted)}
-.card.win{border:2px solid var(--accent);box-shadow:0 6px 18px rgba(33,194,166,.18)}
+.card.win{border:2px solid var(--green);box-shadow:0 6px 18px rgba(29,251,157,.22)}
 .card.win .price{color:var(--accent-2)}
-.card .badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#fff;background:var(--accent);padding:3px 9px;border-radius:999px;letter-spacing:.03em}
+.card .badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#0B1220;background:var(--green);padding:3px 9px;border-radius:999px;letter-spacing:.03em}
 .card.na{background:#f8fafc;color:var(--muted)} .card.na .price{font-size:17px;color:#94a3b8;margin-top:12px}
 .note{font-size:12.5px;color:var(--muted);margin-top:14px}
 /* panels */
@@ -156,21 +156,18 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .tag2{font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;color:#fff}
 .tag2.DPD{background:var(--dpd)} .tag2.UPS{background:var(--ups)}
 .foot{font-size:12px;color:var(--muted);margin-top:22px;text-align:center}
-.print{display:inline-flex;gap:8px;align-items:center;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:13.5px}
+.print{display:inline-flex;gap:8px;align-items:center;background:var(--green);color:#0B1220;border:0;border-radius:11px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:13.5px}
 @media print{.calc,.print{box-shadow:none}.print{display:none}.hero{border-radius:0}}
 </style></head>
 <body>
-<div class="hero">
+<div class="hero"><div class="inner">
   <div class="top">
-    <div>
-      <div class="logo"><span class="m">moov</span><span class="p">parcel</span><span class="dot"></span></div>
-      <div class="tag">International delivery, simplified.</div>
-    </div>
+    __LOGO__
     <div class="cust">Rate card prepared for<b>__CUSTOMER__</b><span id="today"></span></div>
   </div>
   <h1>International Rate Card</h1>
   <p class="lede">Enter a destination, weight and dimensions to see your delivery price instantly. Prices are in GBP and include fuel; per-shipment surcharges are listed below.</p>
-</div>
+</div></div>
 
 <div class="wrap">
   <div class="calc">
@@ -205,6 +202,8 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 <script>
 const RC=__DATA__;
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
+function carrierMark(c){const k=c.toLowerCase();return '<img class="cmark" src="/carrier-'+k+'.svg" data-k="'+k+'" data-c="'+c+'" alt="'+c+'"/>';}
+function wireCarrierMarks(box){box.querySelectorAll('img.cmark').forEach(img=>{const fb=()=>{img.outerHTML='<span class="cbadge '+img.dataset.k+'">'+img.dataset.c+'</span>';};img.onerror=fb;if(img.complete&&!img.naturalWidth)fb();});}
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
 $('today').textContent=' · '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
 
@@ -236,12 +235,13 @@ function calc(){
     const d=document.createElement('div');let cls='card '+s.carrier.toLowerCase();
     if(r.p==null)cls+=' na'; else if(r.p===min&&priced.length>1)cls+=' win';
     d.className=cls;
-    const head=`<div class="car"><span class="pill">${s.carrier}</span></div><div class="svc">${s.name}</div>`;
+    const head=`<div class="car">${carrierMark(s.carrier)}</div><div class="svc">${s.name}</div>`;
     if(r.p==null)d.innerHTML=head+`<div class="price">n/a</div><div class="unit">${r.note||'not available'}</div>`;
     else d.innerHTML=(r.p===min&&priced.length>1?'<span class="badge">BEST PRICE</span>':'')+head
       +`<div class="price">${money(r.p)}</div><div class="unit">delivery, incl. fuel${r.band?(' · '+(typeof r.band==='number'?r.band+' kg band':r.band)):''}</div>`;
     box.appendChild(d);
   });
+  wireCarrierMarks(box);
   $('note').textContent=chg?(priced.length?('Showing '+priced.length+' available service'+(priced.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable.'):'No services available to '+c+' at this weight.'):'Enter a weight to see prices.';
 }
 // populate
@@ -254,8 +254,17 @@ calc();
 </script>
 </body></html>'''
 
+# Inline the MOOV logo as a data URI so the downloadable file is fully self-contained.
+LOGO_PATH = os.path.join(ROOT, 'public', 'logo.png')
+if os.path.exists(LOGO_PATH):
+    b64 = base64.b64encode(open(LOGO_PATH, 'rb').read()).decode()
+    LOGO_TAG = '<img class="brandlogo" src="data:image/png;base64,%s" alt="MOOV Parcel"/>' % b64
+else:
+    LOGO_TAG = '<div class="brandlogo fallback">moov parcel</div>'
+
 out = (TEMPLATE
        .replace('__DATA__', DATA)
+       .replace('__LOGO__', LOGO_TAG)
        .replace('__CUSTOMER__', html.escape(CUSTOMER))
        .replace('__DIV__', str(DIV)))
 os.makedirs(os.path.dirname(OUT), exist_ok=True)

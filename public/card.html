@@ -5,23 +5,26 @@
 <style>
 /* ===== BRAND (placeholder — swap for the approved MOOV Parcel palette + logo) ===== */
 :root{
-  --brand:#0B1F3A; --accent:#21C2A6; --accent-2:#12A594;
+  --brand:#171B2D; --green:#1DFB9D; --pink:#CD1C69;
+  --accent:#1DFB9D; --accent-2:#0E9C63;
   --dpd:#DC2626; --ups:#8B4513; --dhl:#D4A017;
-  --bg:#f4f6f9; --card:#fff; --line:#e5e9f0; --muted:#64748b; --ink:#0f172a; --g:#15803d;
+  --bg:#f4f6f6; --card:#fff; --line:#e6e9ee; --muted:#6b7280; --ink:#171B2D; --g:#0E9C63;
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
 .wrap{max-width:1000px;margin:0 auto;padding:0 20px 60px}
-.hero{background:linear-gradient(120deg,var(--brand),#12315a);color:#fff;border-radius:0 0 22px 22px;padding:26px 26px 30px;box-shadow:0 8px 26px rgba(11,31,58,.18)}
+.hero{background:#171B2D;color:#fff;padding:22px 26px 26px;border-bottom:3px solid transparent;
+  background-image:linear-gradient(#171B2D,#171B2D),linear-gradient(90deg,var(--green),var(--pink));
+  background-origin:border-box;background-clip:padding-box,border-box}
+.hero .inner{max-width:1000px;margin:0 auto}
 .hero .top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.logo{display:flex;align-items:baseline;gap:2px;font-weight:900;font-size:30px;letter-spacing:-.02em}
-.logo .m{color:#fff}.logo .p{color:var(--accent)}
-.logo .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block;margin-left:3px}
-.hero .tag{font-size:13px;color:#cfe0f5;margin-top:3px;font-weight:500}
-.hero .cust{text-align:right;font-size:13px;color:#cfe0f5}
+.brandlogo{height:34px;width:auto;display:block}
+.brandlogo.fallback{font-weight:900;font-size:24px;letter-spacing:-.02em;color:var(--green)}
+.hero .cust{text-align:right;font-size:13px;color:#9aa3b5}
 .hero .cust b{display:block;color:#fff;font-size:15px}
-.hero h1{font-size:22px;margin:22px 0 2px;letter-spacing:-.02em}
-.hero p.lede{margin:0;color:#cfe0f5;font-size:13.5px;max-width:640px}
+.hero h1{font-size:22px;margin:18px 0 3px;letter-spacing:-.02em}
+.hero h1 .u{color:var(--green)}
+.hero p.lede{margin:0;color:#9aa3b5;font-size:13.5px;max-width:640px}
 .calc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:-18px;position:relative;box-shadow:0 6px 22px rgba(15,23,42,.07)}
 .calc h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 14px}
 .rowf{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
@@ -35,14 +38,15 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .meta b{font-size:16px}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px}
 .card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;position:relative}
-.card .pill{font-size:10px;font-weight:800;color:#fff;padding:2px 8px;border-radius:999px}
-.card.dpd .pill{background:var(--dpd)} .card.ups .pill{background:var(--ups)} .card.dhl .pill{background:var(--dhl)}
+.card .cmark{height:18px;width:auto;display:inline-block;vertical-align:middle}
+.cbadge{display:inline-block;font-size:10px;font-weight:800;color:#fff;padding:3px 9px;border-radius:6px;letter-spacing:.03em}
+.cbadge.dpd{background:var(--dpd)} .cbadge.ups{background:var(--ups)} .cbadge.dhl{background:var(--dhl)}
 .card .svc{font-size:14.5px;font-weight:700;margin:8px 0 2px;color:var(--brand)}
 .card .price{font-size:30px;font-weight:900;letter-spacing:-.02em;margin:6px 0 0}
 .card .unit{font-size:11px;color:var(--muted)}
-.card.win{border:2px solid var(--accent);box-shadow:0 6px 18px rgba(33,194,166,.18)}
+.card.win{border:2px solid var(--green);box-shadow:0 6px 18px rgba(29,251,157,.22)}
 .card.win .price{color:var(--accent-2)}
-.card .badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#fff;background:var(--accent);padding:3px 9px;border-radius:999px;letter-spacing:.03em}
+.card .badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#0B1220;background:var(--green);padding:3px 9px;border-radius:999px;letter-spacing:.03em}
 .card.na{background:#f8fafc;color:var(--muted)} .card.na .price{font-size:17px;color:#94a3b8;margin-top:12px}
 .note{font-size:12.5px;color:var(--muted);margin-top:14px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:18px}
@@ -56,24 +60,21 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .tag2.DPD{background:var(--dpd)} .tag2.UPS{background:var(--ups)} .tag2.DHL{background:var(--dhl)}
 .notes{white-space:pre-line;font-size:12.5px;color:#475569;margin-top:8px}
 .foot{font-size:12px;color:var(--muted);margin-top:22px;text-align:center}
-.print{display:inline-flex;gap:8px;align-items:center;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:13.5px}
+.print{display:inline-flex;gap:8px;align-items:center;background:var(--green);color:#0B1220;border:0;border-radius:11px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:13.5px}
 .state{max-width:520px;margin:16vh auto;text-align:center;color:var(--muted);font-size:15px}
 @media print{.calc,.print{box-shadow:none}.print{display:none}.hero{border-radius:0}}
 </style></head>
 <body>
 <div id="state" class="state">Loading rate card…</div>
 <div id="app" style="display:none">
-  <div class="hero">
+  <div class="hero"><div class="inner">
     <div class="top">
-      <div>
-        <div class="logo"><span class="m">moov</span><span class="p">parcel</span><span class="dot"></span></div>
-        <div class="tag">International delivery, simplified.</div>
-      </div>
+      <img class="brandlogo" src="/logo.png" alt="MOOV Parcel" onerror="this.outerHTML='&lt;div class=\'brandlogo fallback\'&gt;moov parcel&lt;/div&gt;'"/>
       <div class="cust">Rate card prepared for<b id="cust"></b><span id="today"></span></div>
     </div>
     <h1 id="title">International Rate Card</h1>
     <p class="lede">Enter a destination, weight and dimensions to see your delivery price instantly. Prices are in GBP; per-shipment surcharges are listed below.</p>
-  </div>
+  </div></div>
   <div class="wrap">
     <div class="calc">
       <h2>Price calculator</h2>
@@ -106,6 +107,11 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
 let RC=null;
+function carrierMark(c){const k=c.toLowerCase();
+  return '<img class="cmark" src="/carrier-'+k+'.svg" data-k="'+k+'" data-c="'+c+'" alt="'+c+'"/>';}
+function wireCarrierMarks(box){box.querySelectorAll('img.cmark').forEach(img=>{
+  const fb=()=>{img.outerHTML='<span class="cbadge '+img.dataset.k+'">'+img.dataset.c+'</span>';};
+  img.onerror=fb; if(img.complete&&!img.naturalWidth)fb();});}
 function priceOf(s,c,chg){
   const B=RC.bands;
   if(s.type==='band'){const arr=s.prices[c];if(!arr)return{p:null,avail:false};
@@ -134,7 +140,7 @@ function calc(){
     const d=document.createElement('div');let cls='card '+s.carrier.toLowerCase();
     if(r.p==null)cls+=' na'; else if(RC.showBest&&r.p===min&&priced.length>1)cls+=' win';
     d.className=cls;
-    const head=`<div><span class="pill">${s.carrier}</span></div><div class="svc">${s.name}</div>`;
+    const head=`<div>${carrierMark(s.carrier)}</div><div class="svc">${s.name}</div>`;
     if(r.p==null){d.innerHTML=head+`<div class="price">n/a</div><div class="unit">${r.note||'not available'}</div>`;}
     else{
       const badge=(RC.showBest&&r.p===min&&priced.length>1)?'<span class="badge">BEST PRICE</span>':'';
@@ -143,6 +149,7 @@ function calc(){
     }
     box.appendChild(d);
   });
+  wireCarrierMarks(box);
   $('cnote').textContent=chg?(priced.length?('Showing '+priced.length+' service'+(priced.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable.'):('No services available to '+c+' at this weight.')):'Enter a weight to see prices.';
 }
 async function boot(){
