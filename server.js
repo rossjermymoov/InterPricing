@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 const db = require('./db');
 const auth = require('./auth');
 const pricing = require('./pricing');
-const { fetchPickups } = require('./pickups');
+const { fetchPickups, fetchPickupsRaw } = require('./pickups');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -228,6 +228,15 @@ app.get('/api/card/:token', async (req, res) => {
     res.json(payload);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+// ADMIN: test a postcode against the courier pickup API (diagnose + reveal response shape).
+app.post('/api/pickups-test', auth.requireAdmin, async (req, res) => {
+  try {
+    const { postcode, carriers } = req.body || {};
+    if (!postcode) return res.status(400).json({ error: 'Postcode required' });
+    res.json(await fetchPickupsRaw(postcode, carriers));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // PUBLIC: branded card page.
 app.get('/card/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'card.html')));
 

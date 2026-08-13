@@ -1,9 +1,6 @@
 // Fetches nearest pickup / drop-off locations from the MoovParcel courier API.
-// Called server-side so the API key is never exposed to the customer.
-//
-// >>> CONFIRM WITH ROSS (marked TODO): request body fields, auth header, response field names. <<<
-// Set the key on Railway as env var COURIER_API_KEY. If it's missing, this is skipped silently
-// (the card just doesn't show a map), so nothing breaks before it's configured.
+// Called server-side so the token is never exposed to the customer.
+// Token comes from the COURIER_API_TOKEN env var (set in Railway → Variables).
 
 const BASE = 'https://app.heyvoila.io/api/couriers/v1/';
 // courier label -> URL slug (add DHL here when live: {carrier:'DHL', slug:'DHL'})
@@ -29,49 +26,67 @@ const num = (v) => {
 };
 const pick = (o, keys) => { for (const k of keys) if (o && o[k] != null) return o[k]; return undefined; };
 
+// Flexible mapping across common response shapes → [{carrier,name,address,lat,lng,distance}].
+function mapList(data, carrier) {
+  const list = Array.isArray(data) ? data
+    : (data && (data.locations || data.results || data.pickupLocations || data.pickup_locations || data.data || data.pickups)) || [];
+  return (Array.isArray(list) ? list : []).map((x) => ({
+    carrier,
+    name: pick(x, ['name', 'locationName', 'title', 'companyName', 'shopName']) || '',
+    address: pick(x, ['address', 'fullAddress', 'displayAddress']) ||
+      [pick(x, ['addressLine1', 'address1', 'address_1', 'line1', 'street']), pick(x, ['city', 'town']), pick(x, ['postcode', 'postCode', 'zip'])].filter(Boolean).join(', '),
+    lat: num(pick(x, ['latitude', 'lat']) ?? (x.coordinates && (x.coordinates.lat ?? x.coordinates.latitude)) ?? (x.geo && x.geo.lat) ?? (x.location && x.location.lat)),
+    lng: num(pick(x, ['longitude', 'lng', 'lon', 'long']) ?? (x.coordinates && (x.coordinates.lng ?? x.coordinates.longitude)) ?? (x.geo && x.geo.lng) ?? (x.location && x.location.lng)),
+    distance: pick(x, ['distance', 'distanceText', 'distanceMiles', 'distance_miles']) || '',
+  })).filter((p) => p.lat != null && p.lng != null);
+}
+function originOf(data, postcode) {
+  const o = data && data.origin;
+  return (o && (o.lat != null || o.latitude != null))
+    ? { lat: num(o.lat ?? o.latitude), lng: num(o.lng ?? o.longitude), postcode } : null;
+}
+function authHeaders() {
+  const user = process.env.COURIER_API_USER || 'Moov Parcel Master';
+  const token = process.env.COURIER_API_TOKEN;
+  if (!token || typeof fetch !== 'function') return null;
+  return { 'Content-Type': 'application/json', 'API user': user, 'API token': token };
+}
+
 async function fetchOne(slug, carrier, postcode, headers) {
   const res = await fetch(BASE + slug + '/get-pickup-locations', { method: 'POST', headers, body: buildBody(postcode) });
   if (!res.ok) throw new Error(carrier + ' pickups ' + res.status);
   const data = await res.json();
-  // TODO(confirm): response shape. Flexible mapping across common shapes.
-  const list = Array.isArray(data) ? data
-    : (data.locations || data.results || data.pickupLocations || data.pickup_locations || data.data || []);
-  const points = (Array.isArray(list) ? list : []).map((x) => ({
-    carrier,
-    name: pick(x, ['name', 'locationName', 'title', 'companyName']) || '',
-    address: pick(x, ['address', 'fullAddress', 'displayAddress']) ||
-      [pick(x, ['addressLine1', 'address1', 'line1']), pick(x, ['city', 'town']), pick(x, ['postcode', 'postCode'])].filter(Boolean).join(', '),
-    lat: num(pick(x, ['latitude', 'lat']) ?? (x.coordinates && (x.coordinates.lat ?? x.coordinates.latitude)) ?? (x.geo && x.geo.lat)),
-    lng: num(pick(x, ['longitude', 'lng', 'lon', 'long']) ?? (x.coordinates && (x.coordinates.lng ?? x.coordinates.longitude)) ?? (x.geo && x.geo.lng)),
-    distance: pick(x, ['distance', 'distanceText', 'distanceMiles']) || '',
-  })).filter((p) => p.lat != null && p.lng != null);
-  const oRaw = data && data.origin;
-  const origin = (oRaw && (oRaw.lat != null || oRaw.latitude != null))
-    ? { lat: num(oRaw.lat ?? oRaw.latitude), lng: num(oRaw.lng ?? oRaw.longitude), postcode } : null;
-  return { points, origin };
+  return { points: mapList(data, carrier), origin: originOf(data, postcode) };
 }
 
-// Fetch nearest drop-offs for all couriers, tagged by carrier. carriers: optional subset e.g. ['DPD','UPS'].
+// Live use: merged, tagged drop-offs for a postcode. carriers: optional subset e.g. ['DPD','UPS'].
 async function fetchPickups(postcode, carriers) {
   if (!postcode) return null;
-  // Token comes from a Railway env var — never hard-coded / committed. API user is not secret.
-  const user = process.env.COURIER_API_USER || 'Moov Parcel Master';
-  const token = process.env.COURIER_API_TOKEN;
-  if (!token) return null;                       // not configured yet — skip silently
-  if (typeof fetch !== 'function') return null; // needs Node 18+ global fetch
-
-  const headers = { 'Content-Type': 'application/json' };
-  // Auth: two custom headers. TODO(confirm exact header names if these fail).
-  headers['API user'] = user;
-  headers['API token'] = token;
-
+  const headers = authHeaders();
+  if (!headers) return null; // token not set / no global fetch — skip silently
   const want = COURIERS.filter((c) => !carriers || carriers.includes(c.carrier));
   const results = await Promise.all(want.map((c) =>
     fetchOne(c.slug, c.carrier, postcode, headers).catch((e) => { console.error('[pickups]', e.message); return { points: [], origin: null }; })
   ));
-  const dropoffs = results.flatMap((r) => r.points);
-  const origin = (results.find((r) => r.origin) || {}).origin || null;
-  return { dropoffs, origin, postcode };
+  return { dropoffs: results.flatMap((r) => r.points), origin: (results.find((r) => r.origin) || {}).origin || null, postcode };
 }
 
-module.exports = { fetchPickups };
+// Admin debug: returns per-courier HTTP status, mapped count, a sample, and the raw body (truncated).
+async function fetchPickupsRaw(postcode, carriers) {
+  const out = { postcode, tokenSet: !!process.env.COURIER_API_TOKEN, hasFetch: typeof fetch === 'function', couriers: [] };
+  const headers = authHeaders();
+  if (!headers) return out;
+  const want = COURIERS.filter((c) => !carriers || carriers.includes(c.carrier));
+  for (const c of want) {
+    try {
+      const res = await fetch(BASE + c.slug + '/get-pickup-locations', { method: 'POST', headers, body: buildBody(postcode) });
+      const text = await res.text();
+      let json = null; try { json = JSON.parse(text); } catch (_) {}
+      const mapped = json ? mapList(json, c.carrier) : [];
+      out.couriers.push({ carrier: c.carrier, status: res.status, ok: res.ok, mappedCount: mapped.length, sample: mapped.slice(0, 2), raw: text.slice(0, 6000) });
+    } catch (e) { out.couriers.push({ carrier: c.carrier, error: e.message }); }
+  }
+  return out;
+}
+
+module.exports = { fetchPickups, fetchPickupsRaw };
