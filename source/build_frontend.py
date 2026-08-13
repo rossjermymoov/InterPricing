@@ -939,6 +939,11 @@ function cardDetailHTML(c){
     +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px">Markup quoted to this customer${by?' · by '+by:''}${created?' · created '+created:''}</div>`
     +`<table style="width:auto;border:none"><tbody>${rows}</tbody></table>`
     +(extras.length?`<div style="margin-top:9px;color:var(--muted);font-size:12px">${extras.join(' · ')}</div>`:'')
+    +`<div style="margin-top:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">`
+    +`<label style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em">Drop-off postcode</label>`
+    +`<input class="pcInput" data-id="${c.id}" type="text" value="${cfg.postcode||''}" placeholder="e.g. SY11 4FN" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;width:150px"/>`
+    +`<button class="btn pcBtn" data-id="${c.id}">Save postcode</button>`
+    +`<span class="pcMsg" data-id="${c.id}" style="font-size:12px"></span></div>`
     +`</div>`;
 }
 function renderCards(){
@@ -960,6 +965,13 @@ function renderCards(){
   $('custEmpty').textContent=cardsCache.length?(list.length?'':'No customers match your search.'):'No customer links yet — save one above.';
   tb.querySelectorAll('.exBtn').forEach(b=>b.onclick=()=>{const dr=tb.querySelector('.detailRow[data-id="'+b.dataset.id+'"]');
     const open=dr.style.display!=='none';dr.style.display=open?'none':'';b.textContent=open?'▸':'▾';});
+  tb.querySelectorAll('.pcBtn').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
+    const inp=tb.querySelector('.pcInput[data-id="'+id+'"]'), msg=tb.querySelector('.pcMsg[data-id="'+id+'"]');
+    const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;
+    const cfg=Object.assign({},card.config||{},{postcode:(inp.value||'').trim()});
+    const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
+    if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Saved.';}
+    else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
   tb.querySelectorAll('.copyBtn').forEach(b=>b.onclick=()=>{const t=b.dataset.u;
     if(navigator.clipboard)navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200);});
   tb.querySelectorAll('.tglBtn').forEach(b=>b.onclick=async()=>{await jpatch('/api/cards/'+b.dataset.id,{enabled:b.dataset.en==='1'});await refreshCards();});

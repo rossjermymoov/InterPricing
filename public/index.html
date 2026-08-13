@@ -31,6 +31,7 @@ h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em}
 .res .car{font-size:12.5px;font-weight:700;color:#334155;display:flex;align-items:center;gap:7px}
 .res .swatch{width:10px;height:10px;border-radius:3px;flex:none}
 .res .clogo{height:22px;width:auto;max-width:74px;object-fit:contain;display:inline-block;vertical-align:middle}
+.res .clogo[data-k="dpd"]{height:34px;max-width:96px}
 .res .cbadge{font-size:9.5px;font-weight:800;color:#fff;padding:2px 7px;border-radius:5px;letter-spacing:.03em}
 .res .cbadge.dpd{background:#DC2626}.res .cbadge.ups{background:#8B4513}.res .cbadge.dhl{background:#D4A017}
 .res .pr{font-size:25px;font-weight:800;letter-spacing:-.02em;margin:6px 0 0}
@@ -290,6 +291,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <p class="chartnote" id="custNote" style="margin:0 0 12px">Save the setup above as a private link for a customer. Each link is unguessable and shows only that customer’s prices — no one can see another customer’s rates, and there is no public list. Links always reflect your latest rates.</p>
   <div class="miniform">
     <div class="f"><label>Customer name</label><input id="custName" type="text" placeholder="e.g. Slumba Ltd"/></div>
+    <div class="f"><label>Customer postcode</label><input id="custPostcode" type="text" placeholder="for drop-off map"/></div>
     <button class="btn primary" id="custSave">Save as customer link</button>
     <span class="ok" id="custMsg"></span>
   </div>
@@ -876,7 +878,8 @@ function currentCardConfig(){
   const markup={};SERVICES.forEach(s=>markup[s.key]=num('mk_'+s.key));
   return {services:selectedServices().map(s=>s.key),markup,
     breakdown:$('rcBreakdown').checked,showBest:$('rcCheapest').checked,includeSurcharges:$('rcSur').checked,
-    title:($('rcTitle').value||'').trim(),notes:($('rcNotes').value||'').trim(),countries:selectedCountries()};
+    title:($('rcTitle').value||'').trim(),notes:($('rcNotes').value||'').trim(),countries:selectedCountries(),
+    postcode:($('custPostcode')?$('custPostcode').value.trim():'')};
 }
 const cardUrl=t=>location.origin+'/card/'+t;
 async function saveCard(){
@@ -886,7 +889,7 @@ async function saveCard(){
   if(!selectedServices().length){$('custMsg').className='err';$('custMsg').textContent='Pick at least one service above first.';return;}
   const r=await jpost('/api/cards',{customer,config:currentCardConfig()});const d=await r.json();
   if(!r.ok){$('custMsg').className='err';$('custMsg').textContent=(d.error||'Could not save')+(authEnabled?'':' — connect the database to save links.');return;}
-  $('custName').value='';$('custMsg').textContent='Link created.';await refreshCards();
+  $('custName').value='';if($('custPostcode'))$('custPostcode').value='';$('custMsg').textContent='Link created.';await refreshCards();
 }
 async function refreshCards(){
   if(!authEnabled){$('custEmpty').textContent='';return;}
@@ -906,6 +909,7 @@ function cardDetailHTML(c){
       +`<td style="padding:3px 0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">${m}% markup</td></tr>`;}).join('');
   const extras=[];
   if(cfg.title)extras.push('Title: '+cfg.title);
+  if(cfg.postcode)extras.push('Postcode: '+cfg.postcode);
   if(cfg.breakdown)extras.push('Shows base price + fuel separately');
   if(cfg.includeSurcharges===false)extras.push('No surcharges page');
   const created=c.created_at?new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
@@ -914,6 +918,11 @@ function cardDetailHTML(c){
     +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px">Markup quoted to this customer${by?' · by '+by:''}${created?' · created '+created:''}</div>`
     +`<table style="width:auto;border:none"><tbody>${rows}</tbody></table>`
     +(extras.length?`<div style="margin-top:9px;color:var(--muted);font-size:12px">${extras.join(' · ')}</div>`:'')
+    +`<div style="margin-top:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">`
+    +`<label style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em">Drop-off postcode</label>`
+    +`<input class="pcInput" data-id="${c.id}" type="text" value="${cfg.postcode||''}" placeholder="e.g. SY11 4FN" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;width:150px"/>`
+    +`<button class="btn pcBtn" data-id="${c.id}">Save postcode</button>`
+    +`<span class="pcMsg" data-id="${c.id}" style="font-size:12px"></span></div>`
     +`</div>`;
 }
 function renderCards(){
@@ -935,6 +944,13 @@ function renderCards(){
   $('custEmpty').textContent=cardsCache.length?(list.length?'':'No customers match your search.'):'No customer links yet — save one above.';
   tb.querySelectorAll('.exBtn').forEach(b=>b.onclick=()=>{const dr=tb.querySelector('.detailRow[data-id="'+b.dataset.id+'"]');
     const open=dr.style.display!=='none';dr.style.display=open?'none':'';b.textContent=open?'▸':'▾';});
+  tb.querySelectorAll('.pcBtn').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
+    const inp=tb.querySelector('.pcInput[data-id="'+id+'"]'), msg=tb.querySelector('.pcMsg[data-id="'+id+'"]');
+    const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;
+    const cfg=Object.assign({},card.config||{},{postcode:(inp.value||'').trim()});
+    const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
+    if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Saved.';}
+    else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
   tb.querySelectorAll('.copyBtn').forEach(b=>b.onclick=()=>{const t=b.dataset.u;
     if(navigator.clipboard)navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200);});
   tb.querySelectorAll('.tglBtn').forEach(b=>b.onclick=async()=>{await jpatch('/api/cards/'+b.dataset.id,{enabled:b.dataset.en==='1'});await refreshCards();});
