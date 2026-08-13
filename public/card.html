@@ -77,7 +77,38 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .foot{font-size:12px;color:var(--muted);margin-top:22px;text-align:center}
 .print{display:inline-flex;gap:8px;align-items:center;background:var(--green);color:#0B1220;border:0;border-radius:11px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:13.5px}
 .state{max-width:520px;margin:16vh auto;text-align:center;color:var(--muted);font-size:15px}
-@media print{.calc,.print{box-shadow:none}.print{display:none}.hero{border-radius:0}}
+/* ===== drop-off points ===== */
+.mapGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start}
+@media(max-width:760px){.mapGrid{grid-template-columns:1fr}}
+.dropScroll{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;padding-right:4px}
+.drop{border:1px solid var(--line);border-radius:14px;padding:13px 14px;background:#fff;border-left:5px solid var(--line)}
+.drop.dpd{border-left-color:var(--dpd)} .drop.ups{border-left-color:var(--ups)} .drop.dhl{border-left-color:var(--dhl)}
+.drop .dh{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.drop .nm{font-weight:800;font-size:15px;color:var(--brand);line-height:1.25}
+.drop .ty{font-size:10.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-top:2px}
+.drop .dist{font-size:13.5px;font-weight:900;color:var(--accent-2);white-space:nowrap}
+.drop .addr{font-size:12.5px;color:#475569;margin-top:7px}
+.dstatus{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;margin-top:10px;padding:4px 10px;border-radius:999px}
+.dstatus.open,.dstatus.h24{background:#ECFDF5;color:#047857}
+.dstatus.closed{background:#FEF2F2;color:#B91C1C}
+.dstatus .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:#F1F5F9;color:#334155}
+.chip.good{background:#ECFDF5;color:#047857}
+.hoursWrap{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.hoursWrap summary{cursor:pointer;font-size:12px;font-weight:800;color:#475569;list-style:none;user-select:none}
+.hoursWrap summary::-webkit-details-marker{display:none}
+.hoursWrap summary::before{content:'▸';color:var(--muted);margin-right:5px;font-size:10px}
+.hoursWrap[open] summary::before{content:'▾'}
+.htab{width:100%;margin-top:7px;font-size:12px;border-collapse:collapse}
+.htab td{padding:2px 0;border:0}
+.htab td.d{color:#475569;font-weight:700} .htab td.t{text-align:right;font-variant-numeric:tabular-nums;color:#334155}
+.htab tr.now td{color:var(--brand);font-weight:800}
+.htab tr.cl td.t{color:#B91C1C}
+.dl{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;font-size:12px}
+.dl .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:800;margin-bottom:3px}
+.dl .r{display:flex;justify-content:space-between;gap:10px;margin-top:2px;color:#334155}
+@media print{.calc,.print{box-shadow:none}.print{display:none}.hero{border-radius:0}.dropScroll{max-height:none;overflow:visible}}
 </style></head>
 <body>
 <div id="state" class="state">Loading rate card…</div>
@@ -118,9 +149,11 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
     </div>
     <div class="panel" id="mapPanel" style="display:none">
       <h3>Nearest drop-off points</h3>
-      <p class="sub">Your closest collection points, based on your postcode.</p>
-      <div id="map" style="height:360px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"></div>
-      <div id="dropList" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:13px"></div>
+      <p class="sub">Your closest collection points, based on your postcode. Opening times are shown in local time.</p>
+      <div class="mapGrid">
+        <div id="dropList" class="dropScroll"></div>
+        <div id="map" style="height:520px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"></div>
+      </div>
     </div>
     <div class="notes" id="notesBox"></div>
     <div class="foot" id="foot"></div>
@@ -230,24 +263,76 @@ function loadLeaflet(cb){
   js.onload=cb;js.onerror=()=>{$('mapPanel').style.display='none';};document.head.appendChild(js);
 }
 const CARR_COL={DPD:{s:'#991B1B',f:'#DC2626'},UPS:{s:'#5A3921',f:'#D4A017'},DHL:{s:'#8a6d00',f:'#F5CB00'}};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const todayD=()=>{const g=new Date().getDay();return g===0?7:g;};   // 1..7 Mon..Sun
+const nowMins=()=>{const n=new Date();return n.getHours()*60+n.getMinutes();};
+const toMins=hm=>{if(!hm)return null;if(hm==='24:00')return 1440;const m=/^(\d{1,2}):(\d{2})/.exec(hm);return m?(+m[1]*60+ +m[2]):null;};
+const dayLabel=d=>DAYS[d-1]||'';
+function statusOf(p){
+  if(p.open24)return {cls:'h24',txt:'Open 24 hours'};
+  const hrs=Array.isArray(p.hours)?p.hours:null;
+  if(!hrs||!hrs.length)return p.hoursText?{cls:'open',txt:p.hoursText}:null;
+  const td=todayD(),now=nowMins(),t=hrs.find(h=>h.d===td);
+  if(t&&!t.closed){const o=toMins(t.open),c=toMins(t.close);
+    if(o!=null&&c!=null){
+      if(now<o)return {cls:'closed',txt:'Closed · opens '+t.open};
+      if(now<c)return {cls:'open',txt:'Open now · closes '+t.close};}}
+  for(let i=1;i<=7;i++){const nd=((td-1+i)%7)+1,e=hrs.find(h=>h.d===nd);
+    if(e&&!e.closed)return {cls:'closed',txt:'Closed · opens '+(i===1?'tomorrow':dayLabel(nd))+' '+e.open};}
+  return {cls:'closed',txt:'Closed'};
+}
+function featChips(p){const out=[],hrs=Array.isArray(p.hours)?p.hours:[];
+  if(p.qr)out.push({t:'QR / paperless',good:true});
+  if(p.labelPrint)out.push({t:'Label printing',good:true});
+  if(!p.open24&&hrs.some(h=>!h.closed&&toMins(h.close)>=1200))out.push({t:'Open late'});
+  if(hrs.some(h=>h.d===6&&!h.closed))out.push({t:'Open Saturdays'});
+  if(hrs.some(h=>h.d===7&&!h.closed))out.push({t:'Open Sundays'});
+  if(p.parking)out.push({t:'Parking'});
+  if(p.disabledAccess)out.push({t:'Step-free access'});
+  return out;
+}
+function hoursTableHTML(p){
+  if(p.open24)return '';
+  const hrs=Array.isArray(p.hours)?p.hours:[];
+  if(!hrs.length)return '';
+  const td=todayD();
+  const rows=hrs.map(h=>{const cls=[h.d===td?'now':'',h.closed?'cl':''].filter(Boolean).join(' ');
+    return '<tr'+(cls?' class="'+cls+'"':'')+'><td class="d">'+dayLabel(h.d)+'</td><td class="t">'+(h.closed?'Closed':esc(h.open)+' – '+esc(h.close))+'</td></tr>';}).join('');
+  return '<details class="hoursWrap"><summary>Opening hours</summary><table class="htab"><tbody>'+rows+'</tbody></table></details>';
+}
+function dropCardHTML(p,i){const k=(p.carrier||'').toLowerCase(),st=statusOf(p);
+  const chips=featChips(p).map(c=>'<span class="chip'+(c.good?' good':'')+'">'+c.t+'</span>').join('');
+  const dl=(p.deadlines&&p.deadlines.length)?('<div class="dl"><div class="lab">Drop-off deadlines</div>'
+    +p.deadlines.map(d=>'<div class="r"><span>'+esc(d.svc)+'</span><span>Mon–Fri '+esc(d.mf)+' · Sat '+esc(d.sat)+'</span></div>').join('')+'</div>'):'';
+  return '<div class="drop '+k+'">'
+    +'<div class="dh"><div><div class="nm">'+esc(p.name||('Drop-off '+(i+1)))+'</div>'
+      +(p.type?'<div class="ty">'+esc(p.type)+'</div>':'')+'</div>'
+      +(p.distance?'<div class="dist">'+esc(p.distance)+'</div>':'')+'</div>'
+    +(p.address?'<div class="addr">'+esc(p.address)+'</div>':'')
+    +(st?'<div class="dstatus '+st.cls+'"><span class="dot"></span>'+esc(st.txt)+'</div>':'')
+    +(chips?'<div class="chips">'+chips+'</div>':'')
+    +hoursTableHTML(p)+dl+'</div>';
+}
 function renderMap(){
   const pts=(RC.dropoffs||[]).filter(p=>p&&p.lat!=null&&p.lng!=null);
   if(!pts.length){$('mapPanel').style.display='none';return;}
   $('mapPanel').style.display='block';
-  // list renders regardless of whether the map library loads
-  $('dropList').innerHTML=pts.map((p,i)=>{const cc=CARR_COL[p.carrier]||{f:'#1DFB9D'};
-    return '<div style="padding:7px 10px;border:1px solid var(--line);border-radius:9px;border-left:4px solid '+cc.f+'">'
-      +'<b>'+(p.name||('Drop-off '+(i+1)))+'</b>'+(p.carrier?' <span style="font-size:10px;font-weight:800;color:#fff;background:'+cc.f+';padding:1px 6px;border-radius:5px">'+p.carrier+'</span>':'')
-      +(p.address?' — <span style="color:var(--muted)">'+p.address+'</span>':'')+(p.distance?' <span style="color:var(--accent-2);font-weight:700">· '+p.distance+'</span>':'')+'</div>';}).join('');
+  // cards render regardless of whether the map library loads
+  $('dropList').innerHTML=pts.map((p,i)=>dropCardHTML(p,i)).join('');
   loadLeaflet(()=>{try{const L=window.L; if(!L||!L.map){$('map').style.display='none';return;}
     const map=L.map('map',{scrollWheelZoom:false});
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
     const bounds=[];const o=RC.origin;
     if(o&&o.lat!=null){L.circleMarker([o.lat,o.lng],{radius:9,color:'#fff',weight:3,fillColor:'#171B2D',fillOpacity:1}).addTo(map)
-      .bindPopup('<b>You</b>'+(o.postcode?'<br>'+o.postcode:''));bounds.push([o.lat,o.lng]);}
-    pts.forEach((p,i)=>{const cc=CARR_COL[p.carrier]||{s:'#0E9C63',f:'#1DFB9D'};
+      .bindPopup('<b>You</b>'+(o.postcode?'<br>'+esc(o.postcode):''));bounds.push([o.lat,o.lng]);}
+    pts.forEach((p,i)=>{const cc=CARR_COL[p.carrier]||{s:'#0E9C63',f:'#1DFB9D'};const st=statusOf(p);
       L.circleMarker([p.lat,p.lng],{radius:8,color:cc.s,weight:2,fillColor:cc.f,fillOpacity:1}).addTo(map)
-        .bindPopup('<b>'+(p.name||('Drop-off '+(i+1)))+'</b>'+(p.carrier?' <span style="color:'+cc.s+'">('+p.carrier+')</span>':'')+(p.address?'<br>'+p.address:''));
+        .bindPopup('<b>'+esc(p.name||('Drop-off '+(i+1)))+'</b>'+(p.carrier?' <span style="color:'+cc.s+'">('+esc(p.carrier)+')</span>':'')
+          +(p.type?'<br><span style="font-size:11px;color:#6b7280">'+esc(p.type)+'</span>':'')
+          +(p.address?'<br>'+esc(p.address):'')
+          +(p.distance?'<br><b style="color:#0E9C63">'+esc(p.distance)+'</b>':'')
+          +(st?'<br><span style="font-weight:700;color:'+(st.cls==='closed'?'#B91C1C':'#047857')+'">'+esc(st.txt)+'</span>':''));
       bounds.push([p.lat,p.lng]);});
     if(bounds.length)map.fitBounds(bounds,{padding:[30,30],maxZoom:14});
   }catch(e){$('map').style.display='none';}});
