@@ -38,6 +38,10 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .meta{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-size:13px}
 .meta .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800}
 .meta b{font-size:16px}
+.dimcallout{display:none;margin-top:16px;padding:13px 15px 13px 16px;border-radius:12px;background:#FFF7ED;border:1px solid #FDBA74;border-left:6px solid #EA580C;color:#7C2D12;font-size:13px;line-height:1.55}
+.dimcallout .big{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin-bottom:3px;color:#9A3412}
+.dimcallout .ic{width:22px;height:22px;flex:none;border-radius:50%;background:#EA580C;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:900}
+.dimcallout b{color:#7C2D12}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px}
 .card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;position:relative}
 .card .cmark{height:34px;width:auto;max-width:120px;object-fit:contain;display:inline-block;vertical-align:middle}
@@ -102,6 +106,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
         <div><div class="lab">Chargeable</div><b id="chgw">—</b></div>
         <div><div class="lab">Priced on</div><b id="driver">—</b></div>
       </div>
+      <div class="dimcallout" id="dimNote"></div>
       <div class="cards" id="cards"></div>
       <div class="note" id="cnote"></div>
     </div>
@@ -171,6 +176,11 @@ function calc(){
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
   $('driver').textContent=!chg?'—':(vol>actual?'volumetric':'actual weight');
+  const dn=$('dimNote');
+  if(vol>actual+1e-9&&chg>0){dn.style.display='block';
+    dn.innerHTML='<span class="big"><span class="ic">!</span>Priced on volumetric (dimensional) weight</span>'
+      +'This shipment is charged on its <b>size</b>, not its actual weight. Volumetric weight = (L × W × H) ÷ '+RC.divisor+' = <b>'+vol.toFixed(2)+' kg</b>, which is greater than the actual '+actual.toFixed(2)+' kg — so every price below is based on <b>'+chg.toFixed(2)+' kg</b>.';
+  }else dn.style.display='none';
   const applicable=accList().filter(a=>accApplies(a,c,actual));
   const rows=RC.services.map(s=>{const r=priceOf(s,c,chg);
     if(!r.avail||r.p==null)return {s,r,total:null};
@@ -226,9 +236,12 @@ async function boot(){
   const dutyByCarrier={},others=[];
   acc.forEach(a=>{if(a.cond==='region'){(dutyByCarrier[a.carrier]=dutyByCarrier[a.carrier]||[]).push(a);}else others.push(a);});
   const rows=[];
+  const rOrder={eu:0,usa:1,row:2};
   Object.keys(dutyByCarrier).forEach(carr=>{
-    const parts=dutyByCarrier[carr].map(a=>{const lbl=a.region==='eu'?'EU':a.region==='usa'?'USA':'Rest of world';return lbl+' '+shortRate(a);});
-    rows.push({name:'Duties &amp; taxes',carrier:carr,when:'By destination country',rate:parts.join(' · ')});
+    dutyByCarrier[carr].slice().sort((a,b)=>(rOrder[a.region]??9)-(rOrder[b.region]??9)).forEach(a=>{
+      const lbl=a.region==='eu'?'EU':a.region==='usa'?'USA':'Rest of world';
+      rows.push({name:'Duties &amp; taxes',carrier:carr,when:lbl,rate:shortRate(a)});
+    });
   });
   others.forEach(a=>rows.push({name:a.name,carrier:a.carrier,when:whenText(a),rate:rateText(a)}));
   if(rows.length){const sb=$('surBody');

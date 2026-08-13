@@ -194,7 +194,10 @@ async function createCard({ customer, config, created_by }) {
   return rows[0];
 }
 async function listCards() {
-  const { rows } = await pool.query('SELECT * FROM rate_cards ORDER BY created_at DESC');
+  const { rows } = await pool.query(
+    `SELECT rc.*, u.name AS creator_name, u.email AS creator_email
+       FROM rate_cards rc LEFT JOIN users u ON u.id = rc.created_by
+      ORDER BY rc.created_at DESC`);
   return rows;
 }
 async function getCardByToken(token) {

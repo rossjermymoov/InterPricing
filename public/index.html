@@ -295,7 +295,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   </div>
   <div style="margin-top:16px">
     <input id="custSearch" placeholder="Search customers…" style="width:100%;max-width:320px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;margin-bottom:8px"/>
-    <div style="overflow:auto"><table class="utable"><thead><tr><th>Customer</th><th>Private link</th><th>Status</th><th></th></tr></thead><tbody id="custBody"></tbody></table></div>
+    <div style="overflow:auto"><table class="utable"><thead><tr><th>Customer</th><th>Private link</th><th>Created by</th><th>Status</th><th></th></tr></thead><tbody id="custBody"></tbody></table></div>
     <div id="custEmpty" class="chartnote" style="margin-top:8px"></div>
   </div>
 </div>
@@ -909,8 +909,9 @@ function cardDetailHTML(c){
   if(cfg.breakdown)extras.push('Shows base price + fuel separately');
   if(cfg.includeSurcharges===false)extras.push('No surcharges page');
   const created=c.created_at?new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
+  const by=c.creator_name||c.creator_email||'';
   return `<div style="padding:8px 10px 14px 40px">`
-    +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px">Markup quoted to this customer${created?' · created '+created:''}</div>`
+    +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px">Markup quoted to this customer${by?' · by '+by:''}${created?' · created '+created:''}</div>`
     +`<table style="width:auto;border:none"><tbody>${rows}</tbody></table>`
     +(extras.length?`<div style="margin-top:9px;color:var(--muted);font-size:12px">${extras.join(' · ')}</div>`:'')
     +`</div>`;
@@ -922,13 +923,14 @@ function renderCards(){
   list.forEach(c=>{const url=cardUrl(c.token);const tr=document.createElement('tr');
     tr.innerHTML=`<td style="white-space:nowrap"><button class="btn exBtn" data-id="${c.id}" style="padding:2px 9px;margin-right:6px">▸</button><b>${c.customer||'—'}</b></td>`
       +`<td><a href="${url}" target="_blank" rel="noopener" style="color:var(--teal);word-break:break-all">${url}</a></td>`
+      +`<td><span class="rolechip">${c.creator_name||c.creator_email||'—'}</span></td>`
       +`<td>${c.enabled?'<span class="rolechip" style="background:var(--g-bg);color:var(--g)">live</span>':'<span class="rolechip" style="background:#fee2e2;color:var(--r)">off</span>'}</td>`
       +`<td style="white-space:nowrap"><button class="btn copyBtn" data-u="${url}">Copy</button> `
       +`<button class="btn tglBtn" data-id="${c.id}" data-en="${c.enabled?0:1}">${c.enabled?'Disable':'Enable'}</button> `
       +`<button class="btn danger delCardBtn" data-id="${c.id}">Delete</button></td>`;
     tb.appendChild(tr);
     const dr=document.createElement('tr');dr.className='detailRow';dr.dataset.id=c.id;dr.style.display='none';
-    dr.innerHTML=`<td colspan="4" style="background:#f8fafc">${cardDetailHTML(c)}</td>`;
+    dr.innerHTML=`<td colspan="5" style="background:#f8fafc">${cardDetailHTML(c)}</td>`;
     tb.appendChild(dr);});
   $('custEmpty').textContent=cardsCache.length?(list.length?'':'No customers match your search.'):'No customer links yet — save one above.';
   tb.querySelectorAll('.exBtn').forEach(b=>b.onclick=()=>{const dr=tb.querySelector('.detailRow[data-id="'+b.dataset.id+'"]');
