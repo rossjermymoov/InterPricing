@@ -70,7 +70,7 @@ function buildCardPayload(cfg, card) {
   const accessorials = !includeSur ? [] : (S.accessorials || [])
     .filter((a) => carriersShown.has(a.applyTo))
     .map((a) => {
-      const o = { key: a.key, name: a.name, cond: a.cond, basis: a.basis,
+      const o = { key: a.key, name: a.name, group: a.group || a.key, cond: a.cond, basis: a.basis,
         carrier: (a.applyTo || '').toUpperCase(), fuelable: !!a.fuelable };
       if (a.basis === 'pctValue') { o.pct = a.pct || 0; o.min = a.min || 0; }
       else { o.amount = Math.round((a.list || 0) * (1 - (a.disc || 0) / 100) * 100) / 100; }

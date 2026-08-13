@@ -340,7 +340,7 @@ function accVal(a){
   if(a.basis==='pctValue'){const pct=$('accPct_'+a.key)?num('accPct_'+a.key):(a.pct||0);const mn=$('accMin_'+a.key)?num('accMin_'+a.key):(a.min||0);return Math.max(pct*num('goodsValue')/100, mn);}
   const l=$('accList_'+a.key)?num('accList_'+a.key):(a.list||0);const d=$('accDisc_'+a.key)?num('accDisc_'+a.key):(a.disc||0);return l*(1-d/100);
 }
-const accOn=a=>{const el=$('acc_'+a.key);return el&&el.checked;};
+const accOn=a=>{const el=$('acc_'+(a.group||a.key));return el&&el.checked;};
 const DPD_COLOR='#dc2626', UPS_COLOR='#8B4513';
 const SERVICES=[
  {key:'ca',name:'DPD Classic Air',       carrier:'dpd',type:'band',src:'dpd_classic',    color:DPD_COLOR, dash:[]},
@@ -514,9 +514,10 @@ function buildAccTable(){
     $('accNet_'+a.key).textContent=accNetDisplay(a);});
 }
 function renderToggles(){
-  const t=$('toggles');t.innerHTML='';
-  accList().filter(a=>a.cond==='toggle').forEach(a=>{const lab=document.createElement('label');lab.className='tg';
-    lab.innerHTML=`<input type="checkbox" id="acc_${a.key}"/> ${a.name}`;t.appendChild(lab);
+  const t=$('toggles');t.innerHTML='';const seen={};
+  accList().filter(a=>a.cond==='toggle').forEach(a=>{const g=a.group||a.key;if(seen[g])return;seen[g]=1;
+    const lab=document.createElement('label');lab.className='tg';
+    lab.innerHTML=`<input type="checkbox" id="acc_${g}"/> ${a.name}`;t.appendChild(lab);
     lab.querySelector('input').addEventListener('change',calc);});
 }
 function renderMarkup(){
