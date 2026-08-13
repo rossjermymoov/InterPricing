@@ -4,6 +4,7 @@ const cookieParser = require('cookie-parser');
 const db = require('./db');
 const auth = require('./auth');
 const pricing = require('./pricing');
+const { fetchPickups } = require('./pickups');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -215,7 +216,16 @@ app.get('/api/card/:token', async (req, res) => {
     const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
     if (!card || card.enabled === false) return res.status(404).json({ error: 'This rate card is not available.' });
     res.set('Cache-Control', 'no-store');
-    res.json(pricing.buildCardPayload(await db.getConfig(), card));
+    const payload = pricing.buildCardPayload(await db.getConfig(), card);
+    const pc = card.config && card.config.postcode;
+    if (pc) {
+      try {
+        const carriers = [...new Set((payload.services || []).map((s) => s.carrier))];
+        const pk = await fetchPickups(pc, carriers.length ? carriers : undefined);
+        if (pk) { payload.dropoffs = pk.dropoffs; payload.origin = pk.origin; payload.postcode = pc; }
+      } catch (e) { console.error('[pickups]', e.message); }
+    }
+    res.json(payload);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 // PUBLIC: branded card page.
