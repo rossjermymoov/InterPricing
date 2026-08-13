@@ -108,7 +108,23 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .dl{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;font-size:12px}
 .dl .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:800;margin-bottom:3px}
 .dl .r{display:flex;justify-content:space-between;gap:10px;margin-top:2px;color:#334155}
-@media print{.calc,.print{box-shadow:none}.print{display:none}.hero{border-radius:0}.dropScroll{max-height:none;overflow:visible}}
+/* ===== 3-column shell: UPS rail | main | DPD rail ===== */
+.shell{max-width:1600px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:300px minmax(0,1fr) 300px;gap:22px;align-items:start}
+.shell .wrap{max-width:none;margin:0;padding:0 0 60px}
+.rail{position:sticky;top:16px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;min-width:0}
+.railHead{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#fff;padding:11px 13px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.railHead.ups{background:var(--ups)} .railHead.dpd{background:var(--dpd)} .railHead.dhl{background:var(--dhl)}
+.rcount{font-weight:800;font-size:11px;background:rgba(255,255,255,.22);padding:2px 8px;border-radius:999px}
+.railBody{overflow:auto;display:flex;flex-direction:column;gap:10px;padding:12px;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px}
+.rail .drop{border-left-width:5px}
+@media(max-width:1180px){
+  .shell{grid-template-columns:1fr;max-width:1000px}
+  .shell .wrap{order:1;padding-bottom:26px}
+  .railL{order:2}.railR{order:3}
+  .rail{position:static;max-height:none;margin-top:6px}
+  .railBody{max-height:none}
+}
+@media print{.calc,.print{box-shadow:none}.print{display:none}.hero{border-radius:0}.dropScroll{max-height:none;overflow:visible}.shell{display:block;max-width:1000px}.rail{position:static;max-height:none}.railBody{max-height:none}}
 </style></head>
 <body>
 <div id="state" class="state">Loading rate card…</div>
@@ -121,7 +137,12 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
     <h1 id="title">International Rate Card</h1>
     <p class="lede">Enter a destination, weight and dimensions to see your delivery price instantly. Prices are in GBP; per-shipment surcharges are listed below.</p>
   </div></div>
-  <div class="wrap">
+  <div class="shell">
+   <aside class="rail railL" id="railUPSwrap" style="display:none">
+     <div class="railHead ups"><span>UPS drop-off points</span><span class="rcount" id="railUPScount"></span></div>
+     <div class="railBody" id="railUPS"></div>
+   </aside>
+   <div class="wrap">
     <div class="calc">
       <h2>Price calculator</h2>
       <div class="rowf">
@@ -149,14 +170,16 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
     </div>
     <div class="panel" id="mapPanel" style="display:none">
       <h3>Nearest drop-off points</h3>
-      <p class="sub">Your closest collection points, based on your postcode. Opening times are shown in local time.</p>
-      <div class="mapGrid">
-        <div id="dropList" class="dropScroll"></div>
-        <div id="map" style="height:520px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"></div>
-      </div>
+      <p class="sub">Map of your closest collection points, based on your postcode. Full opening hours and details for each carrier are listed alongside.</p>
+      <div id="map" style="height:460px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"></div>
     </div>
     <div class="notes" id="notesBox"></div>
     <div class="foot" id="foot"></div>
+   </div>
+   <aside class="rail railR" id="railDPDwrap" style="display:none">
+     <div class="railHead dpd"><span>DPD drop-off points</span><span class="rcount" id="railDPDcount"></span></div>
+     <div class="railBody" id="railDPD"></div>
+   </aside>
   </div>
 </div>
 <script>
@@ -314,12 +337,22 @@ function dropCardHTML(p,i){const k=(p.carrier||'').toLowerCase(),st=statusOf(p);
     +(chips?'<div class="chips">'+chips+'</div>':'')
     +hoursTableHTML(p)+dl+'</div>';
 }
+function fillRail(list,bodyId,wrapId,countId){
+  const wrap=$(wrapId);if(!wrap)return;
+  if(!list.length){wrap.style.display='none';return;}
+  wrap.style.display='flex';
+  $(bodyId).innerHTML=list.map((p,i)=>dropCardHTML(p,i)).join('');
+  if($(countId))$(countId).textContent=list.length;
+}
 function renderMap(){
   const pts=(RC.dropoffs||[]).filter(p=>p&&p.lat!=null&&p.lng!=null);
+  const up=(c)=>String(c||'').toUpperCase();
+  const ups=pts.filter(p=>up(p.carrier)==='UPS');
+  const dpd=pts.filter(p=>up(p.carrier)!=='UPS'); // DPD (and any other carrier) on the right rail
+  fillRail(ups,'railUPS','railUPSwrap','railUPScount');
+  fillRail(dpd,'railDPD','railDPDwrap','railDPDcount');
   if(!pts.length){$('mapPanel').style.display='none';return;}
   $('mapPanel').style.display='block';
-  // cards render regardless of whether the map library loads
-  $('dropList').innerHTML=pts.map((p,i)=>dropCardHTML(p,i)).join('');
   loadLeaflet(()=>{try{const L=window.L; if(!L||!L.map){$('map').style.display='none';return;}
     const map=L.map('map',{scrollWheelZoom:false});
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);

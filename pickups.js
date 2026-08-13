@@ -68,14 +68,31 @@ function upsDayNum(v) {
 
 const emptyWeek = () => [1, 2, 3, 4, 5, 6, 7].map((d) => ({ d, closed: true }));
 
+// DPD day token -> 1..7 (Mon..Sun). DPD numeric days run 1=Mon..7=Sun; names matched too.
+function dpdDayNum(v) {
+  if (v == null) return null;
+  const s = String(v).trim().toLowerCase();
+  const names = { mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 7 };
+  for (const k in names) if (s.startsWith(k)) return names[k];
+  const n = parseInt(s, 10);
+  return (n >= 1 && n <= 7) ? n : null;
+}
+
 // hours: normalise to [{d:1..7 (Mon..Sun), open:"HH:MM", close:"HH:MM"} | {d, closed:true}]
+// Field names vary across DPD payload shapes, so match several candidates defensively.
 function dpdHours(windows) {
+  if (!Array.isArray(windows)) windows = windows ? [windows] : [];
   const byDay = {};
-  (windows || []).forEach((w) => {
-    const d = w.pickupLocationOpenWindowDay, s = w.pickupLocationOpenWindowStartTime, e = w.pickupLocationOpenWindowEndTime;
-    if (d == null || !s || !e) return;
-    if (!byDay[d]) byDay[d] = { open: s, close: e };
-    else { if (s < byDay[d].open) byDay[d].open = s; if (e > byDay[d].close) byDay[d].close = e; }
+  windows.forEach((w) => {
+    if (!w || typeof w !== 'object') return;
+    const d = pick(w, ['pickupLocationOpenWindowDay', 'day', 'dayOfWeek', 'weekDay', 'dow', 'dayNumber']);
+    const s = pick(w, ['pickupLocationOpenWindowStartTime', 'open', 'openTime', 'start', 'startTime', 'from', 'fromTime', 'openingTime']);
+    const e = pick(w, ['pickupLocationOpenWindowEndTime', 'close', 'closeTime', 'end', 'endTime', 'to', 'toTime', 'closingTime']);
+    const dn = dpdDayNum(d);
+    if (dn == null || s == null || e == null) return;
+    const so = hhmm(s), eo = hhmm(e);
+    if (!byDay[dn]) byDay[dn] = { open: so, close: eo };
+    else { if (so < byDay[dn].open) byDay[dn].open = so; if (eo > byDay[dn].close) byDay[dn].close = eo; }
   });
   return [1, 2, 3, 4, 5, 6, 7].map((d) => byDay[d] ? { d, open: byDay[d].open, close: byDay[d].close } : { d, closed: true });
 }
@@ -101,7 +118,7 @@ function mapDPD(data) {
       parking: !!pl.parkingAvailable,
       disabledAccess: !!pl.disabledAccess,
       open24: false,
-      hours: dpdHours(pl.pickupLocationOpenWindow),
+      hours: dpdHours(pl.pickupLocationOpenWindow || pl.openingHours || pl.openWindows || pl.pickupLocationOpenWindows || pl.openingTimes || a.openingHours),
       hoursText: '',
     };
   }).filter((p) => p.lat != null && p.lng != null);
