@@ -49,7 +49,14 @@ function authHeaders() {
   const user = process.env.COURIER_API_USER || 'Moov Parcel Master';
   const token = process.env.COURIER_API_TOKEN;
   if (!token || typeof fetch !== 'function') return null;
-  return { 'Content-Type': 'application/json', 'API user': user, 'API token': token };
+  // HTTP header names can't contain spaces. Hyphenated names normalise to the same
+  // server-side value as "API user"/"API token". Override via env if the API needs a different form.
+  const uh = process.env.COURIER_USER_HEADER || 'api-user';
+  const th = process.env.COURIER_TOKEN_HEADER || 'api-token';
+  const h = { 'Content-Type': 'application/json' };
+  h[uh] = user;
+  h[th] = token;
+  return h;
 }
 
 async function fetchOne(slug, carrier, postcode, headers) {
