@@ -221,10 +221,19 @@ async function boot(){
   $('country').value=RC.countries.includes('USA')?'USA':RC.countries[0];
   renderToggles();
   ['country','wt','L','W','H','V'].forEach(id=>$(id).addEventListener('input',calc));
+  const shortRate=a=>a.basis==='pctValue'?((a.pct||0)+'% of value'+(a.min?(' (min £'+Number(a.min).toFixed(2)+')'):'')):('£'+Number(a.amount||0).toFixed(2));
   const acc=accList().filter(a=>a.basis==='pctValue'||(a.amount||0)>0);
-  if(acc.length){const sb=$('surBody');
-    acc.forEach(a=>{const tr=document.createElement('tr');
-      tr.innerHTML='<td>'+a.name+'</td><td>'+carrierMark(a.carrier,'surlogo')+'</td><td>'+whenText(a)+'</td><td class="r">'+rateText(a)+'</td>';sb.appendChild(tr);});
+  const dutyByCarrier={},others=[];
+  acc.forEach(a=>{if(a.cond==='region'){(dutyByCarrier[a.carrier]=dutyByCarrier[a.carrier]||[]).push(a);}else others.push(a);});
+  const rows=[];
+  Object.keys(dutyByCarrier).forEach(carr=>{
+    const parts=dutyByCarrier[carr].map(a=>{const lbl=a.region==='eu'?'EU':a.region==='usa'?'USA':'Rest of world';return lbl+' '+shortRate(a);});
+    rows.push({name:'Duties &amp; taxes',carrier:carr,when:'By destination country',rate:parts.join(' · ')});
+  });
+  others.forEach(a=>rows.push({name:a.name,carrier:a.carrier,when:whenText(a),rate:rateText(a)}));
+  if(rows.length){const sb=$('surBody');
+    rows.forEach(r=>{const tr=document.createElement('tr');
+      tr.innerHTML='<td>'+r.name+'</td><td>'+carrierMark(r.carrier,'surlogo')+'</td><td>'+r.when+'</td><td class="r">'+r.rate+'</td>';sb.appendChild(tr);});
     wireCarrierMarks($('surBody'));
   }else $('surPanel').style.display='none';
   $('notesBox').textContent=RC.notes||'';
