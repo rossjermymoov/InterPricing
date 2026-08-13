@@ -183,6 +183,17 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     <button class="btn primary" id="ratesExport">Export current rates (Excel)</button>
     <span class="ok" id="ratesMsg"></span>
   </div>
+  <div class="panel" id="pickTestPanel">
+    <h2>Drop-off lookup test</h2>
+    <p class="adminnote">Check a postcode against the courier pickup API. Shows how many drop-off points each carrier returns and the raw response — use it to confirm <code>COURIER_API_TOKEN</code> is set and to debug the map. Copy the raw output to share if points aren’t mapping.</p>
+    <div class="miniform">
+      <div class="f"><label>Postcode</label><input id="pkPostcode" type="text" placeholder="e.g. SY11 4FN"/></div>
+      <button class="btn primary" id="pkTest">Test lookup</button>
+      <span class="ok" id="pkMsg"></span>
+    </div>
+    <div id="pkResult" style="margin-top:12px;font-size:13px"></div>
+    <textarea id="pkRaw" readonly style="display:none;width:100%;height:200px;margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px"></textarea>
+  </div>
   <div class="panel" id="teamPanel">
     <h2>Team members</h2>
     <table class="utable"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Reset password</th><th></th></tr></thead><tbody id="usersBody"></tbody></table>
@@ -1007,6 +1018,25 @@ function exportRates(){
   $('ratesMsg').textContent='Exported.';
 }
 $('ratesExport').onclick=exportRates;
+
+// ---------- Settings: test the drop-off pickup API ----------
+$('pkTest').onclick=async()=>{
+  const pc=($('pkPostcode').value||'').trim();
+  $('pkMsg').className='ok';$('pkMsg').textContent='';
+  if(!pc){$('pkMsg').className='err';$('pkMsg').textContent='Enter a postcode.';return;}
+  $('pkResult').innerHTML='Testing…';$('pkRaw').style.display='none';
+  const r=await jpost('/api/pickups-test',{postcode:pc});const d=await r.json();
+  if(!r.ok){$('pkResult').innerHTML='<span style="color:var(--r)">'+((d&&d.error)||'Failed')+(authEnabled?'':' — connect the database / deploy first')+'</span>';return;}
+  let html='';
+  if(!d.tokenSet)html+='<div style="color:var(--r)"><b>COURIER_API_TOKEN is not set</b> in Railway → Variables. The map cannot work until it is (and the app redeploys).</div>';
+  if(!d.hasFetch)html+='<div style="color:var(--r)">This Node version has no global fetch — needs Node 18+.</div>';
+  (d.couriers||[]).forEach(c=>{const ok=c.mappedCount>0;
+    html+='<div style="margin-top:6px"><b>'+c.carrier+'</b>: '+(c.error?('<span style="color:var(--r)">error — '+c.error+'</span>')
+      :('HTTP '+c.status+' · <b style="color:'+(ok?'var(--g)':'var(--r)')+'">'+c.mappedCount+' points mapped</b>'))+'</div>';});
+  if(!(d.couriers||[]).length&&d.tokenSet)html+='<div class="chartnote">No couriers queried.</div>';
+  $('pkResult').innerHTML=html||'<span class="chartnote">No response.</span>';
+  $('pkRaw').style.display='block';$('pkRaw').value=JSON.stringify(d,null,2);
+};
 
 $('repSearch').addEventListener('input',()=>{const q=$('repSearch').value.toLowerCase();document.querySelectorAll('#repList .replab').forEach(l=>{l.style.display=l.textContent.toLowerCase().includes(q)?'':'none';});});
 $('repList').addEventListener('change',updateRepCount);
