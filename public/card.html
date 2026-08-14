@@ -163,6 +163,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
         <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
         <div class="f small"><label>Height (cm)</label><input id="H" type="number" min="0" step="1"/></div>
         <div class="f small"><label>Value (£)</label><input id="V" type="number" min="0" step="1" value="0"/></div>
+        <div class="f small"><label>SKUs</label><input id="SK" type="number" min="1" step="1" value="1"/></div>
       </div>
       <div class="toggles" id="toggles"></div>
       <div class="meta">
@@ -210,6 +211,19 @@ function wireCarrierMarks(box){box.querySelectorAll('img.cmark').forEach(img=>{
   img.onerror=fb; if(img.complete&&!img.naturalWidth)fb();});}
 const region=c=>(RC.eu||[]).includes(c)?'eu':'row';
 const accList=()=>RC.accessorials||[];
+// EU per-SKU customs duty (all carriers): €perSku per unique SKU, for EU destinations whose
+// goods value converts to <= the euro threshold. Returned amount is in £.
+function euCustoms(c){
+  const e=RC.euDuty; if(!e||!e.enabled)return null;
+  if(region(c)!=='eu')return null;
+  const rate=Number(e.eurPerGbp)||0; if(rate<=0)return null;
+  const valEur=num('V')*rate;
+  if(valEur>(Number(e.thresholdEur)||150))return {over:true};   // over low-value threshold: €3 duty doesn't apply
+  const sku=Math.max(1,Math.floor(num('SK')||1));
+  const amt=Math.round((sku*(Number(e.perSku)||0))/rate*100)/100;
+  if(amt<=0)return null;
+  return {name:'EU customs duty ('+sku+' × €'+(Number(e.perSku))+')',amt};
+}
 function accGeom(){const L=num('L'),W=num('W'),H=num('H');const s=[L,W,H].filter(x=>x>0).sort((a,b)=>b-a);
   return {longest:s[0]||0,second:s[1]||0,girth:(L&&W&&H)?(s[0]+2*(s[1]||0)+2*(s[2]||0)):0};}
 function accApplies(a,c,actual){const g=accGeom();
@@ -259,10 +273,13 @@ function calc(){
       +'This shipment is charged on its <b>size</b>, not its actual weight. Volumetric weight = (L × W × H) ÷ '+RC.divisor+' = <b>'+vol.toFixed(2)+' kg</b>, which is greater than the actual '+actual.toFixed(2)+' kg — so every price below is based on <b>'+chg.toFixed(2)+' kg</b>.';
   }else dn.style.display='none';
   const applicable=accList().filter(a=>accApplies(a,c,actual));
+  const cd=euCustoms(c);                        // EU per-SKU customs duty (all carriers), or {over:true}, or null
+  const cdLine=(cd&&!cd.over)?cd:null;
   const rows=RC.services.map(s=>{const r=priceOf(s,c,chg);
     if(!r.avail||r.p==null)return {s,r,total:null};
     const base=r.p, fuel=Math.round(base*(s.fuel||0)/100*100)/100, carr=s.carrier.toLowerCase();
     const sur=applicable.filter(a=>a.carrier.toLowerCase()===carr).map(a=>({name:a.name,amt:Math.round(accAmount(a)*100)/100})).filter(x=>x.amt>0);
+    if(cdLine)sur.push({name:cdLine.name,amt:cdLine.amt});   // applies to every carrier into the EU
     const surTotal=sur.reduce((t,x)=>t+x.amt,0);
     return {s,r,base,fuel,sur,total:Math.round((base+fuel+surTotal)*100)/100};
   }).filter(x=>x.r.avail);
@@ -291,7 +308,10 @@ function calc(){
     box.appendChild(d);
   });
   wireCarrierMarks(box);
-  $('cnote').textContent=chg?(totals.length?('Showing '+totals.length+' service'+(totals.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable. Every price is a full quote including fuel, duties and any options selected.'):('No services available to '+c+' at this weight.')):'Enter a weight to see prices.';
+  let note=chg?(totals.length?('Showing '+totals.length+' service'+(totals.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable. Every price is a full quote including fuel, duties and any options selected.'):('No services available to '+c+' at this weight.')):'Enter a weight to see prices.';
+  if(cd&&cdLine)note+=' Includes the EU €'+(Number(RC.euDuty.perSku))+'-per-item customs duty on '+Math.max(1,Math.floor(num('SK')||1))+' SKU'+(num('SK')>1?'s':'')+'.';
+  else if(cd&&cd.over)note+=' Goods value is over €'+(Number(RC.euDuty.thresholdEur)||150)+' — the €'+(Number(RC.euDuty.perSku))+'-per-item duty does not apply; standard EU tariffs apply instead.';
+  $('cnote').textContent=note;
 }
 function loadLeaflet(cb){
   if(window.L){cb();return;}
@@ -431,7 +451,7 @@ async function boot(){
   RC.countries.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;$('country').appendChild(o);});
   $('country').value=RC.countries.includes('USA')?'USA':RC.countries[0];
   renderToggles();
-  ['country','wt','L','W','H','V'].forEach(id=>$(id).addEventListener('input',calc));
+  ['country','wt','L','W','H','V','SK'].forEach(id=>$(id).addEventListener('input',calc));
   const shortRate=a=>a.basis==='pctValue'?((a.pct||0)+'% of value'+(a.min?(' (min £'+Number(a.min).toFixed(2)+')'):'')):('£'+Number(a.amount||0).toFixed(2));
   const acc=accList().filter(a=>a.basis==='pctValue'||(a.amount||0)>0);
   const dutyByCarrier={},others=[];
@@ -445,9 +465,15 @@ async function boot(){
     });
   });
   others.forEach(a=>rows.push({name:a.name,carrier:a.carrier,when:whenText(a),rate:rateText(a)}));
+  if(RC.euDuty&&RC.euDuty.enabled){
+    rows.push({name:'EU customs duty',carrier:'',carrierText:'All carriers',
+      when:'EU destinations, goods value ≤ €'+(Number(RC.euDuty.thresholdEur)||150),
+      rate:'€'+(Number(RC.euDuty.perSku))+' per item (SKU)'});
+  }
   if(rows.length){const sb=$('surBody');
     rows.forEach(r=>{const tr=document.createElement('tr');
-      tr.innerHTML='<td>'+r.name+'</td><td>'+carrierMark(r.carrier,'surlogo')+'</td><td>'+r.when+'</td><td class="r">'+r.rate+'</td>';sb.appendChild(tr);});
+      const carrCell=r.carrier?carrierMark(r.carrier,'surlogo'):'<span style="font-size:11px;font-weight:800;color:#475569">'+(r.carrierText||'All')+'</span>';
+      tr.innerHTML='<td>'+r.name+'</td><td>'+carrCell+'</td><td>'+r.when+'</td><td class="r">'+r.rate+'</td>';sb.appendChild(tr);});
     wireCarrierMarks($('surBody'));
   }else $('surPanel').style.display='none';
   $('notesBox').textContent=RC.notes||'';

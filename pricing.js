@@ -14,6 +14,18 @@ const SERVICES = [
 
 const r2 = (v) => (v == null ? null : Math.round(v * 100) / 100);
 
+// EU per-item (per-SKU) customs duty config for the card. Carrier-agnostic; the card applies it
+// to EU destinations whose goods value converts to <= the threshold in euros.
+function euDutyPayload(e) {
+  if (!e || !e.enabled) return { enabled: false };
+  return {
+    enabled: true,
+    eurPerGbp: Number(e.eurPerGbp) || 0,
+    perSku: Number(e.perSku) || 0,
+    thresholdEur: Number(e.thresholdEur) || 150,
+  };
+}
+
 function markupFor(card, key) {
   const m = (card && card.config && card.config.markup);
   if (m == null) return 0;
@@ -88,6 +100,7 @@ function buildCardPayload(cfg, card) {
     bands: cfg.bands,
     caps: { cp: CAPS.cp, ep: CAPS.ep },
     eu: (S.regions && S.regions.eu) || [],
+    euDuty: euDutyPayload(S.euCustomsDuty),
     countries: countryList,
     services,
     accessorials,

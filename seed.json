@@ -25107,6 +25107,13 @@
         "Spain",
         "Sweden"
       ]
+    },
+    "euCustomsDuty": {
+      "enabled": true,
+      "eurPerGbp": 1.16,
+      "perSku": 3,
+      "thresholdEur": 150,
+      "label": "EU customs duty"
     }
   },
   "ups_express": {
@@ -30571,5 +30578,5 @@
     "Switzerland": "6",
     "Vatican City": "705"
   },
-  "dataVersion": 10
+  "dataVersion": 11
 }

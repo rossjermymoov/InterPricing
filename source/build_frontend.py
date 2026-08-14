@@ -197,6 +197,16 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     <div class="voltabs" id="accTabs" style="margin-bottom:12px"></div>
     <table class="stable"><thead><tr><th>Accessorial</th><th>Carrier</th><th>Trigger</th><th>List £ / Rate %</th><th>Disc % / Min £</th><th>Net</th></tr></thead><tbody id="accBody"></tbody></table>
   </div>
+  <div class="panel" id="euDutyPanel">
+    <h2>EU customs duty (€ per item)</h2>
+    <p class="adminnote">Per-SKU EU import duty on low-value shipments (goods value ≤ threshold, converted to €). Applies to <b>all carriers</b> into the EU, in addition to any other duties. Shown on customer cards in £ using the rate below. Interim EU measure (1 Jul 2026 – 1 Jul 2028) — untick Enabled to switch it off.</p>
+    <div class="miniform">
+      <label class="tg" style="align-self:end"><input type="checkbox" id="euEnabled"/> Enabled</label>
+      <div class="f"><label>£ → € rate (€ per £1)</label><input id="euRate" type="number" min="0" step="0.001" value="1.16"/></div>
+      <div class="f"><label>Duty per SKU (€)</label><input id="euPerSku" type="number" min="0" step="0.5" value="3"/></div>
+      <div class="f"><label>Low-value threshold (€)</label><input id="euThresh" type="number" min="0" step="1" value="150"/></div>
+    </div>
+  </div>
   <div class="panel"><button class="btn primary" id="saveBtn">Save settings</button><span class="ok" id="saveMsg"></span></div>
   <div class="panel" id="ratesPanel">
     <h2>Rate data</h2>
@@ -239,6 +249,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
   <div class="f small"><label>Height (cm)</label><input id="H" type="number" min="0" step="1"/></div>
   <div class="f small"><label>Value (£)</label><input id="goodsValue" type="number" min="0" step="1" value="0"/></div>
+  <div class="f small"><label>SKUs</label><input id="SK" type="number" min="1" step="1" value="1"/></div>
 </div>
 <div class="toggles" id="toggles"></div>
 <div class="wt">
@@ -388,10 +399,23 @@ function activeAcc(c,actual,L,W,H){
   return out;
 }
 function accAmount(a,svc){if(a.applyTo!==svc.carrier) return 0;return Math.round(accVal(a)*100)/100;}
+// EU per-SKU customs duty (all carriers), £ amount; {over:true} above threshold; null otherwise.
+let EU_CD=null;
+function euCustomsAmt(c){
+  const e=(P.settings&&P.settings.euCustomsDuty)||null;
+  if(!e||!e.enabled)return null;
+  if(region(c)!=='eu')return null;
+  const rate=Number(e.eurPerGbp)||0; if(rate<=0)return null;
+  if(num('goodsValue')*rate>(Number(e.thresholdEur)||150))return {over:true};
+  const sku=Math.max(1,Math.floor(num('SK')||1));
+  const amt=Math.round((sku*(Number(e.perSku)||0))/rate*100)/100;
+  return amt>0?{amt,sku,perSku:Number(e.perSku)}:null;
+}
 function build(rawBase,svc){
   if(rawBase==null) return {base:null};
   const fuelExtras=[],flatExtras=[];let fuelable=0,flat=0;
   ACTIVE.forEach(a=>{const amt=accAmount(a,svc);if(amt>0){if(a.fuelable){fuelable+=amt;fuelExtras.push([a.name,amt]);}else{flat+=amt;flatExtras.push([a.name,amt]);}}});
+  if(EU_CD&&EU_CD.amt){flat+=EU_CD.amt;flatExtras.push(['EU customs duty ('+EU_CD.sku+' × €'+EU_CD.perSku+')',EU_CD.amt]);}
   const cbase=rawBase+fuelable, f=fuelOf(svc);
   const costFuel=cbase*f.cost/100, totalCost=cbase+costFuel+flat;
   const sellFuel=cbase*f.sell/100, sellShip=cbase+sellFuel;
@@ -419,6 +443,7 @@ function calc(){
   const c=csel.value,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
   const vol=(L&&W&&H)?(L*W*H)/P.divisor:0, chg=Math.max(actual,vol);
   ACTIVE=activeAcc(c,actual,L,W,H);
+  EU_CD=euCustomsAmt(c); const cdShow=EU_CD&&!EU_CD.over?EU_CD:null; EU_CD=cdShow;
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
   $('driver').textContent=!chg?'—':(vol>actual?'volumetric':'actual weight');
@@ -533,6 +558,12 @@ function renderToggles(){
     lab.innerHTML=`<input type="checkbox" id="acc_${g}"/> ${a.name}`;t.appendChild(lab);
     lab.querySelector('input').addEventListener('change',calc);});
 }
+function fillEuDuty(e){
+  if($('euEnabled'))$('euEnabled').checked=e.enabled!==false;
+  if($('euRate'))$('euRate').value=(e.eurPerGbp!=null?e.eurPerGbp:1.16);
+  if($('euPerSku'))$('euPerSku').value=(e.perSku!=null?e.perSku:3);
+  if($('euThresh'))$('euThresh').value=(e.thresholdEur!=null?e.thresholdEur:150);
+}
 function renderMarkup(){
   const wrap=$('mkList');if(!wrap)return;wrap.innerHTML='';
   const g=num('mkGlobal');
@@ -552,6 +583,7 @@ function bootCalc(){
   const s=P.settings||{fuelByService:{},caps:{cp:31.5,ep:3},accessorials:[]};
   CAPS={cp:(s.caps&&s.caps.cp)||31.5, ep:(s.caps&&s.caps.ep)||3};
   buildFuelTable(s.fuelByService||{});
+  fillEuDuty(s.euCustomsDuty||{});
   renderAccTabs();
   buildAccTable();
   renderToggles();
@@ -561,7 +593,7 @@ function bootCalc(){
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
-    ['country','wt','L','W','H','goodsValue','metric'].forEach(id=>$(id).addEventListener('input',calc));
+    ['country','wt','L','W','H','goodsValue','SK','metric'].forEach(id=>$(id).addEventListener('input',calc));
     $('metric').addEventListener('change',calc);
     $('mkGlobal').addEventListener('input',applyGlobalMarkup);
     $('mkApply').addEventListener('click',applyGlobalMarkup);
@@ -622,7 +654,8 @@ $('backBtn').onclick=()=>{screen('app');calc();};
 $('saveBtn').onclick=async()=>{$('saveMsg').className='ok';$('saveMsg').textContent='';
   const fbs={};SERVICES.forEach(svc=>{fbs[svc.key]={name:svc.name,cost:num('fc_'+svc.key),sell:num('fs_'+svc.key)};});
   const acc=accList().filter(a=>$('accList_'+a.key)||$('accPct_'+a.key)).map(a=>{const o={key:a.key};if(a.basis==='pctValue'){o.pct=num('accPct_'+a.key);o.min=num('accMin_'+a.key);}else{o.list=num('accList_'+a.key);o.disc=num('accDisc_'+a.key);}return o;});
-  const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc});const d=await r.json();
+  const euCustomsDuty={enabled:$('euEnabled')?$('euEnabled').checked:true,eurPerGbp:num('euRate'),perSku:num('euPerSku'),thresholdEur:num('euThresh')};
+  const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc,euCustomsDuty});const d=await r.json();
   if(!r.ok){$('saveMsg').className='err';$('saveMsg').textContent=(d.error||'Save failed')+(authEnabled?'':' — connect the database to save.');return;}
   P.settings=Object.assign(P.settings||{},d.settings);$('saveMsg').textContent='Saved. Applies to everyone.';calc();};
 async function refreshUsers(){

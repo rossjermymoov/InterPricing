@@ -95,7 +95,17 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
       for (const k in o) { const v = o[k]; r[k] = (v && typeof v === 'object') ? numify(v) : Number(v); }
       return r;
     };
-    const { fuelByService, caps, accessorials } = req.body || {};
+    const { fuelByService, caps, accessorials, euCustomsDuty } = req.body || {};
+    if (euCustomsDuty && typeof euCustomsDuty === 'object') {
+      const cur = cfg.settings.euCustomsDuty || {};
+      cfg.settings.euCustomsDuty = {
+        enabled: euCustomsDuty.enabled != null ? !!euCustomsDuty.enabled : !!cur.enabled,
+        eurPerGbp: euCustomsDuty.eurPerGbp != null ? Number(euCustomsDuty.eurPerGbp) : (cur.eurPerGbp || 0),
+        perSku: euCustomsDuty.perSku != null ? Number(euCustomsDuty.perSku) : (cur.perSku != null ? cur.perSku : 3),
+        thresholdEur: euCustomsDuty.thresholdEur != null ? Number(euCustomsDuty.thresholdEur) : (cur.thresholdEur || 150),
+        label: 'EU customs duty',
+      };
+    }
     if (fuelByService) {
       cfg.settings.fuelByService = cfg.settings.fuelByService || {};
       for (const k of Object.keys(fuelByService)) {
