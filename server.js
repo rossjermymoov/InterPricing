@@ -247,6 +247,24 @@ app.post('/api/pickups-test', auth.requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// UPS OAuth callback. Landed Cost uses the Client Credentials flow (client id + secret, no
+// redirect), so this endpoint is not hit by that path — it exists so the redirect URI registered
+// on the UPS app is valid, and to support the Authorization Code flow if we ever enable it.
+app.get('/api/ups/callback', (req, res) => {
+  const { code, error, error_description } = req.query || {};
+  res.type('html');
+  if (error) {
+    return res.status(400).send('<!doctype html><meta charset="utf-8"><title>UPS authorization failed</title>'
+      + '<body style="font-family:system-ui;padding:40px;max-width:640px;margin:auto">'
+      + '<h2 style="color:#B91C1C">UPS authorization failed</h2><p>' + String(error_description || error).replace(/[<>]/g, '') + '</p></body>');
+  }
+  res.send('<!doctype html><meta charset="utf-8"><title>UPS connected</title>'
+    + '<body style="font-family:system-ui;padding:40px;max-width:640px;margin:auto">'
+    + '<h2 style="color:#0E9C63">UPS authorization received</h2><p>'
+    + (code ? 'An authorization code was returned — you can close this window.' : 'This is the UPS OAuth callback endpoint for InterPricing. Nothing to do here.')
+    + '</p></body>');
+});
+
 // PUBLIC: branded card page.
 app.get('/card/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'card.html')));
 
