@@ -174,7 +174,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
   <div class="hero"><div class="inner">
     <div class="top">
       <img class="brandlogo" src="/logo.png" alt="MOOV Parcel" onerror="this.outerHTML='&lt;div class=\'brandlogo fallback\'&gt;moov parcel&lt;/div&gt;'"/>
-      <div class="cust">Rate card prepared for<b id="cust"></b><span id="today"></span></div>
+      <div class="cust">Rate card<span id="today"></span></div>
     </div>
     <h1 id="title">International Rate Card</h1>
     <p class="lede">Enter a destination, weight and dimensions to see your delivery price instantly. Prices are in GBP; per-shipment surcharges are listed below.</p>
@@ -544,8 +544,7 @@ async function boot(){
     RC=await res.json();
   }catch(e){$('state').textContent='Could not load this rate card.';return;}
   $('state').style.display='none';$('app').style.display='block';
-  $('title').textContent=RC.title||'International Rate Card';
-  $('cust').textContent=RC.customer||'';
+  $('title').textContent=RC.customer||RC.title||'International Rate Card';
   $('today').textContent=' · '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   initCombo(RC.countries, RC.countries.includes('USA')?'USA':RC.countries[0]);
   renderToggles();

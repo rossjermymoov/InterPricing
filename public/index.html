@@ -274,8 +274,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
       <div id="rcServices" class="rcchecks"></div>
     </div>
     <div style="flex:1;min-width:260px">
-      <div class="f"><label>Card title</label><input id="rcTitle" type="text" value="International Rate Card" style="width:100%"/></div>
-      <div class="f" style="margin-top:12px"><label>Notes to customer (optional)</label><textarea id="rcNotes" rows="2" style="width:100%" placeholder="e.g. Prices valid for 30 days."></textarea></div>
+      <div class="f"><label>Notes to customer (optional)</label><textarea id="rcNotes" rows="2" style="width:100%" placeholder="e.g. Prices valid for 30 days."></textarea></div>
       <label class="tg" style="margin-top:12px"><input type="checkbox" id="rcSur" checked/> Include the surcharges section</label>
       <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcCheapest" checked/> Highlight the best price</label>
       <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcBreakdown"/> Show base price and fuel separately</label>
@@ -894,7 +893,7 @@ function currentCardConfig(){
   const markup={};SERVICES.forEach(s=>markup[s.key]=num('mk_'+s.key));
   return {services:selectedServices().map(s=>s.key),markup,
     breakdown:$('rcBreakdown').checked,showBest:$('rcCheapest').checked,includeSurcharges:$('rcSur').checked,
-    title:($('rcTitle').value||'').trim(),notes:($('rcNotes').value||'').trim(),countries:selectedCountries(),
+    notes:($('rcNotes').value||'').trim(),countries:selectedCountries(),
     postcode:($('custPostcode')?$('custPostcode').value.trim():'')};
 }
 const cardUrl=t=>location.origin+'/card/'+t;
