@@ -112,11 +112,18 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .shell{max-width:1600px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:300px minmax(0,1fr) 300px;gap:22px;align-items:start}
 .shell .wrap{max-width:none;margin:0;padding:0 0 60px}
 .rail{position:sticky;top:16px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;min-width:0}
-.railHead{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:#fff;padding:11px 13px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.railHead.ups{background:var(--ups)} .railHead.dpd{background:var(--dpd)} .railHead.dhl{background:var(--dhl)}
-.rcount{font-weight:800;font-size:11px;background:rgba(255,255,255,.22);padding:2px 8px;border-radius:999px}
+.railHead{background:#fff;border:1px solid var(--line);border-bottom:3px solid var(--line);border-radius:12px 12px 0 0;padding:11px 13px;display:flex;align-items:center;gap:10px}
+.railHead.ups{border-bottom-color:var(--ups)} .railHead.dpd{border-bottom-color:var(--dpd)} .railHead.dhl{border-bottom-color:var(--dhl)}
+.raillogo{height:26px;width:auto;max-width:92px;object-fit:contain;display:block}
+.railHead.dpd .raillogo{height:40px;max-width:120px}
+.raillogo.fallback{font-weight:900;font-size:15px;color:#fff;padding:3px 9px;border-radius:6px;height:auto}
+.raillogo.fallback.ups{background:var(--ups)} .raillogo.fallback.dpd{background:var(--dpd)} .raillogo.fallback.dhl{background:var(--dhl)}
+.railttl{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+.rcount{margin-left:auto;font-weight:800;font-size:11px;background:#f1f5f9;color:#334155;padding:2px 9px;border-radius:999px}
 .railBody{overflow:auto;display:flex;flex-direction:column;gap:10px;padding:12px;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px}
 .rail .drop{border-left-width:5px}
+.loadMore{width:100%;margin-top:1px;padding:10px;border:1px dashed #cbd5e1;background:#f8fafc;color:var(--brand);font-weight:800;font-size:12.5px;border-radius:10px;cursor:pointer}
+.loadMore:hover{background:#eef2f7;border-color:#94a3b8}
 @media(max-width:1180px){
   .shell{grid-template-columns:1fr;max-width:1000px}
   .shell .wrap{order:1;padding-bottom:26px}
@@ -139,7 +146,10 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
   </div></div>
   <div class="shell">
    <aside class="rail railL" id="railUPSwrap" style="display:none">
-     <div class="railHead ups"><span>UPS drop-off points</span><span class="rcount" id="railUPScount"></span></div>
+     <div class="railHead ups">
+       <img class="raillogo" data-k="ups" data-c="UPS" src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS"/>
+       <span class="railttl">Drop-off points</span><span class="rcount" id="railUPScount"></span>
+     </div>
      <div class="railBody" id="railUPS"></div>
    </aside>
    <div class="wrap">
@@ -177,7 +187,10 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
     <div class="foot" id="foot"></div>
    </div>
    <aside class="rail railR" id="railDPDwrap" style="display:none">
-     <div class="railHead dpd"><span>DPD drop-off points</span><span class="rcount" id="railDPDcount"></span></div>
+     <div class="railHead dpd">
+       <img class="raillogo" data-k="dpd" data-c="DPD" src="https://app.heyvoila.io/courier-service-logos/dpd.jpg" alt="DPD"/>
+       <span class="railttl">Drop-off points</span><span class="rcount" id="railDPDcount"></span>
+     </div>
      <div class="railBody" id="railDPD"></div>
    </aside>
   </div>
@@ -308,9 +321,12 @@ function statusOf(p){
 function featChips(p){const out=[],hrs=Array.isArray(p.hours)?p.hours:[];
   if(p.qr)out.push({t:'QR / paperless',good:true});
   if(p.labelPrint)out.push({t:'Label printing',good:true});
-  if(!p.open24&&hrs.some(h=>!h.closed&&toMins(h.close)>=1200))out.push({t:'Open late'});
-  if(hrs.some(h=>h.d===6&&!h.closed))out.push({t:'Open Saturdays'});
-  if(hrs.some(h=>h.d===7&&!h.closed))out.push({t:'Open Sundays'});
+  const late=p.openLate!=null?p.openLate:(!p.open24&&hrs.some(h=>!h.closed&&toMins(h.close)>=1200));
+  const sat=p.openSaturday!=null?p.openSaturday:hrs.some(h=>h.d===6&&!h.closed);
+  const sun=p.openSunday!=null?p.openSunday:hrs.some(h=>h.d===7&&!h.closed);
+  if(late)out.push({t:'Open late'});
+  if(sat)out.push({t:'Open Saturdays'});
+  if(sun)out.push({t:'Open Sundays'});
   if(p.parking)out.push({t:'Parking'});
   if(p.disabledAccess)out.push({t:'Step-free access'});
   return out;
@@ -337,13 +353,26 @@ function dropCardHTML(p,i){const k=(p.carrier||'').toLowerCase(),st=statusOf(p);
     +(chips?'<div class="chips">'+chips+'</div>':'')
     +hoursTableHTML(p)+dl+'</div>';
 }
+const RAIL_INIT=3;
 function fillRail(list,bodyId,wrapId,countId){
   const wrap=$(wrapId);if(!wrap)return;
   if(!list.length){wrap.style.display='none';return;}
   wrap.style.display='flex';
-  $(bodyId).innerHTML=list.map((p,i)=>dropCardHTML(p,i)).join('');
   if($(countId))$(countId).textContent=list.length;
+  const body=$(bodyId);
+  function draw(showAll){
+    const shown=showAll?list.length:Math.min(RAIL_INIT,list.length);
+    let html=list.slice(0,shown).map((p,i)=>dropCardHTML(p,i)).join('');
+    if(!showAll&&list.length>RAIL_INIT)html+='<button type="button" class="loadMore">Show '+(list.length-RAIL_INIT)+' more</button>';
+    body.innerHTML=html;
+    const btn=body.querySelector('.loadMore');
+    if(btn)btn.addEventListener('click',()=>draw(true));
+  }
+  draw(false);
 }
+function wireRailLogos(){document.querySelectorAll('img.raillogo').forEach(img=>{
+  const fb=()=>{img.outerHTML='<span class="raillogo fallback '+img.dataset.k+'">'+img.dataset.c+'</span>';};
+  img.onerror=fb; if(img.complete&&!img.naturalWidth)fb();});}
 function renderMap(){
   const pts=(RC.dropoffs||[]).filter(p=>p&&p.lat!=null&&p.lng!=null);
   const up=(c)=>String(c||'').toUpperCase();
@@ -351,6 +380,7 @@ function renderMap(){
   const dpd=pts.filter(p=>up(p.carrier)!=='UPS'); // DPD (and any other carrier) on the right rail
   fillRail(ups,'railUPS','railUPSwrap','railUPScount');
   fillRail(dpd,'railDPD','railDPDwrap','railDPDcount');
+  wireRailLogos();
   if(!pts.length){$('mapPanel').style.display='none';return;}
   $('mapPanel').style.display='block';
   loadLeaflet(()=>{try{const L=window.L; if(!L||!L.map){$('map').style.display='none';return;}

@@ -104,6 +104,7 @@ function mapDPD(data) {
     const pl = it.pickupLocation || it;
     const a = pl.address || {};
     const pt = pl.addressPoint || {};
+    const av = pl.pickupLocationAvailability || {};
     const labelPrint = pick(pl, ['printInStore', 'printerInStore', 'printerAvailable', 'labelPrinting', 'printLabel']);
     return {
       carrier: 'DPD',
@@ -117,55 +118,77 @@ function mapDPD(data) {
       labelPrint: labelPrint == null ? null : !!labelPrint, // shop prints your label
       parking: !!pl.parkingAvailable,
       disabledAccess: !!pl.disabledAccess,
+      // DPD returns these directly — more authoritative than deriving from the window list.
+      openLate: !!pl.openLate,
+      openSaturday: !!pl.openSaturday,
+      openSunday: !!pl.openSunday,
       open24: false,
-      hours: dpdHours(pl.pickupLocationOpenWindow || pl.openingHours || pl.openWindows || pl.pickupLocationOpenWindows || pl.openingTimes || a.openingHours),
+      hours: dpdHours(av.pickupLocationOpenWindow || pl.pickupLocationOpenWindow || pl.openingHours || pl.openWindows || pl.openingTimes),
       hoursText: '',
     };
   }).filter((p) => p.lat != null && p.lng != null);
 }
 
-// UPS operating hours -> normalised weekly array. Handles "Open 24 Hours" and
-// structured OperatingHours.StandardHours.DayOfWeek[]; returns {hours, open24, text}.
-function upsHours(loc) {
-  const stdText = clean(loc.StandardHoursOfOperation) ||
-    clean(loc.OperatingHours && (loc.OperatingHours.StandardHoursOfOperationText || loc.OperatingHours.Text)) || '';
-  const open24 = /open\s*24\s*hours|24\s*hours?\s*(a\s*day)?/i.test(stdText) || /open\s*24\s*hours/i.test(deepText(loc.OperatingHours || {}));
-  if (open24) return { hours: [1, 2, 3, 4, 5, 6, 7].map((d) => ({ d, open: '00:00', close: '24:00' })), open24: true, text: stdText || 'Open 24 hours' };
+const truthyInd = (v) => { if (v == null) return false; const s = String(v).trim().toLowerCase(); return s === 'y' || s === '1' || s === 'true' || s === 'x'; };
 
+// UPS operating hours -> normalised weekly array. OperatingHours.StandardHours is an
+// array of blocks, each with DayOfWeek[] of {Day, OpenHours, CloseHours, Open24HoursIndicator, ClosedIndicator}.
+// UPS Day runs 1=Sun..7=Sat (re-based to Mon..Sun by upsDayNum). Returns {hours, open24, text}.
+function upsHours(loc) {
+  const stdText = clean(loc.StandardHoursOfOperation) || '';
   const oh = loc.OperatingHours || {};
-  const sh = oh.StandardHours || oh;
-  let days = sh && (sh.DayOfWeek || sh.Day || sh.days);
+  let sh = oh.StandardHours || oh;
+  if (Array.isArray(sh)) sh = sh[0];
+  let days = sh && (sh.DayOfWeek || sh.Day);
   if (days && !Array.isArray(days)) days = [days];
   const byDay = {};
+  let anyDay = false;
   (days || []).forEach((dd) => {
     if (!dd || typeof dd !== 'object') return;
-    const dn = upsDayNum(dd.Day != null ? dd.Day : (dd.DayOfWeek != null ? dd.DayOfWeek : dd.WeekDay));
+    const dn = upsDayNum(dd.Day != null ? dd.Day : dd.DayOfWeek);
     if (!dn) return;
-    const open = pick(dd, ['OpenHours', 'Open', 'FromHour', 'OpenTime', 'StartTime']);
-    const close = pick(dd, ['CloseHours', 'Close', 'ToHour', 'CloseTime', 'EndTime']);
-    if (open == null || close == null) { byDay[dn] = { closed: true }; return; }
-    byDay[dn] = { open: hhmm(open), close: hhmm(close) };
+    anyDay = true;
+    if (truthyInd(dd.Open24HoursIndicator)) { byDay[dn] = { open: '00:00', close: '24:00' }; return; }
+    // A closed day carries ClosedIndicator and no hours.
+    const cRaw = dd.CloseHours;
+    let oRaw = (dd.OpenHours != null && dd.OpenHours !== '') ? dd.OpenHours : ((cRaw != null && cRaw !== '') ? '0000' : null);
+    if (oRaw == null || cRaw == null || cRaw === '') { byDay[dn] = { closed: true }; return; }
+    byDay[dn] = { open: hhmm(oRaw), close: hhmm(cRaw) };
   });
-  if (!Object.keys(byDay).length) return { hours: null, open24: false, text: stdText };
-  return {
-    hours: [1, 2, 3, 4, 5, 6, 7].map((d) => byDay[d] ? (byDay[d].closed ? { d, closed: true } : { d, open: byDay[d].open, close: byDay[d].close }) : { d, closed: true }),
-    open24: false, text: stdText,
-  };
+  if (!anyDay) {
+    if (/open\s*24\s*hours/i.test(stdText)) return { hours: [1, 2, 3, 4, 5, 6, 7].map((d) => ({ d, open: '00:00', close: '24:00' })), open24: true, text: stdText };
+    return { hours: null, open24: false, text: stdText };
+  }
+  const week = [1, 2, 3, 4, 5, 6, 7].map((d) => byDay[d] ? (byDay[d].closed ? { d, closed: true } : { d, open: byDay[d].open, close: byDay[d].close }) : { d, closed: true });
+  const open24 = week.every((x) => !x.closed && x.open === '00:00' && x.close === '24:00');
+  return { hours: week, open24, text: stdText };
 }
 
-// UPS drop-off deadlines by service, when the response carries them, e.g.
-// [{svc:'Express', mf:'11:00', sat:'--'}]. Best-effort; omitted if not clearly present.
+// UPS drop-off deadlines by service. Live shape: LocationAttribute[] where OptionType.Code==='03'
+// carries OptionCode[] of services (Category '07', Name Express/Standard/International) each with a
+// TransportationPickUpSchedule.PickUp[] of {DayOfWeek, PickUpDetails:{PickUpTime|NoPickUpIndicator}}.
 function upsDeadlines(loc) {
-  const src = loc.OperatingHours && (loc.OperatingHours.DropOffByTime || loc.OperatingHours.DropOff || loc.DropOffByTime);
-  let list = src && (src.PickupType || src.Service || src);
-  if (list && !Array.isArray(list)) list = [list];
-  if (!Array.isArray(list)) return null;
+  const attrs = Array.isArray(loc.LocationAttribute) ? loc.LocationAttribute : (loc.LocationAttribute ? [loc.LocationAttribute] : []);
+  const svcAttr = attrs.find((a) => a && a.OptionType && a.OptionType.Code === '03');
+  if (!svcAttr) return null;
+  const codes = Array.isArray(svcAttr.OptionCode) ? svcAttr.OptionCode : (svcAttr.OptionCode ? [svcAttr.OptionCode] : []);
   const out = [];
-  list.forEach((p) => {
-    const svc = clean(pick(p, ['ServiceName', 'Service', 'Name', 'Type', 'Description']));
-    const mf = hhmm(pick(p, ['WeekdayDropOffByTime', 'WeekdayTime', 'MondayFriday', 'MonFri', 'Time']));
-    const sat = hhmm(pick(p, ['SaturdayDropOffByTime', 'SaturdayTime', 'Saturday', 'Sat']));
-    if (svc && (mf || sat)) out.push({ svc, mf: mf || '--', sat: sat || '--' });
+  codes.forEach((c) => {
+    if (!c || c.Category !== '07') return;
+    const name = clean(c.Name);
+    if (!/express|standard|international/i.test(name || '')) return;
+    const sched = c.TransportationPickUpSchedule && c.TransportationPickUpSchedule.PickUp;
+    const pickups = Array.isArray(sched) ? sched : (sched ? [sched] : []);
+    const byDay = {};
+    pickups.forEach((p) => {
+      const dn = upsDayNum(p && p.DayOfWeek);
+      if (!dn) return;
+      const t = p.PickUpDetails && p.PickUpDetails.PickUpTime;
+      byDay[dn] = (t != null && t !== '') ? hhmm(t) : null;
+    });
+    const mf = byDay[1] || byDay[2] || byDay[3] || byDay[4] || byDay[5] || null; // a weekday deadline
+    const sat = byDay[6] || null;
+    if (mf || sat) out.push({ svc: name, mf: mf || '--', sat: sat || '--' });
   });
   return out.length ? out : null;
 }
@@ -183,22 +206,24 @@ function mapUPS(data) {
     const line = Array.isArray(a.AddressLine) ? a.AddressLine.filter(Boolean).join(', ') : a.AddressLine;
     const unit = (d.UnitOfMeasurement && d.UnitOfMeasurement.Code === 'MI') ? 'mi' : ((d.UnitOfMeasurement && d.UnitOfMeasurement.Code) || '');
     const h = upsHours(it);
-    // Access-point type / classification, e.g. "UPS Access Point", "UPS Parcel Locker".
-    const cls = clean(pick(it, ['BusinessClassificationDescription']))
-      || (it.AccessPointInformation && clean(pick(it.AccessPointInformation, ['AccessPointType', 'LocationType', 'DisplayName'])))
-      || '';
-    const isLocker = /locker/i.test(cls) || /locker/i.test(clean(a.ConsigneeName) || '');
-    const svcText = deepText(it.ServiceOfferingList || it.ServiceOffering || {}) + ' ' + deepText(it.DropLocationAttribute || {});
+    const nm = clean(a.ConsigneeName) || 'UPS Access Point';
+    // Access-point type from BusinessClassification (e.g. "UPS Parcel Locker"); keep it customer-friendly.
+    const api = it.AccessPointInformation || {};
+    const bizList = api.BusinessClassificationList && api.BusinessClassificationList.BusinessClassification;
+    const bizArr = Array.isArray(bizList) ? bizList : (bizList ? [bizList] : []);
+    const bizDesc = bizArr.map((b) => clean(b && b.Description)).filter(Boolean).join(' ');
+    const isLocker = /locker/i.test(bizDesc) || /locker/i.test(nm);
+    const svcText = deepText(it.ServiceOfferingList || {});
     const qr = /mobile barcode|paperless|qr\s*code/i.test(svcText)
-      || /"?015"?/.test(JSON.stringify((it.ServiceOfferingList && it.ServiceOfferingList.ServiceOffering) || ''));
+      || /"Code"\s*:\s*"015"/.test(JSON.stringify((it.ServiceOfferingList && it.ServiceOfferingList.ServiceOffering) || ''));
     return {
       carrier: 'UPS',
-      name: clean(a.ConsigneeName) || 'UPS Access Point',
-      type: cls || (isLocker ? 'UPS Parcel Locker' : 'UPS Access Point'),
+      name: nm,
+      type: isLocker ? 'UPS Parcel Locker' : 'UPS Access Point',
       address: joinAddr([line, a.PoliticalDivision2, a.PostcodePrimaryLow]),
       lat: num(g.Latitude), lng: num(g.Longitude),
       distance: d.Value ? (Math.round(Number(d.Value) * 10) / 10 + ' ' + (unit || 'mi')).trim() : '',
-      code: clean(pick(it, ['LocationID'])) || (it.AccessPointInformation && clean(pick(it.AccessPointInformation, ['PublicAccessPointID', 'AccessPointID']))) || '',
+      code: clean(api.PublicAccessPointID) || clean(it.LocationID) || '',
       qr: !!qr,
       labelPrint: null,
       open24: h.open24,
@@ -254,7 +279,8 @@ async function fetchPickups(postcode, carriers) {
   const results = await Promise.all(want.map((c) =>
     fetchOne(c.slug, c.carrier, postcode, headers).catch((e) => { console.error('[pickups]', e.message); return { points: [], origin: null }; })
   ));
-  return { dropoffs: results.flatMap((r) => r.points), origin: (results.find((r) => r.origin) || {}).origin || null, postcode };
+  // Cap each carrier to 10 nearest; the card shows the first 3 with a "Load more" up to 10.
+  return { dropoffs: results.flatMap((r) => r.points.slice(0, 10)), origin: (results.find((r) => r.origin) || {}).origin || null, postcode };
 }
 
 // Admin debug: returns per-courier HTTP status, mapped count, a sample, and the raw body (truncated).
