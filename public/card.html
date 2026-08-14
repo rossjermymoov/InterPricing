@@ -58,6 +58,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .card .brk{font-size:11.5px;color:#475569;line-height:1.65;margin-top:11px;border-top:1px dashed var(--line);padding-top:9px}
 .card .brk .row{display:flex;justify-content:space-between;gap:10px}
 .card .brk .row.tot{font-weight:800;color:var(--ink);border-top:1px solid var(--line);margin-top:5px;padding-top:5px}
+.card .brk .row.cust{margin-top:5px;color:#9d174d;font-weight:800}
 .toggles{display:flex;flex-wrap:wrap;gap:9px 20px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
 .tg{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#334155;cursor:pointer}
 .tg input{width:16px;height:16px;accent-color:var(--accent)}
@@ -162,7 +163,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
         <div class="f small"><label>Length (cm)</label><input id="L" type="number" min="0" step="1"/></div>
         <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
         <div class="f small"><label>Height (cm)</label><input id="H" type="number" min="0" step="1"/></div>
-        <div class="f small"><label>Value (£)</label><input id="V" type="number" min="0" step="1" value="0"/></div>
+        <div class="f small"><label id="vlab">Value (£)</label><input id="V" type="number" min="0" step="1" value="0"/></div>
         <div class="f small"><label>SKUs</label><input id="SK" type="number" min="1" step="1" value="1"/></div>
       </div>
       <div class="toggles" id="toggles"></div>
@@ -198,7 +199,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
   </div>
 </div>
 <script>
-const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
+const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2), eur=v=>'€'+Number(v).toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
 let RC=null;
 const CARRIER_LOGOS={
@@ -211,18 +212,16 @@ function wireCarrierMarks(box){box.querySelectorAll('img.cmark').forEach(img=>{
   img.onerror=fb; if(img.complete&&!img.naturalWidth)fb();});}
 const region=c=>(RC.eu||[]).includes(c)?'eu':'row';
 const accList=()=>RC.accessorials||[];
-// EU per-SKU customs duty (all carriers): €perSku per unique SKU, for EU destinations whose
-// goods value converts to <= the euro threshold. Returned amount is in £.
+// EU per-SKU customs duty (all carriers), shown natively in euros. For EU the Value field is
+// entered in euros, so the low-value threshold is a direct euro comparison. Not folded into the £ total.
 function euCustoms(c){
   const e=RC.euDuty; if(!e||!e.enabled)return null;
   if(region(c)!=='eu')return null;
-  const rate=Number(e.eurPerGbp)||0; if(rate<=0)return null;
-  const valEur=num('V')*rate;
-  if(valEur>(Number(e.thresholdEur)||150))return {over:true};   // over low-value threshold: €3 duty doesn't apply
+  if(num('V')>(Number(e.thresholdEur)||150))return {over:true};   // goods value (€) over threshold: €3 duty doesn't apply
   const sku=Math.max(1,Math.floor(num('SK')||1));
-  const amt=Math.round((sku*(Number(e.perSku)||0))/rate*100)/100;
-  if(amt<=0)return null;
-  return {name:'EU customs duty ('+sku+' × €'+(Number(e.perSku))+')',amt};
+  const eur=Math.round(sku*(Number(e.perSku)||0)*100)/100;
+  if(eur<=0)return null;
+  return {sku,perSku:Number(e.perSku),eur};
 }
 function accGeom(){const L=num('L'),W=num('W'),H=num('H');const s=[L,W,H].filter(x=>x>0).sort((a,b)=>b-a);
   return {longest:s[0]||0,second:s[1]||0,girth:(L&&W&&H)?(s[0]+2*(s[1]||0)+2*(s[2]||0)):0};}
@@ -263,6 +262,8 @@ function renderToggles(){const box=$('toggles');if(!box)return;box.innerHTML='';
     box.appendChild(lab);lab.querySelector('input').addEventListener('change',calc);});}
 function calc(){
   const c=$('country').value,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
+  const isEu=region(c)==='eu';
+  const vl=$('vlab'); if(vl)vl.textContent=isEu?'Value (€)':'Value (£)';   // EU goods value is entered in euros
   const vol=(L&&W&&H)?(L*W*H)/RC.divisor:0, chg=Math.max(actual,vol);
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
@@ -275,12 +276,13 @@ function calc(){
   const applicable=accList().filter(a=>accApplies(a,c,actual));
   const cd=euCustoms(c);                        // EU per-SKU customs duty (all carriers), or {over:true}, or null
   const cdLine=(cd&&!cd.over)?cd:null;
-  const rows=RC.services.map(s=>{const r=priceOf(s,c,chg);
+  const epCap=(RC.caps&&RC.caps.ep)||3;
+  const svcList=RC.services.filter(s=>!(s.key==='ep'&&region(c)==='eu'&&chg>epCap));  // hide ExpressPak for EU over 3 kg
+  const rows=svcList.map(s=>{const r=priceOf(s,c,chg);
     if(!r.avail||r.p==null)return {s,r,total:null};
     const base=r.p, fuel=Math.round(base*(s.fuel||0)/100*100)/100, carr=s.carrier.toLowerCase();
     const sur=applicable.filter(a=>a.carrier.toLowerCase()===carr).map(a=>({name:a.name,amt:Math.round(accAmount(a)*100)/100})).filter(x=>x.amt>0);
-    if(cdLine)sur.push({name:cdLine.name,amt:cdLine.amt});   // applies to every carrier into the EU
-    const surTotal=sur.reduce((t,x)=>t+x.amt,0);
+    const surTotal=sur.reduce((t,x)=>t+x.amt,0);   // £ freight total; the EU customs duty is shown separately in €
     return {s,r,base,fuel,sur,total:Math.round((base+fuel+surTotal)*100)/100};
   }).filter(x=>x.r.avail);
   const totals=rows.filter(x=>x.total!=null).map(x=>x.total);
@@ -303,13 +305,14 @@ function calc(){
         +`<div class="row"><span>Fuel (${s.fuel||0}%)</span><span>${money(fuel)}</span></div>`
         +surLines
         +`<div class="row tot"><span>Total</span><span>${money(total)}</span></div>`
+        +(cdLine?`<div class="row cust"><span>+ EU customs duty (${cdLine.sku} × €${cdLine.perSku})</span><span>${eur(cdLine.eur)}</span></div>`:'')
         +`</div>`;
     }
     box.appendChild(d);
   });
   wireCarrierMarks(box);
   let note=chg?(totals.length?('Showing '+totals.length+' service'+(totals.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable. Every price is a full quote including fuel, duties and any options selected.'):('No services available to '+c+' at this weight.')):'Enter a weight to see prices.';
-  if(cd&&cdLine)note+=' Includes the EU €'+(Number(RC.euDuty.perSku))+'-per-item customs duty on '+Math.max(1,Math.floor(num('SK')||1))+' SKU'+(num('SK')>1?'s':'')+'.';
+  if(cd&&cdLine)note+=' An EU customs duty of '+eur(cdLine.eur)+' ('+cdLine.sku+' item'+(cdLine.sku>1?'s':'')+' × €'+cdLine.perSku+') applies at import — shown separately in euros, on top of the £ prices.';
   else if(cd&&cd.over)note+=' Goods value is over €'+(Number(RC.euDuty.thresholdEur)||150)+' — the €'+(Number(RC.euDuty.perSku))+'-per-item duty does not apply; standard EU tariffs apply instead.';
   $('cnote').textContent=note;
 }

@@ -248,7 +248,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <div class="f small"><label>Length (cm)</label><input id="L" type="number" min="0" step="1"/></div>
   <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
   <div class="f small"><label>Height (cm)</label><input id="H" type="number" min="0" step="1"/></div>
-  <div class="f small"><label>Value (£)</label><input id="goodsValue" type="number" min="0" step="1" value="0"/></div>
+  <div class="f small"><label id="gvlab">Value (£)</label><input id="goodsValue" type="number" min="0" step="1" value="0"/></div>
   <div class="f small"><label>SKUs</label><input id="SK" type="number" min="1" step="1" value="1"/></div>
 </div>
 <div class="toggles" id="toggles"></div>
@@ -405,17 +405,16 @@ function euCustomsAmt(c){
   const e=(P.settings&&P.settings.euCustomsDuty)||null;
   if(!e||!e.enabled)return null;
   if(region(c)!=='eu')return null;
-  const rate=Number(e.eurPerGbp)||0; if(rate<=0)return null;
-  if(num('goodsValue')*rate>(Number(e.thresholdEur)||150))return {over:true};
+  if(num('goodsValue')>(Number(e.thresholdEur)||150))return {over:true};   // goodsValue is € for EU
   const sku=Math.max(1,Math.floor(num('SK')||1));
-  const amt=Math.round((sku*(Number(e.perSku)||0))/rate*100)/100;
-  return amt>0?{amt,sku,perSku:Number(e.perSku)}:null;
+  const eur=Math.round(sku*(Number(e.perSku)||0)*100)/100;
+  return eur>0?{eur,sku,perSku:Number(e.perSku)}:null;
 }
 function build(rawBase,svc){
   if(rawBase==null) return {base:null};
   const fuelExtras=[],flatExtras=[];let fuelable=0,flat=0;
   ACTIVE.forEach(a=>{const amt=accAmount(a,svc);if(amt>0){if(a.fuelable){fuelable+=amt;fuelExtras.push([a.name,amt]);}else{flat+=amt;flatExtras.push([a.name,amt]);}}});
-  if(EU_CD&&EU_CD.amt){flat+=EU_CD.amt;flatExtras.push(['EU customs duty ('+EU_CD.sku+' × €'+EU_CD.perSku+')',EU_CD.amt]);}
+  // EU customs duty is shown separately in € (see calc render), not folded into the £ totals.
   const cbase=rawBase+fuelable, f=fuelOf(svc);
   const costFuel=cbase*f.cost/100, totalCost=cbase+costFuel+flat;
   const sellFuel=cbase*f.sell/100, sellShip=cbase+sellFuel;
@@ -444,10 +443,11 @@ function calc(){
   const vol=(L&&W&&H)?(L*W*H)/P.divisor:0, chg=Math.max(actual,vol);
   ACTIVE=activeAcc(c,actual,L,W,H);
   EU_CD=euCustomsAmt(c); const cdShow=EU_CD&&!EU_CD.over?EU_CD:null; EU_CD=cdShow;
+  const gvl=$('gvlab'); if(gvl)gvl.textContent=region(c)==='eu'?'Value (€)':'Value (£)';   // EU goods value entered in euros
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
   $('driver').textContent=!chg?'—':(vol>actual?'volumetric':'actual weight');
-  const rows=SERVICES.map(svc=>{const b=baseRate(svc,c,chg);return{svc,b,built:build(b.price,svc)};}).filter(x=>x.b.avail);
+  const rows=SERVICES.filter(svc=>!(svc.key==='ep'&&region(c)==='eu'&&chg>CAPS.ep)).map(svc=>{const b=baseRate(svc,c,chg);return{svc,b,built:build(b.price,svc)};}).filter(x=>x.b.avail);
   const sells=rows.filter(x=>x.b.price!=null).map(x=>x.built.sell);
   const min=sells.length?Math.min(...sells):null,max=sells.length?Math.max(...sells):null;
   const R=$('results');R.innerHTML='';
@@ -478,6 +478,7 @@ function calc(){
           ${built.mk?`<div class="row"><span>Markup (${built.mk.toFixed(0)}%)</span><span>${money(built.markupAmt)}</span></div>`:''}
           ${flatLines}
           <div class="row tot"><span>Total customer price</span><span>${money(built.sell)}</span></div>
+          ${EU_CD?`<div class="row" style="border-top:1px dashed #e6e9ee;margin-top:4px;padding-top:4px;color:#9d174d;font-weight:800"><span>+ EU customs duty (${EU_CD.sku} × €${EU_CD.perSku})</span><span>€${EU_CD.eur.toFixed(2)}</span></div>`:''}
         </div>`;}
     R.appendChild(d);
   });
