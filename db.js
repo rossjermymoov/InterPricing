@@ -99,6 +99,16 @@ async function migrateConfig() {
     for (const k of RATE_KEYS) cfg[k] = seed[k];
     delete cfg.ups; delete cfg.c2zone;
     cfg.settings = deepFill(cfg.settings || {}, seed.settings || {});
+    // Duty rules were redefined in v10 — take the DPD duty accessorials straight from seed
+    // (the generic sync above preserves edited rate fields, which would keep the old £12.50 / USA bucket).
+    const DUTY_KEYS = ['dpdEu', 'dpdRow', 'dpdUsa'];
+    const seedAcc = (seed.settings && seed.settings.accessorials) || [];
+    const seedByKey = {}; seedAcc.forEach((a) => { seedByKey[a.key] = a; });
+    if (cfg.settings && Array.isArray(cfg.settings.accessorials)) {
+      cfg.settings.accessorials = cfg.settings.accessorials
+        .filter((a) => !DUTY_KEYS.includes(a.key) || seedByKey[a.key])          // drop removed duties (dpdUsa)
+        .map((a) => (DUTY_KEYS.includes(a.key) && seedByKey[a.key]) ? JSON.parse(JSON.stringify(seedByKey[a.key])) : a);
+    }
     cfg.dataVersion = seed.dataVersion;
     changed = true;
     console.log('[db] refreshed rate data to version ' + seed.dataVersion);

@@ -348,7 +348,7 @@ function markupPct(svc){
   return svc&&$('mk_'+svc.key) ? num('mk_'+svc.key) : num('mkGlobal');
 }
 const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
-const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];if(c==='USA')return 'usa';if(eu.includes(c))return 'eu';return 'row';};
+const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];return eu.includes(c)?'eu':'row';};
 function accVal(a){
   if(a.basis==='pctValue'){const pct=$('accPct_'+a.key)?num('accPct_'+a.key):(a.pct||0);const mn=$('accMin_'+a.key)?num('accMin_'+a.key):(a.min||0);return Math.max(pct*num('goodsValue')/100, mn);}
   const l=$('accList_'+a.key)?num('accList_'+a.key):(a.list||0);const d=$('accDisc_'+a.key)?num('accDisc_'+a.key):(a.disc||0);return l*(1-d/100);
