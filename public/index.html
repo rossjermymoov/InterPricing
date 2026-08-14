@@ -457,7 +457,7 @@ function calc(){
           ${built.mk?`<div class="row"><span>Markup (${built.mk.toFixed(0)}%)</span><span>${money(built.markupAmt)}</span></div>`:''}
           ${flatLines}
           <div class="row tot"><span>Total customer price</span><span>${money(built.sell)}</span></div>
-          ${EU_CD?`<div class="row" style="border-top:1px dashed #e6e9ee;margin-top:4px;padding-top:4px;color:#9d174d;font-weight:800"><span>+ EU customs duty (${EU_CD.sku} × €${EU_CD.perSku})</span><span>€${EU_CD.eur.toFixed(2)}</span></div>`:''}
+          ${EU_CD?`<div class="row" style="margin-top:5px;color:#9d174d;font-weight:800"><span>EU customs duty</span><span>€${EU_CD.eur.toFixed(2)}</span></div><div style="font-size:10px;color:var(--muted);font-weight:600;white-space:nowrap">${EU_CD.sku} item${EU_CD.sku>1?'s':''} × €${EU_CD.perSku} · paid at import</div>`:''}
         </div>`;}
     R.appendChild(d);
   });
