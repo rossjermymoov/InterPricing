@@ -32,6 +32,14 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .f input,.f select{padding:11px 12px;border:1px solid #cbd5e1;border-radius:11px;font-size:15px;background:#fff;color:var(--ink)}
 .f input:focus,.f select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
 .f.country select{width:230px;max-width:100%}
+.combo{position:relative;width:230px;max-width:100%}
+.combo input{width:100%}
+.comboList{position:absolute;z-index:40;top:calc(100% + 4px);left:0;right:0;max-height:260px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:0 10px 28px rgba(15,23,42,.12);display:none}
+.combo.open .comboList{display:block}
+.comboOpt{padding:9px 12px;font-size:14px;color:var(--ink);cursor:pointer}
+.comboOpt:hover,.comboOpt.active{background:#ECFDF5}
+.comboOpt[aria-selected="true"]{font-weight:800}
+.comboEmpty{padding:10px 12px;font-size:13px;color:var(--muted)}
 .f.small input{width:88px;text-align:right;font-variant-numeric:tabular-nums}
 .rowf input[type=number]::-webkit-inner-spin-button,.rowf input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .rowf input[type=number]{-moz-appearance:textfield;appearance:textfield}
@@ -97,6 +105,12 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:#F1F5F9;color:#334155}
 .chip.good{background:#ECFDF5;color:#047857}
+.dropmore{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.dropmore summary{cursor:pointer;font-size:11.5px;font-weight:800;color:#475569;list-style:none;user-select:none;display:flex;align-items:center;gap:6px}
+.dropmore summary::-webkit-details-marker{display:none}
+.dropmore summary::before{content:'▸';color:var(--muted);font-size:10px}
+.dropmore[open] summary::before{content:'▾'}
+.drTray>.hblock:first-child,.drTray>.dl:first-child{border-top:0;margin-top:8px;padding-top:0}
 .hblock,.dl{margin-top:9px;border-top:1px dashed var(--line);padding-top:7px}
 .hblock .lab,.dl .lab{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800;margin-bottom:4px}
 .hours{display:flex;flex-direction:column;gap:2px}
@@ -159,7 +173,12 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
     <div class="calc">
       <h2>Price calculator</h2>
       <div class="rowf">
-        <div class="f country"><label>Destination</label><select id="country"></select></div>
+        <div class="f country"><label>Destination</label>
+          <div class="combo" id="destCombo">
+            <input id="countryInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search country…" role="combobox" aria-expanded="false" aria-autocomplete="list"/>
+            <div class="comboList" id="countryList" role="listbox"></div>
+          </div>
+        </div>
         <div class="f small"><label>Weight (kg)</label><input id="wt" type="number" min="0" step="0.1" value="5"/></div>
         <div class="f small"><label>Length (cm)</label><input id="L" type="number" min="0" step="1"/></div>
         <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
@@ -182,11 +201,6 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
       <p class="sub">Applied per shipment in addition to the delivery price where relevant. Duties &amp; taxes are passed on at cost.</p>
       <table><thead><tr><th>Surcharge</th><th>Carrier</th><th>When it applies</th><th>Charge</th></tr></thead><tbody id="surBody"></tbody></table>
     </div>
-    <div class="panel" id="mapPanel" style="display:none">
-      <h3>Nearest drop-off points</h3>
-      <p class="sub">Map of your closest collection points, based on your postcode. Full opening hours and details for each carrier are listed alongside.</p>
-      <div id="map" style="height:460px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"></div>
-    </div>
     <div class="notes" id="notesBox"></div>
     <div class="foot" id="foot"></div>
    </div>
@@ -202,7 +216,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 <script>
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2), eur=v=>'€'+Number(v).toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
-let RC=null;
+let RC=null, curCountry=null;
 const CARRIER_LOGOS={
   dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',
   ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
@@ -262,7 +276,8 @@ function renderToggles(){const box=$('toggles');if(!box)return;box.innerHTML='';
     lab.innerHTML='<input type="checkbox" id="tg_'+g+'"/> '+name;
     box.appendChild(lab);lab.querySelector('input').addEventListener('change',calc);});}
 function calc(){
-  const c=$('country').value,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
+  const c=curCountry,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
+  if(!c)return;
   const isEu=region(c)==='eu';
   const vl=$('vlab'); if(vl)vl.textContent=isEu?'Value (€)':'Value (£)';   // EU goods value is entered in euros
   const vol=(L&&W&&H)?(L*W*H)/RC.divisor:0, chg=Math.max(actual,vol);
@@ -318,13 +333,6 @@ function calc(){
   else if(cd&&cd.over)note+=' Goods value is over €'+(Number(RC.euDuty.thresholdEur)||150)+' — the €'+(Number(RC.euDuty.perSku))+'-per-item duty does not apply; standard EU tariffs apply instead.';
   $('cnote').textContent=note;
 }
-function loadLeaflet(cb){
-  if(window.L){cb();return;}
-  const css=document.createElement('link');css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(css);
-  const js=document.createElement('script');js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-  js.onload=cb;js.onerror=()=>{$('mapPanel').style.display='none';};document.head.appendChild(js);
-}
-const CARR_COL={DPD:{s:'#991B1B',f:'#DC2626'},UPS:{s:'#5A3921',f:'#D4A017'},DHL:{s:'#8a6d00',f:'#F5CB00'}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 const todayD=()=>{const g=new Date().getDay();return g===0?7:g;};   // 1..7 Mon..Sun
@@ -386,6 +394,9 @@ function deadlinesHTML(p){
 }
 function dropCardHTML(p,i){const k=(p.carrier||'').toLowerCase(),st=statusOf(p);
   const chips=featChips(p).map(c=>'<span class="chip'+(c.good?' good':'')+'">'+c.t+'</span>').join('');
+  const more=hoursBlockHTML(p)+deadlinesHTML(p);
+  const hasDl=p.deadlines&&p.deadlines.length;
+  const moreBlock=more?('<details class="dropmore"><summary>Opening hours'+(hasDl?' &amp; drop-off deadlines':'')+'</summary><div class="drTray">'+more+'</div></details>'):'';
   return '<div class="drop '+k+'">'
     +'<div class="dh"><div><div class="nm">'+esc(p.name||('Drop-off '+(i+1)))+'</div>'
       +(p.type?'<div class="ty">'+esc(p.type)+'</div>':'')+'</div>'
@@ -393,7 +404,7 @@ function dropCardHTML(p,i){const k=(p.carrier||'').toLowerCase(),st=statusOf(p);
     +(p.address?'<div class="addr">'+esc(p.address)+'</div>':'')
     +(st?'<div class="dstatus '+st.cls+'"><span class="dot"></span>'+esc(st.txt)+'</div>':'')
     +(chips?'<div class="chips">'+chips+'</div>':'')
-    +hoursBlockHTML(p)+deadlinesHTML(p)+'</div>';
+    +moreBlock+'</div>';
 }
 const RAIL_INIT=3;
 function fillRail(list,bodyId,wrapId,countId){
@@ -415,7 +426,7 @@ function fillRail(list,bodyId,wrapId,countId){
 function wireRailLogos(){document.querySelectorAll('img.raillogo').forEach(img=>{
   const fb=()=>{img.outerHTML='<span class="raillogo fallback '+img.dataset.k+'">'+img.dataset.c+'</span>';};
   img.onerror=fb; if(img.complete&&!img.naturalWidth)fb();});}
-function renderMap(){
+function renderDropoffs(){
   const pts=(RC.dropoffs||[]).filter(p=>p&&p.lat!=null&&p.lng!=null);
   const up=(c)=>String(c||'').toUpperCase();
   const ups=pts.filter(p=>up(p.carrier)==='UPS');
@@ -423,24 +434,37 @@ function renderMap(){
   fillRail(ups,'railUPS','railUPSwrap','railUPScount');
   fillRail(dpd,'railDPD','railDPDwrap','railDPDcount');
   wireRailLogos();
-  if(!pts.length){$('mapPanel').style.display='none';return;}
-  $('mapPanel').style.display='block';
-  loadLeaflet(()=>{try{const L=window.L; if(!L||!L.map){$('map').style.display='none';return;}
-    const map=L.map('map',{scrollWheelZoom:false});
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
-    const bounds=[];const o=RC.origin;
-    if(o&&o.lat!=null){L.circleMarker([o.lat,o.lng],{radius:9,color:'#fff',weight:3,fillColor:'#171B2D',fillOpacity:1}).addTo(map)
-      .bindPopup('<b>You</b>'+(o.postcode?'<br>'+esc(o.postcode):''));bounds.push([o.lat,o.lng]);}
-    pts.forEach((p,i)=>{const cc=CARR_COL[p.carrier]||{s:'#0E9C63',f:'#1DFB9D'};const st=statusOf(p);
-      L.circleMarker([p.lat,p.lng],{radius:8,color:cc.s,weight:2,fillColor:cc.f,fillOpacity:1}).addTo(map)
-        .bindPopup('<b>'+esc(p.name||('Drop-off '+(i+1)))+'</b>'+(p.carrier?' <span style="color:'+cc.s+'">('+esc(p.carrier)+')</span>':'')
-          +(p.type?'<br><span style="font-size:11px;color:#6b7280">'+esc(p.type)+'</span>':'')
-          +(p.address?'<br>'+esc(p.address):'')
-          +(p.distance?'<br><b style="color:#0E9C63">'+esc(p.distance)+'</b>':'')
-          +(st?'<br><span style="font-weight:700;color:'+(st.cls==='closed'?'#B91C1C':'#047857')+'">'+esc(st.txt)+'</span>':''));
-      bounds.push([p.lat,p.lng]);});
-    if(bounds.length)map.fitBounds(bounds,{padding:[30,30],maxZoom:14});
-  }catch(e){$('map').style.display='none';}});
+}
+// Searchable destination combobox.
+function initCombo(list, initial){
+  const box=$('destCombo'), inp=$('countryInput'), menu=$('countryList');
+  let items=list.slice(), active=-1;
+  const setCountry=(name)=>{curCountry=name; inp.value=name; close(); calc();};
+  const open=()=>{box.classList.add('open'); inp.setAttribute('aria-expanded','true');};
+  const close=()=>{box.classList.remove('open'); inp.setAttribute('aria-expanded','false'); active=-1;};
+  function render(q){
+    const s=(q||'').trim().toLowerCase();
+    const matches=s?list.filter(c=>c.toLowerCase().includes(s)):list;
+    items=matches;
+    if(!matches.length){menu.innerHTML='<div class="comboEmpty">No matching country</div>';return;}
+    menu.innerHTML=matches.map((c,i)=>'<div class="comboOpt" role="option" data-i="'+i+'"'+(c===curCountry?' aria-selected="true"':'')+'>'+esc(c)+'</div>').join('');
+    menu.querySelectorAll('.comboOpt').forEach(el=>{
+      el.addEventListener('mousedown',ev=>{ev.preventDefault();setCountry(items[+el.dataset.i]);});
+    });
+  }
+  const highlight=()=>{const els=menu.querySelectorAll('.comboOpt');els.forEach((e,i)=>e.classList.toggle('active',i===active));
+    if(active>=0&&els[active])els[active].scrollIntoView({block:'nearest'});};
+  inp.addEventListener('focus',()=>{render(inp.value===curCountry?'':inp.value);open();});
+  inp.addEventListener('input',()=>{active=-1;render(inp.value);open();});
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();if(!box.classList.contains('open')){render('');open();}active=Math.min(active+1,items.length-1);highlight();}
+    else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(active-1,0);highlight();}
+    else if(e.key==='Enter'){e.preventDefault();if(active>=0&&items[active])setCountry(items[active]);else if(items.length===1)setCountry(items[0]);}
+    else if(e.key==='Escape'){close();inp.value=curCountry||'';}
+  });
+  inp.addEventListener('blur',()=>{setTimeout(()=>{close();if(inp.value!==curCountry)inp.value=curCountry||'';},120);});
+  document.addEventListener('click',e=>{if(!box.contains(e.target))close();});
+  curCountry=initial; inp.value=initial; render('');
 }
 async function boot(){
   const token=location.pathname.split('/').filter(Boolean).pop();
@@ -453,10 +477,9 @@ async function boot(){
   $('title').textContent=RC.title||'International Rate Card';
   $('cust').textContent=RC.customer||'';
   $('today').textContent=' · '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  RC.countries.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;$('country').appendChild(o);});
-  $('country').value=RC.countries.includes('USA')?'USA':RC.countries[0];
+  initCombo(RC.countries, RC.countries.includes('USA')?'USA':RC.countries[0]);
   renderToggles();
-  ['country','wt','L','W','H','V','SK'].forEach(id=>$(id).addEventListener('input',calc));
+  ['wt','L','W','H','V','SK'].forEach(id=>$(id).addEventListener('input',calc));
   const shortRate=a=>a.basis==='pctValue'?((a.pct||0)+'% of value'+(a.min?(' (min £'+Number(a.min).toFixed(2)+')'):'')):('£'+Number(a.amount||0).toFixed(2));
   const acc=accList().filter(a=>a.basis==='pctValue'||(a.amount||0)>0);
   const dutyByCarrier={},others=[];
@@ -484,7 +507,7 @@ async function boot(){
   $('notesBox').textContent=RC.notes||'';
   $('foot').textContent='Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor '+RC.divisor+'.';
   calc();
-  renderMap();
+  renderDropoffs();
 }
 boot();
 </script>
