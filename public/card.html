@@ -50,7 +50,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .dimcallout .big{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin-bottom:3px;color:#9A3412}
 .dimcallout .ic{width:22px;height:22px;flex:none;border-radius:50%;background:#EA580C;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:900}
 .dimcallout b{color:#7C2D12}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
 .card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;position:relative}
 .card .cmark{height:34px;width:auto;max-width:120px;object-fit:contain;display:inline-block;vertical-align:middle}
 .card .cmark[data-k="dpd"]{height:54px;max-width:150px}
@@ -142,6 +142,8 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .dlrow .st{color:#64748b}
 /* ===== 3-column shell: UPS rail | main | DPD rail ===== */
 .shell{max-width:1840px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:minmax(340px,390px) minmax(0,1fr) minmax(340px,390px);gap:20px;align-items:start}
+/* Pin each column so the centre stays wide even when a rail is empty/hidden (no drop-offs). */
+.shell>.railL{grid-column:1}.shell>.wrap{grid-column:2}.shell>.railR{grid-column:3}
 .shell .wrap{max-width:none;margin:0;padding:0 0 60px}
 .rail{position:sticky;top:16px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;min-width:0}
 .railHead{background:#fff;border:1px solid var(--line);border-bottom:3px solid var(--line);border-radius:12px 12px 0 0;padding:11px 13px;display:flex;align-items:center;gap:10px}
@@ -158,6 +160,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .loadMore:hover{background:#eef2f7;border-color:#94a3b8}
 @media(max-width:1240px){
   .shell{grid-template-columns:1fr;max-width:1000px}
+  .shell>.railL,.shell>.wrap,.shell>.railR{grid-column:auto}
   .shell .wrap{order:1;padding-bottom:26px}
   .railL{order:2}.railR{order:3}
   .rail{position:static;max-height:none;margin-top:6px}
@@ -298,6 +301,17 @@ function renderToggles(){const box=$('toggles');if(!box)return;box.innerHTML='';
   groups.forEach(({g,name})=>{const lab=document.createElement('label');lab.className='tg';
     lab.innerHTML='<input type="checkbox" id="tg_'+g+'"/> '+name;
     box.appendChild(lab);lab.querySelector('input').addEventListener('change',calc);});}
+// Choose a column count from the ACTUAL available width (rails can squeeze the centre), and
+// avoid leaving a single card alone on the last row (e.g. 4 -> 2+2, not 3+1).
+function layoutCards(box){
+  if(!box)return;
+  const n=box.querySelectorAll('.card').length; if(!n)return;
+  const w=box.clientWidth||box.getBoundingClientRect().width||0;
+  let cols=w>=880?3:(w>=560?2:1);
+  cols=Math.min(cols,n);
+  if(cols>=3 && n%3===1) cols=2;
+  box.style.gridTemplateColumns='repeat('+Math.max(1,cols)+',minmax(0,1fr))';
+}
 function calc(){
   const c=curCountry,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
   if(!c)return;
@@ -306,7 +320,7 @@ function calc(){
   const vol=(L&&W&&H)?(L*W*H)/RC.divisor:0, chg=Math.max(actual,vol);
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
-  $('driver').textContent=!chg?'—':(vol>actual?'volumetric':'actual weight');
+  $('driver').textContent=!chg?'—':(vol>actual?'Volumetric weight':'Actual weight');
   const dn=$('dimNote');
   if(vol>actual+1e-9&&chg>0){dn.style.display='block';
     dn.innerHTML='<span class="big"><span class="ic">!</span>Priced on volumetric (dimensional) weight</span>'
@@ -351,6 +365,7 @@ function calc(){
     box.appendChild(d);
   });
   wireCarrierMarks(box);
+  layoutCards(box);
   let note=chg?(totals.length?('Showing '+totals.length+' service'+(totals.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable. Every price is a full quote including fuel, duties and any options selected.'):('No services available to '+c+' at this weight.')):'Enter a weight to see prices.';
   if(cd&&cdLine)note+=' An EU customs duty of '+eur(cdLine.eur)+' ('+cdLine.sku+' item'+(cdLine.sku>1?'s':'')+' × €'+cdLine.perSku+') applies at import — shown separately in euros, on top of the £ prices.';
   else if(cd&&cd.over)note+=' Goods value is over €'+(Number(RC.euDuty.thresholdEur)||150)+' — the €'+(Number(RC.euDuty.perSku))+'-per-item duty does not apply; standard EU tariffs apply instead.';
@@ -569,6 +584,7 @@ async function boot(){
   $('dropModalX').addEventListener('click',closeDropModal);
   $('dropModal').addEventListener('click',e=>{if(e.target===$('dropModal'))closeDropModal();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDropModal();});
+  window.addEventListener('resize',()=>layoutCards($('cards')));
 }
 boot();
 </script>

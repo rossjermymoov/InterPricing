@@ -425,7 +425,7 @@ function calc(){
   const gvl=$('gvlab'); if(gvl)gvl.textContent=region(c)==='eu'?'Value (€)':'Value (£)';   // EU goods value entered in euros
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
-  $('driver').textContent=!chg?'—':(vol>actual?'volumetric':'actual weight');
+  $('driver').textContent=!chg?'—':(vol>actual?'Volumetric weight':'Actual weight');
   const rows=SERVICES.filter(svc=>!(svc.key==='ep'&&region(c)==='eu'&&chg>CAPS.ep)).map(svc=>{const b=baseRate(svc,c,chg);return{svc,b,built:build(b.price,svc)};}).filter(x=>x.b.avail);
   const sells=rows.filter(x=>x.b.price!=null).map(x=>x.built.sell);
   const min=sells.length?Math.min(...sells):null,max=sells.length?Math.max(...sells):null;
