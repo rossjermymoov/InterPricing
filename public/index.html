@@ -251,70 +251,41 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 <div class="chartbox"><canvas id="chart"></canvas></div>
 <p class="chartnote" id="chartnote"></p>
 </div>
-<div class="panel" id="cardPanel">
-  <h2>Create rate card</h2>
+<div class="panel" id="customersPanel">
+  <h2>Customer links</h2>
+  <p class="chartnote" style="margin:0 0 14px">Create a private, unguessable link for each customer. It shows only their prices — never your cost or markup — always reflects your latest rates, and gives them the live calculator. Set the markup and options below, then create the link.</p>
+  <label class="blk">Markup</label>
   <div class="calcrow">
-    <div class="f" style="flex:1;min-width:220px"><label>Customer / company name</label><input id="cardCo" type="text" placeholder="e.g. Slumba Ltd" style="width:100%"/></div>
     <div class="f small"><label>Global markup %</label><input id="mkGlobal" type="number" min="0" step="1" value="0"/></div>
     <button class="btn" id="mkApply">Apply to all</button>
-  </div>
-  <div class="f" style="margin-top:12px"><label>Volume preset</label>
-    <div class="voltabs" id="volTabs">
-      <button class="voltab" data-mk="70">Low volume · 70%</button>
-      <button class="voltab" data-mk="50">Medium volume · 50%</button>
-      <button class="voltab" data-mk="30">High volume · 30%</button>
+    <div class="f"><label>Volume preset</label>
+      <div class="voltabs" id="volTabs">
+        <button class="voltab" data-mk="70">Low · 70%</button>
+        <button class="voltab" data-mk="50">Medium · 50%</button>
+        <button class="voltab" data-mk="30">High · 30%</button>
+      </div>
     </div>
   </div>
-  <p class="chartnote" style="margin:10px 0 0">Set a global markup to fill every service, then fine-tune any of them below (e.g. a lower margin on air, higher on road).</p>
+  <p class="chartnote" style="margin:8px 0 0">Set a global markup to fill every service, then fine-tune any below. Markup applies to base rate + fuel only — duties and per-shipment surcharges pass through without markup.</p>
   <div id="mkList" class="mklist"></div>
-  <p class="chartnote" style="margin-top:10px">Markup applies to the base rate and fuel only — duties and per-shipment surcharges are passed through without markup. It drives the on-screen customer prices, the report, and the exported rate card.</p>
-</div>
-<div class="panel" id="reportPanel">
-  <h2>Cheapest by country — report</h2>
-  <p class="chartnote" style="margin:0 0 10px">Select destinations below. Uses the weight, dimensions, value, <b>markup</b> and options set above. Run to preview, open a printable report, or export a full customer rate card to Excel. With destinations selected the export is limited to them; with none selected it exports every country.</p>
-  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;margin-bottom:8px">
-    <div style="flex:1;min-width:260px">
-      <input id="repSearch" placeholder="Search countries…" style="width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;margin-bottom:6px;font-size:13px"/>
-      <div id="repList" style="max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:2px 8px"></div>
-      <div id="repCount" class="chartnote" style="margin-top:5px"></div>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:6px">
-      <button class="btn" id="repAll">Select all</button>
-      <button class="btn" id="repEU">EU</button>
-      <button class="btn" id="repClear">Clear</button>
-      <button class="btn primary" id="repRun">Run report</button>
-      <button class="btn" id="repDoc">Open printable report</button>
-    </div>
-  </div>
-  <div id="repMsg" class="chartnote" style="color:var(--r)"></div>
-  <div id="repSummary" style="margin:8px 0;font-size:14px"></div>
-  <div style="overflow:auto;max-height:520px"><table class="stable" id="repTable"><thead><tr><th>Country</th><th>Cheapest service</th><th>Customer price</th><th>Next best</th><th>You save</th></tr></thead><tbody id="repBody"></tbody></table></div>
-</div>
-<div class="panel" id="rcOptions">
-  <h2>Build the rate card</h2>
-  <p class="chartnote" style="margin:0 0 14px">Configure the customer-facing card. It shows final prices only — markups, fuel and cost are never included. Uses the destinations selected above (or all if none) and the parcel details from the calculator.</p>
-  <div style="display:flex;gap:28px;flex-wrap:wrap">
+  <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:16px;border-top:1px dashed var(--line);padding-top:16px">
     <div>
-      <label class="blk">Services to show</label>
+      <label class="blk">Services to include</label>
       <div id="rcServices" class="rcchecks"></div>
     </div>
     <div style="flex:1;min-width:260px">
-      <div class="f"><label>Rate card title</label><input id="rcTitle" type="text" value="International Rate Card" style="width:100%"/></div>
-      <div class="f" style="margin-top:12px"><label>Notes to customer (optional)</label><textarea id="rcNotes" rows="3" style="width:100%" placeholder="e.g. Prices valid for 30 days from the date above."></textarea></div>
-      <label class="tg" style="margin-top:12px"><input type="checkbox" id="rcSur" checked/> Include a surcharges page</label>
-      <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcCheapest" checked/> Show a “best price” column on the combined card</label>
+      <div class="f"><label>Card title</label><input id="rcTitle" type="text" value="International Rate Card" style="width:100%"/></div>
+      <div class="f" style="margin-top:12px"><label>Notes to customer (optional)</label><textarea id="rcNotes" rows="2" style="width:100%" placeholder="e.g. Prices valid for 30 days."></textarea></div>
+      <label class="tg" style="margin-top:12px"><input type="checkbox" id="rcSur" checked/> Include the surcharges section</label>
+      <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcCheapest" checked/> Highlight the best price</label>
       <label class="tg" style="margin-top:8px"><input type="checkbox" id="rcBreakdown"/> Show base price and fuel separately</label>
     </div>
   </div>
   <div id="rcMsg" class="chartnote" style="color:var(--r);margin-top:8px"></div>
-</div>
-<div class="panel" id="customersPanel">
-  <h2>Customer rate cards &amp; links</h2>
-  <p class="chartnote" id="custNote" style="margin:0 0 12px">Save the setup above as a private link for a customer. Each link is unguessable and shows only that customer’s prices — no one can see another customer’s rates, and there is no public list. Links always reflect your latest rates.</p>
-  <div class="miniform">
+  <div class="miniform" style="margin-top:16px;border-top:1px dashed var(--line);padding-top:16px">
     <div class="f"><label>Customer name</label><input id="custName" type="text" placeholder="e.g. Slumba Ltd"/></div>
     <div class="f"><label>Customer postcode</label><input id="custPostcode" type="text" placeholder="for drop-off map"/></div>
-    <button class="btn primary" id="custSave">Save as customer link</button>
+    <button class="btn primary" id="custSave">Create customer link</button>
     <span class="ok" id="custMsg"></span>
   </div>
   <div style="margin-top:16px">
@@ -950,8 +921,8 @@ function cardDetailHTML(c){
   const svcs=(cfg.services&&cfg.services.length)?cfg.services:SERVICES.map(s=>s.key);
   const mk=cfg.markup;
   const rows=svcs.map(k=>{const m=(typeof mk==='number')?mk:((mk&&mk[k])||0);
-    return `<tr><td style="padding:3px 16px 3px 0"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${svcColor(k)};margin-right:7px"></span>${svcName(k)}</td>`
-      +`<td style="padding:3px 0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums">${m}% markup</td></tr>`;}).join('');
+    return `<tr><td style="padding:4px 16px 4px 0"><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${svcColor(k)};margin-right:7px"></span>${svcName(k)}</td>`
+      +`<td style="padding:4px 0;text-align:right"><input class="mkEdit" data-id="${c.id}" data-k="${k}" type="number" min="0" step="1" value="${m}" style="width:66px;text-align:right;padding:4px 6px;border:1px solid #cbd5e1;border-radius:6px;font-variant-numeric:tabular-nums"/> %</td></tr>`;}).join('');
   const extras=[];
   if(cfg.title)extras.push('Title: '+cfg.title);
   if(cfg.postcode)extras.push('Postcode: '+cfg.postcode);
@@ -960,8 +931,9 @@ function cardDetailHTML(c){
   const created=c.created_at?new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
   const by=c.creator_name||c.creator_email||'';
   return `<div style="padding:8px 10px 14px 40px">`
-    +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px">Markup quoted to this customer${by?' · by '+by:''}${created?' · created '+created:''}</div>`
+    +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px">Markup for this customer — edit &amp; save${by?' · by '+by:''}${created?' · created '+created:''}</div>`
     +`<table style="width:auto;border:none"><tbody>${rows}</tbody></table>`
+    +`<div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn primary mkSave" data-id="${c.id}">Save markups</button><span class="mkMsg" data-id="${c.id}" style="font-size:12px"></span></div>`
     +(extras.length?`<div style="margin-top:9px;color:var(--muted);font-size:12px">${extras.join(' · ')}</div>`:'')
     +`<div style="margin-top:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">`
     +`<label style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em">Drop-off postcode</label>`
@@ -995,6 +967,14 @@ function renderCards(){
     const cfg=Object.assign({},card.config||{},{postcode:(inp.value||'').trim()});
     const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
     if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Saved.';}
+    else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
+  tb.querySelectorAll('.mkSave').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
+    const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;
+    const msg=tb.querySelector('.mkMsg[data-id="'+id+'"]');
+    const mk={}; tb.querySelectorAll('.mkEdit[data-id="'+id+'"]').forEach(inp=>{mk[inp.dataset.k]=Number(inp.value)||0;});
+    const cfg=Object.assign({},card.config||{},{markup:mk});
+    const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
+    if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Markups saved — the link now uses these.';}
     else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
   tb.querySelectorAll('.copyBtn').forEach(b=>b.onclick=()=>{const t=b.dataset.u;
     if(navigator.clipboard)navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200);});
@@ -1071,14 +1051,6 @@ $('pkTest').onclick=async()=>{
   $('pkResult').innerHTML=html||'<span class="chartnote">No response.</span>';
   $('pkRaw').style.display='block';$('pkRaw').value=JSON.stringify(d,null,2);
 };
-
-$('repSearch').addEventListener('input',()=>{const q=$('repSearch').value.toLowerCase();document.querySelectorAll('#repList .replab').forEach(l=>{l.style.display=l.textContent.toLowerCase().includes(q)?'':'none';});});
-$('repList').addEventListener('change',updateRepCount);
-$('repAll').onclick=()=>{document.querySelectorAll('.repC').forEach(x=>x.checked=true);updateRepCount();};
-$('repEU').onclick=()=>{const eu=(P.settings.regions&&P.settings.regions.eu)||[];document.querySelectorAll('.repC').forEach(x=>x.checked=eu.includes(x.value));updateRepCount();};
-$('repClear').onclick=()=>{document.querySelectorAll('.repC').forEach(x=>x.checked=false);updateRepCount();};
-$('repRun').onclick=runReport;
-$('repDoc').onclick=generateReport;
 
 init();
 </script>
