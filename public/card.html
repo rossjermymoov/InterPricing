@@ -95,21 +95,22 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:#F1F5F9;color:#334155}
 .chip.good{background:#ECFDF5;color:#047857}
-.hoursWrap{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
-.hoursWrap summary{cursor:pointer;font-size:12px;font-weight:800;color:#475569;list-style:none;user-select:none}
-.hoursWrap summary::-webkit-details-marker{display:none}
-.hoursWrap summary::before{content:'▸';color:var(--muted);margin-right:5px;font-size:10px}
-.hoursWrap[open] summary::before{content:'▾'}
-.htab{width:100%;margin-top:7px;font-size:12px;border-collapse:collapse}
-.htab td{padding:2px 0;border:0}
-.htab td.d{color:#475569;font-weight:700} .htab td.t{text-align:right;font-variant-numeric:tabular-nums;color:#334155}
-.htab tr.now td{color:var(--brand);font-weight:800}
-.htab tr.cl td.t{color:#B91C1C}
-.dl{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;font-size:12px}
-.dl .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:800;margin-bottom:3px}
-.dl .r{display:flex;justify-content:space-between;gap:10px;margin-top:2px;color:#334155}
+.hblock,.dl{margin-top:9px;border-top:1px dashed var(--line);padding-top:7px}
+.hblock .lab,.dl .lab{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800;margin-bottom:4px}
+.hours{display:flex;flex-direction:column;gap:2px}
+.hrow{display:flex;justify-content:space-between;gap:10px;font-size:12px;line-height:1.4}
+.hrow .d{color:#64748b;font-weight:700}
+.hrow .t{color:#334155;font-variant-numeric:tabular-nums}
+.hrow.now .d,.hrow.now .t{color:var(--brand);font-weight:900}
+.hrow.cl .t{color:#B91C1C}
+.h24{font-size:12px;font-weight:800;color:#047857}
+.htext{font-size:12px;color:#334155}
+.dlrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;font-size:11.5px;padding:2px 0;color:#334155;align-items:baseline}
+.dlrow .svc{font-weight:700;color:#475569}
+.dlrow .wk,.dlrow .st{font-variant-numeric:tabular-nums;white-space:nowrap}
+.dlrow .st{color:#64748b}
 /* ===== 3-column shell: UPS rail | main | DPD rail ===== */
-.shell{max-width:1600px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:300px minmax(0,1fr) 300px;gap:22px;align-items:start}
+.shell{max-width:1840px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:minmax(340px,390px) minmax(0,1fr) minmax(340px,390px);gap:20px;align-items:start}
 .shell .wrap{max-width:none;margin:0;padding:0 0 60px}
 .rail{position:sticky;top:16px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;min-width:0}
 .railHead{background:#fff;border:1px solid var(--line);border-bottom:3px solid var(--line);border-radius:12px 12px 0 0;padding:11px 13px;display:flex;align-items:center;gap:10px}
@@ -124,7 +125,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .rail .drop{border-left-width:5px}
 .loadMore{width:100%;margin-top:1px;padding:10px;border:1px dashed #cbd5e1;background:#f8fafc;color:var(--brand);font-weight:800;font-size:12.5px;border-radius:10px;cursor:pointer}
 .loadMore:hover{background:#eef2f7;border-color:#94a3b8}
-@media(max-width:1180px){
+@media(max-width:1240px){
   .shell{grid-template-columns:1fr;max-width:1000px}
   .shell .wrap{order:1;padding-bottom:26px}
   .railL{order:2}.railR{order:3}
@@ -322,28 +323,44 @@ function featChips(p){const out=[],hrs=Array.isArray(p.hours)?p.hours:[];
   if(p.qr)out.push({t:'QR / paperless',good:true});
   if(p.labelPrint)out.push({t:'Label printing',good:true});
   const late=p.openLate!=null?p.openLate:(!p.open24&&hrs.some(h=>!h.closed&&toMins(h.close)>=1200));
-  const sat=p.openSaturday!=null?p.openSaturday:hrs.some(h=>h.d===6&&!h.closed);
-  const sun=p.openSunday!=null?p.openSunday:hrs.some(h=>h.d===7&&!h.closed);
   if(late)out.push({t:'Open late'});
-  if(sat)out.push({t:'Open Saturdays'});
-  if(sun)out.push({t:'Open Sundays'});
   if(p.parking)out.push({t:'Parking'});
   if(p.disabledAccess)out.push({t:'Step-free access'});
   return out;
 }
-function hoursTableHTML(p){
-  if(p.open24)return '';
+// Group consecutive days with identical hours into ranges (e.g. "Mon–Fri 09:00–17:00").
+function groupHours(hrs){
+  const key=h=>h.closed?'closed':(h.open+'-'+h.close);
+  const groups=[];
+  hrs.forEach(h=>{const k=key(h);const last=groups[groups.length-1];
+    if(last&&last.k===k)last.days.push(h.d);
+    else groups.push({k,days:[h.d],closed:h.closed,open:h.open,close:h.close});});
+  return groups;
+}
+// Opening hours, always exploded (no toggle), grouped into day ranges for compactness.
+function hoursBlockHTML(p){
+  if(p.open24)return '<div class="hblock"><div class="lab">Opening hours</div><div class="h24">Open 24 hours, 7 days a week</div></div>';
   const hrs=Array.isArray(p.hours)?p.hours:[];
-  if(!hrs.length)return '';
+  if(!hrs.length)return p.hoursText?('<div class="hblock"><div class="lab">Opening hours</div><div class="htext">'+esc(p.hoursText)+'</div></div>'):'';
   const td=todayD();
-  const rows=hrs.map(h=>{const cls=[h.d===td?'now':'',h.closed?'cl':''].filter(Boolean).join(' ');
-    return '<tr'+(cls?' class="'+cls+'"':'')+'><td class="d">'+dayLabel(h.d)+'</td><td class="t">'+(h.closed?'Closed':esc(h.open)+' – '+esc(h.close))+'</td></tr>';}).join('');
-  return '<details class="hoursWrap"><summary>Opening hours</summary><table class="htab"><tbody>'+rows+'</tbody></table></details>';
+  const rows=groupHours(hrs).map(g=>{
+    const label=g.days.length>1?(dayLabel(g.days[0])+'–'+dayLabel(g.days[g.days.length-1])):dayLabel(g.days[0]);
+    const cls=[g.days.includes(td)?'now':'',g.closed?'cl':''].filter(Boolean).join(' ');
+    return '<div class="hrow'+(cls?' '+cls:'')+'"><span class="d">'+label+'</span><span class="t">'+(g.closed?'Closed':esc(g.open)+'–'+esc(g.close))+'</span></div>';}).join('');
+  return '<div class="hblock"><div class="lab">Opening hours</div><div class="hours">'+rows+'</div></div>';
+}
+// Drop-off deadlines, always shown; services with identical deadlines are grouped, "none" when no Saturday collection.
+function deadlinesHTML(p){
+  if(!(p.deadlines&&p.deadlines.length))return '';
+  const byKey={},order=[];
+  p.deadlines.forEach(d=>{const sat=(d.sat&&d.sat!=='--')?d.sat:'';const k=d.mf+'|'+sat;
+    if(!byKey[k]){byKey[k]={svcs:[],mf:d.mf,sat};order.push(k);}byKey[k].svcs.push(d.svc);});
+  const rows=order.map(k=>{const g=byKey[k];const satTxt=g.sat?('Sat '+esc(g.sat)):'Sat: none';
+    return '<div class="dlrow"><span class="svc">'+esc(g.svcs.join(' · '))+'</span><span class="wk">Mon–Fri '+esc(g.mf)+'</span><span class="st">'+satTxt+'</span></div>';}).join('');
+  return '<div class="dl"><div class="lab">Drop-off deadlines</div>'+rows+'</div>';
 }
 function dropCardHTML(p,i){const k=(p.carrier||'').toLowerCase(),st=statusOf(p);
   const chips=featChips(p).map(c=>'<span class="chip'+(c.good?' good':'')+'">'+c.t+'</span>').join('');
-  const dl=(p.deadlines&&p.deadlines.length)?('<div class="dl"><div class="lab">Drop-off deadlines</div>'
-    +p.deadlines.map(d=>'<div class="r"><span>'+esc(d.svc)+'</span><span>Mon–Fri '+esc(d.mf)+' · Sat '+esc(d.sat)+'</span></div>').join('')+'</div>'):'';
   return '<div class="drop '+k+'">'
     +'<div class="dh"><div><div class="nm">'+esc(p.name||('Drop-off '+(i+1)))+'</div>'
       +(p.type?'<div class="ty">'+esc(p.type)+'</div>':'')+'</div>'
@@ -351,7 +368,7 @@ function dropCardHTML(p,i){const k=(p.carrier||'').toLowerCase(),st=statusOf(p);
     +(p.address?'<div class="addr">'+esc(p.address)+'</div>':'')
     +(st?'<div class="dstatus '+st.cls+'"><span class="dot"></span>'+esc(st.txt)+'</div>':'')
     +(chips?'<div class="chips">'+chips+'</div>':'')
-    +hoursTableHTML(p)+dl+'</div>';
+    +hoursBlockHTML(p)+deadlinesHTML(p)+'</div>';
 }
 const RAIL_INIT=3;
 function fillRail(list,bodyId,wrapId,countId){
