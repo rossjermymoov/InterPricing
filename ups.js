@@ -93,7 +93,7 @@ function buildRateRequest(p) {
       Request: { SubVersion: ver().replace(/^v/, ''), TransactionReference: { CustomerContext: 'MOOV ' + (p.mode || 'import') + ' quote' } },
       Shipment: {
         Shipper: shipper, ShipTo: shipTo, ShipFrom: shipFrom,
-        ShipmentRatingOptions: { NegotiatedRatesIndicator: 'Y', TPFCNegotiatedRatesIndicator: 'Y' },
+        ShipmentRatingOptions: { NegotiatedRatesIndicator: 'Y' }, // account (negotiated) rates
         DeliveryTimeInformation: { PackageBillType: '03' }, // 03 = non-document (for time in transit)
         InvoiceLineTotal: { CurrencyCode: invoiceCurrency, MonetaryValue: String(invoiceTotal) },
         ShipmentTotalWeight,
