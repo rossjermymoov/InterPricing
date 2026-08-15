@@ -167,6 +167,42 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
   .railBody{max-height:none}
 }
 @media print{.calc,.print{box-shadow:none}.print{display:none}.hero{border-radius:0}.dropScroll{max-height:none;overflow:visible}.shell{display:block;max-width:1000px}.rail{position:static;max-height:none}.railBody{max-height:none}}
+/* ===== view tabs (My rates | Import quote) ===== */
+.tabs{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:4px;margin-top:16px;gap:4px}
+.tabs button{border:0;background:transparent;color:#cbd5e1;font-weight:800;font-size:13px;padding:8px 16px;border-radius:999px;cursor:pointer;font-family:inherit}
+.tabs button.active{background:var(--green);color:#07131f}
+.tabs button:not(.active):hover{color:#fff}
+/* ===== import quote view ===== */
+.imp{max-width:1000px;margin:18px auto 0;padding:0 20px 60px}
+.phead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.phead .pn{width:24px;height:24px;flex:none;border-radius:50%;background:var(--brand);color:#fff;font-weight:800;font-size:13px;display:inline-flex;align-items:center;justify-content:center}
+.phead h3{margin:0;font-size:15px}
+.phead .sub{margin:0 0 0 auto;font-size:12px;color:var(--muted)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:760px){.duo{grid-template-columns:1fr}}
+.party{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fbfcfd}
+.plab{font-weight:800;font-size:13px;color:var(--brand);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.plab .dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none}
+.pfields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pfields .f{margin:0}
+.pfields .f input,.pfields .f select{width:100%}
+.pfields .span2{grid-column:1/-1}
+.ipgrid{display:grid;grid-template-columns:100px 110px 1fr 1fr 1fr;gap:10px;align-items:end}
+@media(max-width:620px){.ipgrid{grid-template-columns:1fr 1fr}}
+.iparcel{border:1px solid var(--line);border-radius:12px;padding:12px 12px 14px;margin-bottom:10px;position:relative;background:#fff}
+.iparcel .pbadge{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px;display:block}
+.iparcel .f{margin:0}
+.iparcel .f input{width:100%}
+.rmP{position:absolute;top:8px;right:8px;border:1px solid var(--line);background:#fff;border-radius:8px;width:26px;height:26px;cursor:pointer;color:#64748b;line-height:1;font-size:16px}
+.rmP:hover{background:#FEF2F2;color:#B91C1C;border-color:#fecaca}
+.addP{border:1px dashed #cbd5e1;background:#f8fafc;color:var(--brand);font-weight:800;font-size:13px;border-radius:10px;padding:10px 14px;cursor:pointer;font-family:inherit}
+.addP:hover{background:#eef2f7;border-color:#94a3b8}
+.isum{font-size:13px;color:#475569;margin-top:12px}
+.iactions{display:flex;align-items:center;gap:14px;margin-top:18px;flex-wrap:wrap}
+.iactions .print{font-size:14px;padding:12px 20px}
+.iactions .note{margin-top:0}
+.cards.iq{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:820px){.cards.iq{grid-template-columns:1fr}}
 </style></head>
 <body>
 <div id="state" class="state">Loading rate card…</div>
@@ -177,8 +213,12 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
       <div class="cust">Rate card<span id="today"></span></div>
     </div>
     <h1 id="title">International Rate Card</h1>
+    <div class="tabs" id="viewTabs">
+      <button type="button" data-view="rates" class="active">My rates</button>
+      <button type="button" data-view="import">Request an import quote</button>
+    </div>
   </div></div>
-  <div class="shell">
+  <div class="shell" id="ratesView">
    <aside class="rail railL" id="railUPSwrap" style="display:none">
      <div class="railHead ups">
        <img class="raillogo" data-k="ups" data-c="UPS" src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS"/>
@@ -229,6 +269,70 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
      <div class="railBody" id="railDPD"></div>
    </aside>
   </div>
+  <div id="importView" style="display:none">
+   <div class="imp">
+    <div class="panel">
+      <div class="phead"><span class="pn">1</span><h3>Collection &amp; delivery</h3><span class="sub">Where the goods ship from, and where they're delivered to you.</span></div>
+      <div class="duo">
+        <div class="party">
+          <div class="plab"><span class="dot"></span>Sender — shipping from</div>
+          <div class="pfields">
+            <div class="f span2"><label>Company</label><input id="is_company" placeholder="Overseas supplier"/></div>
+            <div class="f span2"><label>Contact name</label><input id="is_name"/></div>
+            <div class="f"><label>Country</label><select id="is_country">
+              <option value="DE">Germany</option><option value="FR">France</option><option value="NL">Netherlands</option>
+              <option value="IT">Italy</option><option value="ES">Spain</option><option value="PL">Poland</option>
+              <option value="BE">Belgium</option><option value="IE">Ireland</option><option value="US">United States</option>
+              <option value="CN">China</option><option value="HK">Hong Kong</option><option value="IN">India</option>
+              <option value="TR">Turkey</option><option value="CH">Switzerland</option><option value="GB">United Kingdom</option>
+            </select></div>
+            <div class="f"><label>City</label><input id="is_city"/></div>
+            <div class="f span2"><label>Address line 1</label><input id="is_line1"/></div>
+            <div class="f span2"><label>Address line 2</label><input id="is_line2"/></div>
+            <div class="f"><label>Postcode</label><input id="is_postcode"/></div>
+            <div class="f"><label>Phone</label><input id="is_phone"/></div>
+            <div class="f span2"><label>Email</label><input id="is_email"/></div>
+          </div>
+        </div>
+        <div class="party">
+          <div class="plab"><span class="dot"></span>Receiver — delivering to (you)</div>
+          <div class="pfields">
+            <div class="f span2"><label>Company</label><input id="ir_company"/></div>
+            <div class="f span2"><label>Contact name</label><input id="ir_name"/></div>
+            <div class="f"><label>Country</label><select id="ir_country">
+              <option value="GB" selected>United Kingdom</option><option value="IE">Ireland</option>
+            </select></div>
+            <div class="f"><label>City</label><input id="ir_city"/></div>
+            <div class="f span2"><label>Address line 1</label><input id="ir_line1"/></div>
+            <div class="f span2"><label>Address line 2</label><input id="ir_line2"/></div>
+            <div class="f"><label>Postcode</label><input id="ir_postcode"/></div>
+            <div class="f"><label>Phone</label><input id="ir_phone"/></div>
+            <div class="f span2"><label>Email</label><input id="ir_email"/></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="phead"><span class="pn">2</span><h3>Packages</h3><span class="sub">Add each parcel size — set how many of each.</span></div>
+      <div id="iparcels"></div>
+      <button type="button" class="addP" id="iaddParcel">＋ Add another parcel</button>
+      <div class="pfields" style="margin-top:14px;max-width:420px">
+        <div class="f"><label>Total goods value (£)</label><input id="igoods" type="number" min="0" step="1" placeholder="e.g. 250"/></div>
+      </div>
+      <div class="isum" id="isummary"></div>
+    </div>
+    <div class="iactions">
+      <button type="button" class="print" id="igetQuotes">Get import quotes →</button>
+      <span class="note">Live UPS rates, priced with your agreed rates.</span>
+    </div>
+    <div id="iresults" class="panel" style="display:none">
+      <h3 id="iresTitle">Import quotes</h3>
+      <p class="sub" id="iresnote">Cheapest first — every price includes your agreed rate.</p>
+      <div class="cards iq" id="iqcards"></div>
+    </div>
+    <div class="foot">Prices indicative and subject to final confirmation. Excludes VAT. Import duties &amp; taxes billed separately at import.</div>
+   </div>
+  </div>
   <div id="dropModal" class="modal" style="display:none">
     <div class="modalCard">
       <button type="button" class="modalX" id="dropModalX" aria-label="Close">&times;</button>
@@ -241,7 +345,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 <script>
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2), eur=v=>'€'+Number(v).toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
-let RC=null, curCountry=null;
+let RC=null, curCountry=null, curToken=null;
 const CARRIER_LOGOS={
   dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',
   ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
@@ -537,8 +641,74 @@ function initCombo(list, initial){
   document.addEventListener('click',e=>{if(!box.contains(e.target))close();});
   curCountry=initial; inp.value=initial; render('');
 }
+// ===== Import quote tab =====
+function setView(v){
+  const imp=v==='import';
+  document.querySelectorAll('#viewTabs button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  $('ratesView').style.display=imp?'none':'';
+  $('importView').style.display=imp?'block':'none';
+  window.scrollTo(0,0);
+}
+let ipc=0;
+function iparcelHTML(i){return '<div class="iparcel" data-i="'+i+'">'
+  +(i>0?'<button type="button" class="rmP" title="Remove">×</button>':'')
+  +'<span class="pbadge">Parcel '+(i+1)+'</span>'
+  +'<div class="ipgrid">'
+  +'<div class="f"><label>How many</label><input type="number" class="ipq" min="1" step="1" value="1"/></div>'
+  +'<div class="f"><label>Weight (kg)</label><input type="number" class="ipw" min="0" step="0.1" value="5"/></div>'
+  +'<div class="f"><label>Length (cm)</label><input type="number" class="ipl" min="0" step="1"/></div>'
+  +'<div class="f"><label>Width (cm)</label><input type="number" class="ipwd" min="0" step="1"/></div>'
+  +'<div class="f"><label>Height (cm)</label><input type="number" class="iph" min="0" step="1"/></div>'
+  +'</div></div>';}
+function iaddParcel(){const box=$('iparcels');const d=document.createElement('div');d.innerHTML=iparcelHTML(ipc++);const el=d.firstChild;box.appendChild(el);
+  el.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',irecalc));
+  const rm=el.querySelector('.rmP');if(rm)rm.addEventListener('click',()=>{el.remove();irenumber();irecalc();});
+  irecalc();}
+function irenumber(){[...document.querySelectorAll('#iparcels .iparcel')].forEach((el,i)=>{el.querySelector('.pbadge').textContent='Parcel '+(i+1);});}
+function irecalc(){let n=0,wt=0;document.querySelectorAll('#iparcels .iparcel').forEach(el=>{const q=parseFloat(el.querySelector('.ipq').value)||0;const w=parseFloat(el.querySelector('.ipw').value)||0;n+=q;wt+=q*w;});
+  $('isummary').innerHTML='<b>'+n+'</b> parcel'+(n===1?'':'s')+' · <b>'+(Math.round(wt*10)/10)+' kg</b> total';}
+function ival(id){const el=$(id);return el?(el.value||'').trim():'';}
+function icollect(){
+  const parcels=[...document.querySelectorAll('#iparcels .iparcel')].map(el=>({
+    qty:parseFloat(el.querySelector('.ipq').value)||1,weight:parseFloat(el.querySelector('.ipw').value)||0,
+    l:parseFloat(el.querySelector('.ipl').value)||0,w:parseFloat(el.querySelector('.ipwd').value)||0,h:parseFloat(el.querySelector('.iph').value)||0}));
+  const g=k=>({country:ival(k+'country'),company:ival(k+'company'),name:ival(k+'name'),line1:ival(k+'line1'),line2:ival(k+'line2'),city:ival(k+'city'),postcode:ival(k+'postcode'),phone:ival(k+'phone'),email:ival(k+'email')});
+  return {mode:'import',token:curToken,sender:g('is_'),receiver:g('ir_'),packages:parcels,value:parseFloat(ival('igoods'))||0,currency:'GBP'};
+}
+function imoney(v){return '£'+Number(v).toFixed(2);}
+function ieta(d){if(d==null)return 'Transit estimate on request';if(d<=1)return '1 business day';return d+' business days';}
+function irender(services){
+  const box=$('iqcards');box.innerHTML='';$('iresults').style.display='block';
+  if(!services.length){box.innerHTML='<div class="note">No UPS services came back for this lane — please check the addresses and try again.</div>';return;}
+  services.slice().sort((a,b)=>a.price-b.price).forEach((q,i)=>{
+    const d=document.createElement('div');d.className='card'+(i===0?' win':'');
+    d.innerHTML=(i===0?'<span class="badge">Best price</span>':'')
+      +'<span class="cbadge ups">UPS</span>'
+      +'<div class="svc">'+q.name+'</div>'
+      +'<div class="price">'+imoney(q.price)+'</div>'
+      +'<div class="unit">total · '+ieta(q.days)+'</div>';
+    box.appendChild(d);});
+}
+async function igetQuotes(){
+  const btn=$('igetQuotes');const old=btn.textContent;btn.disabled=true;btn.textContent='Getting quotes…';
+  try{
+    const res=await fetch('/api/import-quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(icollect())});
+    const d=await res.json();
+    if(d&&d.enabled&&Array.isArray(d.services)){irender(d.services);}
+    else{$('iresults').style.display='block';$('iqcards').innerHTML='<div class="note">Live quoting isn\'t available right now — please contact us and we\'ll quote you directly.</div>';}
+  }catch(e){$('iresults').style.display='block';$('iqcards').innerHTML='<div class="note">Sorry — we couldn\'t fetch a quote just now. Please try again in a moment.</div>';}
+  btn.disabled=false;btn.textContent=old;
+}
+function initImportTab(){
+  iaddParcel();
+  $('iaddParcel').addEventListener('click',iaddParcel);
+  $('igetQuotes').addEventListener('click',igetQuotes);
+  document.querySelectorAll('#viewTabs button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+}
+
 async function boot(){
   const token=location.pathname.split('/').filter(Boolean).pop();
+  curToken=token;
   try{
     const res=await fetch('/api/card/'+encodeURIComponent(token));
     if(!res.ok){$('state').textContent='This rate card link is not available.';return;}
@@ -577,6 +747,7 @@ async function boot(){
   $('notesBox').textContent=RC.notes||'';
   $('foot').textContent='Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor '+RC.divisor+'.';
   calc();
+  initImportTab();
   renderDropoffs();
   // drop-off map modal (delegated so it works for rail cards rendered on demand)
   document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.mapbtn');

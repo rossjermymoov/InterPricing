@@ -270,12 +270,23 @@ app.get('/api/ups/callback', (req, res) => {
 // PUBLIC: live import/export quotes via UPS. Returns marked-up sell prices only (never cost).
 app.post('/api/import-quote', async (req, res) => {
   try {
-    const { mode, sender, receiver, packages } = req.body || {};
-    const r = await ups.quoteRates({ mode, sender, receiver, packages });
+    const { mode, sender, receiver, packages, value, currency, token } = req.body || {};
+    const r = await ups.quoteRates({ mode, sender, receiver, packages, value, currency });
     if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
     const cfg = await db.getConfig();
-    const p = Number((cfg.settings || {}).importMarkupPct);
-    const markup = isFinite(p) ? p : (Number(process.env.UPS_IMPORT_MARKUP) || 0);
+    // Markup precedence: this customer's card → global import setting → env → 0.
+    let markup = null;
+    if (token && db.hasDb) {
+      try {
+        const card = await db.getCardByToken(token);
+        const cm = card && card.config && card.config.importMarkupPct;
+        if (cm != null && isFinite(Number(cm))) markup = Number(cm);
+      } catch (_) {}
+    }
+    if (markup == null) {
+      const p = Number((cfg.settings || {}).importMarkupPct);
+      markup = isFinite(p) ? p : (Number(process.env.UPS_IMPORT_MARKUP) || 0);
+    }
     const services = (r.services || []).map((s) => ({
       code: s.code, name: s.name, days: s.days, currency: s.currency,
       price: Math.round(s.cost * (1 + markup / 100) * 100) / 100,

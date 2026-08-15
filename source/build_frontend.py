@@ -316,6 +316,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <div class="miniform" style="margin-top:16px;border-top:1px dashed var(--line);padding-top:16px">
     <div class="f"><label>Customer name</label><input id="custName" type="text" placeholder="e.g. Slumba Ltd"/></div>
     <div class="f"><label>Customer postcode</label><input id="custPostcode" type="text" placeholder="for drop-off map"/></div>
+    <div class="f"><label>Import quote markup %</label><input id="custImportMarkup" type="number" min="0" step="1" placeholder="e.g. 25" style="width:120px"/></div>
     <button class="btn primary" id="custSave">Create customer link</button>
     <span class="ok" id="custMsg"></span>
   </div>
@@ -928,7 +929,8 @@ function currentCardConfig(){
   return {services:selectedServices().map(s=>s.key),markup,
     breakdown:$('rcBreakdown').checked,showBest:$('rcCheapest').checked,includeSurcharges:$('rcSur').checked,
     notes:($('rcNotes').value||'').trim(),countries:selectedCountries(),
-    postcode:($('custPostcode')?$('custPostcode').value.trim():'')};
+    postcode:($('custPostcode')?$('custPostcode').value.trim():''),
+    importMarkupPct:($('custImportMarkup')&&$('custImportMarkup').value!==''?Number($('custImportMarkup').value)||0:null)};
 }
 const cardUrl=t=>location.origin+'/card/'+t;
 async function saveCard(){
@@ -938,7 +940,7 @@ async function saveCard(){
   if(!selectedServices().length){$('custMsg').className='err';$('custMsg').textContent='Pick at least one service above first.';return;}
   const r=await jpost('/api/cards',{customer,config:currentCardConfig()});const d=await r.json();
   if(!r.ok){$('custMsg').className='err';$('custMsg').textContent=(d.error||'Could not save')+(authEnabled?'':' — connect the database to save links.');return;}
-  $('custName').value='';if($('custPostcode'))$('custPostcode').value='';$('custMsg').textContent='Link created.';await refreshCards();
+  $('custName').value='';if($('custPostcode'))$('custPostcode').value='';if($('custImportMarkup'))$('custImportMarkup').value='';$('custMsg').textContent='Link created.';await refreshCards();
 }
 async function refreshCards(){
   if(!authEnabled){$('custEmpty').textContent='';return;}
@@ -973,6 +975,11 @@ function cardDetailHTML(c){
     +`<input class="pcInput" data-id="${c.id}" type="text" value="${cfg.postcode||''}" placeholder="e.g. SY11 4FN" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;width:150px"/>`
     +`<button class="btn pcBtn" data-id="${c.id}">Save postcode</button>`
     +`<span class="pcMsg" data-id="${c.id}" style="font-size:12px"></span></div>`
+    +`<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">`
+    +`<label style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em">Import quote markup %</label>`
+    +`<input class="imInput" data-id="${c.id}" type="number" min="0" step="1" value="${cfg.importMarkupPct!=null?cfg.importMarkupPct:''}" placeholder="uses global default" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;width:170px"/>`
+    +`<button class="btn imBtn" data-id="${c.id}">Save import markup</button>`
+    +`<span class="imMsg" data-id="${c.id}" style="font-size:12px"></span></div>`
     +`</div>`;
 }
 function renderCards(){
@@ -1008,6 +1015,14 @@ function renderCards(){
     const cfg=Object.assign({},card.config||{},{markup:mk});
     const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
     if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Markups saved — the link now uses these.';}
+    else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
+  tb.querySelectorAll('.imBtn').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
+    const inp=tb.querySelector('.imInput[data-id="'+id+'"]'), msg=tb.querySelector('.imMsg[data-id="'+id+'"]');
+    const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;
+    const val=(inp.value===''?null:Number(inp.value)||0);
+    const cfg=Object.assign({},card.config||{},{importMarkupPct:val});
+    const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
+    if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent=val==null?'Cleared — uses global default.':'Import markup saved.';}
     else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
   tb.querySelectorAll('.copyBtn').forEach(b=>b.onclick=()=>{const t=b.dataset.u;
     if(navigator.clipboard)navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200);});
