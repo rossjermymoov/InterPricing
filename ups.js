@@ -63,14 +63,23 @@ function buildRateRequest(p) {
   const shipFrom = Object.assign({ Name: S(sender.name || sender.company || 'Sender') }, addressOf(sender, ''));
   const shipTo = Object.assign({ Name: S(receiver.name || receiver.company || 'Receiver') }, addressOf(receiver, homeCountry));
 
+  // Weight is at least 0.1 kg per parcel and formatted to one decimal — UPS rejects
+  // integer-only or zero weights on international time-in-transit lanes (error 111546).
+  const wStr = (n) => (Math.max(0.1, Number(n) || 0.1)).toFixed(1);
+  const KG = { Code: 'KGS', Description: 'Kilograms' };
+  const CM = { Code: 'CM', Description: 'Centimeters' };
+
   const Package = [];
+  let totalWeight = 0;
   (p.packages || []).forEach((pk) => {
     const qty = Math.max(1, Math.floor(Number(pk.qty) || 1));
-    const one = { PackagingType: { Code: '02' }, PackageWeight: { UnitOfMeasurement: { Code: 'KGS' }, Weight: S(pk.weight || 1) } };
-    if (num(pk.l) && num(pk.w) && num(pk.h)) one.Dimensions = { UnitOfMeasurement: { Code: 'CM' }, Length: S(pk.l), Width: S(pk.w), Height: S(pk.h) };
-    for (let i = 0; i < qty; i++) Package.push(JSON.parse(JSON.stringify(one)));
+    const w = wStr(pk.weight);
+    const one = { PackagingType: { Code: '02' }, PackageWeight: { UnitOfMeasurement: KG, Weight: w } };
+    if (num(pk.l) && num(pk.w) && num(pk.h)) one.Dimensions = { UnitOfMeasurement: CM, Length: S(pk.l), Width: S(pk.w), Height: S(pk.h) };
+    for (let i = 0; i < qty; i++) { Package.push(JSON.parse(JSON.stringify(one))); totalWeight += Number(w); }
   });
-  if (!Package.length) Package.push({ PackagingType: { Code: '02' }, PackageWeight: { UnitOfMeasurement: { Code: 'KGS' }, Weight: '1' } });
+  if (!Package.length) { Package.push({ PackagingType: { Code: '02' }, PackageWeight: { UnitOfMeasurement: KG, Weight: '1.0' } }); totalWeight = 1; }
+  const ShipmentTotalWeight = { UnitOfMeasurement: KG, Weight: (Math.round(totalWeight * 10) / 10).toFixed(1) };
 
   // International shipments must declare the value of the goods (the "shipment contents
   // value"). UPS rejects the rate request without it (error 111549). Use the value the
@@ -87,6 +96,7 @@ function buildRateRequest(p) {
         ShipmentRatingOptions: { NegotiatedRatesIndicator: 'Y', TPFCNegotiatedRatesIndicator: 'Y' },
         DeliveryTimeInformation: { PackageBillType: '03' }, // 03 = non-document (for time in transit)
         InvoiceLineTotal: { CurrencyCode: invoiceCurrency, MonetaryValue: String(invoiceTotal) },
+        ShipmentTotalWeight,
         NumOfPieces: String(Package.length),
         Package,
       },
