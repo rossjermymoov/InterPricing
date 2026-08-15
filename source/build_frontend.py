@@ -314,9 +314,17 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   </div>
   <div id="rcMsg" class="chartnote" style="color:var(--r);margin-top:8px"></div>
   <div class="miniform" style="margin-top:16px;border-top:1px dashed var(--line);padding-top:16px">
-    <div class="f"><label>Customer name</label><input id="custName" type="text" placeholder="e.g. Slumba Ltd"/></div>
-    <div class="f"><label>Customer postcode</label><input id="custPostcode" type="text" placeholder="for drop-off map"/></div>
-    <div class="f"><label>Import quote markup %</label><input id="custImportMarkup" type="number" min="0" step="1" placeholder="e.g. 25" style="width:120px"/></div>
+    <div class="f" style="flex:1 1 220px"><label>Customer name</label><input id="custName" type="text" placeholder="e.g. Slumba Ltd"/></div>
+    <div class="f" style="flex:1 1 180px"><label>Contact name</label><input id="custContact" type="text" placeholder="delivery contact"/></div>
+    <div class="f" style="flex:1 1 100%;max-width:none"><span style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;font-weight:800">Delivery address (pre-fills the import quote — this is where imports come back to)</span></div>
+    <div class="f" style="flex:1 1 240px"><label>Address line 1</label><input id="custLine1" type="text"/></div>
+    <div class="f" style="flex:1 1 200px"><label>Address line 2</label><input id="custLine2" type="text"/></div>
+    <div class="f" style="flex:1 1 160px"><label>City / town</label><input id="custCity" type="text"/></div>
+    <div class="f"><label>Postcode</label><input id="custPostcode" type="text" placeholder="e.g. SY11 4FN" style="width:130px"/></div>
+    <div class="f"><label>Country</label><select id="custCountry"><option value="GB" selected>United Kingdom</option><option value="IE">Ireland</option></select></div>
+    <div class="f" style="flex:1 1 150px"><label>Phone</label><input id="custPhone" type="text"/></div>
+    <div class="f" style="flex:1 1 190px"><label>Email</label><input id="custEmail" type="text"/></div>
+    <div class="f"><label>Import quote markup %</label><input id="custImportMarkup" type="number" min="0" step="1" placeholder="e.g. 25" style="width:110px"/></div>
     <button class="btn primary" id="custSave">Create customer link</button>
     <span class="ok" id="custMsg"></span>
   </div>
@@ -930,8 +938,10 @@ function currentCardConfig(){
     breakdown:$('rcBreakdown').checked,showBest:$('rcCheapest').checked,includeSurcharges:$('rcSur').checked,
     notes:($('rcNotes').value||'').trim(),countries:selectedCountries(),
     postcode:($('custPostcode')?$('custPostcode').value.trim():''),
+    receiver:{company:cv('custName'),name:cv('custContact'),line1:cv('custLine1'),line2:cv('custLine2'),city:cv('custCity'),postcode:cv('custPostcode'),country:($('custCountry')?$('custCountry').value:'GB'),phone:cv('custPhone'),email:cv('custEmail')},
     importMarkupPct:($('custImportMarkup')&&$('custImportMarkup').value!==''?Number($('custImportMarkup').value)||0:null)};
 }
+function cv(id){const el=$(id);return el?(el.value||'').trim():'';}
 const cardUrl=t=>location.origin+'/card/'+t;
 async function saveCard(){
   const customer=($('custName').value||'').trim();
@@ -940,7 +950,8 @@ async function saveCard(){
   if(!selectedServices().length){$('custMsg').className='err';$('custMsg').textContent='Pick at least one service above first.';return;}
   const r=await jpost('/api/cards',{customer,config:currentCardConfig()});const d=await r.json();
   if(!r.ok){$('custMsg').className='err';$('custMsg').textContent=(d.error||'Could not save')+(authEnabled?'':' — connect the database to save links.');return;}
-  $('custName').value='';if($('custPostcode'))$('custPostcode').value='';if($('custImportMarkup'))$('custImportMarkup').value='';$('custMsg').textContent='Link created.';await refreshCards();
+  ['custName','custContact','custLine1','custLine2','custCity','custPostcode','custPhone','custEmail','custImportMarkup'].forEach(id=>{if($(id))$(id).value='';});
+  $('custMsg').textContent='Link created.';await refreshCards();
 }
 async function refreshCards(){
   if(!authEnabled){$('custEmpty').textContent='';return;}
@@ -951,8 +962,11 @@ async function refreshCards(){
 }
 const svcName=k=>{const s=SERVICES.find(x=>x.key===k);return s?s.name:k;};
 const svcColor=k=>{const s=SERVICES.find(x=>x.key===k);return s?s.color:'#94a3b8';};
+const esc2=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+function adrF(id,k,label,val,w){return `<div class="f"><label style="font-size:10px">${label}</label><input class="adrInput" data-id="${id}" data-k="${k}" type="text" value="${esc2(val)}" style="width:${w||'130px'};padding:6px 8px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px"/></div>`;}
 function cardDetailHTML(c){
   const cfg=c.config||{};
+  const rc=cfg.receiver||{};
   const svcs=(cfg.services&&cfg.services.length)?cfg.services:SERVICES.map(s=>s.key);
   const mk=cfg.markup;
   const rows=svcs.map(k=>{const m=(typeof mk==='number')?mk:((mk&&mk[k])||0);
@@ -970,11 +984,20 @@ function cardDetailHTML(c){
     +`<table style="width:auto;border:none"><tbody>${rows}</tbody></table>`
     +`<div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn primary mkSave" data-id="${c.id}">Save markups</button><span class="mkMsg" data-id="${c.id}" style="font-size:12px"></span></div>`
     +(extras.length?`<div style="margin-top:9px;color:var(--muted);font-size:12px">${extras.join(' · ')}</div>`:'')
-    +`<div style="margin-top:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">`
-    +`<label style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em">Drop-off postcode</label>`
-    +`<input class="pcInput" data-id="${c.id}" type="text" value="${cfg.postcode||''}" placeholder="e.g. SY11 4FN" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;width:150px"/>`
-    +`<button class="btn pcBtn" data-id="${c.id}">Save postcode</button>`
-    +`<span class="pcMsg" data-id="${c.id}" style="font-size:12px"></span></div>`
+    +`<div style="margin-top:12px;border-top:1px dashed var(--line);padding-top:10px">`
+    +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px">Delivery address — pre-fills this customer's import quote &amp; sets the drop-off postcode</div>`
+    +`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end">`
+    +adrF(c.id,'name','Contact name',rc.name,'150px')
+    +adrF(c.id,'line1','Address line 1',rc.line1,'190px')
+    +adrF(c.id,'line2','Address line 2',rc.line2,'160px')
+    +adrF(c.id,'city','City / town',rc.city,'130px')
+    +adrF(c.id,'postcode','Postcode',rc.postcode||cfg.postcode,'110px')
+    +`<div class="f"><label style="font-size:10px">Country</label><select class="adrInput" data-id="${c.id}" data-k="country" style="padding:6px 8px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px"><option value="GB"${(rc.country||'GB')==='GB'?' selected':''}>United Kingdom</option><option value="IE"${rc.country==='IE'?' selected':''}>Ireland</option></select></div>`
+    +adrF(c.id,'phone','Phone',rc.phone,'130px')
+    +adrF(c.id,'email','Email',rc.email,'170px')
+    +`<button class="btn primary adrBtn" data-id="${c.id}">Save address</button>`
+    +`<span class="adrMsg" data-id="${c.id}" style="font-size:12px"></span>`
+    +`</div></div>`
     +`<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">`
     +`<label style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em">Import quote markup %</label>`
     +`<input class="imInput" data-id="${c.id}" type="number" min="0" step="1" value="${cfg.importMarkupPct!=null?cfg.importMarkupPct:''}" placeholder="uses global default" style="padding:6px 9px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px;width:170px"/>`
@@ -1001,12 +1024,14 @@ function renderCards(){
   $('custEmpty').textContent=cardsCache.length?(list.length?'':'No customers match your search.'):'No customer links yet — save one above.';
   tb.querySelectorAll('.exBtn').forEach(b=>b.onclick=()=>{const dr=tb.querySelector('.detailRow[data-id="'+b.dataset.id+'"]');
     const open=dr.style.display!=='none';dr.style.display=open?'none':'';b.textContent=open?'▸':'▾';});
-  tb.querySelectorAll('.pcBtn').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
-    const inp=tb.querySelector('.pcInput[data-id="'+id+'"]'), msg=tb.querySelector('.pcMsg[data-id="'+id+'"]');
+  tb.querySelectorAll('.adrBtn').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
+    const msg=tb.querySelector('.adrMsg[data-id="'+id+'"]');
     const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;
-    const cfg=Object.assign({},card.config||{},{postcode:(inp.value||'').trim()});
+    const rc={company:card.customer||''};
+    tb.querySelectorAll('.adrInput[data-id="'+id+'"]').forEach(inp=>{rc[inp.dataset.k]=(inp.value||'').trim();});
+    const cfg=Object.assign({},card.config||{},{receiver:rc,postcode:rc.postcode||''}); // keep drop-off postcode in sync
     const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
-    if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Saved.';}
+    if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Address saved — pre-fills this customer\'s import quote.';}
     else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
   tb.querySelectorAll('.mkSave').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
     const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;

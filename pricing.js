@@ -102,6 +102,7 @@ function buildCardPayload(cfg, card) {
     eu: (S.regions && S.regions.eu) || [],
     euDuty: euDutyPayload(S.euCustomsDuty),
     countries: countryList,
+    receiver: conf.receiver || null, // customer's saved delivery address (pre-fills import receiver)
     services,
     accessorials,
   };

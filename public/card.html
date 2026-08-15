@@ -279,14 +279,13 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
           <div class="pfields">
             <div class="f span2"><label>Company</label><input id="is_company" placeholder="Overseas supplier"/></div>
             <div class="f span2"><label>Contact name</label><input id="is_name"/></div>
-            <div class="f"><label>Country</label><select id="is_country">
-              <option value="DE">Germany</option><option value="FR">France</option><option value="NL">Netherlands</option>
-              <option value="IT">Italy</option><option value="ES">Spain</option><option value="PL">Poland</option>
-              <option value="BE">Belgium</option><option value="IE">Ireland</option><option value="US">United States</option>
-              <option value="CN">China</option><option value="HK">Hong Kong</option><option value="IN">India</option>
-              <option value="TR">Turkey</option><option value="CH">Switzerland</option><option value="GB">United Kingdom</option>
-            </select></div>
-            <div class="f"><label>City</label><input id="is_city"/></div>
+            <div class="f span2"><label>Country</label>
+              <div class="combo" id="is_countryCombo" style="width:100%">
+                <input id="is_countryInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search any country…" role="combobox" aria-expanded="false" aria-autocomplete="list"/>
+                <div class="comboList" id="is_countryList" role="listbox"></div>
+              </div>
+            </div>
+            <div class="f span2"><label>City</label><input id="is_city"/></div>
             <div class="f span2"><label>Address line 1</label><input id="is_line1"/></div>
             <div class="f span2"><label>Address line 2</label><input id="is_line2"/></div>
             <div class="f"><label>Postcode</label><input id="is_postcode"/></div>
@@ -345,7 +344,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 <script>
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2), eur=v=>'€'+Number(v).toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
-let RC=null, curCountry=null, curToken=null;
+let RC=null, curCountry=null, curToken=null, senderIso='';
 const CARRIER_LOGOS={
   dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',
   ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
@@ -642,6 +641,34 @@ function initCombo(list, initial){
   curCountry=initial; inp.value=initial; render('');
 }
 // ===== Import quote tab =====
+const WORLD_COUNTRIES=[{n:"Afghanistan",c:"AF"},{n:"Åland Islands",c:"AX"},{n:"Albania",c:"AL"},{n:"Algeria",c:"DZ"},{n:"American Samoa",c:"AS"},{n:"Andorra",c:"AD"},{n:"Angola",c:"AO"},{n:"Anguilla",c:"AI"},{n:"Antigua & Barbuda",c:"AG"},{n:"Argentina",c:"AR"},{n:"Armenia",c:"AM"},{n:"Aruba",c:"AW"},{n:"Australia",c:"AU"},{n:"Austria",c:"AT"},{n:"Azerbaijan",c:"AZ"},{n:"Bahamas",c:"BS"},{n:"Bahrain",c:"BH"},{n:"Bangladesh",c:"BD"},{n:"Barbados",c:"BB"},{n:"Belarus",c:"BY"},{n:"Belgium",c:"BE"},{n:"Belize",c:"BZ"},{n:"Benin",c:"BJ"},{n:"Bermuda",c:"BM"},{n:"Bhutan",c:"BT"},{n:"Bolivia",c:"BO"},{n:"Bosnia & Herzegovina",c:"BA"},{n:"Botswana",c:"BW"},{n:"Brazil",c:"BR"},{n:"British Indian Ocean Territory",c:"IO"},{n:"British Virgin Islands",c:"VG"},{n:"Brunei",c:"BN"},{n:"Bulgaria",c:"BG"},{n:"Burkina Faso",c:"BF"},{n:"Burundi",c:"BI"},{n:"Cambodia",c:"KH"},{n:"Cameroon",c:"CM"},{n:"Canada",c:"CA"},{n:"Cape Verde",c:"CV"},{n:"Cayman Islands",c:"KY"},{n:"Central African Republic",c:"CF"},{n:"Chad",c:"TD"},{n:"Chile",c:"CL"},{n:"China",c:"CN"},{n:"Colombia",c:"CO"},{n:"Comoros",c:"KM"},{n:"Congo - Brazzaville",c:"CG"},{n:"Congo - Kinshasa",c:"CD"},{n:"Cook Islands",c:"CK"},{n:"Costa Rica",c:"CR"},{n:"Côte d’Ivoire",c:"CI"},{n:"Croatia",c:"HR"},{n:"Cuba",c:"CU"},{n:"Curaçao",c:"CW"},{n:"Cyprus",c:"CY"},{n:"Czechia",c:"CZ"},{n:"Denmark",c:"DK"},{n:"Djibouti",c:"DJ"},{n:"Dominica",c:"DM"},{n:"Dominican Republic",c:"DO"},{n:"Ecuador",c:"EC"},{n:"Egypt",c:"EG"},{n:"El Salvador",c:"SV"},{n:"Equatorial Guinea",c:"GQ"},{n:"Eritrea",c:"ER"},{n:"Estonia",c:"EE"},{n:"Eswatini",c:"SZ"},{n:"Ethiopia",c:"ET"},{n:"Falkland Islands",c:"FK"},{n:"Faroe Islands",c:"FO"},{n:"Fiji",c:"FJ"},{n:"Finland",c:"FI"},{n:"France",c:"FR"},{n:"French Guiana",c:"GF"},{n:"French Polynesia",c:"PF"},{n:"Gabon",c:"GA"},{n:"Gambia",c:"GM"},{n:"Georgia",c:"GE"},{n:"Germany",c:"DE"},{n:"Ghana",c:"GH"},{n:"Gibraltar",c:"GI"},{n:"Greece",c:"GR"},{n:"Greenland",c:"GL"},{n:"Grenada",c:"GD"},{n:"Guadeloupe",c:"GP"},{n:"Guam",c:"GU"},{n:"Guatemala",c:"GT"},{n:"Guernsey",c:"GG"},{n:"Guinea",c:"GN"},{n:"Guinea-Bissau",c:"GW"},{n:"Guyana",c:"GY"},{n:"Haiti",c:"HT"},{n:"Honduras",c:"HN"},{n:"Hong Kong SAR China",c:"HK"},{n:"Hungary",c:"HU"},{n:"Iceland",c:"IS"},{n:"India",c:"IN"},{n:"Indonesia",c:"ID"},{n:"Iran",c:"IR"},{n:"Iraq",c:"IQ"},{n:"Ireland",c:"IE"},{n:"Isle of Man",c:"IM"},{n:"Israel",c:"IL"},{n:"Italy",c:"IT"},{n:"Jamaica",c:"JM"},{n:"Japan",c:"JP"},{n:"Jersey",c:"JE"},{n:"Jordan",c:"JO"},{n:"Kazakhstan",c:"KZ"},{n:"Kenya",c:"KE"},{n:"Kiribati",c:"KI"},{n:"Kuwait",c:"KW"},{n:"Kyrgyzstan",c:"KG"},{n:"Laos",c:"LA"},{n:"Latvia",c:"LV"},{n:"Lebanon",c:"LB"},{n:"Lesotho",c:"LS"},{n:"Liberia",c:"LR"},{n:"Libya",c:"LY"},{n:"Liechtenstein",c:"LI"},{n:"Lithuania",c:"LT"},{n:"Luxembourg",c:"LU"},{n:"Macao SAR China",c:"MO"},{n:"Madagascar",c:"MG"},{n:"Malawi",c:"MW"},{n:"Malaysia",c:"MY"},{n:"Maldives",c:"MV"},{n:"Mali",c:"ML"},{n:"Malta",c:"MT"},{n:"Marshall Islands",c:"MH"},{n:"Martinique",c:"MQ"},{n:"Mauritania",c:"MR"},{n:"Mauritius",c:"MU"},{n:"Mayotte",c:"YT"},{n:"Mexico",c:"MX"},{n:"Micronesia",c:"FM"},{n:"Moldova",c:"MD"},{n:"Monaco",c:"MC"},{n:"Mongolia",c:"MN"},{n:"Montenegro",c:"ME"},{n:"Montserrat",c:"MS"},{n:"Morocco",c:"MA"},{n:"Mozambique",c:"MZ"},{n:"Myanmar (Burma)",c:"MM"},{n:"Namibia",c:"NA"},{n:"Nauru",c:"NR"},{n:"Nepal",c:"NP"},{n:"Netherlands",c:"NL"},{n:"New Caledonia",c:"NC"},{n:"New Zealand",c:"NZ"},{n:"Nicaragua",c:"NI"},{n:"Niger",c:"NE"},{n:"Nigeria",c:"NG"},{n:"North Macedonia",c:"MK"},{n:"Norway",c:"NO"},{n:"Oman",c:"OM"},{n:"Pakistan",c:"PK"},{n:"Palau",c:"PW"},{n:"Palestinian Territories",c:"PS"},{n:"Panama",c:"PA"},{n:"Papua New Guinea",c:"PG"},{n:"Paraguay",c:"PY"},{n:"Peru",c:"PE"},{n:"Philippines",c:"PH"},{n:"Poland",c:"PL"},{n:"Portugal",c:"PT"},{n:"Puerto Rico",c:"PR"},{n:"Qatar",c:"QA"},{n:"Réunion",c:"RE"},{n:"Romania",c:"RO"},{n:"Russia",c:"RU"},{n:"Rwanda",c:"RW"},{n:"Samoa",c:"WS"},{n:"San Marino",c:"SM"},{n:"São Tomé & Príncipe",c:"ST"},{n:"Saudi Arabia",c:"SA"},{n:"Senegal",c:"SN"},{n:"Serbia",c:"RS"},{n:"Seychelles",c:"SC"},{n:"Sierra Leone",c:"SL"},{n:"Singapore",c:"SG"},{n:"Sint Maarten",c:"SX"},{n:"Slovakia",c:"SK"},{n:"Slovenia",c:"SI"},{n:"Solomon Islands",c:"SB"},{n:"Somalia",c:"SO"},{n:"South Africa",c:"ZA"},{n:"South Korea",c:"KR"},{n:"South Sudan",c:"SS"},{n:"Spain",c:"ES"},{n:"Sri Lanka",c:"LK"},{n:"St. Barthélemy",c:"BL"},{n:"St. Kitts & Nevis",c:"KN"},{n:"St. Lucia",c:"LC"},{n:"St. Martin",c:"MF"},{n:"St. Pierre & Miquelon",c:"PM"},{n:"St. Vincent & Grenadines",c:"VC"},{n:"Sudan",c:"SD"},{n:"Suriname",c:"SR"},{n:"Sweden",c:"SE"},{n:"Switzerland",c:"CH"},{n:"Syria",c:"SY"},{n:"Taiwan",c:"TW"},{n:"Tajikistan",c:"TJ"},{n:"Tanzania",c:"TZ"},{n:"Thailand",c:"TH"},{n:"Timor-Leste",c:"TL"},{n:"Togo",c:"TG"},{n:"Tonga",c:"TO"},{n:"Trinidad & Tobago",c:"TT"},{n:"Tunisia",c:"TN"},{n:"Türkiye",c:"TR"},{n:"Turkmenistan",c:"TM"},{n:"Turks & Caicos Islands",c:"TC"},{n:"Tuvalu",c:"TV"},{n:"U.S. Virgin Islands",c:"VI"},{n:"Uganda",c:"UG"},{n:"Ukraine",c:"UA"},{n:"United Arab Emirates",c:"AE"},{n:"United Kingdom",c:"GB"},{n:"United States",c:"US"},{n:"Uruguay",c:"UY"},{n:"Uzbekistan",c:"UZ"},{n:"Vanuatu",c:"VU"},{n:"Vatican City",c:"VA"},{n:"Venezuela",c:"VE"},{n:"Vietnam",c:"VN"},{n:"Yemen",c:"YE"},{n:"Zambia",c:"ZM"},{n:"Zimbabwe",c:"ZW"}];
+// Generic searchable country combo (label shown, ISO code stored via onPick).
+function initCountryCombo(boxId,inputId,menuId,onPick){
+  const box=$(boxId), inp=$(inputId), menu=$(menuId);
+  let items=WORLD_COUNTRIES.slice(), active=-1, curLabel='';
+  const open=()=>{box.classList.add('open');inp.setAttribute('aria-expanded','true');};
+  const close=()=>{box.classList.remove('open');inp.setAttribute('aria-expanded','false');active=-1;};
+  const pick=(o)=>{curLabel=o.n; inp.value=o.n; onPick(o.c,o.n); close();};
+  function render(q){
+    const s=(q||'').trim().toLowerCase();
+    const matches=!s?WORLD_COUNTRIES:WORLD_COUNTRIES.filter(o=>o.n.toLowerCase().includes(s)||o.c.toLowerCase()===s);
+    items=matches;
+    if(!matches.length){menu.innerHTML='<div class="comboEmpty">No matching country</div>';return;}
+    menu.innerHTML=matches.slice(0,320).map((o,i)=>'<div class="comboOpt" role="option" data-i="'+i+'"'+(o.n===curLabel?' aria-selected="true"':'')+'>'+esc(o.n)+'</div>').join('');
+    menu.querySelectorAll('.comboOpt').forEach(el=>{el.addEventListener('mousedown',ev=>{ev.preventDefault();pick(items[+el.dataset.i]);});});
+  }
+  const highlight=()=>{const els=menu.querySelectorAll('.comboOpt');els.forEach((e,i)=>e.classList.toggle('active',i===active));if(active>=0&&els[active])els[active].scrollIntoView({block:'nearest'});};
+  inp.addEventListener('focus',()=>{render(inp.value===curLabel?'':inp.value);open();});
+  inp.addEventListener('input',()=>{active=-1;render(inp.value);open();});
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();if(!box.classList.contains('open')){render('');open();}active=Math.min(active+1,items.length-1);highlight();}
+    else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(active-1,0);highlight();}
+    else if(e.key==='Enter'){e.preventDefault();if(active>=0&&items[active])pick(items[active]);else if(items.length===1)pick(items[0]);}
+    else if(e.key==='Escape'){close();inp.value=curLabel;}
+  });
+  inp.addEventListener('blur',()=>{setTimeout(()=>{close();if(inp.value!==curLabel)inp.value=curLabel;},120);});
+  document.addEventListener('click',e=>{if(!box.contains(e.target))close();});
+}
 function setView(v){
   const imp=v==='import';
   document.querySelectorAll('#viewTabs button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
@@ -673,7 +700,8 @@ function icollect(){
     qty:parseFloat(el.querySelector('.ipq').value)||1,weight:parseFloat(el.querySelector('.ipw').value)||0,
     l:parseFloat(el.querySelector('.ipl').value)||0,w:parseFloat(el.querySelector('.ipwd').value)||0,h:parseFloat(el.querySelector('.iph').value)||0}));
   const g=k=>({country:ival(k+'country'),company:ival(k+'company'),name:ival(k+'name'),line1:ival(k+'line1'),line2:ival(k+'line2'),city:ival(k+'city'),postcode:ival(k+'postcode'),phone:ival(k+'phone'),email:ival(k+'email')});
-  return {mode:'import',token:curToken,sender:g('is_'),receiver:g('ir_'),packages:parcels,value:parseFloat(ival('igoods'))||0,currency:'GBP'};
+  const sender=g('is_'); sender.country=senderIso; // ISO from the searchable combo
+  return {mode:'import',token:curToken,sender,receiver:g('ir_'),packages:parcels,value:parseFloat(ival('igoods'))||0,currency:'GBP'};
 }
 function imoney(v){return '£'+Number(v).toFixed(2);}
 function ieta(d){if(d==null)return 'Transit estimate on request';if(d<=1)return '1 business day';return d+' business days';}
@@ -690,6 +718,7 @@ function irender(services){
     box.appendChild(d);});
 }
 async function igetQuotes(){
+  if(!senderIso){$('iresults').style.display='block';$('iqcards').innerHTML='<div class="note">Please choose the sender country the goods are shipping from.</div>';$('is_countryInput').focus();return;}
   const btn=$('igetQuotes');const old=btn.textContent;btn.disabled=true;btn.textContent='Getting quotes…';
   try{
     const res=await fetch('/api/import-quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(icollect())});
@@ -699,8 +728,17 @@ async function igetQuotes(){
   }catch(e){$('iresults').style.display='block';$('iqcards').innerHTML='<div class="note">Sorry — we couldn\'t fetch a quote just now. Please try again in a moment.</div>';}
   btn.disabled=false;btn.textContent=old;
 }
+function prefillReceiver(){
+  const rc=(RC&&RC.receiver)||null; if(!rc)return;
+  const set=(id,v)=>{const el=$(id); if(el&&v!=null&&v!=='')el.value=v;};
+  set('ir_company',rc.company);set('ir_name',rc.name);set('ir_line1',rc.line1);set('ir_line2',rc.line2);
+  set('ir_city',rc.city);set('ir_postcode',rc.postcode);set('ir_phone',rc.phone);set('ir_email',rc.email);
+  if(rc.country&&$('ir_country')&&[...$('ir_country').options].some(o=>o.value===rc.country))$('ir_country').value=rc.country;
+}
 function initImportTab(){
   iaddParcel();
+  prefillReceiver();
+  initCountryCombo('is_countryCombo','is_countryInput','is_countryList',(iso)=>{senderIso=iso;});
   $('iaddParcel').addEventListener('click',iaddParcel);
   $('igetQuotes').addEventListener('click',igetQuotes);
   document.querySelectorAll('#viewTabs button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
