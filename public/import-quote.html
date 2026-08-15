@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Request an Import Quote — MOOV Parcel</title>
+<style>
+:root{
+  --brand:#171B2D; --green:#1DFB9D; --pink:#CD1C69;
+  --accent:#1DFB9D; --accent-2:#0E9C63;
+  --dpd:#DC2626; --ups:#8B4513;
+  --bg:#f4f6f6; --card:#fff; --line:#e6e9ee; --muted:#6b7280; --ink:#171B2D;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px 70px}
+.hero{background:#171B2D;color:#fff;padding:22px 26px 30px;border-bottom:3px solid transparent;
+  background-image:linear-gradient(#171B2D,#171B2D),linear-gradient(90deg,var(--green),var(--pink));
+  background-origin:border-box;background-clip:padding-box,border-box}
+.hero .inner{max-width:1080px;margin:0 auto}
+.hero .top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brandlogo{font-weight:900;font-size:24px;letter-spacing:-.02em;color:var(--green)}
+.brandlogo span{color:#fff}
+.modetoggle{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:3px}
+.modetoggle button{border:0;background:transparent;color:#cbd5e1;font-weight:800;font-size:13px;padding:8px 20px;border-radius:999px;cursor:pointer}
+.modetoggle button.active{background:var(--green);color:#0B1220}
+.hero h1{font-size:24px;margin:16px 0 4px;letter-spacing:-.02em}
+.hero p{margin:0;color:#9aa3b5;font-size:13.5px;max-width:660px}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:16px;box-shadow:0 4px 16px rgba(15,23,42,.05)}
+.panel:first-of-type{margin-top:-16px}
+.phead{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+.phead .n{width:26px;height:26px;flex:none;border-radius:8px;background:var(--brand);color:var(--green);display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:13px}
+.phead h2{font-size:15px;margin:0}
+.phead .sub{font-size:12.5px;color:var(--muted);margin-left:auto}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.subcard{border:1px solid var(--line);border-radius:13px;padding:16px;background:#fff}
+.subcard.origin{border-top:4px solid var(--pink)}
+.subcard.dest{border-top:4px solid var(--green)}
+.subcard h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.subcard h3 .dot{width:8px;height:8px;border-radius:50%}
+.origin h3 .dot{background:var(--pink)} .dest h3 .dot{background:var(--accent-2)}
+
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.frow.one{grid-template-columns:1fr}
+.frow.small{grid-template-columns:repeat(4,1fr)}
+.f{display:flex;flex-direction:column;margin-top:11px}
+.f:first-child,.frow .f{margin-top:0}
+.f label{font-size:10.5px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.f input,.f select{padding:10px 11px;border:1px solid #cbd5e1;border-radius:10px;font-size:14.5px;background:#fff;color:var(--ink);width:100%}
+.f input:focus,.f select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.stack{display:flex;flex-direction:column;gap:11px}
+
+/* packages */
+.parcels{display:flex;flex-direction:column;gap:12px}
+.parcel{border:1px solid var(--line);border-radius:12px;padding:14px;background:#fafcfc;position:relative}
+.parcel .plabel{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;color:var(--brand);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.parcel .plabel .badge{background:var(--brand);color:var(--green);border-radius:6px;padding:2px 8px;font-size:10px}
+.pgrid{display:grid;grid-template-columns:120px 120px 1fr 1fr 1fr;gap:11px;align-items:end}
+.pgrid .f{margin-top:0}
+@media(max-width:640px){.pgrid{grid-template-columns:1fr 1fr}}
+.rmParcel{position:absolute;top:10px;right:10px;border:1px solid var(--line);background:#fff;color:#B91C1C;border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:16px;line-height:1}
+.rmParcel:hover{background:#FEF2F2;border-color:#fca5a5}
+.addParcel{margin-top:4px;align-self:flex-start;display:inline-flex;align-items:center;gap:8px;border:1px dashed #94a3b8;background:#fff;color:var(--brand);border-radius:10px;padding:10px 14px;font-weight:800;font-size:13.5px;cursor:pointer}
+.addParcel:hover{background:#f1f5f9}
+.psummary{margin-top:12px;font-size:13px;color:#334155;font-weight:700}
+.psummary b{color:var(--brand)}
+
+.actions{display:flex;gap:12px;align-items:center;margin-top:18px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:13px 22px;font-weight:800;cursor:pointer;font-size:14.5px}
+.btn.primary{background:var(--green);color:#0B1220}
+.btn.primary:hover{filter:brightness(.96)}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--brand)}
+.hint{font-size:12.5px;color:var(--muted)}
+
+/* results */
+#results{display:none;margin-top:20px}
+.resbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.resbar h2{font-size:17px;margin:0}
+.example{font-size:10.5px;font-weight:900;letter-spacing:.03em;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;border-radius:999px;padding:3px 10px}
+.resnote{font-size:12.5px;color:var(--muted);margin:2px 0 14px}
+.qcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media(max-width:900px){.qcards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.qcards{grid-template-columns:1fr}}
+.qcard{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;position:relative}
+.qcard.win{border:2px solid var(--green);box-shadow:0 6px 18px rgba(29,251,157,.22)}
+.qbadge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#0B1220;background:var(--green);padding:3px 9px;border-radius:999px}
+.qcard .clogo{height:26px;width:auto;max-width:70px;object-fit:contain;display:block}
+.qcard .cbadge{display:inline-block;font-size:10px;font-weight:800;color:#fff;padding:3px 9px;border-radius:6px}
+.cbadge.ups{background:var(--ups)} .cbadge.dpd{background:var(--dpd)}
+.qcard .svc{font-size:14.5px;font-weight:800;margin:10px 0 2px;color:var(--brand)}
+.qcard .eta{font-size:12px;color:var(--muted)}
+.qcard .price{font-size:29px;font-weight:900;letter-spacing:-.02em;margin:10px 0 0}
+.qcard.win .price{color:var(--accent-2)}
+.qcard .unit{font-size:11px;color:var(--muted)}
+.qcard .brk{font-size:11.5px;color:#475569;line-height:1.6;margin-top:11px;border-top:1px dashed var(--line);padding-top:9px}
+.qcard .brk .row{display:flex;justify-content:space-between;gap:10px}
+.qcard .pick{margin-top:12px;width:100%;border:0;border-radius:10px;padding:10px;font-weight:800;font-size:13px;cursor:pointer;background:var(--brand);color:#fff}
+.qcard.win .pick{background:var(--green);color:#0B1220}
+.foot{font-size:12px;color:var(--muted);margin-top:24px;text-align:center}
+</style></head>
+<body>
+<div class="hero"><div class="inner">
+  <div class="top">
+    <div class="brandlogo">moov <span>parcel</span></div>
+    <div class="modetoggle" id="modeToggle">
+      <button type="button" data-mode="import" class="active">Import</button>
+      <button type="button" data-mode="export">Export</button>
+    </div>
+  </div>
+  <h1 id="pageTitle">Request an Import Quote</h1>
+  <p id="pageSub">Tell us where it's shipping from and to, add your parcels, and we'll pull live import rates across services — priced with your rates.</p>
+</div></div>
+
+<div class="wrap">
+
+  <!-- 1. Addresses -->
+  <div class="panel">
+    <div class="phead"><span class="n">1</span><h2>Collection &amp; delivery</h2><span class="sub">Where it's coming from and going to</span></div>
+    <div class="grid2">
+      <div class="subcard origin">
+        <h3 id="senderLbl"><span class="dot"></span>Sender — shipping from</h3>
+        <div class="stack">
+          <div class="f"><label>Country / territory</label>
+            <select id="s_country"><option value="DE">Germany</option><option value="FR">France</option><option value="NL">Netherlands</option><option value="IT">Italy</option><option value="ES">Spain</option><option value="PL">Poland</option><option value="US">United States</option><option value="CN">China</option><option value="GB">United Kingdom</option></select></div>
+          <div class="frow"><div class="f"><label>Company (optional)</label><input id="s_company" placeholder="Sender company"/></div>
+            <div class="f"><label>Contact name</label><input id="s_name" placeholder="Full name"/></div></div>
+          <div class="f"><label>Address line 1</label><input id="s_line1" placeholder="Street address"/></div>
+          <div class="f"><label>Address line 2 (optional)</label><input id="s_line2" placeholder="Apartment, suite, unit"/></div>
+          <div class="frow"><div class="f"><label>City / town</label><input id="s_city"/></div>
+            <div class="f"><label>Postal / ZIP code</label><input id="s_postcode"/></div></div>
+          <div class="frow"><div class="f"><label>Phone</label><input id="s_phone" type="tel"/></div>
+            <div class="f"><label>Email</label><input id="s_email" type="email"/></div></div>
+        </div>
+      </div>
+      <div class="subcard dest">
+        <h3 id="receiverLbl"><span class="dot"></span>Receiver — delivering to (you)</h3>
+        <div class="stack">
+          <div class="frow"><div class="f"><label>Full name</label><input id="r_name" placeholder="Your name"/></div>
+            <div class="f"><label>Company (optional)</label><input id="r_company"/></div></div>
+          <div class="frow"><div class="f"><label>Phone</label><input id="r_phone" type="tel"/></div>
+            <div class="f"><label>Email</label><input id="r_email" type="email"/></div></div>
+          <div class="f"><label>Address line 1</label><input id="r_line1" placeholder="Street address"/></div>
+          <div class="f"><label>Address line 2 (optional)</label><input id="r_line2"/></div>
+          <div class="frow"><div class="f"><label>City / town</label><input id="r_city"/></div>
+            <div class="f"><label>Postcode</label><input id="r_postcode" placeholder="e.g. SY11 4FN"/></div></div>
+          <div class="f"><label>Country</label><select id="r_country"><option value="GB" selected>United Kingdom</option><option value="IE">Ireland</option></select></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Packages -->
+  <div class="panel">
+    <div class="phead"><span class="n">2</span><h2>Packages</h2><span class="sub">Add each parcel size — set how many of each</span></div>
+    <div class="parcels" id="parcels"></div>
+    <button type="button" class="addParcel" id="addParcel">＋ Add another parcel (different size)</button>
+    <div class="psummary" id="psummary"></div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn primary" id="getQuotes">Get import quotes →</button>
+    <span class="hint">Live rates are pulled from your UPS import API and priced with your standard markups.</span>
+  </div>
+
+  <!-- 3. Results -->
+  <div id="results">
+    <div class="resbar"><h2 id="resTitle">Import quotes</h2><span class="example" id="exTag">Example figures</span></div>
+    <p class="resnote" id="resnote">Cheapest first; every price includes your markup.</p>
+    <div class="qcards" id="qcards"></div>
+  </div>
+
+  <div class="foot">Prices indicative and subject to final confirmation. Excludes VAT. Import duties &amp; taxes billed separately at import.</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let pc=0;
+function parcelHTML(i){return `<div class="parcel" data-i="${i}">`
+  +(i>0?`<button type="button" class="rmParcel" title="Remove">×</button>`:'')
+  +`<div class="plabel"><span class="badge">Parcel ${i+1}</span></div>`
+  +`<div class="pgrid">`
+  +`<div class="f"><label>How many</label><input type="number" class="pq" min="1" step="1" value="1"/></div>`
+  +`<div class="f"><label>Weight (kg)</label><input type="number" class="pw" min="0" step="0.1" value="5"/></div>`
+  +`<div class="f"><label>Length (cm)</label><input type="number" class="pl" min="0" step="1"/></div>`
+  +`<div class="f"><label>Width (cm)</label><input type="number" class="pwd" min="0" step="1"/></div>`
+  +`<div class="f"><label>Height (cm)</label><input type="number" class="ph" min="0" step="1"/></div>`
+  +`</div></div>`;}
+function addParcel(){const box=$('parcels');const div=document.createElement('div');div.innerHTML=parcelHTML(pc++);const el=div.firstChild;box.appendChild(el);
+  el.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',recalc));
+  const rm=el.querySelector('.rmParcel');if(rm)rm.addEventListener('click',()=>{el.remove();renumber();recalc();});
+  recalc();}
+function renumber(){[...document.querySelectorAll('#parcels .parcel')].forEach((el,i)=>{el.querySelector('.badge').textContent='Parcel '+(i+1);});}
+function recalc(){let n=0,wt=0;document.querySelectorAll('#parcels .parcel').forEach(el=>{const q=parseFloat(el.querySelector('.pq').value)||0;const w=parseFloat(el.querySelector('.pw').value)||0;n+=q;wt+=q*w;});
+  $('psummary').innerHTML=`<b>${n}</b> parcel${n===1?'':'s'} · <b>${(Math.round(wt*10)/10)} kg</b> total`;}
+addParcel();
+$('addParcel').addEventListener('click',addParcel);
+
+// Import / Export mode toggle
+function setMode(m){
+  const imp=m==='import';
+  document.querySelectorAll('#modeToggle button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  $('pageTitle').textContent='Request an '+(imp?'Import':'Export')+' Quote';
+  $('pageSub').textContent="Tell us where it's shipping from and to, add your parcels, and we'll pull live "+(imp?'import':'export')+" rates across services — priced with your rates.";
+  $('senderLbl').innerHTML='<span class="dot"></span>Sender — shipping from'+(imp?'':' (you)');
+  $('receiverLbl').innerHTML='<span class="dot"></span>Receiver — delivering to'+(imp?' (you)':'');
+  $('getQuotes').textContent='Get '+(imp?'import':'export')+' quotes →';
+  $('resTitle').textContent=(imp?'Import':'Export')+' quotes';
+}
+document.querySelectorAll('#modeToggle button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+
+const EXAMPLE=[
+  {name:'UPS Standard',days:4,price:38.90},
+  {name:'UPS Worldwide Expedited',days:3,price:52.10},
+  {name:'UPS Worldwide Saver',days:1,price:64.35}
+];
+function money(v){return '£'+Number(v).toFixed(2);}
+function etaText(d){if(d==null)return 'Transit estimate on request';if(d<=1)return '1 business day';return d+' business days';}
+function val(id){const el=$(id);return el?(el.value||'').trim():'';}
+function collectPayload(){
+  const parcels=[...document.querySelectorAll('#parcels .parcel')].map(el=>({
+    qty:parseFloat(el.querySelector('.pq').value)||1,weight:parseFloat(el.querySelector('.pw').value)||0,
+    l:parseFloat(el.querySelector('.pl').value)||0,w:parseFloat(el.querySelector('.pwd').value)||0,h:parseFloat(el.querySelector('.ph').value)||0}));
+  const g=k=>({country:val(k+'country'),company:val(k+'company'),name:val(k+'name'),line1:val(k+'line1'),line2:val(k+'line2'),city:val(k+'city'),postcode:val(k+'postcode'),phone:val(k+'phone'),email:val(k+'email')});
+  return {mode:document.querySelector('#modeToggle button.active').dataset.mode,sender:g('s_'),receiver:g('r_'),packages:parcels};
+}
+function renderQuotes(services,live){
+  const box=$('qcards');box.innerHTML='';
+  if(!services.length){box.innerHTML='<div class="resnote">No UPS services returned for this lane — check the addresses and try again.</div>';}
+  services.slice().sort((a,b)=>a.price-b.price).forEach((q,i)=>{
+    const d=document.createElement('div');d.className='qcard'+(i===0?' win':'');
+    d.innerHTML=(i===0?'<span class="qbadge">BEST PRICE</span>':'')
+      +`<span class="cbadge ups">UPS</span>`
+      +`<div class="svc">${q.name}</div><div class="eta">${etaText(q.days)}</div>`
+      +`<div class="price">${money(q.price)}</div><div class="unit">total incl. fuel · your markup applied</div>`
+      +`<div class="brk"><div class="row"><span>Delivery</span><span>${etaText(q.days)}</span></div>`
+      +`<div class="row"><span>Duties &amp; import VAT</span><span>at import</span></div></div>`
+      +`<button type="button" class="pick">Select this service</button>`;
+    box.appendChild(d);
+  });
+  $('exTag').style.display=live?'none':'';
+  $('resnote').textContent=live
+    ?'Live UPS rates for this lane, cheapest first — every price includes your markup. Duties & import VAT are billed separately at import.'
+    :'Example figures — add your UPS credentials in Railway to see live rates. Cheapest first; every price includes your markup.';
+}
+$('getQuotes').addEventListener('click',async()=>{
+  $('results').style.display='block';$('qcards').innerHTML='';$('exTag').style.display='none';
+  $('resnote').textContent='Fetching live UPS rates…';
+  $('results').scrollIntoView({behavior:'smooth',block:'start'});
+  let data=null;
+  try{const res=await fetch('/api/import-quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(collectPayload())});data=await res.json();}catch(e){}
+  const live=!!(data&&data.enabled&&data.services&&data.services.length);
+  renderQuotes(live?data.services:EXAMPLE,live);
+});
+</script>
+</body></html>

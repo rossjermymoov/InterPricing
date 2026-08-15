@@ -204,6 +204,17 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     <div id="pkResult" style="margin-top:12px;font-size:13px"></div>
     <textarea id="pkRaw" readonly style="display:none;width:100%;height:200px;margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px"></textarea>
   </div>
+  <div class="panel" id="upsPanel">
+    <h2>UPS import / export quotes</h2>
+    <p class="adminnote">Live rating from your “Moov Parcel Rating” UPS app powers the <a href="/import" target="_blank">Request a Quote</a> page. Add <code>UPS_CLIENT_ID</code>, <code>UPS_CLIENT_SECRET</code>, <code>UPS_ACCOUNT_NUMBER</code> and <code>UPS_ENV=test</code> (then <code>production</code>) as Railway variables. The markup below is applied to every import/export quote. Remember to press <b>Save settings</b> after changing the markup.</p>
+    <div class="miniform">
+      <div class="f"><label>Import / export markup %</label><input id="upsMarkup" type="number" min="0" step="1" value="0"/></div>
+      <button class="btn primary" id="upsTest">Test UPS connection</button>
+      <span class="ok" id="upsMsg"></span>
+    </div>
+    <div id="upsResult" style="margin-top:12px;font-size:13px"></div>
+    <textarea id="upsRaw" readonly style="display:none;width:100%;height:220px;margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px"></textarea>
+  </div>
   <div class="panel" id="teamPanel">
     <h2>Team members</h2>
     <table class="utable"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Reset password</th><th></th></tr></thead><tbody id="usersBody"></tbody></table>
@@ -534,6 +545,7 @@ function bootCalc(){
   CAPS={cp:(s.caps&&s.caps.cp)||31.5, ep:(s.caps&&s.caps.ep)||3};
   buildFuelTable(s.fuelByService||{});
   fillEuDuty(s.euCustomsDuty||{});
+  if($('upsMarkup'))$('upsMarkup').value=(s.importMarkupPct!=null?s.importMarkupPct:0);
   renderAccTabs();
   buildAccTable();
   renderToggles();
@@ -605,7 +617,8 @@ $('saveBtn').onclick=async()=>{$('saveMsg').className='ok';$('saveMsg').textCont
   const fbs={};SERVICES.forEach(svc=>{fbs[svc.key]={name:svc.name,cost:num('fc_'+svc.key),sell:num('fs_'+svc.key)};});
   const acc=accList().filter(a=>$('accList_'+a.key)||$('accPct_'+a.key)).map(a=>{const o={key:a.key};if(a.basis==='pctValue'){o.pct=num('accPct_'+a.key);o.min=num('accMin_'+a.key);}else{o.list=num('accList_'+a.key);o.disc=num('accDisc_'+a.key);}return o;});
   const euCustomsDuty={enabled:$('euEnabled')?$('euEnabled').checked:true,eurPerGbp:num('euRate'),perSku:num('euPerSku'),thresholdEur:num('euThresh')};
-  const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc,euCustomsDuty});const d=await r.json();
+  const importMarkupPct=$('upsMarkup')?num('upsMarkup'):0;
+  const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc,euCustomsDuty,importMarkupPct});const d=await r.json();
   if(!r.ok){$('saveMsg').className='err';$('saveMsg').textContent=(d.error||'Save failed')+(authEnabled?'':' — connect the database to save.');return;}
   P.settings=Object.assign(P.settings||{},d.settings);$('saveMsg').textContent='Saved. Applies to everyone.';calc();};
 async function refreshUsers(){
@@ -1049,6 +1062,22 @@ $('pkTest').onclick=async()=>{
   if(!(d.couriers||[]).length&&d.tokenSet)html+='<div class="chartnote">No couriers queried.</div>';
   $('pkResult').innerHTML=html||'<span class="chartnote">No response.</span>';
   $('pkRaw').style.display='block';$('pkRaw').value=JSON.stringify(d,null,2);
+};
+$('upsTest').onclick=async()=>{
+  $('upsMsg').className='ok';$('upsMsg').textContent='';$('upsResult').innerHTML='Testing UPS connection…';$('upsRaw').style.display='none';
+  const sample={mode:'import',sender:{country:'DE',city:'Berlin',postcode:'10115',line1:'Hauptstrasse 1',name:'Test Sender'},
+    receiver:{country:'GB',city:'Whittington',postcode:'SY11 4FN',line1:'1 Mellor Meadows',name:'Test Receiver'},
+    packages:[{qty:1,weight:5,l:30,w:20,h:15}]};
+  const r=await jpost('/api/ups-test',sample);const d=await r.json();
+  if(!r.ok){$('upsResult').innerHTML='<span style="color:var(--r)">'+((d&&d.error)||'Failed')+(authEnabled?'':' — deploy first')+'</span>';return;}
+  let html='<div>Environment: <b>'+(d.env||'?')+'</b> · credentials: <b style="color:'+(d.configured?'var(--g)':'var(--r)')+'">'+(d.configured?'set':'missing')+'</b> · account: <b>'+(d.account||'?')+'</b> · token: <b style="color:'+(d.token==='ok'?'var(--g)':'var(--r)')+'">'+(d.token||'—')+'</b></div>';
+  if(!d.configured)html+='<div style="color:var(--r);margin-top:4px">Set <code>UPS_CLIENT_ID</code> and <code>UPS_CLIENT_SECRET</code> in Railway → Variables, then redeploy.</div>';
+  if(d.status!=null){const ok=(d.services||[]).length>0;
+    html+='<div style="margin-top:6px">Rating HTTP '+d.status+' · <b style="color:'+(ok?'var(--g)':'var(--r)')+'">'+((d.services||[]).length)+' services returned</b></div>';
+    (d.services||[]).forEach(s=>{html+='<div style="margin-top:2px">'+s.code+' '+s.name+' — £'+(s.cost!=null?s.cost:'?')+(s.days!=null?(' · '+s.days+'d'):'')+'</div>';});}
+  if(d.error)html+='<div style="color:var(--r);margin-top:6px">'+d.error+'</div>';
+  $('upsResult').innerHTML=html;
+  $('upsRaw').style.display='block';$('upsRaw').value=JSON.stringify(d,null,2);
 };
 
 init();

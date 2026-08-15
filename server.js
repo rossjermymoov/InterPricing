@@ -5,6 +5,7 @@ const db = require('./db');
 const auth = require('./auth');
 const pricing = require('./pricing');
 const { fetchPickups, fetchPickupsRaw } = require('./pickups');
+const ups = require('./ups');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -96,6 +97,7 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
       return r;
     };
     const { fuelByService, caps, accessorials, euCustomsDuty } = req.body || {};
+    if (req.body && req.body.importMarkupPct != null) cfg.settings.importMarkupPct = Number(req.body.importMarkupPct) || 0;
     if (euCustomsDuty && typeof euCustomsDuty === 'object') {
       const cur = cfg.settings.euCustomsDuty || {};
       cfg.settings.euCustomsDuty = {
@@ -264,6 +266,30 @@ app.get('/api/ups/callback', (req, res) => {
     + (code ? 'An authorization code was returned — you can close this window.' : 'This is the UPS OAuth callback endpoint for InterPricing. Nothing to do here.')
     + '</p></body>');
 });
+
+// PUBLIC: live import/export quotes via UPS. Returns marked-up sell prices only (never cost).
+app.post('/api/import-quote', async (req, res) => {
+  try {
+    const { mode, sender, receiver, packages } = req.body || {};
+    const r = await ups.quoteRates({ mode, sender, receiver, packages });
+    if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
+    const cfg = await db.getConfig();
+    const p = Number((cfg.settings || {}).importMarkupPct);
+    const markup = isFinite(p) ? p : (Number(process.env.UPS_IMPORT_MARKUP) || 0);
+    const services = (r.services || []).map((s) => ({
+      code: s.code, name: s.name, days: s.days, currency: s.currency,
+      price: Math.round(s.cost * (1 + markup / 100) * 100) / 100,
+    }));
+    res.json({ enabled: true, services });
+  } catch (e) { res.status(502).json({ error: e.message }); }
+});
+// ADMIN: raw UPS rating test — confirm credentials + response shape against CIE/production.
+app.post('/api/ups-test', auth.requireAdmin, async (req, res) => {
+  try { res.json(await ups.quoteRatesRaw(req.body || {})); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+// PUBLIC: import/export quote page (clean URL; also served as /import-quote by static).
+app.get('/import', (req, res) => res.sendFile(path.join(__dirname, 'public', 'import-quote.html')));
 
 // PUBLIC: branded card page.
 app.get('/card/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'card.html')));
