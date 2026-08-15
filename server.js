@@ -294,10 +294,10 @@ app.post('/api/import-quote', async (req, res) => {
     if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
     const cfg = await db.getConfig();
     // Markup precedence: this customer's card → global import setting → env → 0.
-    let markup = null;
+    let markup = null, card = null;
     if (token && db.hasDb) {
       try {
-        const card = await db.getCardByToken(token);
+        card = await db.getCardByToken(token);
         const cm = card && card.config && card.config.importMarkupPct;
         if (cm != null && isFinite(Number(cm))) markup = Number(cm);
       } catch (_) {}
@@ -311,7 +311,33 @@ app.post('/api/import-quote', async (req, res) => {
       price: Math.round(s.cost * (1 + markup / 100) * 100) / 100,
     }));
     res.json({ enabled: true, services });
+
+    // Log the quote (non-blocking; never affects the customer response).
+    try {
+      const pkgs = Array.isArray(packages) ? packages : [];
+      const qtyOf = (p) => Math.max(1, Math.floor(Number(p.qty) || 1));
+      const parcels = pkgs.reduce((n, p) => n + qtyOf(p), 0);
+      const weight = pkgs.reduce((w, p) => w + qtyOf(p) * (Number(p.weight) || 0), 0);
+      const cheapest = services.length ? Math.min.apply(null, services.map((s) => s.price)) : null;
+      const logServices = (r.services || []).map((s, i) => ({ code: s.code, name: s.name, days: s.days, cost: s.cost, price: services[i] ? services[i].price : null }));
+      db.createQuoteLog({
+        card_id: card ? card.id : null, token: token || null, customer: card ? card.customer : null, mode: mode || 'import',
+        sender_country: (sender && sender.country) || null, sender_company: (sender && sender.company) || null,
+        receiver_country: (receiver && receiver.country) || null, receiver_postcode: (receiver && receiver.postcode) || null,
+        parcels, weight_kg: Math.round(weight * 10) / 10, goods_value: Number(value) || 0, currency: currency || 'GBP',
+        cheapest, services: logServices,
+      }).catch((e) => console.error('[quotelog]', e.message));
+    } catch (e) { console.error('[quotelog]', e.message); }
   } catch (e) { res.status(502).json({ error: e.message }); }
+});
+// ADMIN/SALES: quote reporting — the log and the daily stats.
+app.get('/api/quotes', auth.requireAuth, async (req, res) => {
+  try { res.json({ quotes: await db.listQuoteLogs({ q: req.query.q, from: req.query.from, to: req.query.to, limit: req.query.limit }) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/quotes/stats', auth.requireAuth, async (req, res) => {
+  try { res.json(await db.quoteStats()); }
+  catch (e) { res.status(500).json({ error: e.message }); }
 });
 // ADMIN: raw UPS rating test — confirm credentials + response shape against CIE/production.
 app.post('/api/ups-test', auth.requireAdmin, async (req, res) => {

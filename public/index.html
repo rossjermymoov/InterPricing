@@ -126,6 +126,16 @@ label.blk{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.
 .mkrow .pct{color:var(--muted);font-size:13px;margin-left:6px}
 textarea{font-family:inherit;padding:9px 10px;border:1px solid #cbd5e1;border-radius:9px;font-size:13px;resize:vertical}
 textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
+.qtiles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:680px){.qtiles{grid-template-columns:1fr 1fr}}
+.qtile{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:linear-gradient(180deg,#fff,#f9fbfc)}
+.qtile .qn{font-size:32px;font-weight:900;letter-spacing:-.02em;color:var(--ink);line-height:1}
+.qtile .ql{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800;margin-top:6px}
+.qexp{cursor:pointer;color:var(--teal);font-weight:800;background:none;border:0;font-size:14px;padding:2px 6px}
+.qdetail{background:#f8fafc}
+.qdetail table{width:auto;min-width:420px}
+.qdetail td,.qdetail th{padding:6px 12px}
+.qmuted{color:var(--muted);font-variant-numeric:tabular-nums}
 </style></head>
 <body><div class="wrap">
 
@@ -133,6 +143,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <div class="brand"><img src="/logo.png" alt="MOOV Parcel" onerror="this.outerHTML='&lt;span class=\'fallback\'&gt;moov parcel&lt;/span&gt;'"/><span class="ttl">Rate Calculator</span></div>
   <div class="actions">
     <span class="who" id="who"></span>
+    <button class="btn" id="quotesBtn" style="display:none">Quotes</button>
     <button class="btn" id="settingsBtn" style="display:none">Settings</button>
     <button class="btn" id="pwBtn">Change password</button>
     <button class="btn" id="logoutBtn">Log out</button>
@@ -237,6 +248,30 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
       <button class="btn primary" id="nuAdd">Add user</button>
     </div>
     <div class="err" id="usersErr"></div>
+  </div>
+</div>
+
+<!-- QUOTES DASHBOARD -->
+<div id="quotes" style="display:none">
+  <div class="settingshead"><button class="btn" id="quotesBack">← Back to calculator</button><h1>Quotes</h1></div>
+  <div class="panel">
+    <div class="qtiles">
+      <div class="qtile"><div class="qn" id="qStatToday">—</div><div class="ql">Today</div></div>
+      <div class="qtile"><div class="qn" id="qStatWeek">—</div><div class="ql">Last 7 days</div></div>
+      <div class="qtile"><div class="qn" id="qStatMonth">—</div><div class="ql">Last 30 days</div></div>
+      <div class="qtile"><div class="qn" id="qStatTotal">—</div><div class="ql">All time</div></div>
+    </div>
+    <div class="chartbox" style="margin-top:18px;height:260px"><canvas id="qChart"></canvas></div>
+    <p class="chartnote">Import quotes per day (last 30 days). Once bookings go live, conversion will show here alongside.</p>
+  </div>
+  <div class="panel">
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+      <h2 style="margin:0">Quote log</h2>
+      <input id="qSearch" placeholder="Search customer, country, postcode…" style="flex:1;min-width:220px;max-width:340px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px"/>
+      <button class="btn" id="qRefresh">Refresh</button>
+    </div>
+    <div style="overflow:auto"><table class="utable"><thead><tr><th></th><th>When</th><th>Customer</th><th>From → To</th><th>Shipment</th><th>Goods</th><th>Cheapest</th></tr></thead><tbody id="qBody"></tbody></table></div>
+    <div id="qEmpty" class="chartnote" style="margin-top:8px"></div>
   </div>
 </div>
 
@@ -590,9 +625,9 @@ function bootCalc(){
   calc();
 }
 
-const SCREENS=['loading','setup','login','app','settings'];
+const SCREENS=['loading','setup','login','app','settings','quotes'];
 function screen(id){SCREENS.forEach(s=>$(s).style.display='none');
-  const authed=(id==='app'||id==='settings');$(id).style.display='block';
+  const authed=(id==='app'||id==='settings'||id==='quotes');$(id).style.display='block';
   $('hdr').style.display=authed?'flex':'none';if(!authed)$('pwPanel').style.display='none';}
 const jpost=(p,b)=>fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
 const jput =(p,b)=>fetch(p,{method:'PUT', headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
@@ -601,6 +636,7 @@ const jdel=p=>fetch(p,{method:'DELETE'});
 function applyChrome(){
   const admin=(current&&current.role==='admin');
   $('settingsBtn').style.display=(!authEnabled||admin)?'':'none';
+  $('quotesBtn').style.display=authEnabled?'':'none';
   $('pwBtn').style.display=authEnabled?'':'none';
   $('logoutBtn').style.display=authEnabled?'':'none';
   $('teamPanel').style.display=authEnabled?'block':'none';
@@ -639,6 +675,59 @@ $('pwSave').onclick=async()=>{$('pwMsg').className='ok';$('pwMsg').textContent='
   $('pwMsg').textContent='Password updated.';$('pwCur').value='';$('pwNew').value='';};
 $('settingsBtn').onclick=async()=>{screen('settings');if(authEnabled)await refreshUsers();};
 $('backBtn').onclick=()=>{screen('app');calc();};
+
+// ---- Quotes dashboard ----
+let qchart=null, qTimer=null;
+function qesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function qDT(s){const d=new Date(s);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
+async function openQuotes(){screen('quotes');await loadQuoteStats();await loadQuoteLog($('qSearch').value.trim());}
+async function loadQuoteStats(){
+  try{const r=await fetch('/api/quotes/stats');if(!r.ok)return;const s=await r.json();
+    $('qStatToday').textContent=s.today;$('qStatWeek').textContent=s.week;$('qStatMonth').textContent=s.month;$('qStatTotal').textContent=s.total;
+    drawQuoteChart(s.perDay||[]);}catch(e){}
+}
+function drawQuoteChart(perDay){
+  const map={};perDay.forEach(r=>{map[r.d]=r.c;});
+  const labels=[],data=[],today=new Date();
+  for(let i=29;i>=0;i--){const d=new Date(today);d.setDate(today.getDate()-i);const key=d.toISOString().slice(0,10);
+    labels.push(d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}));data.push(map[key]||0);}
+  if(qchart)qchart.destroy();
+  qchart=new Chart($('qChart'),{type:'bar',data:{labels,datasets:[{label:'Quotes',data,backgroundColor:'#0E9C63',borderRadius:4,maxBarThickness:22}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' quote'+(c.parsed.y===1?'':'s')}}},
+      scales:{y:{beginAtZero:true,ticks:{precision:0}},x:{grid:{display:false},ticks:{maxRotation:0,autoSkip:true,maxTicksLimit:10}}}}});
+}
+async function loadQuoteLog(q){
+  try{const r=await fetch('/api/quotes'+(q?('?q='+encodeURIComponent(q)):''));if(!r.ok){$('qEmpty').textContent='Could not load the quote log.';return;}
+    renderQuoteLog((await r.json()).quotes||[]);}catch(e){$('qEmpty').textContent='Could not load the quote log.';}
+}
+function qShip(x){const b=[(x.parcels||0)+' parcel'+((x.parcels===1)?'':'s')];if(x.weight_kg)b.push((Math.round(x.weight_kg*10)/10)+' kg');return b.join(' · ');}
+function renderQuoteLog(rows){
+  const tb=$('qBody');tb.innerHTML='';
+  rows.forEach(x=>{
+    const from=x.sender_country||'—';const to=[x.receiver_country||'',x.receiver_postcode||''].filter(Boolean).join(' ')||'—';
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><button class="qexp" data-id="'+x.id+'">▸</button></td>'
+      +'<td style="white-space:nowrap">'+qDT(x.created_at)+'</td>'
+      +'<td><b>'+qesc(x.customer||'(direct)')+'</b></td>'
+      +'<td style="white-space:nowrap">'+qesc(from)+' → '+qesc(to)+'</td>'
+      +'<td>'+qesc(qShip(x))+'</td>'
+      +'<td class="qmuted">'+(x.goods_value?('£'+Number(x.goods_value).toFixed(0)):'—')+'</td>'
+      +'<td class="qmuted">'+(x.cheapest!=null?('£'+Number(x.cheapest).toFixed(2)):'—')+'</td>';
+    tb.appendChild(tr);
+    const svcs=Array.isArray(x.services)?x.services:[];
+    const svcRows=svcs.length?svcs.map(s=>'<tr><td>'+qesc(s.name||s.code||'')+'</td><td class="qmuted">'+(s.days!=null?(s.days+' day'+(s.days===1?'':'s')):'—')+'</td><td class="qmuted">£'+(s.cost!=null?Number(s.cost).toFixed(2):'—')+'</td><td><b>£'+(s.price!=null?Number(s.price).toFixed(2):'—')+'</b></td></tr>').join(''):'<tr><td colspan="4" class="qmuted">No services returned for this lane.</td></tr>';
+    const dr=document.createElement('tr');dr.className='qdetail';dr.dataset.id=x.id;dr.style.display='none';
+    dr.innerHTML='<td></td><td colspan="6"><table><thead><tr><th>Service</th><th>Transit</th><th>Cost</th><th>Quoted price</th></tr></thead><tbody>'+svcRows+'</tbody></table>'
+      +(x.sender_company?'<div class="qmuted" style="margin-top:6px">Sender: '+qesc(x.sender_company)+'</div>':'')+'</td>';
+    tb.appendChild(dr);
+  });
+  $('qEmpty').textContent=rows.length?'':'No quotes logged yet — they’ll appear here as customers use the import quote tab.';
+  tb.querySelectorAll('.qexp').forEach(b=>b.onclick=()=>{const dr=tb.querySelector('.qdetail[data-id="'+b.dataset.id+'"]');const open=dr.style.display!=='none';dr.style.display=open?'none':'';b.textContent=open?'▸':'▾';});
+}
+$('quotesBtn').onclick=openQuotes;
+$('quotesBack').onclick=()=>{screen('app');calc();};
+$('qRefresh').onclick=()=>{loadQuoteStats();loadQuoteLog($('qSearch').value.trim());};
+$('qSearch').addEventListener('input',()=>{clearTimeout(qTimer);qTimer=setTimeout(()=>loadQuoteLog($('qSearch').value.trim()),250);});
 $('saveBtn').onclick=async()=>{$('saveMsg').className='ok';$('saveMsg').textContent='';
   const fbs={};SERVICES.forEach(svc=>{fbs[svc.key]={name:svc.name,cost:num('fc_'+svc.key),sell:num('fs_'+svc.key)};});
   const acc=accList().filter(a=>$('accList_'+a.key)||$('accPct_'+a.key)).map(a=>{const o={key:a.key};if(a.basis==='pctValue'){o.pct=num('accPct_'+a.key);o.min=num('accMin_'+a.key);}else{o.list=num('accList_'+a.key);o.disc=num('accDisc_'+a.key);}return o;});

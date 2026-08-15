@@ -64,8 +64,63 @@ async function initDb() {
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS quote_logs (
+      id serial PRIMARY KEY,
+      card_id integer,
+      token text,
+      customer text,
+      mode text,
+      sender_country text,
+      sender_company text,
+      receiver_country text,
+      receiver_postcode text,
+      parcels integer,
+      weight_kg numeric,
+      goods_value numeric,
+      currency text,
+      cheapest numeric,
+      services jsonb NOT NULL DEFAULT '[]'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS quote_logs_created_idx ON quote_logs (created_at DESC);`);
   await migrateConfig();
-  console.log('[db] schema ready (rate_config, users, app_secrets)');
+  console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs)');
+}
+
+// ---- quote logging + reporting ----
+async function createQuoteLog(r) {
+  if (!pool) return null;
+  const { rows } = await pool.query(
+    `INSERT INTO quote_logs (card_id, token, customer, mode, sender_country, sender_company, receiver_country, receiver_postcode, parcels, weight_kg, goods_value, currency, cheapest, services)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+    [r.card_id || null, r.token || null, r.customer || null, r.mode || 'import',
+     r.sender_country || null, r.sender_company || null, r.receiver_country || null, r.receiver_postcode || null,
+     Math.round(Number(r.parcels) || 0), Number(r.weight_kg) || 0, Number(r.goods_value) || 0,
+     r.currency || 'GBP', (r.cheapest == null ? null : Number(r.cheapest)), JSON.stringify(r.services || [])]);
+  return rows[0].id;
+}
+async function listQuoteLogs({ q, from, to, limit } = {}) {
+  if (!pool) return [];
+  const where = [], vals = [];
+  if (q) { vals.push('%' + String(q).toLowerCase() + '%'); where.push(`(lower(coalesce(customer,'')) LIKE $${vals.length} OR lower(coalesce(sender_country,'')) LIKE $${vals.length} OR lower(coalesce(receiver_postcode,'')) LIKE $${vals.length} OR lower(coalesce(sender_company,'')) LIKE $${vals.length})`); }
+  if (from) { vals.push(from); where.push(`created_at >= $${vals.length}`); }
+  if (to) { vals.push(to); where.push(`created_at <= $${vals.length}`); }
+  const lim = Math.min(500, Math.max(1, Number(limit) || 200));
+  const sql = `SELECT * FROM quote_logs ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC LIMIT ${lim}`;
+  const { rows } = await pool.query(sql, vals);
+  return rows;
+}
+async function quoteStats() {
+  if (!pool) return { total: 0, today: 0, week: 0, month: 0, perDay: [], perCustomer: [] };
+  const one = async (sql) => (await pool.query(sql)).rows[0].c;
+  const total = await one('SELECT count(*)::int c FROM quote_logs');
+  const today = await one("SELECT count(*)::int c FROM quote_logs WHERE created_at >= date_trunc('day', now())");
+  const week = await one("SELECT count(*)::int c FROM quote_logs WHERE created_at >= now() - interval '7 days'");
+  const month = await one("SELECT count(*)::int c FROM quote_logs WHERE created_at >= now() - interval '30 days'");
+  const perDay = (await pool.query("SELECT to_char(date_trunc('day', created_at),'YYYY-MM-DD') d, count(*)::int c FROM quote_logs WHERE created_at >= now() - interval '29 days' GROUP BY 1 ORDER BY 1")).rows;
+  const perCustomer = (await pool.query("SELECT coalesce(customer,'(unknown)') customer, count(*)::int c, max(created_at) last FROM quote_logs GROUP BY 1 ORDER BY c DESC LIMIT 25")).rows;
+  return { total, today, week, month, perDay, perCustomer };
 }
 
 // Normalise older config shapes (e.g. markups stored as {cost,sell} -> single charge-out number).
@@ -238,5 +293,6 @@ module.exports = {
   initDb, getConfig, setConfig, getSecret,
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
   createCard, listCards, getCardByToken, getCardById, updateCard, deleteCard,
+  createQuoteLog, listQuoteLogs, quoteStats,
   hasDb: !!pool,
 };
