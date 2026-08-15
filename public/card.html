@@ -177,7 +177,6 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
       <div class="cust">Rate card<span id="today"></span></div>
     </div>
     <h1 id="title">International Rate Card</h1>
-    <p class="lede">Enter a destination, weight and dimensions to see your delivery price instantly. Prices are in GBP; per-shipment surcharges are listed below.</p>
   </div></div>
   <div class="shell">
    <aside class="rail railL" id="railUPSwrap" style="display:none">
@@ -338,6 +337,8 @@ function calc(){
     const surTotal=sur.reduce((t,x)=>t+x.amt,0);   // £ freight total; the EU customs duty is shown separately in €
     return {s,r,base,fuel,sur,total:Math.round((base+fuel+surTotal)*100)/100};
   }).filter(x=>x.r.avail);
+  // Cheapest first so it's visible without scrolling; unavailable services last.
+  rows.sort((a,b)=>(a.total==null)-(b.total==null)||((a.total==null||b.total==null)?0:a.total-b.total));
   const totals=rows.filter(x=>x.total!=null).map(x=>x.total);
   const min=totals.length?Math.min(...totals):null;
   const box=$('cards');box.innerHTML='';
