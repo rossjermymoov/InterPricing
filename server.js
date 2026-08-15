@@ -98,6 +98,7 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
     };
     const { fuelByService, caps, accessorials, euCustomsDuty } = req.body || {};
     if (req.body && req.body.importMarkupPct != null) cfg.settings.importMarkupPct = Number(req.body.importMarkupPct) || 0;
+    if (req.body && req.body.debugRaw != null) cfg.settings.debugRaw = !!req.body.debugRaw;
     if (euCustomsDuty && typeof euCustomsDuty === 'object') {
       const cur = cfg.settings.euCustomsDuty || {};
       cfg.settings.euCustomsDuty = {
@@ -320,12 +321,15 @@ app.post('/api/import-quote', async (req, res) => {
       const weight = pkgs.reduce((w, p) => w + qtyOf(p) * (Number(p.weight) || 0), 0);
       const cheapest = services.length ? Math.min.apply(null, services.map((s) => s.price)) : null;
       const logServices = (r.services || []).map((s, i) => ({ code: s.code, name: s.name, days: s.days, cost: s.cost, price: services[i] ? services[i].price : null }));
+      // Keep the raw UPS request/response for diagnostics unless debug capture is switched off.
+      const debug = ((cfg.settings || {}).debugRaw === false) ? null
+        : { status: r.status, markupPct: markup, request: r.request, raw: (r.raw || '').slice(0, 24000) };
       db.createQuoteLog({
         card_id: card ? card.id : null, token: token || null, customer: card ? card.customer : null, mode: mode || 'import',
         sender_country: (sender && sender.country) || null, sender_company: (sender && sender.company) || null,
         receiver_country: (receiver && receiver.country) || null, receiver_postcode: (receiver && receiver.postcode) || null,
         parcels, weight_kg: Math.round(weight * 10) / 10, goods_value: Number(value) || 0, currency: currency || 'GBP',
-        cheapest, services: logServices,
+        cheapest, services: logServices, debug,
       }).catch((e) => console.error('[quotelog]', e.message));
     } catch (e) { console.error('[quotelog]', e.message); }
   } catch (e) { res.status(502).json({ error: e.message }); }

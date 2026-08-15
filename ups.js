@@ -145,11 +145,14 @@ async function callRate(payload) {
 }
 
 // Live use: rated services (cost only — the caller applies markup). Returns null if not configured.
+// Also returns the raw response text + the exact request we sent, so an admin can inspect the
+// full UPS charge breakdown (base, fuel, accessorials, negotiated vs published) when diagnosing prices.
 async function quoteRates(payload) {
+  const request = buildRateRequest(payload);
   const r = await callRate(payload);
   if (!r) return { enabled: false };
   if (!r.ok) throw new Error('UPS Rating ' + r.status + ': ' + (r.text || '').slice(0, 400));
-  return { enabled: true, services: parseRates(r.json) };
+  return { enabled: true, services: parseRates(r.json), raw: r.text, status: r.status, request };
 }
 
 // Admin debug: raw request/response so we can confirm the field shapes against CIE.

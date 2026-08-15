@@ -136,6 +136,13 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 .qdetail table{width:auto;min-width:420px}
 .qdetail td,.qdetail th{padding:6px 12px}
 .qmuted{color:var(--muted);font-variant-numeric:tabular-nums}
+.rawbox{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
+.rawbox summary{cursor:pointer;font-weight:800;font-size:12.5px;color:var(--teal)}
+.rawhd{display:flex;align-items:center;gap:10px;margin:8px 0 3px}
+.rawhd .lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800}
+.rawcopy{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:800;cursor:pointer;color:var(--ink)}
+.rawcopy:hover{background:#f1f5f9}
+.rawpre{background:#0b1220;color:#d7e2f0;border-radius:8px;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;max-height:340px;overflow:auto;white-space:pre;margin:0}
 </style></head>
 <body><div class="wrap">
 
@@ -231,9 +238,11 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     <p class="adminnote">Live rating from your “Moov Parcel Rating” UPS app powers the <a href="/import" target="_blank">Request a Quote</a> page. Add <code>UPS_CLIENT_ID</code>, <code>UPS_CLIENT_SECRET</code>, <code>UPS_ACCOUNT_NUMBER</code> and <code>UPS_ENV=test</code> (then <code>production</code>) as Railway variables. The markup below is applied to every import/export quote. Remember to press <b>Save settings</b> after changing the markup.</p>
     <div class="miniform">
       <div class="f"><label>Import / export markup %</label><input id="upsMarkup" type="number" min="0" step="1" value="0"/></div>
+      <label class="tg" style="align-self:end"><input type="checkbox" id="debugRaw" checked/> Keep raw UPS responses for debugging</label>
       <button class="btn primary" id="upsTest">Test UPS connection</button>
       <span class="ok" id="upsMsg"></span>
     </div>
+    <p class="adminnote" style="margin-top:6px">When on, each quote stores the exact UPS request &amp; response — view it under <b>Quotes</b> → expand a row → <b>Raw UPS response</b>. Turn off to stop storing them.</p>
     <div id="upsResult" style="margin-top:12px;font-size:13px"></div>
     <textarea id="upsRaw" readonly style="display:none;width:100%;height:220px;margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px"></textarea>
   </div>
@@ -607,6 +616,7 @@ function bootCalc(){
   buildFuelTable(s.fuelByService||{});
   fillEuDuty(s.euCustomsDuty||{});
   if($('upsMarkup'))$('upsMarkup').value=(s.importMarkupPct!=null?s.importMarkupPct:0);
+  if($('debugRaw'))$('debugRaw').checked=(s.debugRaw!==false);
   renderAccTabs();
   buildAccTable();
   renderToggles();
@@ -679,6 +689,7 @@ $('backBtn').onclick=()=>{screen('app');calc();};
 // ---- Quotes dashboard ----
 let qchart=null, qTimer=null;
 function qesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function qpretty(v){if(v==null)return '(none)';try{const o=(typeof v==='string')?JSON.parse(v):v;return JSON.stringify(o,null,2);}catch(e){return String(v);}}
 function qDT(s){const d=new Date(s);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
 async function openQuotes(){screen('quotes');await loadQuoteStats();await loadQuoteLog($('qSearch').value.trim());}
 async function loadQuoteStats(){
@@ -716,13 +727,21 @@ function renderQuoteLog(rows){
     tb.appendChild(tr);
     const svcs=Array.isArray(x.services)?x.services:[];
     const svcRows=svcs.length?svcs.map(s=>'<tr><td>'+qesc(s.name||s.code||'')+'</td><td class="qmuted">'+(s.days!=null?(s.days+' day'+(s.days===1?'':'s')):'—')+'</td><td class="qmuted">£'+(s.cost!=null?Number(s.cost).toFixed(2):'—')+'</td><td><b>£'+(s.price!=null?Number(s.price).toFixed(2):'—')+'</b></td></tr>').join(''):'<tr><td colspan="4" class="qmuted">No services returned for this lane.</td></tr>';
+    let rawHtml='';
+    if(x.debug){const dbg=x.debug;
+      rawHtml='<details class="rawbox"><summary>Raw UPS response (HTTP '+(dbg.status!=null?dbg.status:'—')+' · markup '+(dbg.markupPct!=null?dbg.markupPct:'—')+'%)</summary>'
+        +'<div class="rawhd"><span class="lbl">Request sent to UPS</span><button class="rawcopy" data-copy="req" data-id="'+x.id+'">Copy</button></div><pre class="rawpre" id="rawreq'+x.id+'">'+qesc(qpretty(dbg.request))+'</pre>'
+        +'<div class="rawhd"><span class="lbl">Response from UPS</span><button class="rawcopy" data-copy="res" data-id="'+x.id+'">Copy</button></div><pre class="rawpre" id="rawres'+x.id+'">'+qesc(qpretty(dbg.raw))+'</pre>'
+        +'</details>';
+    }
     const dr=document.createElement('tr');dr.className='qdetail';dr.dataset.id=x.id;dr.style.display='none';
     dr.innerHTML='<td></td><td colspan="6"><table><thead><tr><th>Service</th><th>Transit</th><th>Cost</th><th>Quoted price</th></tr></thead><tbody>'+svcRows+'</tbody></table>'
-      +(x.sender_company?'<div class="qmuted" style="margin-top:6px">Sender: '+qesc(x.sender_company)+'</div>':'')+'</td>';
+      +(x.sender_company?'<div class="qmuted" style="margin-top:6px">Sender: '+qesc(x.sender_company)+'</div>':'')+rawHtml+'</td>';
     tb.appendChild(dr);
   });
   $('qEmpty').textContent=rows.length?'':'No quotes logged yet — they’ll appear here as customers use the import quote tab.';
   tb.querySelectorAll('.qexp').forEach(b=>b.onclick=()=>{const dr=tb.querySelector('.qdetail[data-id="'+b.dataset.id+'"]');const open=dr.style.display!=='none';dr.style.display=open?'none':'';b.textContent=open?'▸':'▾';});
+  tb.querySelectorAll('.rawcopy').forEach(b=>b.onclick=()=>{const el=$( (b.dataset.copy==='req'?'rawreq':'rawres')+b.dataset.id);if(el&&navigator.clipboard)navigator.clipboard.writeText(el.textContent);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200);});
 }
 $('quotesBtn').onclick=openQuotes;
 $('quotesBack').onclick=()=>{screen('app');calc();};
@@ -733,7 +752,8 @@ $('saveBtn').onclick=async()=>{$('saveMsg').className='ok';$('saveMsg').textCont
   const acc=accList().filter(a=>$('accList_'+a.key)||$('accPct_'+a.key)).map(a=>{const o={key:a.key};if(a.basis==='pctValue'){o.pct=num('accPct_'+a.key);o.min=num('accMin_'+a.key);}else{o.list=num('accList_'+a.key);o.disc=num('accDisc_'+a.key);}return o;});
   const euCustomsDuty={enabled:$('euEnabled')?$('euEnabled').checked:true,eurPerGbp:num('euRate'),perSku:num('euPerSku'),thresholdEur:num('euThresh')};
   const importMarkupPct=$('upsMarkup')?num('upsMarkup'):0;
-  const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc,euCustomsDuty,importMarkupPct});const d=await r.json();
+  const debugRaw=$('debugRaw')?$('debugRaw').checked:true;
+  const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc,euCustomsDuty,importMarkupPct,debugRaw});const d=await r.json();
   if(!r.ok){$('saveMsg').className='err';$('saveMsg').textContent=(d.error||'Save failed')+(authEnabled?'':' — connect the database to save.');return;}
   P.settings=Object.assign(P.settings||{},d.settings);$('saveMsg').textContent='Saved. Applies to everyone.';calc();};
 async function refreshUsers(){

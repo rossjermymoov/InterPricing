@@ -84,6 +84,7 @@ async function initDb() {
       created_at timestamptz NOT NULL DEFAULT now()
     );`);
   await pool.query(`CREATE INDEX IF NOT EXISTS quote_logs_created_idx ON quote_logs (created_at DESC);`);
+  await pool.query(`ALTER TABLE quote_logs ADD COLUMN IF NOT EXISTS debug jsonb;`); // raw UPS request/response for diagnostics
   await migrateConfig();
   console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs)');
 }
@@ -92,12 +93,13 @@ async function initDb() {
 async function createQuoteLog(r) {
   if (!pool) return null;
   const { rows } = await pool.query(
-    `INSERT INTO quote_logs (card_id, token, customer, mode, sender_country, sender_company, receiver_country, receiver_postcode, parcels, weight_kg, goods_value, currency, cheapest, services)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+    `INSERT INTO quote_logs (card_id, token, customer, mode, sender_country, sender_company, receiver_country, receiver_postcode, parcels, weight_kg, goods_value, currency, cheapest, services, debug)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id`,
     [r.card_id || null, r.token || null, r.customer || null, r.mode || 'import',
      r.sender_country || null, r.sender_company || null, r.receiver_country || null, r.receiver_postcode || null,
      Math.round(Number(r.parcels) || 0), Number(r.weight_kg) || 0, Number(r.goods_value) || 0,
-     r.currency || 'GBP', (r.cheapest == null ? null : Number(r.cheapest)), JSON.stringify(r.services || [])]);
+     r.currency || 'GBP', (r.cheapest == null ? null : Number(r.cheapest)), JSON.stringify(r.services || []),
+     r.debug ? JSON.stringify(r.debug) : null]);
   return rows[0].id;
 }
 async function listQuoteLogs({ q, from, to, limit } = {}) {
