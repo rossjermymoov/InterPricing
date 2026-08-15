@@ -91,6 +91,17 @@ header#hdr .who{color:#9aa3b5;font-size:13px;margin-right:4px}
 .utable select,.utable input{padding:6px 8px;border:1px solid #cbd5e1;border-radius:7px;font-size:13px}
 .miniform{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
 .miniform .f input,.miniform .f select{padding:8px}.miniform .f label{font-size:10.5px}
+.custform{margin-top:16px;padding-top:16px;border-top:1px dashed var(--line)}
+.custform .f{margin:0;min-width:0}
+.custform .f label{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:5px}
+.custform .f input,.custform .f select{width:100%;padding:9px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;background:#fff}
+.cfrow2{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;margin-bottom:14px}
+.cfhead{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;font-weight:800;margin-bottom:10px}
+.cfgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px 14px}
+.cfgrid .cf2{grid-column:span 2}
+.cfactions{margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+@media(max-width:860px){.cfgrid{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.cfrow2,.cfgrid{grid-template-columns:1fr}.cfgrid .cf2{grid-column:span 1}}
 .rolechip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef2ff;color:#3730a3}
 .rcchecks{display:flex;flex-direction:column;gap:14px}
 .rcgroup{display:flex;flex-direction:column;gap:7px}
@@ -292,20 +303,26 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     </div>
   </div>
   <div id="rcMsg" class="chartnote" style="color:var(--r);margin-top:8px"></div>
-  <div class="miniform" style="margin-top:16px;border-top:1px dashed var(--line);padding-top:16px">
-    <div class="f" style="flex:1 1 220px"><label>Customer name</label><input id="custName" type="text" placeholder="e.g. Slumba Ltd"/></div>
-    <div class="f" style="flex:1 1 180px"><label>Contact name</label><input id="custContact" type="text" placeholder="delivery contact"/></div>
-    <div class="f" style="flex:1 1 100%;max-width:none"><span style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8;font-weight:800">Delivery address (pre-fills the import quote — this is where imports come back to)</span></div>
-    <div class="f" style="flex:1 1 240px"><label>Address line 1</label><input id="custLine1" type="text"/></div>
-    <div class="f" style="flex:1 1 200px"><label>Address line 2</label><input id="custLine2" type="text"/></div>
-    <div class="f" style="flex:1 1 160px"><label>City / town</label><input id="custCity" type="text"/></div>
-    <div class="f"><label>Postcode</label><input id="custPostcode" type="text" placeholder="e.g. SY11 4FN" style="width:130px"/></div>
-    <div class="f"><label>Country</label><select id="custCountry"><option value="GB" selected>United Kingdom</option><option value="IE">Ireland</option></select></div>
-    <div class="f" style="flex:1 1 150px"><label>Phone</label><input id="custPhone" type="text"/></div>
-    <div class="f" style="flex:1 1 190px"><label>Email</label><input id="custEmail" type="text"/></div>
-    <div class="f"><label>Import quote markup %</label><input id="custImportMarkup" type="number" min="0" step="1" placeholder="e.g. 25" style="width:110px"/></div>
-    <button class="btn primary" id="custSave">Create customer link</button>
-    <span class="ok" id="custMsg"></span>
+  <div class="custform">
+    <div class="cfrow2">
+      <div class="f"><label>Customer name</label><input id="custName" type="text" placeholder="e.g. Slumba Ltd"/></div>
+      <div class="f"><label>Contact name</label><input id="custContact" type="text" placeholder="delivery contact"/></div>
+    </div>
+    <div class="cfhead">Delivery address — pre-fills the import quote (where imports come back to)</div>
+    <div class="cfgrid">
+      <div class="f cf2"><label>Address line 1</label><input id="custLine1" type="text"/></div>
+      <div class="f cf2"><label>Address line 2</label><input id="custLine2" type="text"/></div>
+      <div class="f"><label>City / town</label><input id="custCity" type="text"/></div>
+      <div class="f"><label>Postcode</label><input id="custPostcode" type="text" placeholder="e.g. SY11 4FN"/></div>
+      <div class="f"><label>Country</label><select id="custCountry"><option value="GB" selected>United Kingdom</option><option value="IE">Ireland</option></select></div>
+      <div class="f"><label>Import quote markup %</label><input id="custImportMarkup" type="number" min="0" step="1" placeholder="e.g. 25"/></div>
+      <div class="f cf2"><label>Phone</label><input id="custPhone" type="text"/></div>
+      <div class="f cf2"><label>Email</label><input id="custEmail" type="text"/></div>
+    </div>
+    <div class="cfactions">
+      <button class="btn primary" id="custSave">Create customer link</button>
+      <span class="ok" id="custMsg"></span>
+    </div>
   </div>
   <div style="margin-top:16px">
     <input id="custSearch" placeholder="Search customers…" style="width:100%;max-width:320px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;margin-bottom:8px"/>
