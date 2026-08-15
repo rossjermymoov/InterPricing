@@ -1067,7 +1067,7 @@ $('upsTest').onclick=async()=>{
   $('upsMsg').className='ok';$('upsMsg').textContent='';$('upsResult').innerHTML='Testing UPS connection…';$('upsRaw').style.display='none';
   const sample={mode:'import',sender:{country:'DE',city:'Berlin',postcode:'10115',line1:'Hauptstrasse 1',name:'Test Sender'},
     receiver:{country:'GB',city:'Whittington',postcode:'SY11 4FN',line1:'1 Mellor Meadows',name:'Test Receiver'},
-    packages:[{qty:1,weight:5,l:30,w:20,h:15}]};
+    packages:[{qty:1,weight:5,l:30,w:20,h:15}],value:250,currency:'GBP'};
   const r=await jpost('/api/ups-test',sample);const d=await r.json();
   if(!r.ok){$('upsResult').innerHTML='<span style="color:var(--r)">'+((d&&d.error)||'Failed')+(authEnabled?'':' — deploy first')+'</span>';return;}
   let html='<div>Environment: <b>'+(d.env||'?')+'</b> · credentials: <b style="color:'+(d.configured?'var(--g)':'var(--r)')+'">'+(d.configured?'set':'missing')+'</b> · account: <b>'+(d.account||'?')+'</b> · token: <b style="color:'+(d.token==='ok'?'var(--g)':'var(--r)')+'">'+(d.token||'—')+'</b></div>';

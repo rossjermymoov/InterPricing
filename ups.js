@@ -72,6 +72,13 @@ function buildRateRequest(p) {
   });
   if (!Package.length) Package.push({ PackagingType: { Code: '02' }, PackageWeight: { UnitOfMeasurement: { Code: 'KGS' }, Weight: '1' } });
 
+  // International shipments must declare the value of the goods (the "shipment contents
+  // value"). UPS rejects the rate request without it (error 111549). Use the value the
+  // form supplies; fall back to a nominal figure so a quote still returns.
+  const goodsVal = num(p.value != null ? p.value : (p.goodsValue != null ? p.goodsValue : null));
+  const invoiceTotal = (goodsVal != null && goodsVal > 0) ? goodsVal : 100;
+  const invoiceCurrency = S(p.currency || 'GBP').toUpperCase();
+
   return {
     RateRequest: {
       Request: { SubVersion: ver().replace(/^v/, ''), TransactionReference: { CustomerContext: 'MOOV ' + (p.mode || 'import') + ' quote' } },
@@ -79,6 +86,7 @@ function buildRateRequest(p) {
         Shipper: shipper, ShipTo: shipTo, ShipFrom: shipFrom,
         ShipmentRatingOptions: { NegotiatedRatesIndicator: 'Y', TPFCNegotiatedRatesIndicator: 'Y' },
         DeliveryTimeInformation: { PackageBillType: '03' }, // 03 = non-document (for time in transit)
+        InvoiceLineTotal: { CurrencyCode: invoiceCurrency, MonetaryValue: String(invoiceTotal) },
         NumOfPieces: String(Package.length),
         Package,
       },

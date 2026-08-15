@@ -155,6 +155,9 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
     <div class="phead"><span class="n">2</span><h2>Packages</h2><span class="sub">Add each parcel size — set how many of each</span></div>
     <div class="parcels" id="parcels"></div>
     <button type="button" class="addParcel" id="addParcel">＋ Add another parcel (different size)</button>
+    <div class="pgrid" style="grid-template-columns:220px 1fr;margin-top:14px">
+      <div class="f"><label>Total goods value (£)</label><input type="number" id="goodsValue" min="0" step="1" placeholder="e.g. 250"/></div>
+    </div>
     <div class="psummary" id="psummary"></div>
   </div>
 
@@ -222,7 +225,8 @@ function collectPayload(){
     qty:parseFloat(el.querySelector('.pq').value)||1,weight:parseFloat(el.querySelector('.pw').value)||0,
     l:parseFloat(el.querySelector('.pl').value)||0,w:parseFloat(el.querySelector('.pwd').value)||0,h:parseFloat(el.querySelector('.ph').value)||0}));
   const g=k=>({country:val(k+'country'),company:val(k+'company'),name:val(k+'name'),line1:val(k+'line1'),line2:val(k+'line2'),city:val(k+'city'),postcode:val(k+'postcode'),phone:val(k+'phone'),email:val(k+'email')});
-  return {mode:document.querySelector('#modeToggle button.active').dataset.mode,sender:g('s_'),receiver:g('r_'),packages:parcels};
+  const gv=parseFloat(val('goodsValue'))||0;
+  return {mode:document.querySelector('#modeToggle button.active').dataset.mode,sender:g('s_'),receiver:g('r_'),packages:parcels,value:gv,currency:'GBP'};
 }
 function renderQuotes(services,live){
   const box=$('qcards');box.innerHTML='';
