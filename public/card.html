@@ -203,6 +203,17 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .iactions .note{margin-top:0}
 .cards.iq{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media(max-width:820px){.cards.iq{grid-template-columns:1fr}}
+/* ===== sender address book ===== */
+.abSave{margin-left:auto;border:1px solid var(--line);background:#fff;color:var(--brand);font-weight:800;font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;font-family:inherit}
+.abSave:hover{background:#ECFDF5;border-color:var(--green)}
+.abhint{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;font-size:10.5px}
+.abMsg{display:block;font-size:11px;color:var(--g);margin-top:6px;min-height:14px}
+.comboOpt.abopt{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.abmain{display:flex;flex-direction:column;min-width:0}
+.abmain b{font-size:14px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.absub{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.abdel{border:0;background:transparent;color:#94a3b8;font-size:17px;line-height:1;cursor:pointer;flex:none;width:24px;height:24px;border-radius:6px}
+.abdel:hover{background:#FEF2F2;color:#B91C1C}
 </style></head>
 <body>
 <div id="state" class="state">Loading rate card…</div>
@@ -275,9 +286,15 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
       <div class="phead"><span class="pn">1</span><h3>Collection &amp; delivery</h3><span class="sub">Where the goods ship from, and where they're delivered to you.</span></div>
       <div class="duo">
         <div class="party">
-          <div class="plab"><span class="dot"></span>Sender — shipping from</div>
+          <div class="plab"><span class="dot"></span>Sender — shipping from<button type="button" class="abSave" id="is_saveAddr" title="Save this supplier for re-use">★ Save to address book</button></div>
           <div class="pfields">
-            <div class="f span2"><label>Company</label><input id="is_company" placeholder="Overseas supplier"/></div>
+            <div class="f span2"><label>Company <span class="abhint">— search saved suppliers or type a new one</span></label>
+              <div class="combo" id="is_companyCombo" style="width:100%">
+                <input id="is_company" type="text" autocomplete="off" spellcheck="false" placeholder="Search saved suppliers or type a new one…" role="combobox" aria-expanded="false" aria-autocomplete="list"/>
+                <div class="comboList" id="is_companyList" role="listbox"></div>
+              </div>
+              <span class="abMsg" id="abMsg"></span>
+            </div>
             <div class="f span2"><label>Contact name</label><input id="is_name"/></div>
             <div class="f span2"><label>Country</label>
               <div class="combo" id="is_countryCombo" style="width:100%">
@@ -344,7 +361,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 <script>
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2), eur=v=>'€'+Number(v).toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
-let RC=null, curCountry=null, curToken=null, senderIso='';
+let RC=null, curCountry=null, curToken=null, senderIso='', addrBook=[];
 const CARRIER_LOGOS={
   dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',
   ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
@@ -735,9 +752,67 @@ function prefillReceiver(){
   set('ir_city',rc.city);set('ir_postcode',rc.postcode);set('ir_phone',rc.phone);set('ir_email',rc.email);
   if(rc.country&&$('ir_country')&&[...$('ir_country').options].some(o=>o.value===rc.country))$('ir_country').value=rc.country;
 }
+// ---- sender address book ----
+function countryName(iso){const m=WORLD_COUNTRIES.find(o=>o.c===iso);return m?m.n:iso;}
+function applySender(a){
+  const set=(id,v)=>{const el=$(id);if(el)el.value=v||'';};
+  set('is_company',a.company);set('is_name',a.name);set('is_line1',a.line1);set('is_line2',a.line2);
+  set('is_city',a.city);set('is_postcode',a.postcode);set('is_phone',a.phone);set('is_email',a.email);
+  senderIso=a.country||''; $('is_countryInput').value=a.country?countryName(a.country):'';
+}
+function abMsg(t,ok){const el=$('abMsg');if(!el)return;el.style.color=ok===false?'#B91C1C':'var(--g)';el.textContent=t||'';}
+async function persistAB(msg){
+  try{const r=await fetch('/api/card/'+encodeURIComponent(curToken)+'/addressbook',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({addressBook:addrBook})});
+    const d=await r.json(); if(d&&Array.isArray(d.addressBook))addrBook=d.addressBook;
+    abMsg(msg||'Saved.');
+  }catch(e){abMsg('Could not save to the address book right now.',false);}
+}
+function saveSenderAddr(){
+  const a={company:ival('is_company'),name:ival('is_name'),country:senderIso,line1:ival('is_line1'),line2:ival('is_line2'),city:ival('is_city'),postcode:ival('is_postcode'),phone:ival('is_phone'),email:ival('is_email')};
+  if(!a.company&&!a.line1&&!a.postcode){abMsg('Fill in the sender details first, then save.',false);return;}
+  const key=x=>((x.company||'')+'|'+(x.postcode||'')).toLowerCase().trim();
+  const i=addrBook.findIndex(x=>key(x)===key(a));
+  if(i>=0)addrBook[i]=a; else addrBook.unshift(a);
+  persistAB(a.company?('“'+a.company+'” saved to your address book.'):'Address saved.');
+}
+function deleteAddr(idx){addrBook.splice(idx,1);persistAB('Removed from address book.');}
+function initCompanyCombo(){
+  const box=$('is_companyCombo'), inp=$('is_company'), menu=$('is_companyList');
+  let items=[], active=-1;
+  const open=()=>{box.classList.add('open');inp.setAttribute('aria-expanded','true');};
+  const close=()=>{box.classList.remove('open');inp.setAttribute('aria-expanded','false');active=-1;};
+  const subOf=a=>[a.line1,a.city,a.country?countryName(a.country):''].filter(Boolean).join(' · ');
+  function render(q){
+    const s=(q||'').trim().toLowerCase();
+    const matches=!addrBook.length?[]:(!s?addrBook:addrBook.filter(a=>[a.company,a.city,a.postcode,a.country,countryName(a.country)].some(v=>(v||'').toLowerCase().includes(s))));
+    items=matches;
+    if(!addrBook.length){menu.innerHTML='<div class="comboEmpty">No saved suppliers yet — fill the sender details and press ★ Save to address book.</div>';return;}
+    if(!matches.length){menu.innerHTML='<div class="comboEmpty">No saved supplier matches — type to enter a new one.</div>';return;}
+    menu.innerHTML=matches.map((a,i)=>'<div class="comboOpt abopt" role="option" data-i="'+i+'"><div class="abmain"><b>'+esc(a.company||'(no name)')+'</b><span class="absub">'+esc(subOf(a))+'</span></div><button type="button" class="abdel" data-i="'+i+'" title="Remove">×</button></div>').join('');
+    menu.querySelectorAll('.abopt').forEach(el=>{
+      el.addEventListener('mousedown',ev=>{
+        if(ev.target.closest('.abdel')){ev.preventDefault();const gi=addrBook.indexOf(items[+el.dataset.i]);if(gi>=0)deleteAddr(gi);render(inp.value);return;}
+        ev.preventDefault();applySender(items[+el.dataset.i]);close();abMsg('Loaded — check the details and get your quote.');
+      });
+    });
+  }
+  const highlight=()=>{const els=menu.querySelectorAll('.abopt');els.forEach((e,i)=>e.classList.toggle('active',i===active));if(active>=0&&els[active])els[active].scrollIntoView({block:'nearest'});};
+  inp.addEventListener('focus',()=>{render('');open();});
+  inp.addEventListener('input',()=>{active=-1;render(inp.value);open();abMsg('');});
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='ArrowDown'){e.preventDefault();if(!box.classList.contains('open')){render('');open();}active=Math.min(active+1,items.length-1);highlight();}
+    else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(active-1,0);highlight();}
+    else if(e.key==='Enter'){if(active>=0&&items[active]){e.preventDefault();applySender(items[active]);close();}}
+    else if(e.key==='Escape'){close();}
+  });
+  document.addEventListener('click',e=>{if(!box.contains(e.target))close();});
+}
 function initImportTab(){
   iaddParcel();
   prefillReceiver();
+  addrBook=(RC&&Array.isArray(RC.addressBook))?RC.addressBook.slice():[];
+  initCompanyCombo();
+  $('is_saveAddr').addEventListener('click',saveSenderAddr);
   initCountryCombo('is_countryCombo','is_countryInput','is_countryList',(iso)=>{senderIso=iso;});
   $('iaddParcel').addEventListener('click',iaddParcel);
   $('igetQuotes').addEventListener('click',igetQuotes);

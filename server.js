@@ -240,6 +240,25 @@ app.get('/api/card/:token', async (req, res) => {
     res.json(payload);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+// PUBLIC: the per-card sender address book (suppliers this customer imports from).
+// Authorized by possession of the card token — the same token that shows the card.
+app.put('/api/card/:token/addressbook', async (req, res) => {
+  try {
+    if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
+    const card = await db.getCardByToken(req.params.token);
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available.' });
+    const clean = (s) => String(s == null ? '' : s).replace(/[\r\n]+/g, ' ').slice(0, 120).trim();
+    let list = Array.isArray(req.body && req.body.addressBook) ? req.body.addressBook : [];
+    list = list.slice(0, 200).map((a) => ({
+      company: clean(a.company), name: clean(a.name), country: clean(a.country).toUpperCase().slice(0, 2),
+      line1: clean(a.line1), line2: clean(a.line2), city: clean(a.city), postcode: clean(a.postcode),
+      phone: clean(a.phone), email: clean(a.email),
+    })).filter((a) => a.company || a.line1 || a.postcode);
+    const config = Object.assign({}, card.config || {}, { addressBook: list });
+    await db.updateCard(card.id, { config });
+    res.json({ ok: true, addressBook: list });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 // ADMIN: test a postcode against the courier pickup API (diagnose + reveal response shape).
 app.post('/api/pickups-test', auth.requireAdmin, async (req, res) => {
   try {
