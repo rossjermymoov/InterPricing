@@ -143,6 +143,17 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 .rawcopy{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:800;cursor:pointer;color:var(--ink)}
 .rawcopy:hover{background:#f1f5f9}
 .rawpre{background:#0b1220;color:#d7e2f0;border-radius:8px;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;max-height:340px;overflow:auto;white-space:pre;margin:0}
+.rawmore{cursor:pointer;font-weight:800;font-size:12px;color:var(--teal)}
+.bdwrap{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.bd{border:1px solid var(--line);border-radius:10px;width:440px;max-width:100%;background:#fff}
+.bd-h{background:#f8fafc;padding:9px 12px;font-weight:800;font-size:13px;border-bottom:1px solid var(--line);border-radius:10px 10px 0 0}
+.bdt{width:100%;font-size:13px;border-collapse:collapse;table-layout:fixed}
+.bdt td{padding:6px 12px;border-bottom:1px solid #f1f5f9;overflow:hidden;text-overflow:ellipsis}
+.bdt td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;width:110px}
+.bdt tr.bd-sub td{font-weight:800;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.bdt tr.bd-neg td{color:var(--teal);font-weight:800}
+.bdt tr.bd-sell td{background:#ECFDF5;font-weight:900;border-bottom:0}
+.bdt tr.bd-sell td:last-child{border-radius:0 0 10px 0}.bdt tr.bd-sell td:first-child{border-radius:0 0 0 10px}
 </style></head>
 <body><div class="wrap">
 
@@ -690,6 +701,35 @@ $('backBtn').onclick=()=>{screen('app');calc();};
 let qchart=null, qTimer=null;
 function qesc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
 function qpretty(v){if(v==null)return '(none)';try{const o=(typeof v==='string')?JSON.parse(v):v;return JSON.stringify(o,null,2);}catch(e){return String(v);}}
+function upsSvcName(c){const M={'11':'UPS Standard','07':'UPS Worldwide Express','08':'UPS Worldwide Expedited','54':'UPS Worldwide Express Plus','65':'UPS Worldwide Saver','96':'UPS Worldwide Express Freight','03':'UPS Ground','12':'UPS 3 Day Select','02':'UPS 2nd Day Air','01':'UPS Next Day Air'};return M[c]||('UPS service '+c);}
+function upsChgName(c){const M={'375':'Fuel surcharge','270':'Residential surcharge','190':'Delivery area surcharge','100':'Additional handling','110':'Large package surcharge','120':'Over-maximum-limits','258':'Extended area','375 ':'Fuel'};return (M[c]||'Accessorial')+' ('+c+')';}
+function money2(v){const n=Number(v);return isNaN(n)?'—':('£'+n.toFixed(2));}
+function qarr(v){return Array.isArray(v)?v:(v?[v]:[]);}
+function breakdownHTML(x){
+  let raw;try{raw=(typeof x.debug.raw==='string')?JSON.parse(x.debug.raw):x.debug.raw;}catch(e){return '<div class="qmuted">Couldn’t parse the response — see the raw JSON below.</div>';}
+  const rr=raw&&raw.RateResponse;if(!rr)return '<div class="qmuted">No rate data in the response — see the raw JSON below.</div>';
+  let list=qarr(rr.RatedShipment);if(!list.length)return '<div class="qmuted">No services returned — see the raw JSON below.</div>';
+  const byCode={};(x.services||[]).forEach(s=>{byCode[s.code]=s;});
+  const cards=list.map(rs=>{
+    const code=(rs.Service&&rs.Service.Code)||'';
+    const neg=rs.NegotiatedRateCharges;
+    let base=rs.BaseServiceCharge, items=qarr(rs.ItemizedCharges);
+    if((!base||base.MonetaryValue==null)&&neg&&neg.BaseServiceCharge)base=neg.BaseServiceCharge;
+    if(!items.length&&neg&&neg.ItemizedCharges)items=qarr(neg.ItemizedCharges);
+    const svcOpt=rs.ServiceOptionsCharges?rs.ServiceOptionsCharges.MonetaryValue:null;
+    const pubTotal=rs.TotalCharges?rs.TotalCharges.MonetaryValue:null;
+    const negTotal=(neg&&neg.TotalCharge)?neg.TotalCharge.MonetaryValue:null;
+    const sold=byCode[code];
+    let rows='<tr><td>Base charge</td><td class="r">'+money2(base&&base.MonetaryValue)+'</td></tr>';
+    items.forEach(it=>{rows+='<tr><td>'+qesc(upsChgName(it.Code))+'</td><td class="r">'+money2(it.MonetaryValue)+'</td></tr>';});
+    if(svcOpt&&Number(svcOpt)>0)rows+='<tr><td>Service options</td><td class="r">'+money2(svcOpt)+'</td></tr>';
+    rows+='<tr class="bd-sub"><td>Published total</td><td class="r">'+money2(pubTotal)+'</td></tr>';
+    if(negTotal!=null)rows+='<tr class="bd-neg"><td>Your account rate (negotiated)</td><td class="r">'+money2(negTotal)+'</td></tr>';
+    if(sold)rows+='<tr class="bd-sell"><td>Quoted to customer'+(x.debug.markupPct!=null?(' · incl. '+x.debug.markupPct+'% markup'):'')+'</td><td class="r">'+money2(sold.price)+'</td></tr>';
+    return '<div class="bd"><div class="bd-h">'+qesc(upsSvcName(code))+' <span class="qmuted">· code '+qesc(code)+'</span></div><table class="bdt"><tbody>'+rows+'</tbody></table></div>';
+  }).join('');
+  return '<div class="bdwrap">'+cards+'</div>';
+}
 function qDT(s){const d=new Date(s);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});}
 async function openQuotes(){screen('quotes');await loadQuoteStats();await loadQuoteLog($('qSearch').value.trim());}
 async function loadQuoteStats(){
@@ -729,10 +769,12 @@ function renderQuoteLog(rows){
     const svcRows=svcs.length?svcs.map(s=>'<tr><td>'+qesc(s.name||s.code||'')+'</td><td class="qmuted">'+(s.days!=null?(s.days+' day'+(s.days===1?'':'s')):'—')+'</td><td class="qmuted">£'+(s.cost!=null?Number(s.cost).toFixed(2):'—')+'</td><td><b>£'+(s.price!=null?Number(s.price).toFixed(2):'—')+'</b></td></tr>').join(''):'<tr><td colspan="4" class="qmuted">No services returned for this lane.</td></tr>';
     let rawHtml='';
     if(x.debug){const dbg=x.debug;
-      rawHtml='<details class="rawbox"><summary>Raw UPS response (HTTP '+(dbg.status!=null?dbg.status:'—')+' · markup '+(dbg.markupPct!=null?dbg.markupPct:'—')+'%)</summary>'
-        +'<div class="rawhd"><span class="lbl">Request sent to UPS</span><button class="rawcopy" data-copy="req" data-id="'+x.id+'">Copy</button></div><pre class="rawpre" id="rawreq'+x.id+'">'+qesc(qpretty(dbg.request))+'</pre>'
-        +'<div class="rawhd"><span class="lbl">Response from UPS</span><button class="rawcopy" data-copy="res" data-id="'+x.id+'">Copy</button></div><pre class="rawpre" id="rawres'+x.id+'">'+qesc(qpretty(dbg.raw))+'</pre>'
-        +'</details>';
+      rawHtml='<div class="rawbox"><div class="rawhd"><span class="lbl">UPS charge breakdown</span><span class="qmuted">HTTP '+(dbg.status!=null?dbg.status:'—')+'</span></div>'
+        +breakdownHTML(x)
+        +'<details style="margin-top:10px"><summary class="rawmore">Show full raw JSON (request &amp; response)</summary>'
+          +'<div class="rawhd"><span class="lbl">Request sent to UPS</span><button class="rawcopy" data-copy="req" data-id="'+x.id+'">Copy</button></div><pre class="rawpre" id="rawreq'+x.id+'">'+qesc(qpretty(dbg.request))+'</pre>'
+          +'<div class="rawhd"><span class="lbl">Response from UPS</span><button class="rawcopy" data-copy="res" data-id="'+x.id+'">Copy</button></div><pre class="rawpre" id="rawres'+x.id+'">'+qesc(qpretty(dbg.raw))+'</pre>'
+        +'</details></div>';
     }
     const dr=document.createElement('tr');dr.className='qdetail';dr.dataset.id=x.id;dr.style.display='none';
     dr.innerHTML='<td></td><td colspan="6"><table><thead><tr><th>Service</th><th>Transit</th><th>Cost</th><th>Quoted price</th></tr></thead><tbody>'+svcRows+'</tbody></table>'
