@@ -132,6 +132,10 @@ header#hdr .who{color:#9aa3b5;font-size:13px;margin-right:4px}
 .rcitem{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:#334155;cursor:pointer;padding-left:20px}
 .rcchecks .sw{width:11px;height:11px;border-radius:3px;flex:none}
 .rcchecks input{width:16px;height:16px;accent-color:var(--teal)}
+.svcpickwrap{display:flex;flex-wrap:wrap;gap:8px 20px;margin:6px 0 2px}
+.svcpk{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#334155;cursor:pointer}
+.svcpk .sw{width:11px;height:11px;border-radius:3px;flex:none}
+.svcpk input{width:15px;height:15px;accent-color:var(--teal)}
 label.blk{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:700;margin-bottom:10px}
 .voltabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .voltab{padding:7px 14px;border:1px solid #cbd5e1;border-radius:999px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#334155}
@@ -270,6 +274,8 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     <p class="adminnote">Live rating from your “Moov Parcel Rating” UPS app powers the <a href="/import" target="_blank">Request a Quote</a> page. Add <code>UPS_CLIENT_ID</code>, <code>UPS_CLIENT_SECRET</code>, <code>UPS_ACCOUNT_NUMBER</code> and <code>UPS_ENV=test</code> (then <code>production</code>) as Railway variables. The markup below is applied to every import/export quote. Remember to press <b>Save settings</b> after changing the markup.</p>
     <div class="miniform">
       <div class="f"><label>Import / export markup %</label><input id="upsMarkup" type="number" min="0" step="1" value="0"/></div>
+      <div class="f"><label>Free HS / tariff lines</label><input id="hsFreeLines" type="number" min="0" step="1" value="5"/></div>
+      <div class="f"><label>£ per extra HS line</label><input id="hsLineCharge" type="number" min="0" step="0.01" value="2.95"/></div>
       <label class="tg" style="align-self:end"><input type="checkbox" id="debugRaw" checked/> Keep raw UPS responses for debugging</label>
       <button class="btn primary" id="upsTest">Test UPS connection</button>
       <span class="ok" id="upsMsg"></span>
@@ -648,6 +654,8 @@ function bootCalc(){
   buildFuelTable(s.fuelByService||{});
   fillEuDuty(s.euCustomsDuty||{});
   if($('upsMarkup'))$('upsMarkup').value=(s.importMarkupPct!=null?s.importMarkupPct:0);
+  if($('hsFreeLines'))$('hsFreeLines').value=(s.hsFreeLines!=null?s.hsFreeLines:5);
+  if($('hsLineCharge'))$('hsLineCharge').value=(s.hsLineCharge!=null?s.hsLineCharge:2.95);
   if($('debugRaw'))$('debugRaw').checked=(s.debugRaw!==false);
   renderAccTabs();
   buildAccTable();
@@ -816,7 +824,9 @@ $('saveBtn').onclick=async()=>{$('saveMsg').className='ok';$('saveMsg').textCont
   const euCustomsDuty={enabled:$('euEnabled')?$('euEnabled').checked:true,eurPerGbp:num('euRate'),perSku:num('euPerSku'),thresholdEur:num('euThresh')};
   const importMarkupPct=$('upsMarkup')?num('upsMarkup'):0;
   const debugRaw=$('debugRaw')?$('debugRaw').checked:true;
-  const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc,euCustomsDuty,importMarkupPct,debugRaw});const d=await r.json();
+  const hsFreeLines=$('hsFreeLines')?num('hsFreeLines'):5;
+  const hsLineCharge=$('hsLineCharge')?num('hsLineCharge'):2.95;
+  const r=await jput('/api/settings',{fuelByService:fbs,accessorials:acc,euCustomsDuty,importMarkupPct,debugRaw,hsFreeLines,hsLineCharge});const d=await r.json();
   if(!r.ok){$('saveMsg').className='err';$('saveMsg').textContent=(d.error||'Save failed')+(authEnabled?'':' — connect the database to save.');return;}
   P.settings=Object.assign(P.settings||{},d.settings);$('saveMsg').textContent='Saved. Applies to everyone.';calc();};
 async function refreshUsers(){
@@ -1147,8 +1157,13 @@ function cardDetailHTML(c){
   if(cfg.includeSurcharges===false)extras.push('No surcharges page');
   const created=c.created_at?new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'';
   const by=c.creator_name||c.creator_email||'';
+  const svcSet=new Set(svcs);
+  const svcPick=SERVICES.map(s=>`<label class="svcpk"><input type="checkbox" class="svcChk" data-id="${c.id}" data-k="${s.key}"${svcSet.has(s.key)?' checked':''}/> <span class="sw" style="background:${s.color}"></span>${s.name}</label>`).join('');
   return `<div style="padding:8px 10px 14px 40px">`
-    +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px">Markup for this customer — edit &amp; save${by?' · by '+by:''}${created?' · created '+created:''}</div>`
+    +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:5px">Services on this card — tick to add, untick to remove</div>`
+    +`<div class="svcpickwrap">${svcPick}</div>`
+    +`<div style="margin:6px 0 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn primary svcSave" data-id="${c.id}">Save services</button><span class="svcMsg" data-id="${c.id}" style="font-size:12px"></span></div>`
+    +`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569;font-weight:800;margin-bottom:7px;border-top:1px dashed var(--line);padding-top:12px">Markup for this customer — edit &amp; save${by?' · by '+by:''}${created?' · created '+created:''}</div>`
     +`<table style="width:auto;border:none"><tbody>${rows}</tbody></table>`
     +`<div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn primary mkSave" data-id="${c.id}">Save markups</button><span class="mkMsg" data-id="${c.id}" style="font-size:12px"></span></div>`
     +(extras.length?`<div style="margin-top:9px;color:var(--muted);font-size:12px">${extras.join(' · ')}</div>`:'')
@@ -1201,6 +1216,17 @@ function renderCards(){
     const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
     if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Address saved — pre-fills this customer\'s import quote.';}
     else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
+  tb.querySelectorAll('.svcSave').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
+    const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;
+    let msg=tb.querySelector('.svcMsg[data-id="'+id+'"]');
+    const keys=[...tb.querySelectorAll('.svcChk[data-id="'+id+'"]')].filter(i=>i.checked).map(i=>i.dataset.k);
+    if(!keys.length){msg.style.color='var(--r)';msg.textContent='Pick at least one service.';return;}
+    const cfg=Object.assign({},card.config||{},{services:keys});
+    const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
+    if(!r.ok){msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');return;}
+    card.config=cfg;renderCards();
+    const dr=tb.querySelector('.detailRow[data-id="'+id+'"]');if(dr){dr.style.display='';const xb=tb.querySelector('.exBtn[data-id="'+id+'"]');if(xb)xb.textContent='▾';}
+    msg=tb.querySelector('.svcMsg[data-id="'+id+'"]');if(msg){msg.style.color='var(--g)';msg.textContent='Services updated — set the markup for any new ones below (new services start at 0%).';}});
   tb.querySelectorAll('.mkSave').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
     const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;
     const msg=tb.querySelector('.mkMsg[data-id="'+id+'"]');
