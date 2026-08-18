@@ -99,6 +99,8 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
     const { fuelByService, caps, accessorials, euCustomsDuty } = req.body || {};
     if (req.body && req.body.importMarkupPct != null) cfg.settings.importMarkupPct = Number(req.body.importMarkupPct) || 0;
     if (req.body && req.body.debugRaw != null) cfg.settings.debugRaw = !!req.body.debugRaw;
+    if (req.body && req.body.hsFreeLines != null) cfg.settings.hsFreeLines = Math.max(0, Math.floor(Number(req.body.hsFreeLines) || 0));
+    if (req.body && req.body.hsLineCharge != null) cfg.settings.hsLineCharge = Number(req.body.hsLineCharge) || 0;
     if (euCustomsDuty && typeof euCustomsDuty === 'object') {
       const cur = cfg.settings.euCustomsDuty || {};
       cfg.settings.euCustomsDuty = {
@@ -290,7 +292,7 @@ app.get('/api/ups/callback', (req, res) => {
 // PUBLIC: live import/export quotes via UPS. Returns marked-up sell prices only (never cost).
 app.post('/api/import-quote', async (req, res) => {
   try {
-    const { mode, sender, receiver, packages, value, currency, token } = req.body || {};
+    const { mode, sender, receiver, packages, value, currency, token, hsLines } = req.body || {};
     const r = await ups.quoteRates({ mode, sender, receiver, packages, value, currency });
     if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
     const cfg = await db.getConfig();
@@ -307,11 +309,18 @@ app.post('/api/import-quote', async (req, res) => {
       const p = Number((cfg.settings || {}).importMarkupPct);
       markup = isFinite(p) ? p : (Number(process.env.UPS_IMPORT_MARKUP) || 0);
     }
+    // HS / tariff-line charge: first N lines free, then a flat fee per extra line (full price, not marked up).
+    const st = cfg.settings || {};
+    const hsFree = Number.isFinite(Number(st.hsFreeLines)) ? Number(st.hsFreeLines) : 5;
+    const hsPerLine = Number.isFinite(Number(st.hsLineCharge)) ? Number(st.hsLineCharge) : 2.95;
+    const linesReq = Math.max(0, Math.floor(Number(hsLines) || 0));
+    const hsExtra = Math.max(0, linesReq - hsFree);
+    const hsCharge = Math.round(hsExtra * hsPerLine * 100) / 100;
     const services = (r.services || []).map((s) => ({
       code: s.code, name: s.name, days: s.days, currency: s.currency,
-      price: Math.round(s.cost * (1 + markup / 100) * 100) / 100,
+      price: Math.round((s.cost * (1 + markup / 100) + hsCharge) * 100) / 100,
     }));
-    res.json({ enabled: true, services });
+    res.json({ enabled: true, services, hs: { lines: linesReq, free: hsFree, extra: hsExtra, perLine: hsPerLine, charge: hsCharge } });
 
     // Log the quote (non-blocking; never affects the customer response).
     try {
@@ -323,7 +332,7 @@ app.post('/api/import-quote', async (req, res) => {
       const logServices = (r.services || []).map((s, i) => ({ code: s.code, name: s.name, days: s.days, cost: s.cost, price: services[i] ? services[i].price : null }));
       // Keep the raw UPS request/response for diagnostics unless debug capture is switched off.
       const debug = ((cfg.settings || {}).debugRaw === false) ? null
-        : { status: r.status, markupPct: markup, request: r.request, raw: (r.raw || '').slice(0, 24000) };
+        : { status: r.status, markupPct: markup, hs: { lines: linesReq, extra: hsExtra, charge: hsCharge }, request: r.request, raw: (r.raw || '').slice(0, 24000) };
       db.createQuoteLog({
         card_id: card ? card.id : null, token: token || null, customer: card ? card.customer : null, mode: mode || 'import',
         sender_country: (sender && sender.country) || null, sender_company: (sender && sender.company) || null,
