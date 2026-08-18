@@ -69,12 +69,14 @@ function buildRateRequest(p) {
   const KG = { Code: 'KGS', Description: 'Kilograms' };
   const CM = { Code: 'CM', Description: 'Centimeters' };
 
+  // UPS packaging-type codes: 02 customer-supplied, 03 tube, 21 UPS Express Box, 30 pallet.
+  const PKG = { mine: '02', tube: '03', expressbox: '21', pallet: '30' };
   const Package = [];
   let totalWeight = 0;
   (p.packages || []).forEach((pk) => {
     const qty = Math.max(1, Math.floor(Number(pk.qty) || 1));
     const w = wStr(pk.weight);
-    const one = { PackagingType: { Code: '02' }, PackageWeight: { UnitOfMeasurement: KG, Weight: w } };
+    const one = { PackagingType: { Code: PKG[pk.packaging] || '02' }, PackageWeight: { UnitOfMeasurement: KG, Weight: w } };
     if (num(pk.l) && num(pk.w) && num(pk.h)) one.Dimensions = { UnitOfMeasurement: CM, Length: S(pk.l), Width: S(pk.w), Height: S(pk.h) };
     for (let i = 0; i < qty; i++) { Package.push(JSON.parse(JSON.stringify(one))); totalWeight += Number(w); }
   });

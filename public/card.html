@@ -192,7 +192,9 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .iparcel{border:1px solid var(--line);border-radius:12px;padding:12px 12px 14px;margin-bottom:10px;position:relative;background:#fff}
 .iparcel .pbadge{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px;display:block}
 .iparcel .f{margin:0}
-.iparcel .f input{width:100%}
+.iparcel .f input,.iparcel .f select{width:100%}
+.ippack{margin-bottom:12px;max-width:340px}
+.iparcel .f input.ipfix{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 .rmP{position:absolute;top:8px;right:8px;border:1px solid var(--line);background:#fff;border-radius:8px;width:26px;height:26px;cursor:pointer;color:#64748b;line-height:1;font-size:16px}
 .rmP:hover{background:#FEF2F2;color:#B91C1C;border-color:#fecaca}
 .addP{border:1px dashed #cbd5e1;background:#f8fafc;color:var(--brand);font-weight:800;font-size:13px;border-radius:10px;padding:10px 14px;cursor:pointer;font-family:inherit}
@@ -340,8 +342,9 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
       <div class="phead"><span class="pn">2</span><h3>Packages</h3><span class="sub">Add each parcel size — set how many of each.</span></div>
       <div id="iparcels"></div>
       <button type="button" class="addP" id="iaddParcel">＋ Add another parcel</button>
-      <div class="pfields" style="margin-top:14px;max-width:420px">
+      <div class="pfields" style="margin-top:14px;max-width:520px">
         <div class="f"><label>Total goods value (£)</label><input id="igoods" type="number" min="0" step="1" placeholder="e.g. 250"/></div>
+        <div class="f"><label>HS / tariff lines <span class="abhint">— first 5 free, £2.95 each after</span></label><input id="ihslines" type="number" min="0" step="1" value="5" placeholder="e.g. 5"/></div>
       </div>
       <div class="isum" id="isummary"></div>
     </div>
@@ -705,6 +708,12 @@ let ipc=0;
 function iparcelHTML(i){return '<div class="iparcel" data-i="'+i+'">'
   +(i>0?'<button type="button" class="rmP" title="Remove">×</button>':'')
   +'<span class="pbadge">Parcel '+(i+1)+'</span>'
+  +'<div class="f ippack"><label>Packaging</label><select class="ipkg">'
+    +'<option value="mine">My Packaging — enter dimensions</option>'
+    +'<option value="tube">UPS Tube — 97 × 17 × 17 cm</option>'
+    +'<option value="expressbox">UPS Express Box — 46 × 32 × 10 cm</option>'
+    +'<option value="pallet">Pallet — enter dimensions</option>'
+    +'</select></div>'
   +'<div class="ipgrid">'
   +'<div class="f"><label>How many</label><input type="number" class="ipq" min="1" step="1" value="1"/></div>'
   +'<div class="f"><label>Weight (kg)</label><input type="number" class="ipw" min="0" step="0.1" value="5"/></div>'
@@ -712,8 +721,19 @@ function iparcelHTML(i){return '<div class="iparcel" data-i="'+i+'">'
   +'<div class="f"><label>Width (cm)</label><input type="number" class="ipwd" min="0" step="1"/></div>'
   +'<div class="f"><label>Height (cm)</label><input type="number" class="iph" min="0" step="1"/></div>'
   +'</div></div>';}
+function applyPackaging(el){
+  const v=el.querySelector('.ipkg').value;
+  const L=el.querySelector('.ipl'),W=el.querySelector('.ipwd'),H=el.querySelector('.iph');
+  const wasFixed=L.disabled;
+  const fixed=(a,b,c)=>{[[L,a],[W,b],[H,c]].forEach(([x,n])=>{x.value=n;x.disabled=true;x.classList.add('ipfix');});};
+  const free=()=>{[L,W,H].forEach(x=>{x.disabled=false;x.classList.remove('ipfix');});if(wasFixed){L.value='';W.value='';H.value='';}};
+  if(v==='tube')fixed(97,17,17);
+  else if(v==='expressbox')fixed(46,32,10);
+  else free(); // My Packaging or Pallet: free entry
+}
 function iaddParcel(){const box=$('iparcels');const d=document.createElement('div');d.innerHTML=iparcelHTML(ipc++);const el=d.firstChild;box.appendChild(el);
   el.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',irecalc));
+  const pk=el.querySelector('.ipkg');if(pk)pk.addEventListener('change',()=>applyPackaging(el));
   const rm=el.querySelector('.rmP');if(rm)rm.addEventListener('click',()=>{el.remove();irenumber();irecalc();});
   irecalc();}
 function irenumber(){[...document.querySelectorAll('#iparcels .iparcel')].forEach((el,i)=>{el.querySelector('.pbadge').textContent='Parcel '+(i+1);});}
@@ -723,10 +743,11 @@ function ival(id){const el=$(id);return el?(el.value||'').trim():'';}
 function icollect(){
   const parcels=[...document.querySelectorAll('#iparcels .iparcel')].map(el=>({
     qty:parseFloat(el.querySelector('.ipq').value)||1,weight:parseFloat(el.querySelector('.ipw').value)||0,
-    l:parseFloat(el.querySelector('.ipl').value)||0,w:parseFloat(el.querySelector('.ipwd').value)||0,h:parseFloat(el.querySelector('.iph').value)||0}));
+    l:parseFloat(el.querySelector('.ipl').value)||0,w:parseFloat(el.querySelector('.ipwd').value)||0,h:parseFloat(el.querySelector('.iph').value)||0,
+    packaging:(el.querySelector('.ipkg')?el.querySelector('.ipkg').value:'mine')}));
   const g=k=>({country:ival(k+'country'),company:ival(k+'company'),name:ival(k+'name'),line1:ival(k+'line1'),line2:ival(k+'line2'),city:ival(k+'city'),postcode:ival(k+'postcode'),phone:ival(k+'phone'),email:ival(k+'email')});
   const sender=g('is_'); sender.country=senderIso; // ISO from the searchable combo
-  return {mode:'import',token:curToken,sender,receiver:g('ir_'),packages:parcels,value:parseFloat(ival('igoods'))||0,currency:'GBP'};
+  return {mode:'import',token:curToken,sender,receiver:g('ir_'),packages:parcels,value:parseFloat(ival('igoods'))||0,currency:'GBP',hsLines:parseInt(ival('ihslines'),10)||0};
 }
 function imoney(v){return '£'+Number(v).toFixed(2);}
 function ieta(d){if(d==null)return 'Transit estimate on request';if(d<=1)return '1 business day';return d+' business days';}
@@ -753,7 +774,11 @@ async function igetQuotes(){
   try{
     const res=await fetch('/api/import-quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(icollect())});
     const d=await res.json();
-    if(d&&d.enabled&&Array.isArray(d.services)){irender(d.services);}
+    if(d&&d.enabled&&Array.isArray(d.services)){irender(d.services);
+      const hs=d.hs;
+      if(hs&&hs.charge>0)$('iresnote').innerHTML='Cheapest first — every price includes your agreed rate and a <b>'+imoney(hs.charge)+'</b> customs entry charge ('+hs.extra+' tariff line'+(hs.extra===1?'':'s')+' over the '+hs.free+' free).';
+      else $('iresnote').textContent='Cheapest first — every price includes your agreed rate. First '+((hs&&hs.free!=null)?hs.free:5)+' HS/tariff lines are free.';
+    }
     else{$('iresults').style.display='block';$('iqcards').innerHTML='<div class="note">Live quoting isn\'t available right now — please contact us and we\'ll quote you directly.</div>';}
   }catch(e){$('iresults').style.display='block';$('iqcards').innerHTML='<div class="note">Sorry — we couldn\'t fetch a quote just now. Please try again in a moment.</div>';}
   btn.disabled=false;btn.textContent=old;
