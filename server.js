@@ -6,6 +6,7 @@ const auth = require('./auth');
 const pricing = require('./pricing');
 const { fetchPickups, fetchPickupsRaw } = require('./pickups');
 const ups = require('./ups');
+const { nameToIso } = require('./countries');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -343,6 +344,50 @@ app.post('/api/import-quote', async (req, res) => {
     } catch (e) { console.error('[quotelog]', e.message); }
   } catch (e) { res.status(502).json({ error: e.message }); }
 });
+// PUBLIC: live outbound (export) UPS pricing for a customer's rate card. Token-authorized;
+// returns the customer's SELL price (their per-service markup applied) plus a markup-scaled
+// charge breakdown — never raw cost. Falls back to enabled:false so the card uses static rates.
+const MOOV_ORIGIN = { country: 'GB', postcode: 'SY11 4FN', city: 'Whittington', line1: '1 Mellor Meadows', name: 'MOOV Parcel' };
+const CODE2KEY = { '11': 'us', '65': 'ux' }; // UPS Standard -> us · Worldwide (Express) Saver -> ux
+app.post('/api/card-rate', async (req, res) => {
+  try {
+    const { token, country, postcode, weight, l, w, h } = req.body || {};
+    if (!country || !token || !db.hasDb) return res.json({ enabled: false, services: [] });
+    const card = await db.getCardByToken(token);
+    if (!card || card.enabled === false) return res.json({ enabled: false, services: [] });
+    const iso = nameToIso(country);
+    if (!iso) return res.json({ enabled: false, services: [] }); // unknown country name → card uses static
+    const mkObj = (card.config && card.config.markup) || {};
+    const markupOf = (key) => (typeof mkObj === 'number' ? mkObj : (Number(mkObj[key]) || 0));
+
+    const r = await ups.quoteRates({
+      mode: 'export', sender: MOOV_ORIGIN,
+      receiver: { country: iso, postcode: postcode || '' },
+      packages: [{ qty: 1, weight: weight || 1, l, w, h }], value: 100, currency: 'GBP',
+    });
+    if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
+
+    const services = [];
+    (r.services || []).forEach((s) => {
+      const key = CODE2KEY[s.code]; if (!key) return;
+      const factor = 1 + markupOf(key) / 100;
+      const bd = s.breakdown || {};
+      // Scale published components into sell terms so the breakdown reconciles to the sell total:
+      // sellComponent = publishedComponent × (negotiated/published) × (1 + markup).
+      const np = (bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1;
+      const scale = (v) => (v == null ? null : Math.round(v * np * factor * 100) / 100);
+      const accessorials = (bd.accessorials || []).map((a) => ({ name: a.name, amt: scale(a.amt), remote: !!a.remote })).filter((a) => a.amt > 0);
+      services.push({
+        key, code: s.code, name: s.name, days: s.days,
+        price: Math.round(s.cost * factor * 100) / 100,
+        base: scale(bd.base), fuel: scale(bd.fuel), accessorials,
+        remote: accessorials.some((a) => a.remote),
+      });
+    });
+    res.json({ enabled: true, postcodeUsed: !!(postcode && String(postcode).trim()), services });
+  } catch (e) { res.json({ enabled: false, error: e.message, services: [] }); }
+});
+
 // ADMIN/SALES: quote reporting — the log and the daily stats.
 app.get('/api/quotes', auth.requireAuth, async (req, res) => {
   try { res.json({ quotes: await db.listQuoteLogs({ q: req.query.q, from: req.query.from, to: req.query.to, limit: req.query.limit }) }); }

@@ -122,6 +122,37 @@ function daysOf(rs) {
   return null;
 }
 
+// Friendly names for the itemised charge codes UPS returns; codes flagged remote are
+// delivery/extended/remote-area surcharges we want to surface explicitly.
+const CHG = {
+  '375': 'Fuel surcharge', '270': 'Residential surcharge', '100': 'Additional handling',
+  '110': 'Large package surcharge', '120': 'Over-maximum-limits', '190': 'Delivery area surcharge',
+  '195': 'Extended area surcharge', '197': 'Remote area surcharge', '199': 'Remote area surcharge',
+  '400': 'Remote area surcharge', '401': 'Extended area surcharge', '260': 'Signature required',
+};
+const chgName = (c) => CHG[c] || ('Accessorial ' + c);
+const REMOTE = ['190', '195', '197', '199', '400', '401'];
+const isRemote = (c) => REMOTE.indexOf(String(c)) >= 0;
+
+// Per-service charge breakdown: base, fuel (code 375), other accessorials, and totals.
+function breakdownOf(rs) {
+  let items = rs.ItemizedCharges || [];
+  if (!Array.isArray(items)) items = items ? [items] : [];
+  let fuel = 0; const acc = [];
+  items.forEach((it) => {
+    const code = String(it.Code || ''); const amt = num(it.MonetaryValue) || 0;
+    if (code === '375') fuel += amt;
+    else if (amt > 0) acc.push({ code, name: chgName(code), amt, remote: isRemote(code) });
+  });
+  return {
+    base: rs.BaseServiceCharge ? num(rs.BaseServiceCharge.MonetaryValue) : null,
+    fuel,
+    accessorials: acc,
+    pubTotal: rs.TotalCharges ? num(rs.TotalCharges.MonetaryValue) : null,
+    negTotal: (rs.NegotiatedRateCharges && rs.NegotiatedRateCharges.TotalCharge) ? num(rs.NegotiatedRateCharges.TotalCharge.MonetaryValue) : null,
+  };
+}
+
 function parseRates(data) {
   const rr = (data && data.RateResponse) || {};
   let list = rr.RatedShipment || [];
@@ -129,7 +160,7 @@ function parseRates(data) {
   return list.map((rs) => {
     const c = costOf(rs);
     const code = (rs.Service && rs.Service.Code) || '';
-    return { code, name: svcName(code), cost: c.value, currency: c.currency, days: daysOf(rs) };
+    return { code, name: svcName(code), cost: c.value, currency: c.currency, days: daysOf(rs), breakdown: breakdownOf(rs) };
   }).filter((s) => s.cost != null).sort((a, b) => a.cost - b.cost);
 }
 
