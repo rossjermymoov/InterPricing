@@ -317,10 +317,56 @@ app.post('/api/import-quote', async (req, res) => {
     const linesReq = Math.max(0, Math.floor(Number(hsLines) || 0));
     const hsExtra = Math.max(0, linesReq - hsFree);
     const hsCharge = Math.round(hsExtra * hsPerLine * 100) / 100;
-    const services = (r.services || []).map((s) => ({
-      code: s.code, name: s.name, days: s.days, currency: s.currency,
-      price: Math.round((s.cost * (1 + markup / 100) + hsCharge) * 100) / 100,
-    }));
+
+    // Custom surcharges from settings (Disbursement fee, US merchant processing fee, etc.)
+    const configuredAcc = Array.isArray(st.accessorials) ? st.accessorials : [];
+    const isUsLane = (c) => {
+      const u = String(c || '').trim().toUpperCase();
+      return u === 'US' || u === 'USA' || u === 'UNITED STATES';
+    };
+    const isUsShipment = isUsLane(sender && sender.country) || isUsLane(receiver && receiver.country);
+
+    const customSurcharges = [];
+    configuredAcc.filter((a) => (a.applyTo || '').toLowerCase() === 'ups').forEach((a) => {
+      const net = Math.round((a.list || 0) * (1 - (a.disc || 0) / 100) * 100) / 100;
+      if (a.cond === 'always') {
+        customSurcharges.push({ key: a.key, name: a.name || 'Disbursement fee', amt: net });
+      } else if (a.cond === 'countryIn' && isUsShipment && (a.countries || []).some((x) => isUsLane(x))) {
+        customSurcharges.push({ key: a.key, name: a.name || 'Merchant processing fee (USA)', amt: net });
+      }
+    });
+    const customSurTotal = customSurcharges.reduce((sum, x) => sum + x.amt, 0);
+
+    const services = (r.services || []).map((s) => {
+      const bd = s.breakdown || {};
+      const factor = 1 + markup / 100;
+      const np = bd.negotiated ? 1 : ((bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1);
+      const scale = (v) => (v == null ? null : Math.round(v * np * factor * 100) / 100);
+      const liveAcc = (bd.accessorials || []).map((a) => ({
+        code: a.code,
+        name: a.name,
+        amt: scale(a.amt),
+        remote: !!a.remote,
+      })).filter((a) => a.amt > 0);
+
+      const allSurcharges = [...liveAcc, ...customSurcharges];
+      if (hsCharge > 0) {
+        allSurcharges.push({ key: 'hs', name: 'HS customs entry (' + hsExtra + ' extra line' + (hsExtra === 1 ? '' : 's') + ')', amt: hsCharge });
+      }
+      const finalPrice = Math.round((s.cost * factor + customSurTotal + hsCharge) * 100) / 100;
+
+      return {
+        code: s.code,
+        name: s.name,
+        days: s.days,
+        currency: s.currency,
+        price: finalPrice,
+        base: scale(bd.base),
+        fuel: scale(bd.fuel),
+        surcharges: allSurcharges,
+        customSurcharges,
+      };
+    });
     res.json({ enabled: true, services, hs: { lines: linesReq, free: hsFree, extra: hsExtra, perLine: hsPerLine, charge: hsCharge } });
 
     // Log the quote (non-blocking; never affects the customer response).
@@ -351,7 +397,7 @@ const MOOV_ORIGIN = { country: 'GB', postcode: 'SY11 4FN', city: 'Whittington', 
 const CODE2KEY = { '11': 'us', '65': 'ux' }; // UPS Standard -> us · Worldwide (Express) Saver -> ux
 app.post('/api/card-rate', async (req, res) => {
   try {
-    const { token, country, postcode, weight, l, w, h } = req.body || {};
+    const { token, country, postcode, weight, l, w, h, residential, value } = req.body || {};
     if (!country || !token || !db.hasDb) return res.json({ enabled: false, services: [] });
     const card = await db.getCardByToken(token);
     if (!card || card.enabled === false) return res.json({ enabled: false, services: [] });
@@ -360,10 +406,11 @@ app.post('/api/card-rate', async (req, res) => {
     const mkObj = (card.config && card.config.markup) || {};
     const markupOf = (key) => (typeof mkObj === 'number' ? mkObj : (Number(mkObj[key]) || 0));
 
+    const goodsVal = Number(value) || 100;
     const r = await ups.quoteRates({
       mode: 'export', sender: MOOV_ORIGIN,
-      receiver: { country: iso, postcode: postcode || '' },
-      packages: [{ qty: 1, weight: weight || 1, l, w, h }], value: 100, currency: 'GBP',
+      receiver: { country: iso, postcode: postcode || '', residential: !!residential },
+      packages: [{ qty: 1, weight: weight || 1, l, w, h }], value: goodsVal, currency: 'GBP',
     });
     if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
 
@@ -377,7 +424,13 @@ app.post('/api/card-rate', async (req, res) => {
       // sellComponent = publishedComponent × (negotiated/published) × (1 + markup).
       const np = bd.negotiated ? 1 : ((bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1);
       const scale = (v) => (v == null ? null : Math.round(v * np * factor * 100) / 100);
-      const accessorials = (bd.accessorials || []).map((a) => ({ name: a.name, amt: scale(a.amt), remote: !!a.remote })).filter((a) => a.amt > 0);
+      const accessorials = (bd.accessorials || []).map((a) => ({
+        code: a.code,
+        name: a.name,
+        amt: scale(a.amt),
+        remote: !!a.remote,
+      })).filter((a) => a.amt > 0);
+
       services.push({
         key, code: s.code, name: s.name, days: s.days,
         price: Math.round(s.cost * factor * 100) / 100,
@@ -385,7 +438,7 @@ app.post('/api/card-rate', async (req, res) => {
         remote: accessorials.some((a) => a.remote),
       });
     });
-    res.json({ enabled: true, postcodeUsed: !!(postcode && String(postcode).trim()), services });
+    res.json({ enabled: true, postcodeUsed: !!(postcode && String(postcode).trim()), residentialUsed: !!residential, services });
   } catch (e) { res.json({ enabled: false, error: e.message, services: [] }); }
 });
 

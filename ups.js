@@ -43,13 +43,15 @@ const S = (v) => (v == null ? '' : String(v));
 
 function addressOf(a, fallbackCountry) {
   a = a || {};
-  return {
-    Address: {
-      AddressLine: [a.line1, a.line2].map(S).filter(Boolean),
-      City: S(a.city), PostalCode: S(a.postcode),
-      CountryCode: S(a.country || fallbackCountry).toUpperCase(),
-    },
+  const addr = {
+    AddressLine: [a.line1, a.line2].map(S).filter(Boolean),
+    City: S(a.city), PostalCode: S(a.postcode),
+    CountryCode: S(a.country || fallbackCountry).toUpperCase(),
   };
+  if (a.residential) {
+    addr.ResidentialAddressIndicator = 'Y';
+  }
+  return { Address: addr };
 }
 
 // Build the RateRequest from the import/export form payload.
@@ -125,12 +127,31 @@ function daysOf(rs) {
 // Friendly names for the itemised charge codes UPS returns; codes flagged remote are
 // delivery/extended/remote-area surcharges we want to surface explicitly.
 const CHG = {
-  '375': 'Fuel surcharge', '270': 'Residential surcharge', '100': 'Additional handling',
-  '110': 'Large package surcharge', '120': 'Over-maximum-limits', '190': 'Delivery area surcharge',
-  '195': 'Extended area surcharge', '197': 'Remote area surcharge', '199': 'Remote area surcharge',
-  '400': 'Remote area surcharge', '401': 'Extended area surcharge', '260': 'Signature required',
+  '375': 'Fuel Surcharge',
+  '270': 'Residential Surcharge',
+  '100': 'Additional Handling',
+  '110': 'Large Package Surcharge',
+  '120': 'Over Maximum Limits',
+  '190': 'Delivery Area Surcharge',
+  '195': 'Extended Area Surcharge',
+  '197': 'Remote Area Surcharge',
+  '199': 'Remote Area Surcharge',
+  '400': 'Remote Area Surcharge',
+  '401': 'Extended Area Surcharge',
+  '376': 'Delivery Area Surcharge',
+  '377': 'Large Package Surcharge',
+  '260': 'Signature Required',
+  '250': 'Adult Signature Required',
+  '280': 'Direct Delivery Only',
+  '300': 'Saturday Delivery',
+  '430': 'Peak / Demand Surcharge',
+  '441': 'Carbon Neutral Fee',
+  '510': 'Lift Gate for Pickup',
+  '511': 'Lift Gate for Delivery',
+  '520': 'Oversize Pallet Surcharge',
+  '573': 'International Processing Fee (US)',
 };
-const chgName = (c) => CHG[c] || ('Accessorial ' + c);
+const chgName = (c) => CHG[String(c)] || ('Accessorial ' + c);
 const REMOTE = ['190', '195', '197', '199', '400', '401'];
 const isRemote = (c) => REMOTE.indexOf(String(c)) >= 0;
 

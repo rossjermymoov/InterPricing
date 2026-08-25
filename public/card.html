@@ -454,11 +454,30 @@ function layoutCards(box){
   box.style.gridTemplateColumns='repeat('+Math.max(1,cols)+',minmax(0,1fr))';
 }
 // ---- live UPS pricing (outbound via the API), with static fallback ----
-function upsLaneKey(){return [curCountry,ival('pc'),num('wt'),num('L'),num('W'),num('H')].join('|');}
+const LIVE_CODE_TO_KEY = {
+  '270': 'residential',
+  '100': 'addlHandling',
+  '110': 'largePackage',
+  '377': 'largePackage',
+  '120': 'overMax',
+  '260': 'signature',
+  '250': 'adultSig',
+  '280': 'directDelivery',
+  '300': 'saturday',
+  '573': 'merchantProc',
+};
+function activeTogglesKey(){
+  const list=[];
+  document.querySelectorAll('#toggles input[type="checkbox"]').forEach(cb=>{if(cb.checked)list.push(cb.id);});
+  return list.sort().join(',');
+}
+function upsLaneKey(){return [curCountry,ival('pc'),num('wt'),num('L'),num('W'),num('H'),num('V'),activeTogglesKey()].join('|');}
 function scheduleUpsFetch(key,c){clearTimeout(upsTimer);upsTimer=setTimeout(()=>doUpsFetch(key,c),350);}
 function doUpsFetch(key,c){
   upsFetching=true;
-  const body={token:curToken,country:c,postcode:ival('pc'),weight:num('wt'),l:num('L'),w:num('W'),h:num('H')};
+  const resiEl=$('tg_residential');
+  const isResi=!!(resiEl&&resiEl.checked);
+  const body={token:curToken,country:c,postcode:ival('pc'),weight:num('wt'),l:num('L'),w:num('W'),h:num('H'),value:num('V'),residential:isResi};
   fetch('/api/card-rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
     .then(r=>r.json()).then(d=>{upsFetching=false;upsKey=key;upsData=d;if(upsLaneKey()===key)calc();})
     .catch(()=>{upsFetching=false;upsKey=key;upsData={enabled:false};if(upsLaneKey()===key)calc();});
@@ -503,7 +522,18 @@ function calc(){
     if(upsLoading)return {s,loading:true,total:null};
     if(upsReady&&upsReady.enabled){
       const live=(upsReady.services||[]).find(x=>x.key===s.key);
-      if(live)return {s,live:true,base:live.base,fuel:live.fuel,sur:(live.accessorials||[]).map(a=>({name:a.name,amt:a.amt,remote:a.remote})),total:live.price,days:live.days};
+      if(live){
+        const liveSur=(live.accessorials||[]).map(a=>({name:a.name,code:a.code,amt:a.amt,remote:a.remote}));
+        const coveredKeys=new Set(liveSur.map(a=>LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
+        const upsCustom=applicable.filter(a=>a.carrier.toLowerCase()==='ups').filter(a=>{
+          const k=a.key||a.group;
+          return !coveredKeys.has(k);
+        }).map(a=>({name:a.name,amt:Math.round(accAmount(a)*100)/100})).filter(x=>x.amt>0);
+        const mergedSur=[...liveSur,...upsCustom];
+        const surTotal=mergedSur.reduce((t,x)=>t+x.amt,0);
+        const total=Math.round((live.base+live.fuel+surTotal)*100)/100;
+        return {s,live:true,base:live.base,fuel:live.fuel,sur:mergedSur,total,days:live.days};
+      }
       return {s,r:{avail:true,note:'not available to '+c},total:null};
     }
     return staticRow(s,c,chg,applicable);   // API unavailable → static fallback
@@ -801,11 +831,21 @@ function irender(services){
   services.slice().sort((a,b)=>a.price-b.price).forEach((q,i)=>{
     const road=isRoad(q.code,q.name);const icon=road?ICON_LORRY:ICON_PLANE;const cls=road?'road':'air';
     const d=document.createElement('div');d.className='card'+(i===0?' win':'');
+    const surLines=(q.surcharges||[]).map(x=>`<div class="row${x.remote?' remote':''}"><span>${x.name}</span><span>${imoney(x.amt)}</span></div>`).join('');
+    const brkHTML=(q.base!=null||(q.surcharges&&q.surcharges.length))?(
+      `<div class="brk">`
+      +(q.base!=null?`<div class="row"><span>UPS rate</span><span>${imoney(q.base)}</span></div>`:'')
+      +(q.fuel!=null?`<div class="row"><span>Fuel</span><span>${imoney(q.fuel)}</span></div>`:'')
+      +surLines
+      +`<div class="row tot"><span>Total</span><span>${imoney(q.price)}</span></div>`
+      +`</div>`
+    ):'';
     d.innerHTML=(i===0?'<span class="badge">Best price</span>':'')
       +'<span class="cbadge ups">UPS</span>'
       +'<div class="svc">'+q.name+'</div>'
       +'<div class="price">'+imoney(q.price)+'</div>'
-      +'<div class="qeta '+cls+'"><span class="veh">'+icon+'</span><span><span class="days">'+ieta(q.days)+'</span><br><span class="dsub">'+(road?'Road service':'Air express')+' · duties &amp; VAT at import</span></span></div>';
+      +'<div class="qeta '+cls+'"><span class="veh">'+icon+'</span><span><span class="days">'+ieta(q.days)+'</span><br><span class="dsub">'+(road?'Road service':'Air express')+' · duties &amp; VAT at import</span></span></div>'
+      +brkHTML;
     box.appendChild(d);});
 }
 async function igetQuotes(){

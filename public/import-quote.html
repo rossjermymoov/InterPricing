@@ -233,18 +233,29 @@ function renderQuotes(services,live){
   if(!services.length){box.innerHTML='<div class="resnote">No UPS services returned for this lane — check the addresses and try again.</div>';}
   services.slice().sort((a,b)=>a.price-b.price).forEach((q,i)=>{
     const d=document.createElement('div');d.className='qcard'+(i===0?' win':'');
+    const surLines=(q.surcharges||[]).map(x=>`<div class="row${x.remote?' remote':''}"><span>${x.name}</span><span>${money(x.amt)}</span></div>`).join('');
+    const brkHTML=(q.base!=null||(q.surcharges&&q.surcharges.length))?(
+      `<div class="brk">`
+      +(q.base!=null?`<div class="row"><span>UPS rate</span><span>${money(q.base)}</span></div>`:'')
+      +(q.fuel!=null?`<div class="row"><span>Fuel</span><span>${money(q.fuel)}</span></div>`:'')
+      +surLines
+      +`<div class="row tot"><span>Total</span><span>${money(q.price)}</span></div>`
+      +`</div>`
+    ):(
+      `<div class="brk"><div class="row"><span>Delivery</span><span>${etaText(q.days)}</span></div>`
+      +`<div class="row"><span>Duties &amp; import VAT</span><span>at import</span></div></div>`
+    );
     d.innerHTML=(i===0?'<span class="qbadge">BEST PRICE</span>':'')
       +`<span class="cbadge ups">UPS</span>`
       +`<div class="svc">${q.name}</div><div class="eta">${etaText(q.days)}</div>`
-      +`<div class="price">${money(q.price)}</div><div class="unit">total incl. fuel · your markup applied</div>`
-      +`<div class="brk"><div class="row"><span>Delivery</span><span>${etaText(q.days)}</span></div>`
-      +`<div class="row"><span>Duties &amp; import VAT</span><span>at import</span></div></div>`
+      +`<div class="price">${money(q.price)}</div><div class="unit">total incl. fuel &amp; surcharges · your markup applied</div>`
+      +brkHTML
       +`<button type="button" class="pick">Select this service</button>`;
     box.appendChild(d);
   });
   $('exTag').style.display=live?'none':'';
   $('resnote').textContent=live
-    ?'Live UPS rates for this lane, cheapest first — every price includes your markup. Duties & import VAT are billed separately at import.'
+    ?'Live UPS rates for this lane, cheapest first — every price includes your markup and all applicable fees. Duties & import VAT are billed separately at import.'
     :'Example figures — add your UPS credentials in Railway to see live rates. Cheapest first; every price includes your markup.';
 }
 $('getQuotes').addEventListener('click',async()=>{
