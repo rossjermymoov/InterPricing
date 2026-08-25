@@ -394,7 +394,19 @@ app.post('/api/import-quote', async (req, res) => {
 // returns the customer's SELL price (their per-service markup applied) plus a markup-scaled
 // charge breakdown — never raw cost. Falls back to enabled:false so the card uses static rates.
 const MOOV_ORIGIN = { country: 'GB', postcode: 'SY11 4FN', city: 'Whittington', line1: '1 Mellor Meadows', name: 'MOOV Parcel' };
-const CODE2KEY = { '11': 'us', '65': 'ux' }; // UPS Standard -> us · Worldwide (Express) Saver -> ux
+const CODE2KEY = {
+  '01': 'u1',
+  '02': 'u2',
+  '03': 'ug',
+  '07': 'ue', // Worldwide Express
+  '08': 'ud', // Worldwide Expedited
+  '11': 'us', // Standard
+  '12': 'u3', // 3 Day Select
+  '54': 'up', // Worldwide Express Plus
+  '65': 'ux', // Worldwide Saver
+  '96': 'uf', // Worldwide Express Freight
+};
+
 app.post('/api/card-rate', async (req, res) => {
   try {
     const { token, country, postcode, weight, l, w, h, residential, value } = req.body || {};
@@ -404,7 +416,17 @@ app.post('/api/card-rate', async (req, res) => {
     const iso = nameToIso(country);
     if (!iso) return res.json({ enabled: false, services: [] }); // unknown country name → card uses static
     const mkObj = (card.config && card.config.markup) || {};
-    const markupOf = (key) => (typeof mkObj === 'number' ? mkObj : (Number(mkObj[key]) || 0));
+    const cfg = await db.getConfig();
+    const markupOf = (key, code) => {
+      if (typeof mkObj === 'number') return mkObj;
+      if (mkObj[key] != null && isFinite(Number(mkObj[key]))) return Number(mkObj[key]);
+      if (['07', '08', '54', '65', 'ue', 'ud', 'up', 'ux'].includes(key) || ['07', '08', '54', '65'].includes(code)) {
+        if (mkObj['ux'] != null && isFinite(Number(mkObj['ux']))) return Number(mkObj['ux']);
+      }
+      if (mkObj['us'] != null && isFinite(Number(mkObj['us']))) return Number(mkObj['us']);
+      if (mkObj.default != null && isFinite(Number(mkObj.default))) return Number(mkObj.default);
+      return Number((cfg.settings || {}).importMarkupPct) || 0;
+    };
 
     const goodsVal = Number(value) || 100;
     const r = await ups.quoteRates({
@@ -416,12 +438,10 @@ app.post('/api/card-rate', async (req, res) => {
 
     const services = [];
     (r.services || []).forEach((s) => {
-      const key = CODE2KEY[s.code]; if (!key) return;
-      const factor = 1 + markupOf(key) / 100;
+      const key = CODE2KEY[s.code] || ('ups_' + s.code);
+      const mk = markupOf(key, s.code);
+      const factor = 1 + mk / 100;
       const bd = s.breakdown || {};
-      // If UPS itemised the negotiated (discounted) charges, use them as-is (just add markup).
-      // Otherwise scale published components into negotiated terms so the breakdown still reconciles:
-      // sellComponent = publishedComponent × (negotiated/published) × (1 + markup).
       const np = bd.negotiated ? 1 : ((bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1);
       const scale = (v) => (v == null ? null : Math.round(v * np * factor * 100) / 100);
       const accessorials = (bd.accessorials || []).map((a) => ({
@@ -435,6 +455,73 @@ app.post('/api/card-rate', async (req, res) => {
         key, code: s.code, name: s.name, days: s.days,
         price: Math.round(s.cost * factor * 100) / 100,
         base: scale(bd.base), fuel: scale(bd.fuel), accessorials,
+        remote: accessorials.some((a) => a.remote),
+      });
+    });
+    res.json({ enabled: true, postcodeUsed: !!(postcode && String(postcode).trim()), residentialUsed: !!residential, services });
+  } catch (e) { res.json({ enabled: false, error: e.message, services: [] }); }
+});
+
+// PUBLIC/ADMIN: live quote endpoint for the main calculator (returns all live UPS services + cost & customer breakdowns).
+app.post('/api/calc-rate', async (req, res) => {
+  try {
+    const { country, postcode, weight, l, w, h, residential, value, markup } = req.body || {};
+    if (!country) return res.json({ enabled: false, services: [] });
+    const iso = nameToIso(country);
+    if (!iso) return res.json({ enabled: false, services: [] });
+
+    const cfg = await db.getConfig();
+    const st = cfg.settings || {};
+    const globalMarkup = Number(st.importMarkupPct) || 0;
+    const mkObj = (markup && typeof markup === 'object') ? markup : (typeof markup === 'number' ? markup : {});
+    const markupOf = (key, code) => {
+      if (typeof mkObj === 'number') return mkObj;
+      if (mkObj[key] != null && isFinite(Number(mkObj[key]))) return Number(mkObj[key]);
+      if (['07', '08', '54', '65', 'ue', 'ud', 'up', 'ux'].includes(key) || ['07', '08', '54', '65'].includes(code)) {
+        if (mkObj['ux'] != null && isFinite(Number(mkObj['ux']))) return Number(mkObj['ux']);
+      }
+      if (mkObj['us'] != null && isFinite(Number(mkObj['us']))) return Number(mkObj['us']);
+      if (mkObj.default != null && isFinite(Number(mkObj.default))) return Number(mkObj.default);
+      return globalMarkup;
+    };
+
+    const goodsVal = Number(value) || 100;
+    const r = await ups.quoteRates({
+      mode: 'export', sender: MOOV_ORIGIN,
+      receiver: { country: iso, postcode: postcode || '', residential: !!residential },
+      packages: [{ qty: 1, weight: weight || 1, l, w, h }], value: goodsVal, currency: 'GBP',
+    });
+    if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
+
+    const services = [];
+    (r.services || []).forEach((s) => {
+      const key = CODE2KEY[s.code] || ('ups_' + s.code);
+      const mk = markupOf(key, s.code);
+      const factor = 1 + mk / 100;
+      const bd = s.breakdown || {};
+      const np = bd.negotiated ? 1 : ((bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1);
+      const scale = (v) => (v == null ? null : Math.round(v * np * factor * 100) / 100);
+      const scaleCost = (v) => (v == null ? null : Math.round(v * np * 100) / 100);
+
+      const accessorials = (bd.accessorials || []).map((a) => ({
+        code: a.code,
+        name: a.name,
+        costAmt: scaleCost(a.amt),
+        amt: scale(a.amt),
+        remote: !!a.remote,
+      })).filter((a) => a.amt > 0);
+
+      services.push({
+        key, code: s.code, name: s.name, days: s.days,
+        costPrice: Math.round(s.cost * np * 100) / 100,
+        costBase: scaleCost(bd.base),
+        costFuel: scaleCost(bd.fuel),
+        sellPrice: Math.round(s.cost * factor * 100) / 100,
+        sellBase: scale(bd.base),
+        sellFuel: scale(bd.fuel),
+        markupPct: mk,
+        markupAmt: Math.round(((s.cost * factor) - (s.cost * np)) * 100) / 100,
+        accessorials,
         remote: accessorials.some((a) => a.remote),
       });
     });

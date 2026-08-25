@@ -517,12 +517,18 @@ function calc(){
   const upsLoading=hasUps&&chg>0&&!upsReady;
   if(upsLoading&&!upsFetching)scheduleUpsFetch(key,c);
 
-  let rows=svcList.map(s=>{
-    if(s.carrier.toLowerCase()!=='ups')return staticRow(s,c,chg,applicable);   // DPD
-    if(upsLoading)return {s,loading:true,total:null};
-    if(upsReady&&upsReady.enabled){
-      const live=(upsReady.services||[]).find(x=>x.key===s.key);
-      if(live){
+  let rows=[];
+  const dpdServices=svcList.filter(s=>s.carrier.toLowerCase()!=='ups');
+  dpdServices.forEach(s=>{
+    const r=staticRow(s,c,chg,applicable);
+    if(r&&r.total!=null)rows.push(r);
+  });
+
+  if(hasUps){
+    if(upsLoading){
+      rows.push({s:{key:'ups',name:'UPS',carrier:'UPS'},loading:true,total:null});
+    }else if(upsReady&&upsReady.enabled){
+      (upsReady.services||[]).forEach(live=>{
         const liveSur=(live.accessorials||[]).map(a=>({name:a.name,code:a.code,amt:a.amt,remote:a.remote}));
         const coveredKeys=new Set(liveSur.map(a=>LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
         const upsCustom=applicable.filter(a=>a.carrier.toLowerCase()==='ups').filter(a=>{
@@ -532,12 +538,28 @@ function calc(){
         const mergedSur=[...liveSur,...upsCustom];
         const surTotal=mergedSur.reduce((t,x)=>t+x.amt,0);
         const total=Math.round((live.base+live.fuel+surTotal)*100)/100;
-        return {s,live:true,base:live.base,fuel:live.fuel,sur:mergedSur,total,days:live.days};
-      }
-      return {s,r:{avail:true,note:'not available to '+c},total:null};
+        rows.push({
+          s:{key:live.key,name:live.name,carrier:'UPS'},
+          live:true,
+          base:live.base,
+          fuel:live.fuel,
+          sur:mergedSur,
+          total,
+          days:live.days,
+        });
+      });
+    }else{
+      // Fallback to static UPS services if API is not responding
+      const staticUps=svcList.filter(s=>s.carrier.toLowerCase()==='ups');
+      staticUps.forEach(s=>{
+        const r=staticRow(s,c,chg,applicable);
+        if(r&&r.total!=null)rows.push(r);
+      });
     }
-    return staticRow(s,c,chg,applicable);   // API unavailable → static fallback
-  }).filter(x=>x.loading||x.live||(x.r&&x.r.avail));
+  }
+
+  // Filter out any unavailable services so no n/a cards are rendered
+  rows=rows.filter(x=>x.loading||(x.total!=null&&x.total>0));
   rows.sort((a,b)=>(a.total==null)-(b.total==null)||((a.total==null||b.total==null)?0:a.total-b.total));
   const totals=rows.filter(x=>x.total!=null).map(x=>x.total);
   const min=totals.length?Math.min(...totals):null;

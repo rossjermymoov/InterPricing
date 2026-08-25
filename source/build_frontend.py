@@ -327,6 +327,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
 <div class="panel">
 <div class="calcrow">
   <div class="f country"><label>Destination</label><select id="country"></select></div>
+  <div class="f small"><label>Postcode</label><input id="postcode" type="text" placeholder="e.g. 90210" style="width:110px"/></div>
   <div class="f small"><label>Weight (kg)</label><input id="wt" type="number" min="0" step="0.1" value="5"/></div>
   <div class="f small"><label>Length (cm)</label><input id="L" type="number" min="0" step="1"/></div>
   <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
@@ -402,20 +403,71 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
       <div class="f cf2"><label>Email</label><input id="custEmail" type="text"/></div>
     </div>
     <div class="cfactions">
-      <button class="btn primary" id="custSave">Create customer link</button>
-      <span class="ok" id="custMsg"></span>
+      <button class="btn primary" id="custCreateBtn">Create customer link</button>
+      <span class="err" id="custErr" style="margin:0"></span>
+      <span class="ok" id="custOk" style="margin:0"></span>
     </div>
   </div>
-  <div style="margin-top:16px">
-    <input id="custSearch" placeholder="Search customers…" style="width:100%;max-width:320px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;margin-bottom:8px"/>
-    <div style="overflow:auto"><table class="utable"><thead><tr><th>Customer</th><th>Private link</th><th>Created by</th><th>Status</th><th></th></tr></thead><tbody id="custBody"></tbody></table></div>
-    <div id="custEmpty" class="chartnote" style="margin-top:8px"></div>
+  <div style="margin-top:20px;overflow:auto">
+    <table class="utable" id="custTable" style="display:none">
+      <thead><tr><th>Created</th><th>Customer</th><th>Services</th><th>Markup</th><th>Postcode</th><th>Status</th><th>Link</th><th></th></tr></thead>
+      <tbody id="custBody"></tbody>
+    </table>
+    <div id="custEmpty" class="chartnote" style="display:none">No customer links created yet. Fill the form above and click Create.</div>
   </div>
 </div>
 </div>
 
 </div>
 <script>
+const LIVE_CODE_TO_KEY = {
+  '270': 'residential',
+  '100': 'addlHandling',
+  '110': 'largePackage',
+  '377': 'largePackage',
+  '120': 'overMax',
+  '260': 'signature',
+  '250': 'adultSig',
+  '280': 'directDelivery',
+  '300': 'saturday',
+  '573': 'merchantProc',
+};
+let upsKey=null, upsData=null, upsTimer=null, upsFetching=false;
+function activeTogglesKey(){
+  const list=[];
+  document.querySelectorAll('#toggles input[type="checkbox"]').forEach(cb=>{if(cb.checked)list.push(cb.id);});
+  return list.sort().join(',');
+}
+function upsLaneKey(){
+  const pc=$('postcode')?$('postcode').value.trim():'';
+  return [csel.value, pc, num('wt'), num('L'), num('W'), num('H'), num('goodsValue'), activeTogglesKey()].join('|');
+}
+function scheduleUpsFetch(key,c){
+  clearTimeout(upsTimer);
+  upsTimer=setTimeout(()=>doUpsFetch(key,c),350);
+}
+function doUpsFetch(key,c){
+  upsFetching=true;
+  const pc=$('postcode')?$('postcode').value.trim():'';
+  const resiEl=$('acc_residential')||$('acc_residential_dpd');
+  const isResi=!!(resiEl&&resiEl.checked);
+  const mkObj={};
+  SERVICES.forEach(s=>{mkObj[s.key]=markupPct(s);});
+  mkObj.default=num('mkGlobal');
+  const body={
+    country:c,
+    postcode:pc,
+    weight:num('wt'),
+    l:num('L'), w:num('W'), h:num('H'),
+    value:num('goodsValue'),
+    residential:isResi,
+    markup:mkObj,
+  };
+  fetch('/api/calc-rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    .then(r=>r.json()).then(d=>{upsFetching=false;upsKey=key;upsData=d;if(upsLaneKey()===key)calc();})
+    .catch(()=>{upsFetching=false;upsKey=key;upsData={enabled:false};if(upsLaneKey()===key)calc();});
+}
+
 let P, bands, CAPS, current=null, authEnabled=false, ACTIVE=[];
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const CARRIER_LOGOS={dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
@@ -515,49 +567,131 @@ function calc(){
   $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
   $('driver').textContent=!chg?'—':(vol>actual?'Volumetric weight':'Actual weight');
-  const rows=SERVICES.filter(svc=>!(svc.key==='ep'&&region(c)==='eu'&&chg>CAPS.ep)).map(svc=>{const b=baseRate(svc,c,chg);return{svc,b,built:build(b.price,svc)};}).filter(x=>x.b.avail);
-  const sells=rows.filter(x=>x.b.price!=null).map(x=>x.built.sell);
+
+  const key=upsLaneKey();
+  const upsReady=(upsKey===key)?upsData:null;
+  const upsLoading=chg>0&&!upsReady;
+  if(upsLoading&&!upsFetching)scheduleUpsFetch(key,c);
+
+  let rows=[];
+
+  // 1. DPD services (static)
+  SERVICES.filter(svc=>svc.carrier==='dpd'&&!(svc.key==='ep'&&region(c)==='eu'&&chg>CAPS.ep)).forEach(svc=>{
+    const b=baseRate(svc,c,chg);
+    if(b.avail&&b.price!=null){
+      const built=build(b.price,svc);
+      if(built&&built.sell!=null) rows.push({svc,b,built});
+    }
+  });
+
+  // 2. UPS services (Live when ready, fallback to static)
+  if(upsLoading){
+    rows.push({svc:{key:'ups',name:'UPS',carrier:'ups',color:UPS_COLOR},loading:true,built:{sell:null}});
+  }else if(upsReady&&upsReady.enabled){
+    (upsReady.services||[]).forEach(live=>{
+      const liveSur=(live.accessorials||[]).map(a=>({name:a.name,code:a.code,costAmt:a.costAmt,amt:a.amt,remote:a.remote}));
+      const coveredKeys=new Set(liveSur.map(a=>LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
+      const upsCustom=ACTIVE.filter(a=>a.applyTo==='ups').filter(a=>{
+        const k=a.key||a.group;
+        return !coveredKeys.has(k);
+      }).map(a=>({name:a.name,costAmt:Math.round(accVal(a)*100)/100,amt:Math.round(accVal(a)*100)/100})).filter(x=>x.amt>0);
+
+      const mergedSur=[...liveSur,...upsCustom];
+      const costSurTotal=mergedSur.reduce((t,x)=>t+(x.costAmt||x.amt||0),0);
+      const sellSurTotal=mergedSur.reduce((t,x)=>t+(x.amt||0),0);
+
+      const totalCost=Math.round(((live.costBase||0)+(live.costFuel||0)+costSurTotal)*100)/100;
+      const totalSell=Math.round(((live.sellBase||0)+(live.sellFuel||0)+sellSurTotal)*100)/100;
+
+      const flatExtras=mergedSur.map(x=>[x.name,x.amt]);
+      const built={
+        live:true,
+        days:live.days,
+        raw:live.costBase,
+        fc:(live.costBase?(live.costFuel/live.costBase*100):0),
+        fs:(live.sellBase?(live.sellFuel/live.sellBase*100):0),
+        costFuel:live.costFuel,
+        sellFuel:live.sellFuel,
+        totalCost,
+        mk:live.markupPct,
+        markupAmt:live.markupAmt,
+        sell:totalSell,
+        cost:totalCost,
+        fuelExtras:[],
+        flatExtras,
+      };
+      rows.push({
+        svc:{key:live.key,name:live.name,carrier:'ups',color:UPS_COLOR},
+        b:{price:live.costPrice,avail:true,live:true},
+        built,
+        live:true,
+        days:live.days,
+      });
+    });
+  }else{
+    // Fallback to static UPS services
+    SERVICES.filter(svc=>svc.carrier==='ups').forEach(svc=>{
+      const b=baseRate(svc,c,chg);
+      if(b.avail&&b.price!=null){
+        const built=build(b.price,svc);
+        if(built&&built.sell!=null) rows.push({svc,b,built});
+      }
+    });
+  }
+
+  // Filter out unavailable services (no n/a cards)
+  rows=rows.filter(x=>x.loading||(x.built&&x.built.sell!=null&&x.built.sell>0));
+  rows.sort((a,b)=>((a.built.sell==null)-(b.built.sell==null))||((a.built.sell==null||b.built.sell==null)?0:a.built.sell-b.built.sell));
+
+  const sells=rows.filter(x=>x.built&&x.built.sell!=null).map(x=>x.built.sell);
   const min=sells.length?Math.min(...sells):null,max=sells.length?Math.max(...sells):null;
   const R=$('results');R.innerHTML='';
-  rows.forEach(({svc,b,built})=>{
+  rows.forEach(({svc,b,built,loading,live,days})=>{
     const d=document.createElement('div');let cls='res';
-    if(b.price==null)cls+=' na';
-    else if(built.sell===min&&sells.length>1)cls+=' win';
+    if(loading){
+      d.className=cls+' na loadcard';
+      d.innerHTML=`<div class="car">${carrierLogo(svc.carrier)}<span>${svc.name}</span></div><div class="pr"><span class="spin"></span></div><div class="sub">getting live UPS rates…</div>`;
+      R.appendChild(d);return;
+    }
+    if(built.sell===min&&sells.length>1)cls+=' win';
     else if(built.sell===max&&sells.length>1)cls+=' lose';else cls+=' mid';
     d.className=cls;
-    const head=`<div class="car">${carrierLogo(svc.carrier)}<span>${svc.name}</span></div>`;
-    if(b.price==null)d.innerHTML=head+`<div class="pr">n/a</div><div class="brk">${b.note||'no rate'}</div>`;
-    else{const badge=(built.sell===min&&sells.length>1)?'<span class="badge">CHEAPEST</span>':'';
-      const bt=typeof b.band==='number'?b.band+' kg':b.band;
-      const fuelLines=built.fuelExtras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');
-      const flatLines=built.flatExtras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');
-      d.innerHTML=badge+head+`<div class="pr">${money(built.sell)}</div><div class="sub">customer price</div>
-        <div class="brk">
-          <div class="blk">Cost</div>
-          <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
-          ${fuelLines}
-          <div class="row"><span>Fuel (${built.fc.toFixed(1)}%)</span><span>${money(built.costFuel)}</span></div>
-          ${flatLines}
-          <div class="row tot"><span>Total cost price</span><span>${money(built.totalCost)}</span></div>
-          <div class="blk">Customer</div>
-          <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
-          ${fuelLines}
-          <div class="row"><span>Fuel (${built.fs.toFixed(1)}%)</span><span>${money(built.sellFuel)}</span></div>
-          ${built.mk?`<div class="row"><span>Markup (${built.mk.toFixed(0)}%)</span><span>${money(built.markupAmt)}</span></div>`:''}
-          ${flatLines}
-          <div class="row tot"><span>Total customer price</span><span>${money(built.sell)}</span></div>
-          ${EU_CD?`<div class="row" style="margin-top:5px;color:#9d174d;font-weight:800"><span>EU customs duty</span><span>€${EU_CD.eur.toFixed(2)}</span></div><div style="font-size:10px;color:var(--muted);font-weight:600;white-space:nowrap">${EU_CD.sku} item${EU_CD.sku>1?'s':''} × €${EU_CD.perSku} · paid at import</div>`:''}
-        </div>`;}
+    const etaStr=(live&&days!=null)?(' · '+days+' business day'+(days===1?'':'s')):'';
+    const head=`<div class="car">${carrierLogo(svc.carrier)}<span>${svc.name}${live?' <span class="tagpill" style="background:#dcfce7;color:#15803d;margin-left:4px">live</span>':''}</span></div>`;
+    const badge=(built.sell===min&&sells.length>1)?'<span class="badge">CHEAPEST</span>':'';
+    const bt=live?'UPS live':(typeof (b&&b.band)==='number'?(b.band+' kg'):(b&&b.band));
+    const fuelLines=built.fuelExtras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');
+    const flatLines=built.flatExtras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');
+    d.innerHTML=badge+head+`<div class="pr">${money(built.sell)}</div><div class="sub">customer price${etaStr}</div>
+      <div class="brk">
+        <div class="blk">Cost</div>
+        <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
+        ${fuelLines}
+        <div class="row"><span>Fuel (${built.fc.toFixed(1)}%)</span><span>${money(built.costFuel)}</span></div>
+        ${flatLines}
+        <div class="row tot"><span>Total cost price</span><span>${money(built.totalCost)}</span></div>
+        <div class="blk">Customer</div>
+        <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
+        ${fuelLines}
+        <div class="row"><span>Fuel (${built.fs.toFixed(1)}%)</span><span>${money(built.sellFuel)}</span></div>
+        ${built.mk?`<div class="row"><span>Markup (${built.mk.toFixed(0)}%)</span><span>${money(built.markupAmt)}</span></div>`:''}
+        ${flatLines}
+        <div class="row tot"><span>Total customer price</span><span>${money(built.sell)}</span></div>
+        ${EU_CD?`<div class="row" style="margin-top:5px;color:#9d174d;font-weight:800"><span>EU customs duty</span><span>€${EU_CD.eur.toFixed(2)}</span></div><div style="font-size:10px;color:var(--muted);font-weight:600;white-space:nowrap">${EU_CD.sku} item${EU_CD.sku>1?'s':''} × €${EU_CD.perSku} · paid at import</div>`:''}
+      </div>`;
     R.appendChild(d);
   });
   wireLogos(R);
   const v=$('verdict');
   if(!chg)v.innerHTML='Enter a weight to compare.';
-  else if(sells.length<2)v.innerHTML=`Only one priced service for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>.`;
-  else{const w=rows.find(x=>x.b.price!=null&&x.built.sell===min);
+  else if(sells.length<1)v.innerHTML=`No available services found for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>.`;
+  else if(sells.length<2)v.innerHTML=`Only one priced service for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>: <b>${rows[0].svc.name}</b> (customer ${money(rows[0].built.sell)}, cost ${money(rows[0].built.totalCost)}).`;
+  else{
+    const w=rows.find(x=>x.built&&x.built.sell===min);
     const tags=ACTIVE.map(a=>a.name);
     const o=sells.filter(p=>p!==min).sort((a,b)=>a-b),nb=o[0],save=nb-min,pct=save/nb*100;
-    v.innerHTML=`Cheapest for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>${tags.length?' ('+tags.join(', ')+')':''}: <b style="color:var(--g)">${w.svc.name}</b> — customer <b>${money(w.built.sell)}</b>, <b>£${save.toFixed(2)}</b> (${pct.toFixed(1)}%) cheaper than next best. <span style="color:var(--muted)">Your cost ${money(w.built.totalCost)}.</span>`;}
+    v.innerHTML=`Cheapest for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>${tags.length?' ('+tags.join(', ')+')':''}: <b style="color:var(--g)">${w.svc.name}</b> — customer <b>${money(w.built.sell)}</b>, <b>£${save.toFixed(2)}</b> (${pct.toFixed(1)}%) cheaper than next best. <span style="color:var(--muted)">Your cost ${money(w.built.totalCost)}.</span>`;
+  }
   drawChart(c);
 }
 function drawChart(c){
@@ -666,7 +800,7 @@ function bootCalc(){
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
-    ['country','wt','L','W','H','goodsValue','SK','metric'].forEach(id=>$(id).addEventListener('input',calc));
+    ['country','postcode','wt','L','W','H','goodsValue','SK','metric'].forEach(id=>$(id).addEventListener('input',calc));
     $('metric').addEventListener('change',calc);
     $('mkGlobal').addEventListener('input',applyGlobalMarkup);
     $('mkApply').addEventListener('click',applyGlobalMarkup);
