@@ -372,9 +372,10 @@ app.post('/api/card-rate', async (req, res) => {
       const key = CODE2KEY[s.code]; if (!key) return;
       const factor = 1 + markupOf(key) / 100;
       const bd = s.breakdown || {};
-      // Scale published components into sell terms so the breakdown reconciles to the sell total:
+      // If UPS itemised the negotiated (discounted) charges, use them as-is (just add markup).
+      // Otherwise scale published components into negotiated terms so the breakdown still reconciles:
       // sellComponent = publishedComponent × (negotiated/published) × (1 + markup).
-      const np = (bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1;
+      const np = bd.negotiated ? 1 : ((bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1);
       const scale = (v) => (v == null ? null : Math.round(v * np * factor * 100) / 100);
       const accessorials = (bd.accessorials || []).map((a) => ({ name: a.name, amt: scale(a.amt), remote: !!a.remote })).filter((a) => a.amt > 0);
       services.push({

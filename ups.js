@@ -135,8 +135,13 @@ const REMOTE = ['190', '195', '197', '199', '400', '401'];
 const isRemote = (c) => REMOTE.indexOf(String(c)) >= 0;
 
 // Per-service charge breakdown: base, fuel (code 375), other accessorials, and totals.
+// Prefer the NEGOTIATED (discounted) itemised charges when UPS provides them — that gives
+// your true account surcharge (e.g. the real remote-area figure) rather than the published one.
 function breakdownOf(rs) {
-  let items = rs.ItemizedCharges || [];
+  const neg = rs.NegotiatedRateCharges || null;
+  const hasNegItems = !!(neg && neg.ItemizedCharges);
+  const src = hasNegItems ? neg : rs;
+  let items = src.ItemizedCharges || [];
   if (!Array.isArray(items)) items = items ? [items] : [];
   let fuel = 0; const acc = [];
   items.forEach((it) => {
@@ -144,12 +149,15 @@ function breakdownOf(rs) {
     if (code === '375') fuel += amt;
     else if (amt > 0) acc.push({ code, name: chgName(code), amt, remote: isRemote(code) });
   });
+  const negBase = neg && neg.BaseServiceCharge ? num(neg.BaseServiceCharge.MonetaryValue) : null;
+  const pubBase = rs.BaseServiceCharge ? num(rs.BaseServiceCharge.MonetaryValue) : null;
   return {
-    base: rs.BaseServiceCharge ? num(rs.BaseServiceCharge.MonetaryValue) : null,
+    base: hasNegItems ? (negBase != null ? negBase : pubBase) : pubBase,
     fuel,
     accessorials: acc,
     pubTotal: rs.TotalCharges ? num(rs.TotalCharges.MonetaryValue) : null,
-    negTotal: (rs.NegotiatedRateCharges && rs.NegotiatedRateCharges.TotalCharge) ? num(rs.NegotiatedRateCharges.TotalCharge.MonetaryValue) : null,
+    negTotal: (neg && neg.TotalCharge) ? num(neg.TotalCharge.MonetaryValue) : null,
+    negotiated: hasNegItems, // true → components are already discounted (no scaling needed downstream)
   };
 }
 
