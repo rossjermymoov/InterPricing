@@ -82,9 +82,12 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .qcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 @media(max-width:900px){.qcards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.qcards{grid-template-columns:1fr}}
-.qcard{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;position:relative}
 .qcard.win{border:2px solid var(--green);box-shadow:0 6px 18px rgba(29,251,157,.22)}
-.qbadge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#0B1220;background:var(--green);padding:3px 9px;border-radius:999px}
+.qcard.fast{border:2px solid #38BDF8;box-shadow:0 6px 18px rgba(56,189,248,.22)}
+.qcard.win.fast{border:2px solid var(--green);box-shadow:0 6px 18px rgba(29,251,157,.25), 0 0 0 2px #38BDF8}
+.qbadge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#0B1220;background:var(--green);padding:3px 9px;border-radius:999px;text-transform:uppercase}
+.qbadge.fastest{background:#38BDF8;color:#0B1220}
+.qbadge.best-both{background:linear-gradient(90deg,var(--green),#38BDF8);color:#0B1220}
 .qcard .clogo{height:26px;width:auto;max-width:70px;object-fit:contain;display:block}
 .qcard .cbadge{display:inline-block;font-size:10px;font-weight:800;color:#fff;padding:3px 9px;border-radius:6px}
 .cbadge.ups{background:var(--ups)} .cbadge.dpd{background:var(--dpd)}
@@ -231,8 +234,31 @@ function collectPayload(){
 function renderQuotes(services,live){
   const box=$('qcards');box.innerHTML='';
   if(!services.length){box.innerHTML='<div class="resnote">No UPS services returned for this lane — check the addresses and try again.</div>';}
+  const prices=services.map(s=>s.price);
+  const minPrice=prices.length?Math.min(...prices):null;
+  const daysList=services.filter(x=>x.days!=null&&x.days>0).map(x=>x.days);
+  const minDays=daysList.length?Math.min(...daysList):null;
+  const maxDays=daysList.length?Math.max(...daysList):null;
+  const hasTransitDiff=(daysList.length>=2 && minDays!=null && maxDays!=null && minDays<maxDays);
+
   services.slice().sort((a,b)=>a.price-b.price).forEach((q,i)=>{
-    const d=document.createElement('div');d.className='qcard'+(i===0?' win':'');
+    const isCheapest=(q.price===minPrice&&prices.length>1);
+    const isFastest=(hasTransitDiff&&q.days!=null&&q.days===minDays);
+
+    let cardCls='qcard';
+    let badge='';
+    if(isCheapest&&isFastest){
+      cardCls+=' win fast';
+      badge='<span class="qbadge best-both">BEST &amp; FASTEST</span>';
+    }else if(isCheapest){
+      cardCls+=' win';
+      badge='<span class="qbadge">BEST PRICE</span>';
+    }else if(isFastest){
+      cardCls+=' fast';
+      badge='<span class="qbadge fastest">FASTEST · '+q.days+' DAY'+(q.days===1?'':'S')+'</span>';
+    }
+
+    const d=document.createElement('div');d.className=cardCls;
     const surLines=(q.surcharges||[]).map(x=>`<div class="row${x.remote?' remote':''}"><span>${x.name}</span><span>${money(x.amt)}</span></div>`).join('');
     const brkHTML=(q.base!=null||(q.surcharges&&q.surcharges.length))?(
       `<div class="brk">`
@@ -245,7 +271,7 @@ function renderQuotes(services,live){
       `<div class="brk"><div class="row"><span>Delivery</span><span>${etaText(q.days)}</span></div>`
       +`<div class="row"><span>Duties &amp; import VAT</span><span>at import</span></div></div>`
     );
-    d.innerHTML=(i===0?'<span class="qbadge">BEST PRICE</span>':'')
+    d.innerHTML=badge
       +`<span class="cbadge ups">UPS</span>`
       +`<div class="svc">${q.name}</div><div class="eta">${etaText(q.days)}</div>`
       +`<div class="price">${money(q.price)}</div><div class="unit">total incl. fuel &amp; surcharges · your markup applied</div>`

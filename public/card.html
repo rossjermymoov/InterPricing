@@ -61,7 +61,11 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Hel
 .card .unit{font-size:11px;color:var(--muted)}
 .card.win{border:2px solid var(--green);box-shadow:0 6px 18px rgba(29,251,157,.22)}
 .card.win .price{color:var(--accent-2)}
-.card .badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#0B1220;background:var(--green);padding:3px 9px;border-radius:999px;letter-spacing:.03em}
+.card.fast{border:2px solid #38BDF8;box-shadow:0 6px 18px rgba(56,189,248,.22)}
+.card.win.fast{border:2px solid var(--green);box-shadow:0 6px 18px rgba(29,251,157,.25), 0 0 0 2px #38BDF8}
+.card .badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#0B1220;background:var(--green);padding:3px 9px;border-radius:999px;letter-spacing:.03em;text-transform:uppercase}
+.card .badge.fastest{background:#38BDF8;color:#0B1220}
+.card .badge.best-both{background:linear-gradient(90deg,var(--green),#38BDF8);color:#0B1220}
 .card.na{background:#f8fafc;color:var(--muted)} .card.na .price{font-size:17px;color:#94a3b8;margin-top:12px}
 .card .brk{font-size:11.5px;color:#475569;line-height:1.65;margin-top:11px;border-top:1px dashed var(--line);padding-top:9px}
 .card .brk .row{display:flex;justify-content:space-between;gap:10px}
@@ -563,15 +567,33 @@ function calc(){
   rows.sort((a,b)=>(a.total==null)-(b.total==null)||((a.total==null||b.total==null)?0:a.total-b.total));
   const totals=rows.filter(x=>x.total!=null).map(x=>x.total);
   const min=totals.length?Math.min(...totals):null;
+  const daysList=rows.filter(x=>x.days!=null&&x.days>0).map(x=>x.days);
+  const minDays=daysList.length?Math.min(...daysList):null;
+  const maxDays=daysList.length?Math.max(...daysList):null;
+  const hasTransitDiff=(daysList.length>=2 && minDays!=null && maxDays!=null && minDays<maxDays);
+
   const box=$('cards');box.innerHTML='';
   rows.forEach(({s,r,base,fuel,sur,total,loading,live,days})=>{
     const d=document.createElement('div');let cls='card '+s.carrier.toLowerCase();
     const head=`<div>${carrierMark(s.carrier)}</div><div class="svc">${s.name}${live?' <span class="livepill">live</span>':''}</div>`;
     if(loading){d.className=cls+' na loadcard';d.innerHTML=head+`<div class="price"><span class="spin"></span></div><div class="unit">getting live UPS price…</div>`;box.appendChild(d);return;}
     if(total==null){d.className=cls+' na';d.innerHTML=head+`<div class="price">n/a</div><div class="unit">${(r&&r.note)||'not available'}</div>`;box.appendChild(d);return;}
-    if(RC.showBest&&total===min&&totals.length>1)cls+=' win';
+
+    const isCheapest=(RC.showBest&&total===min&&totals.length>1);
+    const isFastest=(hasTransitDiff&&days!=null&&days===minDays);
+
+    let badge='';
+    if(isCheapest&&isFastest){
+      cls+=' win fast';
+      badge='<span class="badge best-both">BEST &amp; FASTEST</span>';
+    }else if(isCheapest){
+      cls+=' win';
+      badge='<span class="badge">BEST PRICE</span>';
+    }else if(isFastest){
+      cls+=' fast';
+      badge='<span class="badge fastest">FASTEST · '+days+' DAY'+(days===1?'':'S')+'</span>';
+    }
     d.className=cls;
-    const badge=(RC.showBest&&total===min&&totals.length>1)?'<span class="badge">BEST PRICE</span>':'';
     const bt=live?null:(typeof r.band==='number'?r.band+' kg band':r.band);
     const surLines=(sur||[]).map(x=>`<div class="row${x.remote?' remote':''}"><span>${x.name}</span><span>${money(x.amt)}</span></div>`).join('');
     d.innerHTML=badge+head

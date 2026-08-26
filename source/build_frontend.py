@@ -62,10 +62,14 @@ h2{font-size:15px;margin:0 0 14px;letter-spacing:-.01em}
 .res .brk .row{display:flex;justify-content:space-between;gap:8px}
 .res .brk .row.tot{font-weight:700;color:var(--ink);border-top:1px solid var(--line);margin-top:3px;padding-top:3px}
 .res.win{border:2px solid var(--g);background:var(--g-bg)} .res.win .pr{color:var(--g)}
+.res.fast{border:2px solid #0284c7;background:#f0f9ff} .res.fast .pr{color:#0369a1}
+.res.win.fast{border:2px solid var(--g);background:linear-gradient(180deg,var(--g-bg),#f0f9ff);box-shadow:0 0 0 1px #0284c7}
 .res.lose{border:1px solid #fca5a5;background:var(--r-bg)} .res.lose .pr{color:var(--r)}
 .res.mid{background:var(--a-bg)}
 .res.na{background:#f8fafc;color:var(--muted)} .res.na .pr{color:#94a3b8;font-size:16px;margin:12px 0 2px}
-.badge{position:absolute;top:12px;right:12px;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--g);color:#fff}
+.badge{position:absolute;top:12px;right:12px;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--g);color:#fff;text-transform:uppercase}
+.badge.fastest{background:#0284c7;color:#fff}
+.badge.best-both{background:linear-gradient(90deg,#15803d,#0284c7);color:#fff}
 .verdict{margin-top:15px;font-size:14px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:11px 13px}
 .adminnote{font-size:12.5px;color:var(--muted);margin:0 0 14px}
 .chartbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
@@ -645,6 +649,11 @@ function calc(){
 
   const sells=rows.filter(x=>x.built&&x.built.sell!=null).map(x=>x.built.sell);
   const min=sells.length?Math.min(...sells):null,max=sells.length?Math.max(...sells):null;
+  const daysList=rows.filter(x=>x.days!=null&&x.days>0).map(x=>x.days);
+  const minDays=daysList.length?Math.min(...daysList):null;
+  const maxDays=daysList.length?Math.max(...daysList):null;
+  const hasTransitDiff=(daysList.length>=2 && minDays!=null && maxDays!=null && minDays<maxDays);
+
   const R=$('results');R.innerHTML='';
   rows.forEach(({svc,b,built,loading,live,days})=>{
     const d=document.createElement('div');let cls='res';
@@ -653,12 +662,27 @@ function calc(){
       d.innerHTML=`<div class="car">${carrierLogo(svc.carrier)}<span>${svc.name}</span></div><div class="pr"><span class="spin"></span></div><div class="sub">getting live UPS rates…</div>`;
       R.appendChild(d);return;
     }
-    if(built.sell===min&&sells.length>1)cls+=' win';
-    else if(built.sell===max&&sells.length>1)cls+=' lose';else cls+=' mid';
+    const isCheapest=(built.sell===min&&sells.length>1);
+    const isFastest=(hasTransitDiff&&days!=null&&days===minDays);
+
+    let badge='';
+    if(isCheapest&&isFastest){
+      cls+=' win fast';
+      badge='<span class="badge best-both">BEST &amp; FASTEST</span>';
+    }else if(isCheapest){
+      cls+=' win';
+      badge='<span class="badge">CHEAPEST</span>';
+    }else if(isFastest){
+      cls+=' fast';
+      badge='<span class="badge fastest">FASTEST · '+days+' DAY'+(days===1?'':'S')+'</span>';
+    }else if(built.sell===max&&sells.length>1){
+      cls+=' lose';
+    }else{
+      cls+=' mid';
+    }
     d.className=cls;
     const etaStr=(live&&days!=null)?(' · '+days+' business day'+(days===1?'':'s')):'';
     const head=`<div class="car">${carrierLogo(svc.carrier)}<span>${svc.name}${live?' <span class="tagpill" style="background:#dcfce7;color:#15803d;margin-left:4px">live</span>':''}</span></div>`;
-    const badge=(built.sell===min&&sells.length>1)?'<span class="badge">CHEAPEST</span>':'';
     const bt=live?'UPS live':(typeof (b&&b.band)==='number'?(b.band+' kg'):(b&&b.band));
     const fuelLines=built.fuelExtras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');
     const flatLines=built.flatExtras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');
@@ -688,9 +712,14 @@ function calc(){
   else if(sells.length<2)v.innerHTML=`Only one priced service for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>: <b>${rows[0].svc.name}</b> (customer ${money(rows[0].built.sell)}, cost ${money(rows[0].built.totalCost)}).`;
   else{
     const w=rows.find(x=>x.built&&x.built.sell===min);
+    const fastW=rows.find(x=>hasTransitDiff&&x.days!=null&&x.days===minDays);
     const tags=ACTIVE.map(a=>a.name);
     const o=sells.filter(p=>p!==min).sort((a,b)=>a-b),nb=o[0],save=nb-min,pct=save/nb*100;
-    v.innerHTML=`Cheapest for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>${tags.length?' ('+tags.join(', ')+')':''}: <b style="color:var(--g)">${w.svc.name}</b> — customer <b>${money(w.built.sell)}</b>, <b>£${save.toFixed(2)}</b> (${pct.toFixed(1)}%) cheaper than next best. <span style="color:var(--muted)">Your cost ${money(w.built.totalCost)}.</span>`;
+    let verdictHTML=`Cheapest for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>${tags.length?' ('+tags.join(', ')+')':''}: <b style="color:var(--g)">${w.svc.name}</b> — customer <b>${money(w.built.sell)}</b>, <b>£${save.toFixed(2)}</b> (${pct.toFixed(1)}%) cheaper than next best. <span style="color:var(--muted)">Your cost ${money(w.built.totalCost)}.</span>`;
+    if(fastW&&fastW.svc.name!==w.svc.name){
+      verdictHTML+=` <span style="display:block;margin-top:5px;color:#0369a1">⚡ <b>Fastest:</b> ${fastW.svc.name} (${fastW.days} business day${fastW.days===1?'':'s'}) at customer <b>${money(fastW.built.sell)}</b>.</span>`;
+    }
+    v.innerHTML=verdictHTML;
   }
   drawChart(c);
 }
