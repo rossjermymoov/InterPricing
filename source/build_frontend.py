@@ -413,8 +413,9 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     </div>
   </div>
   <div style="margin-top:20px;overflow:auto">
+    <input id="custSearch" placeholder="Search customers…" style="width:100%;max-width:320px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:13px;margin-bottom:12px;display:none"/>
     <table class="utable" id="custTable" style="display:none">
-      <thead><tr><th>Created</th><th>Customer</th><th>Services</th><th>Markup</th><th>Postcode</th><th>Status</th><th>Link</th><th></th></tr></thead>
+      <thead><tr><th>Customer</th><th>Link</th><th>Created by</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody id="custBody"></tbody>
     </table>
     <div id="custEmpty" class="chartnote" style="display:none">No customer links created yet. Fill the form above and click Create.</div>
@@ -1058,25 +1059,35 @@ function reportRows(countries){
 }
 function runReport(){
   const countries=selectedCountries();
-  if(!countries.length){$('repMsg').textContent='Select at least one country.';$('repBody').innerHTML='';$('repSummary').textContent='';return;}
-  $('repMsg').textContent='';
+  if(!countries.length){
+    if($('repMsg')) $('repMsg').textContent='Select at least one country.';
+    if($('repBody')) $('repBody').innerHTML='';
+    if($('repSummary')) $('repSummary').textContent='';
+    return;
+  }
+  if($('repMsg')) $('repMsg').textContent='';
   const {data,up,dp}=reportRows(countries);
-  const tb=$('repBody');tb.innerHTML='';
-  data.forEach(r=>{const tr=document.createElement('tr');
-    if(r.none){tr.innerHTML=`<td>${r.c}</td><td colspan="4" class="chartnote">no services available</td>`;tb.appendChild(tr);return;}
-    tr.innerHTML=`<td>${r.c}</td><td><b style="color:${r.win.carrier==='ups'?'#0f766e':'#2563eb'}">${r.win.name}</b></td><td><b>${money(r.win.sell)}</b></td><td>${r.next?r.next.name+' · '+money(r.next.sell):'—'}</td><td>${r.next?money(r.save):'—'}</td>`;
-    tb.appendChild(tr);});
+  const tb=$('repBody');
+  if(tb){
+    tb.innerHTML='';
+    data.forEach(r=>{const tr=document.createElement('tr');
+      if(r.none){tr.innerHTML=`<td>${r.c}</td><td colspan="4" class="chartnote">no services available</td>`;tb.appendChild(tr);return;}
+      tr.innerHTML=`<td>${r.c}</td><td><b style="color:${r.win.carrier==='ups'?'#0f766e':'#2563eb'}">${r.win.name}</b></td><td><b>${money(r.win.sell)}</b></td><td>${r.next?r.next.name+' · '+money(r.next.sell):'—'}</td><td>${r.next?money(r.save):'—'}</td>`;
+      tb.appendChild(tr);});
+  }
   const v=verdictText(up,dp);
   const col=v.cls==='g'?'var(--g)':(v.cls==='a'?'var(--a)':'var(--r)');
   const bg=v.cls==='g'?'var(--g-bg)':(v.cls==='a'?'var(--a-bg)':'var(--r-bg)');
-  $('repSummary').innerHTML=`<div style="border:1px solid ${col};background:${bg};border-radius:10px;padding:11px 13px">`
-    +`<b style="color:${col}">Recommendation:</b> ${v.msg}`
-    +`<div style="margin-top:4px;color:var(--muted);font-size:13px">Across <b>${countries.length}</b> selected: DPD cheapest in <b>${dp}</b>, UPS cheapest in <b>${up}</b>.</div></div>`;
+  if($('repSummary')){
+    $('repSummary').innerHTML=`<div style="border:1px solid ${col};background:${bg};border-radius:10px;padding:11px 13px">`
+      +`<b style="color:${col}">Recommendation:</b> ${v.msg}`
+      +`<div style="margin-top:4px;color:var(--muted);font-size:13px">Across <b>${countries.length}</b> selected: DPD cheapest in <b>${dp}</b>, UPS cheapest in <b>${up}</b>.</div></div>`;
+  }
 }
 function generateReport(){
   const countries=selectedCountries();
-  if(!countries.length){$('repMsg').textContent='Select at least one country.';return;}
-  $('repMsg').textContent='';
+  if(!countries.length){if($('repMsg')) $('repMsg').textContent='Select at least one country.';return;}
+  if($('repMsg')) $('repMsg').textContent='';
   const {data,up,dp}=reportRows(countries);
   const actual=num('wt'),L=num('L'),W=num('W'),H=num('H'),val=num('goodsValue');
   const dims=(L&&W&&H)?(L+'×'+W+'×'+H+' cm'):'';
@@ -1084,7 +1095,7 @@ function generateReport(){
   const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const trs=data.map(r=>r.none?`<tr><td>${r.c}</td><td colspan="4" style="color:#94a3b8">no services available</td></tr>`
     :`<tr><td>${r.c}</td><td><b>${r.win.name}</b></td><td>£${r.win.sell.toFixed(2)}</td><td>${r.next?r.next.name+' · £'+r.next.sell.toFixed(2):'—'}</td><td>${r.next?'£'+r.save.toFixed(2):'—'}</td></tr>`).join('');
-  const co=($('cardCo').value||'').trim();
+  const co=($('cardCo')?$('cardCo').value:($('custName')?$('custName').value:'')).trim();
   const spec=['<b>'+actual+' kg</b>',dims,val?'value £'+val:'',tog.join(', ')].filter(Boolean).join(' · ');
   const html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Shipping Rate Report</title>'
     +'<style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#0f172a;max-width:900px;margin:24px auto;padding:0 22px}'
@@ -1147,7 +1158,7 @@ function selectedServices(){return SERVICES.filter(s=>{const el=$('rcSvc_'+s.key
 function rcTitle(){return ($('rcTitle')&&$('rcTitle').value.trim())||'International Rate Card';}
 // Customer-facing cover — deliberately no markup / cost / recommendation.
 function rcCoverRows(svcs,breakdown){
-  const co=($('cardCo').value||'').trim();
+  const co=($('cardCo')?$('cardCo').value:($('custName')?$('custName').value:'')).trim();
   const sel=selectedCountries();
   const now=new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
   const rows=[[rcTitle()],['Prepared for',co||'—'],['Date',now],
@@ -1184,7 +1195,7 @@ function exportRateCard(){
   const keys=new Set(svcs.map(s=>s.key)), carriers=new Set(svcs.map(s=>s.carrier));
   const sel=selectedCountries();
   const inSet=c=>!sel.length||sel.includes(c);
-  const co=($('cardCo').value||'').trim();
+  const co=($('cardCo')?$('cardCo').value:($('custName')?$('custName').value:'')).trim();
   const gbp=v=>v==null?'':Math.round(v*100)/100;
   const bd=$('rcBreakdown').checked;
   const pf=(svc,raw)=>bd?cardBase(svc,raw):cardSell(svc,raw);
@@ -1239,7 +1250,7 @@ function exportMixedCard(){
   const carriers=new Set(svcs.map(s=>s.carrier));
   const sel=selectedCountries();
   const list=sel.length?sel:P.countries;
-  const co=($('cardCo').value||'').trim();
+  const co=($('cardCo')?$('cardCo').value:($('custName')?$('custName').value:'')).trim();
   const showBest=$('rcCheapest').checked;
   const gbp=v=>v==null?'':Math.round(v*100)/100;
   const wb=XLSX.utils.book_new();
@@ -1285,17 +1296,19 @@ function currentCardConfig(){
 function cv(id){const el=$(id);return el?(el.value||'').trim():'';}
 const cardUrl=t=>location.origin+'/card/'+t;
 async function saveCard(){
-  const customer=($('custName').value||'').trim();
-  $('custMsg').className='ok';$('custMsg').textContent='';
-  if(!customer){$('custMsg').className='err';$('custMsg').textContent='Enter a customer name.';return;}
-  if(!selectedServices().length){$('custMsg').className='err';$('custMsg').textContent='Pick at least one service above first.';return;}
+  const customer=cv('custName');
+  const setErr=msg=>{if($('custErr'))$('custErr').textContent=msg;if($('custOk'))$('custOk').textContent='';};
+  const setOk=msg=>{if($('custOk'))$('custOk').textContent=msg;if($('custErr'))$('custErr').textContent='';};
+  setErr('');
+  if(!customer){setErr('Enter a customer name.');return;}
+  if(!selectedServices().length){setErr('Pick at least one service above first.');return;}
   const r=await jpost('/api/cards',{customer,config:currentCardConfig()});const d=await r.json();
-  if(!r.ok){$('custMsg').className='err';$('custMsg').textContent=(d.error||'Could not save')+(authEnabled?'':' — connect the database to save links.');return;}
+  if(!r.ok){setErr((d.error||'Could not save')+(authEnabled?'':' — connect the database to save links.'));return;}
   ['custName','custContact','custLine1','custLine2','custCity','custPostcode','custPhone','custEmail','custImportMarkup'].forEach(id=>{if($(id))$(id).value='';});
-  $('custMsg').textContent='Link created.';await refreshCards();
+  setOk('Link created.');await refreshCards();
 }
 async function refreshCards(){
-  if(!authEnabled){$('custEmpty').textContent='';return;}
+  if(!authEnabled){if($('custEmpty'))$('custEmpty').textContent='';return;}
   const r=await fetch('/api/cards');if(!r.ok)return;
   const {cards}=await r.json();
   cardsCache=(cards||[]).slice().sort((a,b)=>(a.customer||'').toLowerCase().localeCompare((b.customer||'').toLowerCase()));
@@ -1352,9 +1365,12 @@ function cardDetailHTML(c){
     +`</div>`;
 }
 function renderCards(){
-  const q=($('custSearch').value||'').toLowerCase();
+  const searchEl=$('custSearch');
+  const q=(searchEl&&searchEl.value?searchEl.value:'').toLowerCase();
   const list=cardsCache.filter(c=>(c.customer||'').toLowerCase().includes(q));
-  const tb=$('custBody');tb.innerHTML='';
+  const tb=$('custBody');
+  if(!tb)return;
+  tb.innerHTML='';
   list.forEach(c=>{const url=cardUrl(c.token);const tr=document.createElement('tr');
     tr.innerHTML=`<td style="white-space:nowrap"><button class="btn exBtn" data-id="${c.id}" style="padding:2px 9px;margin-right:6px">▸</button><b>${c.customer||'—'}</b></td>`
       +`<td><a href="${url}" target="_blank" rel="noopener" style="color:var(--teal);word-break:break-all">${url}</a></td>`
@@ -1367,7 +1383,12 @@ function renderCards(){
     const dr=document.createElement('tr');dr.className='detailRow';dr.dataset.id=c.id;dr.style.display='none';
     dr.innerHTML=`<td colspan="5" style="background:#f8fafc">${cardDetailHTML(c)}</td>`;
     tb.appendChild(dr);});
-  $('custEmpty').textContent=cardsCache.length?(list.length?'':'No customers match your search.'):'No customer links yet — save one above.';
+  if($('custTable')) $('custTable').style.display=list.length?'table':'none';
+  if($('custEmpty')){
+    $('custEmpty').style.display=list.length?'none':'block';
+    $('custEmpty').textContent=cardsCache.length?(list.length?'':'No customers match your search.'):'No customer links yet — save one above.';
+  }
+  if(searchEl) searchEl.style.display=cardsCache.length?'block':'none';
   tb.querySelectorAll('.exBtn').forEach(b=>b.onclick=()=>{const dr=tb.querySelector('.detailRow[data-id="'+b.dataset.id+'"]');
     const open=dr.style.display!=='none';dr.style.display=open?'none':'';b.textContent=open?'▸':'▾';});
   tb.querySelectorAll('.adrBtn').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
@@ -1377,16 +1398,16 @@ function renderCards(){
     tb.querySelectorAll('.adrInput[data-id="'+id+'"]').forEach(inp=>{rc[inp.dataset.k]=(inp.value||'').trim();});
     const cfg=Object.assign({},card.config||{},{receiver:rc,postcode:rc.postcode||''}); // keep drop-off postcode in sync
     const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
-    if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Address saved — pre-fills this customer\'s import quote.';}
-    else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
+    if(r.ok){card.config=cfg;if(msg){msg.style.color='var(--g)';msg.textContent='Address saved — pre-fills this customer\'s import quote.';}}
+    else{if(msg){msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}}});
   tb.querySelectorAll('.svcSave').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
     const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;
     let msg=tb.querySelector('.svcMsg[data-id="'+id+'"]');
     const keys=[...tb.querySelectorAll('.svcChk[data-id="'+id+'"]')].filter(i=>i.checked).map(i=>i.dataset.k);
-    if(!keys.length){msg.style.color='var(--r)';msg.textContent='Pick at least one service.';return;}
+    if(!keys.length){if(msg){msg.style.color='var(--r)';msg.textContent='Pick at least one service.';}return;}
     const cfg=Object.assign({},card.config||{},{services:keys});
     const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
-    if(!r.ok){msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');return;}
+    if(!r.ok){if(msg){msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}return;}
     card.config=cfg;renderCards();
     const dr=tb.querySelector('.detailRow[data-id="'+id+'"]');if(dr){dr.style.display='';const xb=tb.querySelector('.exBtn[data-id="'+id+'"]');if(xb)xb.textContent='▾';}
     msg=tb.querySelector('.svcMsg[data-id="'+id+'"]');if(msg){msg.style.color='var(--g)';msg.textContent='Services updated — set the markup for any new ones below (new services start at 0%).';}});
@@ -1396,23 +1417,24 @@ function renderCards(){
     const mk={}; tb.querySelectorAll('.mkEdit[data-id="'+id+'"]').forEach(inp=>{mk[inp.dataset.k]=Number(inp.value)||0;});
     const cfg=Object.assign({},card.config||{},{markup:mk});
     const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
-    if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent='Markups saved — the link now uses these.';}
-    else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
+    if(r.ok){card.config=cfg;if(msg){msg.style.color='var(--g)';msg.textContent='Markups saved — the link now uses these.';}}
+    else{if(msg){msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}}});
   tb.querySelectorAll('.imBtn').forEach(b=>b.onclick=async()=>{const id=b.dataset.id;
     const inp=tb.querySelector('.imInput[data-id="'+id+'"]'), msg=tb.querySelector('.imMsg[data-id="'+id+'"]');
     const card=cardsCache.find(x=>String(x.id)===String(id)); if(!card)return;
     const val=(inp.value===''?null:Number(inp.value)||0);
     const cfg=Object.assign({},card.config||{},{importMarkupPct:val});
     const r=await jpatch('/api/cards/'+id,{config:cfg}); const d=await r.json();
-    if(r.ok){card.config=cfg;msg.style.color='var(--g)';msg.textContent=val==null?'Cleared — uses global default.':'Import markup saved.';}
-    else{msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}});
+    if(r.ok){card.config=cfg;if(msg){msg.style.color='var(--g)';msg.textContent=val==null?'Cleared — uses global default.':'Import markup saved.';}}
+    else{if(msg){msg.style.color='var(--r)';msg.textContent=(d.error||'Failed');}}});
   tb.querySelectorAll('.copyBtn').forEach(b=>b.onclick=()=>{const t=b.dataset.u;
     if(navigator.clipboard)navigator.clipboard.writeText(t);b.textContent='Copied';setTimeout(()=>b.textContent='Copy',1200);});
   tb.querySelectorAll('.tglBtn').forEach(b=>b.onclick=async()=>{await jpatch('/api/cards/'+b.dataset.id,{enabled:b.dataset.en==='1'});await refreshCards();});
   tb.querySelectorAll('.delCardBtn').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this customer link? It will stop working immediately.'))return;await jdel('/api/cards/'+b.dataset.id);await refreshCards();});
 }
-$('custSave').onclick=saveCard;
-$('custSearch').addEventListener('input',renderCards);
+if($('custCreateBtn')) $('custCreateBtn').onclick=saveCard;
+if($('custSave')) $('custSave').onclick=saveCard;
+if($('custSearch')) $('custSearch').addEventListener('input',renderCards);
 
 // ---------- Settings: export raw rate data ----------
 function exportRates(){
