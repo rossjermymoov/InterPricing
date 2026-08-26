@@ -387,7 +387,7 @@ td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2), eur=v=>'€'+Number(v).toFixed(2);
 const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
 let RC=null, curCountry=null, curToken=null, senderIso='', addrBook=[];
-let upsKey=null, upsData=null, upsTimer=null, upsFetching=false; // live UPS rate-card state
+let upsKey=null, upsData=null, upsTimer=null, upsAbortCtrl=null; // live UPS rate-card state
 const CARRIER_LOGOS={
   dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',
   ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
@@ -476,15 +476,26 @@ function activeTogglesKey(){
   return list.sort().join(',');
 }
 function upsLaneKey(){return [curCountry,ival('pc'),num('wt'),num('L'),num('W'),num('H'),num('V'),activeTogglesKey()].join('|');}
-function scheduleUpsFetch(key,c){clearTimeout(upsTimer);upsTimer=setTimeout(()=>doUpsFetch(key,c),350);}
+function scheduleUpsFetch(key,c){clearTimeout(upsTimer);upsTimer=setTimeout(()=>doUpsFetch(key,c),300);}
 function doUpsFetch(key,c){
-  upsFetching=true;
+  if(upsAbortCtrl){try{upsAbortCtrl.abort();}catch(_){}}
+  upsAbortCtrl=new AbortController();
   const resiEl=$('tg_residential');
   const isResi=!!(resiEl&&resiEl.checked);
   const body={token:curToken,country:c,postcode:ival('pc'),weight:num('wt'),l:num('L'),w:num('W'),h:num('H'),value:num('V'),residential:isResi};
-  fetch('/api/card-rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-    .then(r=>r.json()).then(d=>{upsFetching=false;upsKey=key;upsData=d;if(upsLaneKey()===key)calc();})
-    .catch(()=>{upsFetching=false;upsKey=key;upsData={enabled:false};if(upsLaneKey()===key)calc();});
+  const timeoutId=setTimeout(()=>{if(upsAbortCtrl)upsAbortCtrl.abort();},5500);
+  fetch('/api/card-rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:upsAbortCtrl.signal})
+    .then(r=>r.json()).then(d=>{
+      clearTimeout(timeoutId);
+      upsKey=key;upsData=d;
+      calc();
+    })
+    .catch((err)=>{
+      clearTimeout(timeoutId);
+      if(err&&err.name==='AbortError'&&upsLaneKey()!==key)return;
+      upsKey=key;upsData={enabled:false};
+      calc();
+    });
 }
 function staticRow(s,c,chg,applicable){
   const r=priceOf(s,c,chg);
@@ -492,7 +503,7 @@ function staticRow(s,c,chg,applicable){
   const base=r.p, fuel=Math.round(base*(s.fuel||0)/100*100)/100, carr=s.carrier.toLowerCase();
   const sur=applicable.filter(a=>a.carrier.toLowerCase()===carr).map(a=>({name:a.name,amt:Math.round(accAmount(a)*100)/100})).filter(x=>x.amt>0);
   const surTotal=sur.reduce((t,x)=>t+x.amt,0);
-  return {s,r,base,fuel,sur,total:Math.round((base+fuel+surTotal)*100)/100};
+  return {s,r,base,fuel,sur,total:Math.round((base+fuel+surTotal)*100)/100,days:s.days};
 }
 function calc(){
   const c=curCountry,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
@@ -519,7 +530,7 @@ function calc(){
   const hasUps=svcList.some(s=>s.carrier.toLowerCase()==='ups');
   const upsReady=(upsKey===key)?upsData:null;
   const upsLoading=hasUps&&chg>0&&!upsReady;
-  if(upsLoading&&!upsFetching)scheduleUpsFetch(key,c);
+  if(upsLoading)scheduleUpsFetch(key,c);
 
   let rows=[];
   const dpdServices=svcList.filter(s=>s.carrier.toLowerCase()!=='ups');
@@ -594,10 +605,10 @@ function calc(){
       badge='<span class="badge fastest">FASTEST · '+days+' DAY'+(days===1?'':'S')+'</span>';
     }
     d.className=cls;
-    const bt=live?null:(typeof r.band==='number'?r.band+' kg band':r.band);
+    const bt=live?null:(typeof (r&&r.band)==='number'?r.band+' kg band':(r&&r.band));
     const surLines=(sur||[]).map(x=>`<div class="row${x.remote?' remote':''}"><span>${x.name}</span><span>${money(x.amt)}</span></div>`).join('');
     d.innerHTML=badge+head
-      +`<div class="price">${money(total)}</div><div class="unit">total incl. fuel${(sur&&sur.length)?' &amp; surcharges':''}${live&&days!=null?' · '+days+' business day'+(days===1?'':'s'):''}</div>`
+      +`<div class="price">${money(total)}</div><div class="unit">total incl. fuel${(sur&&sur.length)?' &amp; surcharges':''}${days!=null&&days>0?' · '+days+' business day'+(days===1?'':'s'):''}</div>`
       +`<div class="brk">`
       +`<div class="row"><span>${live?'UPS rate':('Base rate'+(bt?' ('+bt+')':''))}</span><span>${money(base)}</span></div>`
       +`<div class="row"><span>Fuel${live?'':' ('+(s.fuel||0)+'%)'}</span><span>${money(fuel)}</span></div>`

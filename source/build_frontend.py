@@ -437,7 +437,7 @@ const LIVE_CODE_TO_KEY = {
   '300': 'saturday',
   '573': 'merchantProc',
 };
-let upsKey=null, upsData=null, upsTimer=null, upsFetching=false;
+let upsKey=null, upsData=null, upsTimer=null, upsAbortCtrl=null;
 function activeTogglesKey(){
   const list=[];
   document.querySelectorAll('#toggles input[type="checkbox"]').forEach(cb=>{if(cb.checked)list.push(cb.id);});
@@ -449,10 +449,11 @@ function upsLaneKey(){
 }
 function scheduleUpsFetch(key,c){
   clearTimeout(upsTimer);
-  upsTimer=setTimeout(()=>doUpsFetch(key,c),350);
+  upsTimer=setTimeout(()=>doUpsFetch(key,c),300);
 }
 function doUpsFetch(key,c){
-  upsFetching=true;
+  if(upsAbortCtrl){try{upsAbortCtrl.abort();}catch(_){}}
+  upsAbortCtrl=new AbortController();
   const pc=$('postcode')?$('postcode').value.trim():'';
   const resiEl=$('acc_residential')||$('acc_residential_dpd');
   const isResi=!!(resiEl&&resiEl.checked);
@@ -468,9 +469,24 @@ function doUpsFetch(key,c){
     residential:isResi,
     markup:mkObj,
   };
-  fetch('/api/calc-rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-    .then(r=>r.json()).then(d=>{upsFetching=false;upsKey=key;upsData=d;if(upsLaneKey()===key)calc();})
-    .catch(()=>{upsFetching=false;upsKey=key;upsData={enabled:false};if(upsLaneKey()===key)calc();});
+  const timeoutId=setTimeout(()=>{if(upsAbortCtrl)upsAbortCtrl.abort();},5500);
+  fetch('/api/calc-rate',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body),
+    signal:upsAbortCtrl.signal
+  })
+    .then(r=>r.json()).then(d=>{
+      clearTimeout(timeoutId);
+      upsKey=key;upsData=d;
+      calc();
+    })
+    .catch((err)=>{
+      clearTimeout(timeoutId);
+      if(err&&err.name==='AbortError'&&upsLaneKey()!==key)return;
+      upsKey=key;upsData={enabled:false};
+      calc();
+    });
 }
 
 let P, bands, CAPS, current=null, authEnabled=false, ACTIVE=[];
@@ -492,12 +508,12 @@ function accVal(a){
 const accOn=a=>{const el=$('acc_'+(a.group||a.key));return el&&el.checked;};
 const DPD_COLOR='#dc2626', UPS_COLOR='#8B4513';
 const SERVICES=[
- {key:'ca',name:'DPD Classic Air',       carrier:'dpd',type:'band',src:'dpd_classic',    color:DPD_COLOR, dash:[]},
- {key:'ae',name:'DPD Air Express',       carrier:'dpd',type:'band',src:'dpd_express',    color:DPD_COLOR, dash:[7,4]},
- {key:'ep',name:'DPD Classic ExpressPak',carrier:'dpd',type:'flat',src:'dpd_expresspak', cap:'ep', color:DPD_COLOR, dash:[2,3]},
- {key:'cp',name:'DPD Classic Parcel',    carrier:'dpd',type:'flat',src:'dpd_parcel',     cap:'cp', color:DPD_COLOR, dash:[9,4,2,4]},
- {key:'ux',name:'UPS Express Saver',     carrier:'ups',type:'zone',src:'ups_express', zmap:'c2zone_express',  color:UPS_COLOR, dash:[]},
- {key:'us',name:'UPS Standard',          carrier:'ups',type:'zone',src:'ups_standard',zmap:'c2zone_standard', color:UPS_COLOR, dash:[7,4]},
+ {key:'ae',name:'DPD Air Express',       carrier:'dpd',type:'band',src:'dpd_express',    days:2, color:DPD_COLOR, dash:[7,4]},
+ {key:'ca',name:'DPD Classic Air',       carrier:'dpd',type:'band',src:'dpd_classic',    days:5, color:DPD_COLOR, dash:[]},
+ {key:'ep',name:'DPD Classic ExpressPak',carrier:'dpd',type:'flat',src:'dpd_expresspak', days:3, cap:'ep', color:DPD_COLOR, dash:[2,3]},
+ {key:'cp',name:'DPD Classic Parcel',    carrier:'dpd',type:'flat',src:'dpd_parcel',     days:3, cap:'cp', color:DPD_COLOR, dash:[9,4,2,4]},
+ {key:'ux',name:'UPS Express Saver',     carrier:'ups',type:'zone',src:'ups_express', zmap:'c2zone_express', days:2, color:UPS_COLOR, dash:[]},
+ {key:'us',name:'UPS Standard',          carrier:'ups',type:'zone',src:'ups_standard',zmap:'c2zone_standard', days:4, color:UPS_COLOR, dash:[7,4]},
 ];
 const CARRIERS=[{key:'dpd',name:'DPD',color:DPD_COLOR},{key:'ups',name:'UPS',color:UPS_COLOR}];
 const csel=$('country');
@@ -576,7 +592,7 @@ function calc(){
   const key=upsLaneKey();
   const upsReady=(upsKey===key)?upsData:null;
   const upsLoading=chg>0&&!upsReady;
-  if(upsLoading&&!upsFetching)scheduleUpsFetch(key,c);
+  if(upsLoading)scheduleUpsFetch(key,c);
 
   let rows=[];
 
@@ -585,7 +601,7 @@ function calc(){
     const b=baseRate(svc,c,chg);
     if(b.avail&&b.price!=null){
       const built=build(b.price,svc);
-      if(built&&built.sell!=null) rows.push({svc,b,built});
+      if(built&&built.sell!=null) rows.push({svc,b,built,days:svc.days});
     }
   });
 
@@ -639,7 +655,7 @@ function calc(){
       const b=baseRate(svc,c,chg);
       if(b.avail&&b.price!=null){
         const built=build(b.price,svc);
-        if(built&&built.sell!=null) rows.push({svc,b,built});
+        if(built&&built.sell!=null) rows.push({svc,b,built,days:svc.days});
       }
     });
   }
@@ -682,7 +698,7 @@ function calc(){
       cls+=' mid';
     }
     d.className=cls;
-    const etaStr=(live&&days!=null)?(' · '+days+' business day'+(days===1?'':'s')):'';
+    const etaStr=(days!=null&&days>0)?(' · '+days+' business day'+(days===1?'':'s')):'';
     const head=`<div class="car">${carrierLogo(svc.carrier)}<span>${svc.name}${live?' <span class="tagpill" style="background:#dcfce7;color:#15803d;margin-left:4px">live</span>':''}</span></div>`;
     const bt=live?'UPS live':(typeof (b&&b.band)==='number'?(b.band+' kg'):(b&&b.band));
     const fuelLines=built.fuelExtras.map(([n,v])=>`<div class="row"><span>${n}</span><span>${money(v)}</span></div>`).join('');

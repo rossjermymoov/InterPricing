@@ -30,6 +30,7 @@ async function token() {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': 'Basic ' + cred, 'x-merchant-id': process.env.UPS_ACCOUNT_NUMBER || '' },
     body: 'grant_type=client_credentials',
+    signal: AbortSignal.timeout(6000),
   });
   const text = await res.text();
   if (!res.ok) throw new Error('UPS OAuth ' + res.status + ': ' + text.slice(0, 300));
@@ -115,13 +116,43 @@ function costOf(rs) {
   const tot = rs.TotalCharges || {};
   return { value: num(tot.MonetaryValue), currency: tot.CurrencyCode || 'GBP' };
 }
-// Business days in transit, when the response carries it.
+
+const DEFAULT_DAYS_BY_CODE = {
+  '01': 1, // Next Day Air
+  '02': 2, // 2nd Day Air
+  '03': 3, // Ground
+  '07': 1, // Worldwide Express
+  '08': 4, // Worldwide Expedited
+  '11': 4, // Standard
+  '12': 3, // 3 Day Select
+  '54': 1, // Worldwide Express Plus
+  '65': 2, // Worldwide Saver
+  '96': 3, // Worldwide Express Freight
+};
+function defaultDaysOf(code) {
+  return DEFAULT_DAYS_BY_CODE[String(code)] || null;
+}
+
+// Business days in transit, when the response carries it; with standard fallbacks per service.
 function daysOf(rs) {
+  if (!rs) return null;
   const g = rs.GuaranteedDelivery && rs.GuaranteedDelivery.BusinessDaysInTransit;
-  if (g != null) return num(g);
-  const t = rs.TimeInTransit && rs.TimeInTransit.ServiceSummary && rs.TimeInTransit.ServiceSummary.EstimatedArrival;
-  if (t && t.BusinessDaysInTransit != null) return num(t.BusinessDaysInTransit);
-  return null;
+  if (g != null && num(g) != null) return num(g);
+  const tit = rs.TimeInTransit;
+  if (tit) {
+    if (tit.BusinessDaysInTransit != null && num(tit.BusinessDaysInTransit) != null) return num(tit.BusinessDaysInTransit);
+    const ss = tit.ServiceSummary;
+    if (ss) {
+      if (ss.BusinessDaysInTransit != null && num(ss.BusinessDaysInTransit) != null) return num(ss.BusinessDaysInTransit);
+      const ea = ss.EstimatedArrival;
+      if (ea) {
+        if (ea.BusinessDaysInTransit != null && num(ea.BusinessDaysInTransit) != null) return num(ea.BusinessDaysInTransit);
+        if (ea.TotalTransitDays != null && num(ea.TotalTransitDays) != null) return num(ea.TotalTransitDays);
+      }
+    }
+  }
+  const code = (rs.Service && rs.Service.Code) || '';
+  return defaultDaysOf(code);
 }
 
 // Friendly names for the itemised charge codes UPS returns; codes flagged remote are
@@ -200,6 +231,7 @@ async function callRate(payload) {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + tk, 'Content-Type': 'application/json', 'transId': 'moov' + Date.now(), 'transactionSrc': 'MOOV-InterPricing' },
     body: JSON.stringify(buildRateRequest(payload)),
+    signal: AbortSignal.timeout(6500),
   });
   const text = await res.text();
   let json = null; try { json = JSON.parse(text); } catch (_) {}

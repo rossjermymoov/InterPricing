@@ -4,12 +4,12 @@
 // amounts only — never our list price or discount). The card computes base + fuel + surcharges.
 
 const SERVICES = [
-  { key: 'ca', name: 'DPD Classic Air',        carrier: 'DPD', type: 'band', src: 'dpd_classic' },
-  { key: 'ae', name: 'DPD Air Express',        carrier: 'DPD', type: 'band', src: 'dpd_express' },
-  { key: 'ep', name: 'DPD Classic ExpressPak', carrier: 'DPD', type: 'flat', src: 'dpd_expresspak', cap: 'ep' },
-  { key: 'cp', name: 'DPD Classic Parcel',     carrier: 'DPD', type: 'flat', src: 'dpd_parcel',     cap: 'cp' },
-  { key: 'ux', name: 'UPS Express Saver',      carrier: 'UPS', type: 'zone', src: 'ups_express',  zmap: 'c2zone_express' },
-  { key: 'us', name: 'UPS Standard',           carrier: 'UPS', type: 'zone', src: 'ups_standard', zmap: 'c2zone_standard' },
+  { key: 'ca', name: 'DPD Classic Air',        carrier: 'DPD', type: 'band', src: 'dpd_classic', days: 5 },
+  { key: 'ae', name: 'DPD Air Express',        carrier: 'DPD', type: 'band', src: 'dpd_express', days: 2 },
+  { key: 'ep', name: 'DPD Classic ExpressPak', carrier: 'DPD', type: 'flat', src: 'dpd_expresspak', cap: 'ep', days: 3 },
+  { key: 'cp', name: 'DPD Classic Parcel',     carrier: 'DPD', type: 'flat', src: 'dpd_parcel',     cap: 'cp', days: 3 },
+  { key: 'ux', name: 'UPS Express Saver',      carrier: 'UPS', type: 'zone', src: 'ups_express',  zmap: 'c2zone_express', days: 2 },
+  { key: 'us', name: 'UPS Standard',           carrier: 'UPS', type: 'zone', src: 'ups_standard', zmap: 'c2zone_standard', days: 4 },
 ];
 
 const r2 = (v) => (v == null ? null : Math.round(v * 100) / 100);
@@ -48,7 +48,7 @@ function buildCardPayload(cfg, card) {
   const services = [];
   for (const s of SERVICES) {
     if (!include.includes(s.key)) continue;
-    const o = { key: s.key, name: s.name, carrier: s.carrier, type: s.type,
+    const o = { key: s.key, name: s.name, carrier: s.carrier, type: s.type, days: s.days,
       fuel: Math.round(((FUEL[s.key] && FUEL[s.key].sell) || 0) * 100) / 100 };
     if (s.type === 'band') {
       const src = cfg[s.src] || {};
