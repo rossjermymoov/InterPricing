@@ -345,6 +345,9 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <div><div class="lab">Chargeable</div><b id="chgw">—</b></div>
   <div><div class="lab">Driven by</div><b id="driver">—</b></div>
 </div>
+<div id="staticNotice" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #f59e0b;padding:10px 14px;border-radius:6px;font-size:12.5px;color:#92400e;margin:14px 0 6px;line-height:1.45">
+  <b>⚠️ Standard Rate Card Notice:</b> Live UPS rates are currently unavailable. The prices below are calculated from your agreed standard rate card. Note that these rates are indicative base prices and do not include destination-specific remote/extended area surcharges or live out-of-gauge / demand surcharges.
+</div>
 <div class="results" id="results"></div>
 <div class="verdict" id="verdict"></div>
 </div>
@@ -578,6 +581,24 @@ function baseRate(svc,c,chg){
     return{price:b[b.length-1][1],avail:true,band:'>'+mB+' kg'};}
   return{price:null,avail:false};
 }
+function exceedsLimits(carrier, actual, L, W, H, isEp){
+  const sides = [L, W, H].filter(x => x > 0).sort((a, b) => b - a);
+  const longest = sides[0] || 0, second = sides[1] || 0, third = sides[2] || 0;
+  const girth = (L && W && H) ? (longest + 2 * second + 2 * third) : 0;
+  const carr = (carrier || '').toLowerCase();
+  if (carr === 'dpd') {
+    if (isEp && actual > 3) return { exceeded: true, reason: 'DPD Classic ExpressPak max weight is 3 kg' };
+    if (actual > 31.5) return { exceeded: true, reason: 'Weight exceeds DPD limit of 31.5 kg' };
+    if (longest > 175) return { exceeded: true, reason: 'Length exceeds DPD limit of 175 cm' };
+    if (girth > 300) return { exceeded: true, reason: 'Girth (L + 2W + 2H) exceeds DPD limit of 300 cm' };
+  } else if (carr === 'ups') {
+    if (actual > 70) return { exceeded: true, reason: 'Weight exceeds UPS small package limit of 70 kg' };
+    if (longest > 274) return { exceeded: true, reason: 'Length exceeds UPS limit of 274 cm' };
+    if (girth > 400) return { exceeded: true, reason: 'Combined Length + Girth exceeds UPS limit of 400 cm' };
+  }
+  return { exceeded: false };
+}
+
 let chart;
 function calc(){
   const c=csel.value,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
@@ -589,75 +610,83 @@ function calc(){
   $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
   $('driver').textContent=!chg?'—':(vol>actual?'Volumetric weight':'Actual weight');
 
+  const dpdLimit=exceedsLimits('dpd',actual,L,W,H);
+  const upsLimit=exceedsLimits('ups',actual,L,W,H);
+
   const key=upsLaneKey();
   const upsReady=(upsKey===key)?upsData:null;
-  const upsLoading=chg>0&&!upsReady;
+  const upsLoading=chg>0&&!upsLimit.exceeded&&!upsReady;
   if(upsLoading)scheduleUpsFetch(key,c);
 
   let rows=[];
 
-  // 1. DPD services (static)
-  SERVICES.filter(svc=>svc.carrier==='dpd'&&!(svc.key==='ep'&&region(c)==='eu'&&chg>CAPS.ep)).forEach(svc=>{
-    const b=baseRate(svc,c,chg);
-    if(b.avail&&b.price!=null){
-      const built=build(b.price,svc);
-      if(built&&built.sell!=null) rows.push({svc,b,built,days:svc.days});
-    }
-  });
-
-  // 2. UPS services (Live when ready, fallback to static)
-  if(upsLoading){
-    rows.push({svc:{key:'ups',name:'UPS',carrier:'ups',color:UPS_COLOR},loading:true,built:{sell:null}});
-  }else if(upsReady&&upsReady.enabled){
-    (upsReady.services||[]).forEach(live=>{
-      const liveSur=(live.accessorials||[]).map(a=>({name:a.name,code:a.code,costAmt:a.costAmt,amt:a.amt,remote:a.remote}));
-      const coveredKeys=new Set(liveSur.map(a=>LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
-      const upsCustom=ACTIVE.filter(a=>a.applyTo==='ups').filter(a=>{
-        const k=a.key||a.group;
-        return !coveredKeys.has(k);
-      }).map(a=>({name:a.name,costAmt:Math.round(accVal(a)*100)/100,amt:Math.round(accVal(a)*100)/100})).filter(x=>x.amt>0);
-
-      const mergedSur=[...liveSur,...upsCustom];
-      const costSurTotal=mergedSur.reduce((t,x)=>t+(x.costAmt||x.amt||0),0);
-      const sellSurTotal=mergedSur.reduce((t,x)=>t+(x.amt||0),0);
-
-      const totalCost=Math.round(((live.costBase||0)+(live.costFuel||0)+costSurTotal)*100)/100;
-      const totalSell=Math.round(((live.sellBase||0)+(live.sellFuel||0)+sellSurTotal)*100)/100;
-
-      const flatExtras=mergedSur.map(x=>[x.name,x.amt]);
-      const built={
-        live:true,
-        days:live.days,
-        raw:live.costBase,
-        fc:(live.costBase?(live.costFuel/live.costBase*100):0),
-        fs:(live.sellBase?(live.sellFuel/live.sellBase*100):0),
-        costFuel:live.costFuel,
-        sellFuel:live.sellFuel,
-        totalCost,
-        mk:live.markupPct,
-        markupAmt:live.markupAmt,
-        sell:totalSell,
-        cost:totalCost,
-        fuelExtras:[],
-        flatExtras,
-      };
-      rows.push({
-        svc:{key:live.key,name:live.name,carrier:'ups',color:UPS_COLOR},
-        b:{price:live.costPrice,avail:true,live:true},
-        built,
-        live:true,
-        days:live.days,
-      });
-    });
-  }else{
-    // Fallback to static UPS services
-    SERVICES.filter(svc=>svc.carrier==='ups').forEach(svc=>{
+  // 1. DPD services (static) - checked against DPD 31.5kg / 175cm / 300cm limits
+  if(!dpdLimit.exceeded){
+    SERVICES.filter(svc=>svc.carrier==='dpd'&&!(svc.key==='ep'&&(actual>3||(region(c)==='eu'&&chg>CAPS.ep)))).forEach(svc=>{
       const b=baseRate(svc,c,chg);
       if(b.avail&&b.price!=null){
         const built=build(b.price,svc);
         if(built&&built.sell!=null) rows.push({svc,b,built,days:svc.days});
       }
     });
+  }
+
+  // 2. UPS services (Live when ready, fallback to static) - strictly Standard & Express Saver
+  if(!upsLimit.exceeded){
+    if(upsLoading){
+      rows.push({svc:{key:'ups',name:'UPS',carrier:'ups',color:UPS_COLOR},loading:true,built:{sell:null}});
+    }else if(upsReady&&upsReady.enabled){
+      const ALLOWED_UPS=new Set(['ux','us','ups_65','ups_11']);
+      (upsReady.services||[]).filter(live=>ALLOWED_UPS.has(live.key)||['65','11'].includes(String(live.code))).forEach(live=>{
+        const liveSur=(live.accessorials||[]).map(a=>({name:a.name,code:a.code,costAmt:a.costAmt,amt:a.amt,remote:a.remote}));
+        const coveredKeys=new Set(liveSur.map(a=>LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
+        const upsCustom=ACTIVE.filter(a=>a.applyTo==='ups').filter(a=>{
+          const k=a.key||a.group;
+          return !coveredKeys.has(k);
+        }).map(a=>({name:a.name,costAmt:Math.round(accVal(a)*100)/100,amt:Math.round(accVal(a)*100)/100})).filter(x=>x.amt>0);
+
+        const mergedSur=[...liveSur,...upsCustom];
+        const costSurTotal=mergedSur.reduce((t,x)=>t+(x.costAmt||x.amt||0),0);
+        const sellSurTotal=mergedSur.reduce((t,x)=>t+(x.amt||0),0);
+
+        const totalCost=Math.round(((live.costBase||0)+(live.costFuel||0)+costSurTotal)*100)/100;
+        const totalSell=Math.round(((live.sellBase||0)+(live.sellFuel||0)+sellSurTotal)*100)/100;
+
+        const flatExtras=mergedSur.map(x=>[x.name,x.amt]);
+        const built={
+          live:true,
+          days:live.days,
+          raw:live.costBase,
+          fc:(live.costBase?(live.costFuel/live.costBase*100):0),
+          fs:(live.sellBase?(live.sellFuel/live.sellBase*100):0),
+          costFuel:live.costFuel,
+          sellFuel:live.sellFuel,
+          totalCost,
+          mk:live.markupPct,
+          markupAmt:live.markupAmt,
+          sell:totalSell,
+          cost:totalCost,
+          fuelExtras:[],
+          flatExtras,
+        };
+        rows.push({
+          svc:{key:live.key,name:live.name,carrier:'ups',color:UPS_COLOR},
+          b:{price:live.costPrice,avail:true,live:true},
+          built,
+          live:true,
+          days:live.days,
+        });
+      });
+    }else{
+      // Fallback to static UPS services
+      SERVICES.filter(svc=>svc.carrier==='ups').forEach(svc=>{
+        const b=baseRate(svc,c,chg);
+        if(b.avail&&b.price!=null){
+          const built=build(b.price,svc);
+          if(built&&built.sell!=null) rows.push({svc,b,built,days:svc.days});
+        }
+      });
+    }
   }
 
   // Filter out unavailable services (no n/a cards)
@@ -670,6 +699,12 @@ function calc(){
   const minDays=daysList.length?Math.min(...daysList):null;
   const maxDays=daysList.length?Math.max(...daysList):null;
   const hasTransitDiff=(daysList.length>=2 && minDays!=null && maxDays!=null && minDays<maxDays);
+
+  const sn=$('staticNotice');
+  if(sn){
+    const isStaticFallback=chg>0&&!upsLoading&&!upsLimit.exceeded&&(!upsReady||!upsReady.enabled);
+    sn.style.display=isStaticFallback?'block':'none';
+  }
 
   const R=$('results');R.innerHTML='';
   rows.forEach(({svc,b,built,loading,live,days})=>{
@@ -725,7 +760,17 @@ function calc(){
   wireLogos(R);
   const v=$('verdict');
   if(!chg)v.innerHTML='Enter a weight to compare.';
-  else if(sells.length<1)v.innerHTML=`No available services found for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>.`;
+  else if(sells.length<1){
+    if(dpdLimit.exceeded&&upsLimit.exceeded){
+      v.innerHTML=`<span style="color:#b91c1c">⚠️ <b>Exceeds carrier maximum limits:</b> DPD (${dpdLimit.reason}) &amp; UPS (${upsLimit.reason}). No parcel services available for <b>${c}</b> at this size/weight.</span>`;
+    }else if(dpdLimit.exceeded){
+      v.innerHTML=`<span style="color:#b91c1c">⚠️ <b>Exceeds DPD maximums:</b> ${dpdLimit.reason}. No other services available for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>.</span>`;
+    }else if(upsLimit.exceeded){
+      v.innerHTML=`<span style="color:#b91c1c">⚠️ <b>Exceeds UPS maximums:</b> ${upsLimit.reason}. No other services available for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>.</span>`;
+    }else{
+      v.innerHTML=`No available services found for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>.`;
+    }
+  }
   else if(sells.length<2)v.innerHTML=`Only one priced service for <b>${c}</b> at <b>${chg.toFixed(2)} kg</b>: <b>${rows[0].svc.name}</b> (customer ${money(rows[0].built.sell)}, cost ${money(rows[0].built.totalCost)}).`;
   else{
     const w=rows.find(x=>x.built&&x.built.sell===min);

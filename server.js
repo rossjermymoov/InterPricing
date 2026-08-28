@@ -407,6 +407,8 @@ const CODE2KEY = {
   '96': 'uf', // Worldwide Express Freight
 };
 
+const ALLOWED_UPS_CODES = new Set(['11', '65']); // strictly UPS Standard ('11') and UPS Express Saver ('65')
+
 app.post('/api/card-rate', async (req, res) => {
   try {
     const { token, country, postcode, weight, l, w, h, residential, value } = req.body || {};
@@ -415,6 +417,15 @@ app.post('/api/card-rate', async (req, res) => {
     if (!card || card.enabled === false) return res.json({ enabled: false, services: [] });
     const iso = nameToIso(country);
     if (!iso) return res.json({ enabled: false, services: [] }); // unknown country name → card uses static
+
+    const numWeight = Number(weight) || 0;
+    const sides = [l, w, h].map(Number).filter(x => x > 0).sort((a, b) => b - a);
+    const longest = sides[0] || 0, second = sides[1] || 0, third = sides[2] || 0;
+    const girth = (l && w && h) ? (longest + 2 * second + 2 * third) : 0;
+    if (numWeight > 70 || longest > 274 || girth > 400) {
+      return res.json({ enabled: true, services: [], maxExceeded: true });
+    }
+
     const mkObj = (card.config && card.config.markup) || {};
     const cfg = await db.getConfig();
     const markupOf = (key, code) => {
@@ -432,12 +443,12 @@ app.post('/api/card-rate', async (req, res) => {
     const r = await ups.quoteRates({
       mode: 'export', sender: MOOV_ORIGIN,
       receiver: { country: iso, postcode: postcode || '', residential: !!residential },
-      packages: [{ qty: 1, weight: weight || 1, l, w, h }], value: goodsVal, currency: 'GBP',
+      packages: [{ qty: 1, weight: numWeight || 1, l, w, h }], value: goodsVal, currency: 'GBP',
     });
     if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
 
     const services = [];
-    (r.services || []).forEach((s) => {
+    (r.services || []).filter((s) => ALLOWED_UPS_CODES.has(String(s.code))).forEach((s) => {
       const key = CODE2KEY[s.code] || ('ups_' + s.code);
       const mk = markupOf(key, s.code);
       const factor = 1 + mk / 100;
@@ -462,13 +473,21 @@ app.post('/api/card-rate', async (req, res) => {
   } catch (e) { res.json({ enabled: false, error: e.message, services: [] }); }
 });
 
-// PUBLIC/ADMIN: live quote endpoint for the main calculator (returns all live UPS services + cost & customer breakdowns).
+// PUBLIC/ADMIN: live quote endpoint for the main calculator (returns UPS Standard & Express Saver).
 app.post('/api/calc-rate', async (req, res) => {
   try {
     const { country, postcode, weight, l, w, h, residential, value, markup } = req.body || {};
     if (!country) return res.json({ enabled: false, services: [] });
     const iso = nameToIso(country);
     if (!iso) return res.json({ enabled: false, services: [] });
+
+    const numWeight = Number(weight) || 0;
+    const sides = [l, w, h].map(Number).filter(x => x > 0).sort((a, b) => b - a);
+    const longest = sides[0] || 0, second = sides[1] || 0, third = sides[2] || 0;
+    const girth = (l && w && h) ? (longest + 2 * second + 2 * third) : 0;
+    if (numWeight > 70 || longest > 274 || girth > 400) {
+      return res.json({ enabled: true, services: [], maxExceeded: true });
+    }
 
     const cfg = await db.getConfig();
     const st = cfg.settings || {};
@@ -489,12 +508,12 @@ app.post('/api/calc-rate', async (req, res) => {
     const r = await ups.quoteRates({
       mode: 'export', sender: MOOV_ORIGIN,
       receiver: { country: iso, postcode: postcode || '', residential: !!residential },
-      packages: [{ qty: 1, weight: weight || 1, l, w, h }], value: goodsVal, currency: 'GBP',
+      packages: [{ qty: 1, weight: numWeight || 1, l, w, h }], value: goodsVal, currency: 'GBP',
     });
     if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
 
     const services = [];
-    (r.services || []).forEach((s) => {
+    (r.services || []).filter((s) => ALLOWED_UPS_CODES.has(String(s.code))).forEach((s) => {
       const key = CODE2KEY[s.code] || ('ups_' + s.code);
       const mk = markupOf(key, s.code);
       const factor = 1 + mk / 100;

@@ -1,463 +1,1465 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"/>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>International Rate Card</title>
 <style>
-/* ===== BRAND (placeholder — swap for the approved MOOV Parcel palette + logo) ===== */
-:root{
-  --brand:#171B2D; --green:#1DFB9D; --pink:#CD1C69;
-  --accent:#1DFB9D; --accent-2:#0E9C63;
-  --dpd:#DC2626; --ups:#8B4513; --dhl:#D4A017;
-  --bg:#f4f6f6; --card:#fff; --line:#e6e9ee; --muted:#6b7280; --ink:#171B2D; --g:#0E9C63;
+/* ===== DESIGN TOKENS & THEMING ===== */
+:root {
+  --brand: #171B2D;
+  --brand-light: #242a42;
+  --green: #1DFB9D;
+  --green-dark: #0E9C63;
+  --green-bg: #ECFDF5;
+  --pink: #CD1C69;
+  --accent: #1DFB9D;
+  --accent-2: #0E9C63;
+  --sky: #0284c7;
+  --sky-light: #e0f2fe;
+  --dpd: #DC2626;
+  --ups: #8B4513;
+  --dhl: #D4A017;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --card-subtle: #f1f5f9;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --muted: #64748b;
+  --muted-light: #94a3b8;
+  --ink: #0f172a;
+  --ink-soft: #334155;
+  --shadow-sm: 0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md: 0 6px 20px -2px rgba(15,23,42,0.08), 0 2px 6px -1px rgba(15,23,42,0.04);
+  --shadow-lg: 0 16px 36px -4px rgba(15,23,42,0.12), 0 4px 12px -2px rgba(15,23,42,0.06);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
 }
-*{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5}
-.wrap{max-width:1000px;margin:0 auto;padding:0 20px 60px}
-.hero{background:#171B2D;color:#fff;padding:22px 26px 26px;border-bottom:3px solid transparent;
-  background-image:linear-gradient(#171B2D,#171B2D),linear-gradient(90deg,var(--green),var(--pink));
-  background-origin:border-box;background-clip:padding-box,border-box}
-.hero .inner{max-width:1000px;margin:0 auto}
-.hero .top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.brandlogo{height:34px;width:auto;display:block}
-.brandlogo.fallback{font-weight:900;font-size:24px;letter-spacing:-.02em;color:var(--green)}
-.hero .cust{text-align:right;font-size:13px;color:#9aa3b5}
-.hero .cust b{display:block;color:#fff;font-size:15px}
-.hero h1{font-size:22px;margin:18px 0 3px;letter-spacing:-.02em}
-.hero h1 .u{color:var(--green)}
-.hero p.lede{margin:0;color:#9aa3b5;font-size:13.5px;max-width:640px}
-.calc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:-18px;position:relative;box-shadow:0 6px 22px rgba(15,23,42,.07)}
-.calc h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 14px}
-.rowf{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
-.f label{display:block;font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
-.f input,.f select{padding:11px 12px;border:1px solid #cbd5e1;border-radius:11px;font-size:15px;background:#fff;color:var(--ink)}
-.f input:focus,.f select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
-.f.country select{width:230px;max-width:100%}
-.combo{position:relative;width:230px;max-width:100%}
-.combo input{width:100%}
-.comboList{position:absolute;z-index:40;top:calc(100% + 4px);left:0;right:0;max-height:260px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:0 10px 28px rgba(15,23,42,.12);display:none}
-.combo.open .comboList{display:block}
-.comboOpt{padding:9px 12px;font-size:14px;color:var(--ink);cursor:pointer}
-.comboOpt:hover,.comboOpt.active{background:#ECFDF5}
-.comboOpt[aria-selected="true"]{font-weight:800}
-.comboEmpty{padding:10px 12px;font-size:13px;color:var(--muted)}
-.f.small input{width:88px;text-align:right;font-variant-numeric:tabular-nums}
-.rowf input[type=number]::-webkit-inner-spin-button,.rowf input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
-.rowf input[type=number]{-moz-appearance:textfield;appearance:textfield}
-.meta{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);font-size:13px}
-.meta .lab{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800}
-.meta b{font-size:16px}
-.dimcallout{display:none;margin-top:16px;padding:13px 15px 13px 16px;border-radius:12px;background:#FFF7ED;border:1px solid #FDBA74;border-left:6px solid #EA580C;color:#7C2D12;font-size:13px;line-height:1.55}
-.dimcallout .big{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;margin-bottom:3px;color:#9A3412}
-.dimcallout .ic{width:22px;height:22px;flex:none;border-radius:50%;background:#EA580C;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:900}
-.dimcallout b{color:#7C2D12}
-.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
-.card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;position:relative}
-.card .cmark{height:34px;width:auto;max-width:120px;object-fit:contain;display:inline-block;vertical-align:middle}
-.card .cmark[data-k="dpd"]{height:54px;max-width:150px}
-.cbadge{display:inline-block;font-size:10px;font-weight:800;color:#fff;padding:3px 9px;border-radius:6px;letter-spacing:.03em}
-.cbadge.dpd{background:var(--dpd)} .cbadge.ups{background:var(--ups)} .cbadge.dhl{background:var(--dhl)}
-.card .svc{font-size:14.5px;font-weight:700;margin:8px 0 2px;color:var(--brand)}
-.card .price{font-size:30px;font-weight:900;letter-spacing:-.02em;margin:6px 0 0}
-.card .unit{font-size:11px;color:var(--muted)}
-.card.win{border:2px solid var(--green);box-shadow:0 6px 18px rgba(29,251,157,.22)}
-.card.win .price{color:var(--accent-2)}
-.card.fast{border:2px solid #38BDF8;box-shadow:0 6px 18px rgba(56,189,248,.22)}
-.card.win.fast{border:2px solid var(--green);box-shadow:0 6px 18px rgba(29,251,157,.25), 0 0 0 2px #38BDF8}
-.card .badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;color:#0B1220;background:var(--green);padding:3px 9px;border-radius:999px;letter-spacing:.03em;text-transform:uppercase}
-.card .badge.fastest{background:#38BDF8;color:#0B1220}
-.card .badge.best-both{background:linear-gradient(90deg,var(--green),#38BDF8);color:#0B1220}
-.card.na{background:#f8fafc;color:var(--muted)} .card.na .price{font-size:17px;color:#94a3b8;margin-top:12px}
-.card .brk{font-size:11.5px;color:#475569;line-height:1.65;margin-top:11px;border-top:1px dashed var(--line);padding-top:9px}
-.card .brk .row{display:flex;justify-content:space-between;gap:10px}
-.card .brk .row.tot{font-weight:800;color:var(--ink);border-top:1px solid var(--line);margin-top:5px;padding-top:5px}
-.card .brk .row.cust{margin-top:6px;color:#9d174d;font-weight:800}
-.card .brk .custsub{font-size:10px;color:var(--muted);font-weight:600;margin-top:0;white-space:nowrap}
-.toggles{display:flex;flex-wrap:wrap;gap:9px 20px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
-.tg{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:#334155;cursor:pointer}
-.tg input{width:16px;height:16px;accent-color:var(--accent)}
-.surlogo{height:24px;width:auto;max-width:74px;object-fit:contain;vertical-align:middle}
-.surlogo[data-k="dpd"]{height:48px;max-width:130px}
-.note{font-size:12.5px;color:var(--muted);margin-top:14px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:18px}
-.panel h3{font-size:15px;margin:0 0 4px}
-.panel p.sub{color:var(--muted);font-size:12.5px;margin:0 0 14px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
-th{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:#475569}
-td.r{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
-.tag2{font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;color:#fff}
-.tag2.DPD{background:var(--dpd)} .tag2.UPS{background:var(--ups)} .tag2.DHL{background:var(--dhl)}
-.notes{white-space:pre-line;font-size:12.5px;color:#475569;margin-top:8px}
-.foot{font-size:12px;color:var(--muted);margin-top:22px;text-align:center}
-.print{display:inline-flex;gap:8px;align-items:center;background:var(--green);color:#0B1220;border:0;border-radius:11px;padding:10px 16px;font-weight:800;cursor:pointer;font-size:13.5px}
-.state{max-width:520px;margin:16vh auto;text-align:center;color:var(--muted);font-size:15px}
-/* ===== drop-off points ===== */
-.mapGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start}
-@media(max-width:760px){.mapGrid{grid-template-columns:1fr}}
-.dropScroll{display:flex;flex-direction:column;gap:10px;max-height:520px;overflow:auto;padding-right:4px}
-.drop{border:1px solid var(--line);border-radius:14px;padding:13px 14px;background:#fff;border-left:5px solid var(--line)}
-.drop.dpd{border-left-color:var(--dpd)} .drop.ups{border-left-color:var(--ups)} .drop.dhl{border-left-color:var(--dhl)}
-.drop .dh{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.drop .nm{font-weight:800;font-size:15px;color:var(--brand);line-height:1.25}
-.drop .ty{font-size:10.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.03em;margin-top:2px}
-.drop .dhr{display:flex;align-items:center;gap:8px;flex:none}
-.drop .dist{font-size:13.5px;font-weight:900;color:var(--accent-2);white-space:nowrap}
-.mapbtn{border:1px solid var(--line);background:#fff;border-radius:8px;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#0E9C63;padding:0;flex:none}
-.mapbtn:hover{background:#ECFDF5;border-color:var(--green)}
-.mapbtn svg{width:16px;height:16px;display:block}
-.modal{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:20px}
-.modalCard{background:#fff;border-radius:16px;width:min(560px,100%);max-height:90vh;overflow:hidden;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.35);display:flex;flex-direction:column}
-.modalX{position:absolute;top:10px;right:12px;z-index:2;border:0;background:rgba(255,255,255,.92);border-radius:8px;width:32px;height:32px;font-size:22px;line-height:1;cursor:pointer;color:#334155}
-.modalX:hover{background:#fff}
-.modalHead{padding:16px 18px 10px}
-.modalHead .mName{font-weight:800;font-size:16px;color:var(--brand);padding-right:34px}
-.modalHead .mAddr{font-size:13px;color:var(--muted);margin-top:2px}
-.modalMap{height:340px;background:#eef2f7}
-.mapFail{padding:26px;text-align:center;color:var(--muted);font-size:13px}
-.modalDir{display:block;text-align:center;padding:13px;font-weight:800;font-size:13.5px;color:#0B1220;background:var(--green);text-decoration:none}
-.modalDir:hover{filter:brightness(.96)}
-.drop .addr{font-size:12.5px;color:#475569;margin-top:7px}
-.dstatus{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;margin-top:10px;padding:4px 10px;border-radius:999px}
-.dstatus.open,.dstatus.h24{background:#ECFDF5;color:#047857}
-.dstatus.closed{background:#FEF2F2;color:#B91C1C}
-.dstatus .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px;background:#F1F5F9;color:#334155}
-.chip.good{background:#ECFDF5;color:#047857}
-.dropmore{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px}
-.dropmore summary{cursor:pointer;font-size:11.5px;font-weight:800;color:#475569;list-style:none;user-select:none;display:flex;align-items:center;gap:6px}
-.dropmore summary::-webkit-details-marker{display:none}
-.dropmore summary::before{content:'▸';color:var(--muted);font-size:10px}
-.dropmore[open] summary::before{content:'▾'}
-.drTray>.hblock:first-child,.drTray>.dl:first-child{border-top:0;margin-top:8px;padding-top:0}
-.hblock,.dl{margin-top:9px;border-top:1px dashed var(--line);padding-top:7px}
-.hblock .lab,.dl .lab{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:800;margin-bottom:4px}
-.hours{display:flex;flex-direction:column;gap:2px}
-.hrow{display:flex;justify-content:space-between;gap:10px;font-size:12px;line-height:1.4}
-.hrow .d{color:#64748b;font-weight:700}
-.hrow .t{color:#334155;font-variant-numeric:tabular-nums}
-.hrow.now .d,.hrow.now .t{color:var(--brand);font-weight:900}
-.hrow.cl .t{color:#B91C1C}
-.h24{font-size:12px;font-weight:800;color:#047857}
-.htext{font-size:12px;color:#334155}
-.dlrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;font-size:11.5px;padding:2px 0;color:#334155;align-items:baseline}
-.dlrow .svc{font-weight:700;color:#475569}
-.dlrow .wk,.dlrow .st{font-variant-numeric:tabular-nums;white-space:nowrap}
-.dlrow .st{color:#64748b}
-/* ===== 3-column shell: UPS rail | main | DPD rail ===== */
-.shell{max-width:1840px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:minmax(340px,390px) minmax(0,1fr) minmax(340px,390px);gap:20px;align-items:start}
-/* Pin each column so the centre stays wide even when a rail is empty/hidden (no drop-offs). */
-.shell>.railL{grid-column:1}.shell>.wrap{grid-column:2}.shell>.railR{grid-column:3}
-.shell .wrap{max-width:none;margin:0;padding:0 0 60px}
-.rail{position:sticky;top:16px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;min-width:0}
-.railHead{background:#fff;border:1px solid var(--line);border-bottom:3px solid var(--line);border-radius:12px 12px 0 0;padding:11px 13px;display:flex;align-items:center;gap:10px}
-.railHead.ups{border-bottom-color:var(--ups)} .railHead.dpd{border-bottom-color:var(--dpd)} .railHead.dhl{border-bottom-color:var(--dhl)}
-.raillogo{height:26px;width:auto;max-width:92px;object-fit:contain;display:block}
-.railHead.dpd .raillogo{height:40px;max-width:120px}
-.raillogo.fallback{font-weight:900;font-size:15px;color:#fff;padding:3px 9px;border-radius:6px;height:auto}
-.raillogo.fallback.ups{background:var(--ups)} .raillogo.fallback.dpd{background:var(--dpd)} .raillogo.fallback.dhl{background:var(--dhl)}
-.railttl{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
-.rcount{margin-left:auto;font-weight:800;font-size:11px;background:#f1f5f9;color:#334155;padding:2px 9px;border-radius:999px}
-.railBody{overflow:auto;display:flex;flex-direction:column;gap:10px;padding:12px;background:#fff;border:1px solid var(--line);border-top:0;border-radius:0 0 14px 14px}
-.rail .drop{border-left-width:5px}
-.loadMore{width:100%;margin-top:1px;padding:10px;border:1px dashed #cbd5e1;background:#f8fafc;color:var(--brand);font-weight:800;font-size:12.5px;border-radius:10px;cursor:pointer}
-.loadMore:hover{background:#eef2f7;border-color:#94a3b8}
-@media(max-width:1240px){
-  .shell{grid-template-columns:1fr;max-width:1000px}
-  .shell>.railL,.shell>.wrap,.shell>.railR{grid-column:auto}
-  .shell .wrap{order:1;padding-bottom:26px}
-  .railL{order:2}.railR{order:3}
-  .rail{position:static;max-height:none;margin-top:6px}
-  .railBody{max-height:none}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
-@media print{.calc,.print{box-shadow:none}.print{display:none}.hero{border-radius:0}.dropScroll{max-height:none;overflow:visible}.shell{display:block;max-width:1000px}.rail{position:static;max-height:none}.railBody{max-height:none}}
-/* ===== view tabs (My rates | Import quote) ===== */
-.tabs{display:inline-flex;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:4px;margin-top:16px;gap:4px}
-.tabs button{border:0;background:transparent;color:#cbd5e1;font-weight:800;font-size:13px;padding:8px 16px;border-radius:999px;cursor:pointer;font-family:inherit}
-.tabs button.active{background:var(--green);color:#07131f}
-.tabs button:not(.active):hover{color:#fff}
-/* ===== import quote view ===== */
-.imp{max-width:1000px;margin:18px auto 0;padding:0 20px 60px}
-.phead{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.phead .pn{width:24px;height:24px;flex:none;border-radius:50%;background:var(--brand);color:#fff;font-weight:800;font-size:13px;display:inline-flex;align-items:center;justify-content:center}
-.phead h3{margin:0;font-size:15px}
-.phead .sub{margin:0 0 0 auto;font-size:12px;color:var(--muted)}
-.duo{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-@media(max-width:760px){.duo{grid-template-columns:1fr}}
-.party{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fbfcfd}
-.plab{font-weight:800;font-size:13px;color:var(--brand);margin-bottom:12px;display:flex;align-items:center;gap:7px}
-.plab .dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none}
-.pfields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.pfields .f{margin:0}
-.pfields .f input,.pfields .f select{width:100%}
-.pfields .span2{grid-column:1/-1}
-.ipgrid{display:grid;grid-template-columns:100px 110px 1fr 1fr 1fr;gap:10px;align-items:end}
-@media(max-width:620px){.ipgrid{grid-template-columns:1fr 1fr}}
-.iparcel{border:1px solid var(--line);border-radius:12px;padding:12px 12px 14px;margin-bottom:10px;position:relative;background:#fff}
-.iparcel .pbadge{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px;display:block}
-.iparcel .f{margin:0}
-.iparcel .f input,.iparcel .f select{width:100%}
-.ippack{margin-bottom:12px;max-width:340px}
-.fhint{display:block;font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.3}
-.iparcel .f input.ipfix{background:#f1f5f9;color:#64748b;cursor:not-allowed}
-.rmP{position:absolute;top:8px;right:8px;border:1px solid var(--line);background:#fff;border-radius:8px;width:26px;height:26px;cursor:pointer;color:#64748b;line-height:1;font-size:16px}
-.rmP:hover{background:#FEF2F2;color:#B91C1C;border-color:#fecaca}
-.addP{border:1px dashed #cbd5e1;background:#f8fafc;color:var(--brand);font-weight:800;font-size:13px;border-radius:10px;padding:10px 14px;cursor:pointer;font-family:inherit}
-.addP:hover{background:#eef2f7;border-color:#94a3b8}
-.isum{font-size:13px;color:#475569;margin-top:12px}
-.iactions{display:flex;align-items:center;gap:14px;margin-top:18px;flex-wrap:wrap}
-.iactions .print{font-size:14px;padding:12px 20px}
-.iactions .note{margin-top:0}
-.cards.iq{grid-template-columns:repeat(3,minmax(0,1fr))}
-@media(max-width:820px){.cards.iq{grid-template-columns:1fr}}
-/* quote card delivery time + vehicle */
-.qeta{display:flex;align-items:center;gap:10px;margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
-.qeta .veh{width:38px;height:38px;flex:none;border-radius:10px;display:inline-flex;align-items:center;justify-content:center}
-.qeta .veh svg{width:22px;height:22px}
-.qeta.road .veh{background:#EFF6FF;color:#1D4ED8}
-.qeta.air .veh{background:#F5F3FF;color:#6D28D9}
-.qeta .days{font-size:18px;font-weight:900;color:var(--ink);line-height:1.15;letter-spacing:-.01em}
-.qeta .dsub{font-size:11px;color:var(--muted);font-weight:600}
-/* ===== sender address book ===== */
-.abSave{margin-left:auto;border:1px solid var(--line);background:#fff;color:var(--brand);font-weight:800;font-size:11px;padding:5px 10px;border-radius:8px;cursor:pointer;font-family:inherit}
-.abSave:hover{background:#ECFDF5;border-color:var(--green)}
-.abhint{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;font-size:10.5px}
-.abMsg{display:block;font-size:11px;color:var(--g);margin-top:6px;min-height:14px}
-.comboOpt.abopt{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.abmain{display:flex;flex-direction:column;min-width:0}
-.abmain b{font-size:14px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.absub{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.abdel{border:0;background:transparent;color:#94a3b8;font-size:17px;line-height:1;cursor:pointer;flex:none;width:24px;height:24px;border-radius:6px}
-.abdel:hover{background:#FEF2F2;color:#B91C1C}
-/* live UPS rate-card pricing */
-.pcopt{font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;font-size:10px}
-.livepill{display:inline-block;font-size:9px;font-weight:900;letter-spacing:.04em;color:#fff;background:var(--ups);padding:1px 6px;border-radius:999px;vertical-align:middle;margin-left:5px;text-transform:uppercase}
-.card.loadcard .price{min-height:36px}
-.spin{display:inline-block;width:22px;height:22px;border:3px solid #e2e8f0;border-top-color:var(--ups);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
-@keyframes spin{to{transform:rotate(360deg)}}
-.card .brk .row.remote{color:#9a3412;font-weight:700}
-.card .brk .row.remote span:first-child::before{content:'📍 ';font-size:10px}
-</style></head>
+
+/* ===== HERO HEADER ===== */
+.hero {
+  background: #171B2D;
+  color: #fff;
+  padding: 24px 28px 30px;
+  border-bottom: 3px solid transparent;
+  background-image: linear-gradient(#171B2D, #171B2D), linear-gradient(90deg, var(--green), var(--pink));
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+.hero .inner {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.hero .top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.brandlogo {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+.brandlogo.fallback {
+  font-weight: 900;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  color: var(--green);
+}
+.hero .cust {
+  text-align: right;
+  font-size: 13px;
+  color: #94a3b8;
+}
+.hero .cust b {
+  display: block;
+  color: #fff;
+  font-size: 15px;
+}
+.hero h1 {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 18px 0 4px;
+  letter-spacing: -0.025em;
+  color: #ffffff;
+}
+.hero h1 .u {
+  color: var(--green);
+}
+.hero p.lede {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14px;
+  max-width: 720px;
+}
+
+/* ===== VIEW TABS ===== */
+.tabs {
+  display: inline-flex;
+  background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 999px;
+  padding: 4px;
+  margin-top: 18px;
+  gap: 4px;
+}
+.tabs button {
+  border: 0;
+  background: transparent;
+  color: #cbd5e1;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.tabs button.active {
+  background: var(--green);
+  color: #07131f;
+  box-shadow: 0 2px 8px rgba(29,251,157,0.3);
+}
+.tabs button:not(.active):hover {
+  color: #ffffff;
+  background: rgba(255,255,255,0.06);
+}
+
+/* ===== MAIN RATES LAYOUT (80% / 20% on-demand) ===== */
+.rates-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 24px 60px;
+}
+.rates-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  align-items: start;
+  transition: grid-template-columns 0.25s ease;
+}
+.rates-layout.has-sidebar {
+  grid-template-columns: minmax(0, 1fr) 370px;
+}
+@media (max-width: 1120px) {
+  .rates-layout.has-sidebar {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricing-main {
+  min-width: 0;
+}
+
+/* ===== CALCULATOR CONTAINER ===== */
+.calc-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 24px 26px;
+  margin-top: -20px;
+  position: relative;
+  box-shadow: var(--shadow-md);
+}
+.calc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.calc-head h2 {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.calc-head .calc-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Form inputs */
+.calc-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+}
+.f {
+  display: flex;
+  flex-direction: column;
+}
+.f label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+.f input, .f select {
+  padding: 10px 14px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  font-size: 14.5px;
+  background: #fff;
+  color: var(--ink);
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.f input:focus, .f select:focus {
+  outline: none;
+  border-color: var(--green-dark);
+  box-shadow: 0 0 0 3px rgba(29,251,157,0.3);
+}
+.f.country {
+  width: 240px;
+  max-width: 100%;
+}
+.combo {
+  position: relative;
+  width: 100%;
+}
+.combo input {
+  width: 100%;
+}
+.comboList {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  max-height: 280px;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: none;
+}
+.combo.open .comboList {
+  display: block;
+}
+.comboOpt {
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.comboOpt:hover, .comboOpt.active {
+  background: var(--green-bg);
+}
+.comboOpt[aria-selected="true"] {
+  font-weight: 800;
+  background: #d1fae5;
+  color: #065f46;
+}
+.comboEmpty {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.f.small input {
+  width: 90px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.calc-grid input[type=number]::-webkit-inner-spin-button,
+.calc-grid input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.calc-grid input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Stat / Metric Chips */
+.meta-chips {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+.meta-chip {
+  background: #f1f5f9;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.meta-chip .m-lab {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 800;
+}
+.meta-chip b {
+  font-size: 14.5px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.meta-chip.highlight {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+.meta-chip.highlight b {
+  color: #3730a3;
+}
+
+/* Toggles */
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+.tg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  user-select: none;
+}
+.tg input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--green-dark);
+  cursor: pointer;
+}
+
+/* Alerts and Notices */
+.dimcallout {
+  display: none;
+  margin-top: 16px;
+  padding: 13px 16px;
+  border-radius: var(--radius-md);
+  background: #FFF7ED;
+  border: 1px solid #FDBA74;
+  border-left: 6px solid #EA580C;
+  color: #7C2D12;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.dimcallout .big {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 14px;
+  margin-bottom: 3px;
+  color: #9A3412;
+}
+.dimcallout .ic {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  background: #EA580C;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.static-notice {
+  display: none;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-left: 5px solid #f59e0b;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 12.5px;
+  color: #92400e;
+  margin: 16px 0 6px;
+  line-height: 1.5;
+}
+
+/* ===== RATE CARDS GRID ===== */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.card {
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  background: #fff;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+.card:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.card .chead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.card .cmark {
+  height: 32px;
+  width: auto;
+  max-width: 110px;
+  object-fit: contain;
+  display: inline-block;
+}
+.card .cmark[data-k="dpd"] {
+  height: 48px;
+  max-width: 130px;
+}
+.cbadge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+  padding: 3px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.cbadge.dpd { background: var(--dpd); }
+.cbadge.ups { background: var(--ups); }
+.cbadge.dhl { background: var(--dhl); }
+
+.card .svc {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--brand);
+  margin: 6px 0 2px;
+  line-height: 1.3;
+}
+.card .price-row {
+  margin: 10px 0 2px;
+}
+.card .price {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.card .unit {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Card badges */
+.card .badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 900;
+  color: #0B1220;
+  background: var(--green);
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(29,251,157,0.4);
+}
+.card .badge.fastest {
+  background: var(--sky);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(2,132,199,0.35);
+}
+.card .badge.best-both {
+  background: linear-gradient(90deg, var(--green), #38bdf8);
+  color: #0B1220;
+}
+
+.card.win {
+  border: 2px solid var(--green);
+  background: linear-gradient(180deg, #ffffff, #f0fdf4 120%);
+  box-shadow: 0 8px 24px rgba(29,251,157,0.22);
+}
+.card.win .price {
+  color: var(--green-dark);
+}
+.card.fast {
+  border: 2px solid #38bdf8;
+  box-shadow: 0 8px 24px rgba(56,189,248,0.2);
+}
+.card.win.fast {
+  border: 2px solid var(--green);
+  box-shadow: 0 8px 24px rgba(29,251,157,0.25), 0 0 0 2px #38bdf8;
+}
+.card.na {
+  background: #f8fafc;
+  color: var(--muted);
+  border-style: dashed;
+}
+.card.na .price {
+  font-size: 18px;
+  color: #94a3b8;
+  margin-top: 12px;
+}
+
+/* Card Price Breakdown */
+.card .brk {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-top: 14px;
+  border-top: 1px dashed var(--line);
+  padding-top: 10px;
+  flex: 1;
+}
+.card .brk .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 1px 0;
+}
+.card .brk .row.tot {
+  font-weight: 800;
+  color: var(--ink);
+  border-top: 1.5px solid var(--line);
+  margin-top: 6px;
+  padding-top: 6px;
+}
+.card .brk .row.cust {
+  margin-top: 6px;
+  color: #9d174d;
+  font-weight: 800;
+}
+.card .brk .custsub {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.card .brk .row.remote {
+  color: #9a3412;
+  font-weight: 700;
+}
+
+/* Card Action Button (Drop Shop Finder) */
+.card-actions {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+.btn-drop-finder {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: #f8fafc;
+  color: var(--brand);
+  border: 1px solid var(--line-strong);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.btn-drop-finder:hover {
+  background: #eef2f6;
+  border-color: #94a3b8;
+}
+.btn-drop-finder.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+.btn-drop-finder .icon {
+  font-size: 13px;
+}
+
+.note {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 16px;
+  line-height: 1.5;
+}
+
+/* ===== SURCHARGES & ACCESSORIALS PANEL ===== */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 22px 26px;
+  margin-top: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.panel h3 {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0 0 4px;
+  color: var(--ink);
+}
+.panel p.sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th, td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+th {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: #f8fafc;
+}
+td.r {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.surlogo {
+  height: 24px;
+  width: auto;
+  max-width: 74px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+.surlogo[data-k="dpd"] {
+  height: 40px;
+  max-width: 110px;
+}
+
+.notes {
+  white-space: pre-line;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 14px;
+  padding: 0 4px;
+}
+.foot {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 24px;
+  text-align: center;
+}
+
+/* ===== ON-DEMAND DROP SHOPS SIDEBAR (20% Width) ===== */
+.drop-sidebar {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  animation: slideIn 0.2s ease-out;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.drop-panel-inner {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: calc(100vh - 32px);
+}
+.drop-panel-head {
+  padding: 14px 16px;
+  background: #fff;
+  border-bottom: 2px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.drop-panel-head.dpd { border-bottom-color: var(--dpd); }
+.drop-panel-head.ups { border-bottom-color: var(--ups); }
+
+.dph-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.dph-logo {
+  height: 28px;
+  width: auto;
+  max-width: 80px;
+  object-fit: contain;
+}
+.dph-logo[data-k="dpd"] {
+  height: 38px;
+  max-width: 100px;
+}
+.dph-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--brand);
+  line-height: 1.2;
+}
+.dph-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+.dph-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.drop-count-badge {
+  font-size: 11px;
+  font-weight: 800;
+  background: #f1f5f9;
+  color: var(--ink-soft);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.drop-close-btn {
+  border: 0;
+  background: #f1f5f9;
+  color: var(--muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.drop-close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.drop-panel-body {
+  padding: 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+}
+.drop {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  background: #fff;
+  border-left: 5px solid var(--line);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s ease;
+}
+.drop:hover {
+  border-color: #cbd5e1;
+}
+.drop.dpd { border-left-color: var(--dpd); }
+.drop.ups { border-left-color: var(--ups); }
+.drop.dhl { border-left-color: var(--dhl); }
+
+.drop .dh {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+.drop .nm {
+  font-weight: 800;
+  font-size: 14.5px;
+  color: var(--brand);
+  line-height: 1.25;
+}
+.drop .ty {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 2px;
+}
+.drop .dhr {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.drop .dist {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent-2);
+  white-space: nowrap;
+}
+.mapbtn {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--green-dark);
+  padding: 0;
+  flex: none;
+  transition: all 0.15s;
+}
+.mapbtn:hover {
+  background: var(--green-bg);
+  border-color: var(--green);
+}
+.mapbtn svg {
+  width: 15px;
+  height: 15px;
+}
+.drop .addr {
+  font-size: 12px;
+  color: #475569;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.dstatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 800;
+  margin-top: 9px;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.dstatus.open, .dstatus.h24 {
+  background: #ECFDF5;
+  color: #047857;
+}
+.dstatus.closed {
+  background: #FEF2F2;
+  color: #B91C1C;
+}
+.dstatus .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 9px;
+}
+.chip {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+}
+.chip.good {
+  background: #ECFDF5;
+  color: #047857;
+}
+.dropmore {
+  margin-top: 9px;
+  border-top: 1px dashed var(--line);
+  padding-top: 7px;
+}
+.dropmore summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.dropmore summary::-webkit-details-marker { display: none; }
+.dropmore summary::before { content: '▸'; color: var(--muted); font-size: 10px; }
+.dropmore[open] summary::before { content: '▾'; }
+.drTray > .hblock:first-child, .drTray > .dl:first-child { border-top: 0; margin-top: 6px; padding-top: 0; }
+.hblock, .dl { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 6px; }
+.hblock .lab, .dl .lab { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 800; margin-bottom: 3px; }
+.hours { display: flex; flex-direction: column; gap: 2px; }
+.hrow { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; line-height: 1.4; }
+.hrow .d { color: #64748b; font-weight: 700; }
+.hrow .t { color: #334155; font-variant-numeric: tabular-nums; }
+.hrow.now .d, .hrow.now .t { color: var(--brand); font-weight: 900; }
+.hrow.cl .t { color: #B91C1C; }
+.h24 { font-size: 11px; font-weight: 800; color: #047857; }
+.htext { font-size: 11px; color: #334155; }
+.dlrow { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 10px; font-size: 10.5px; padding: 2px 0; color: #334155; align-items: baseline; }
+.dlrow .svc { font-weight: 700; color: #475569; }
+.dlrow .wk, .dlrow .st { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dlrow .st { color: #64748b; }
+
+.loadMore {
+  width: 100%;
+  margin-top: 4px;
+  padding: 9px;
+  border: 1px dashed #cbd5e1;
+  background: #fff;
+  color: var(--brand);
+  font-weight: 800;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.loadMore:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+/* ===== MODAL & MAP ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(15,23,42,0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modalCard {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  width: min(580px, 100%);
+  max-height: 90vh;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+}
+.modalX {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 2;
+  border: 0;
+  background: rgba(255,255,255,0.92);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modalX:hover { background: #fff; }
+.modalHead { padding: 18px 20px 12px; }
+.modalHead .mName { font-weight: 800; font-size: 17px; color: var(--brand); padding-right: 34px; }
+.modalHead .mAddr { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.modalMap { height: 350px; background: #eef2f7; }
+.mapFail { padding: 30px; text-align: center; color: var(--muted); font-size: 13px; }
+.modalDir {
+  display: block;
+  text-align: center;
+  padding: 14px;
+  font-weight: 800;
+  font-size: 14px;
+  color: #0B1220;
+  background: var(--green);
+  text-decoration: none;
+  transition: filter 0.15s;
+}
+.modalDir:hover { filter: brightness(0.95); }
+
+/* ===== IMPORT QUOTE TAB VIEW ===== */
+.imp {
+  max-width: 1000px;
+  margin: 18px auto 0;
+  padding: 0 20px 60px;
+}
+.phead { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.phead .pn { width: 26px; height: 26px; flex: none; border-radius: 50%; background: var(--brand); color: #fff; font-weight: 800; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+.phead h3 { margin: 0; font-size: 16px; }
+.phead .sub { margin: 0 0 0 auto; font-size: 12px; color: var(--muted); }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 760px) { .duo { grid-template-columns: 1fr; } }
+.party { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 16px; background: #fbfcfd; }
+.plab { font-weight: 800; font-size: 13.5px; color: var(--brand); margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
+.plab .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
+.pfields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pfields .f { margin: 0; }
+.pfields .f input, .pfields .f select { width: 100%; }
+.pfields .span2 { grid-column: 1 / -1; }
+.ipgrid { display: grid; grid-template-columns: 100px 110px 1fr 1fr 1fr; gap: 12px; align-items: end; }
+@media (max-width: 620px) { .ipgrid { grid-template-columns: 1fr 1fr; } }
+.iparcel { border: 1px solid var(--line); border-radius: var(--radius-md); padding: 14px; margin-bottom: 12px; position: relative; background: #fff; }
+.iparcel .pbadge { font-size: 10.5px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; display: block; }
+.iparcel .f { margin: 0; }
+.iparcel .f input, .iparcel .f select { width: 100%; }
+.ippack { margin-bottom: 12px; max-width: 340px; }
+.fhint { display: block; font-size: 10.5px; color: var(--muted); margin-top: 5px; line-height: 1.3; }
+.iparcel .f input.ipfix { background: #f1f5f9; color: #64748b; cursor: not-allowed; }
+.rmP { position: absolute; top: 10px; right: 10px; border: 1px solid var(--line); background: #fff; border-radius: 8px; width: 28px; height: 28px; cursor: pointer; color: #64748b; line-height: 1; font-size: 16px; }
+.rmP:hover { background: #FEF2F2; color: #B91C1C; border-color: #fecaca; }
+.addP { border: 1px dashed #cbd5e1; background: #f8fafc; color: var(--brand); font-weight: 800; font-size: 13px; border-radius: var(--radius-md); padding: 11px 16px; cursor: pointer; font-family: inherit; }
+.addP:hover { background: #eef2f7; border-color: #94a3b8; }
+.isum { font-size: 13.5px; color: var(--ink-soft); margin-top: 14px; }
+.iactions { display: flex; align-items: center; gap: 14px; margin-top: 20px; flex-wrap: wrap; }
+.print { display: inline-flex; gap: 8px; align-items: center; background: var(--green); color: #0B1220; border: 0; border-radius: var(--radius-md); padding: 12px 20px; font-weight: 800; cursor: pointer; font-size: 14px; font-family: inherit; }
+.cards.iq { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 820px) { .cards.iq { grid-template-columns: 1fr; } }
+.qeta { display: flex; align-items: center; gap: 10px; margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 12px; }
+.qeta .veh { width: 38px; height: 38px; flex: none; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; }
+.qeta .veh svg { width: 22px; height: 22px; }
+.qeta.road .veh { background: #EFF6FF; color: #1D4ED8; }
+.qeta.air .veh { background: #F5F3FF; color: #6D28D9; }
+.qeta .days { font-size: 18px; font-weight: 900; color: var(--ink); line-height: 1.15; letter-spacing: -0.01em; }
+.qeta .dsub { font-size: 11px; color: var(--muted); font-weight: 600; }
+.abSave { margin-left: auto; border: 1px solid var(--line); background: #fff; color: var(--brand); font-weight: 800; font-size: 11px; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+.abSave:hover { background: #ECFDF5; border-color: var(--green); }
+.abhint { font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; font-size: 10.5px; }
+.abMsg { display: block; font-size: 11px; color: var(--green-dark); margin-top: 6px; min-height: 14px; }
+.comboOpt.abopt { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.abmain { display: flex; flex-direction: column; min-width: 0; }
+.abmain b { font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.absub { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.abdel { border: 0; background: transparent; color: #94a3b8; font-size: 17px; line-height: 1; cursor: pointer; flex: none; width: 24px; height: 24px; border-radius: 6px; }
+.abdel:hover { background: #FEF2F2; color: #B91C1C; }
+
+/* Utilities & Misc */
+.state { max-width: 520px; margin: 16vh auto; text-align: center; color: var(--muted); font-size: 15px; }
+.pcopt { font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; font-size: 10px; }
+.livepill { display: inline-block; font-size: 9px; font-weight: 900; letter-spacing: 0.04em; color: #fff; background: var(--ups); padding: 1px 6px; border-radius: 999px; vertical-align: middle; margin-left: 5px; text-transform: uppercase; }
+.card.loadcard .price { min-height: 36px; }
+.spin { display: inline-block; width: 22px; height: 22px; border: 3px solid #e2e8f0; border-top-color: var(--ups); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
 <body>
 <div id="state" class="state">Loading rate card…</div>
+
 <div id="app" style="display:none">
-  <div class="hero"><div class="inner">
-    <div class="top">
-      <img class="brandlogo" src="/logo.png" alt="MOOV Parcel" onerror="this.outerHTML='&lt;div class=\'brandlogo fallback\'&gt;moov parcel&lt;/div&gt;'"/>
-      <div class="cust">Rate card<span id="today"></span></div>
+  <!-- Top Brand Hero -->
+  <header class="hero">
+    <div class="inner">
+      <div class="top">
+        <img class="brandlogo" src="/logo.png" alt="MOOV Parcel" onerror="this.outerHTML='<div class=\'brandlogo fallback\'>moov parcel</div>'"/>
+        <div class="cust">Rate card<span id="today"></span></div>
+      </div>
+      <h1 id="title">International Rate Card</h1>
+      <nav class="tabs" id="viewTabs">
+        <button type="button" data-view="rates" class="active">My rates</button>
+        <button type="button" data-view="import">Request an import quote</button>
+      </nav>
     </div>
-    <h1 id="title">International Rate Card</h1>
-    <div class="tabs" id="viewTabs">
-      <button type="button" data-view="rates" class="active">My rates</button>
-      <button type="button" data-view="import">Request an import quote</button>
-    </div>
-  </div></div>
-  <div class="shell" id="ratesView">
-   <aside class="rail railL" id="railUPSwrap" style="display:none">
-     <div class="railHead ups">
-       <img class="raillogo" data-k="ups" data-c="UPS" src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS"/>
-       <span class="railttl">Drop-off points</span><span class="rcount" id="railUPScount"></span>
-     </div>
-     <div class="railBody" id="railUPS"></div>
-   </aside>
-   <div class="wrap">
-    <div class="calc">
-      <h2>Price calculator</h2>
-      <div class="rowf">
-        <div class="f country"><label>Destination</label>
-          <div class="combo" id="destCombo">
-            <input id="countryInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search country…" role="combobox" aria-expanded="false" aria-autocomplete="list"/>
-            <div class="comboList" id="countryList" role="listbox"></div>
+  </header>
+
+  <!-- Main Rates View (80% / 20% on-demand) -->
+  <div class="rates-container" id="ratesView">
+    <div class="rates-layout" id="ratesLayout">
+      <!-- 80% Pricing & Calculator Column -->
+      <main class="pricing-main" id="pricingMain">
+        <div class="calc-card">
+          <div class="calc-head">
+            <h2><span>📦</span> Shipping Rate Calculator</h2>
+            <span class="calc-sub">Instant quotes with negotiated rates &amp; fuel included</span>
           </div>
+
+          <div class="calc-grid">
+            <div class="f country">
+              <label>Destination</label>
+              <div class="combo" id="destCombo">
+                <input id="countryInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search country…" role="combobox" aria-expanded="false" aria-autocomplete="list"/>
+                <div class="comboList" id="countryList" role="listbox"></div>
+              </div>
+            </div>
+            <div class="f">
+              <label>Postcode <span class="pcopt">optional</span></label>
+              <input id="pc" type="text" autocomplete="off" placeholder="exact UPS surcharges" style="width:140px"/>
+            </div>
+            <div class="f small">
+              <label>Weight (kg)</label>
+              <input id="wt" type="number" min="0" step="0.1" value="5"/>
+            </div>
+            <div class="f small">
+              <label>Length (cm)</label>
+              <input id="L" type="number" min="0" step="1" placeholder="L"/>
+            </div>
+            <div class="f small">
+              <label>Width (cm)</label>
+              <input id="W" type="number" min="0" step="1" placeholder="W"/>
+            </div>
+            <div class="f small">
+              <label>Height (cm)</label>
+              <input id="H" type="number" min="0" step="1" placeholder="H"/>
+            </div>
+            <div class="f small">
+              <label id="vlab">Value (£)</label>
+              <input id="V" type="number" min="0" step="1" value="0"/>
+            </div>
+            <div class="f small">
+              <label>SKUs</label>
+              <input id="SK" type="number" min="1" step="1" value="1"/>
+            </div>
+          </div>
+
+          <!-- Options Toggles -->
+          <div class="toggles" id="toggles"></div>
+
+          <!-- Metric Chips Bar -->
+          <div class="meta-chips">
+            <div class="meta-chip"><span class="m-lab">Volumetric</span><b id="volw">—</b></div>
+            <div class="meta-chip"><span class="m-lab">Chargeable</span><b id="chgw">—</b></div>
+            <div class="meta-chip highlight"><span class="m-lab">Priced on</span><b id="driver">—</b></div>
+          </div>
+
+          <!-- Volumetric Callout -->
+          <div class="dimcallout" id="dimNote"></div>
+
+          <!-- Static Fallback Warning Notice -->
+          <div id="staticNotice" class="static-notice">
+            <b>⚠️ Standard Rate Card Notice:</b> Live UPS rates are currently unavailable. The prices shown below are calculated from your agreed standard rate card. Note that these rates are baseline prices and do not include destination-specific remote/extended area surcharges or live out-of-gauge / demand surcharges.
+          </div>
+
+          <!-- Rate Cards -->
+          <div class="cards" id="cards"></div>
+
+          <div class="note" id="cnote"></div>
         </div>
-        <div class="f"><label>Postcode <span class="pcopt">optional</span></label><input id="pc" type="text" autocomplete="off" placeholder="exact UPS surcharges" style="width:150px"/></div>
-        <div class="f small"><label>Weight (kg)</label><input id="wt" type="number" min="0" step="0.1" value="5"/></div>
-        <div class="f small"><label>Length (cm)</label><input id="L" type="number" min="0" step="1"/></div>
-        <div class="f small"><label>Width (cm)</label><input id="W" type="number" min="0" step="1"/></div>
-        <div class="f small"><label>Height (cm)</label><input id="H" type="number" min="0" step="1"/></div>
-        <div class="f small"><label id="vlab">Value (£)</label><input id="V" type="number" min="0" step="1" value="0"/></div>
-        <div class="f small"><label>SKUs</label><input id="SK" type="number" min="1" step="1" value="1"/></div>
-      </div>
-      <div class="toggles" id="toggles"></div>
-      <div class="meta">
-        <div><div class="lab">Volumetric</div><b id="volw">—</b></div>
-        <div><div class="lab">Chargeable</div><b id="chgw">—</b></div>
-        <div><div class="lab">Priced on</div><b id="driver">—</b></div>
-      </div>
-      <div class="dimcallout" id="dimNote"></div>
-      <div class="cards" id="cards"></div>
-      <div class="note" id="cnote"></div>
+
+        <!-- Surcharges & Accessorials Panel -->
+        <section class="panel" id="surPanel">
+          <h3>Surcharges &amp; Accessorials</h3>
+          <p class="sub">Applied per shipment in addition to the delivery price where relevant. Duties &amp; taxes are passed on at cost.</p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Surcharge</th>
+                  <th>Carrier</th>
+                  <th>When it applies</th>
+                  <th style="text-align:right">Charge</th>
+                </tr>
+              </thead>
+              <tbody id="surBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="notes" id="notesBox"></div>
+        <footer class="foot" id="foot"></footer>
+      </main>
+
+      <!-- On-Demand Drop Shops Right-Hand Drawer (~20-22% width) -->
+      <aside class="drop-sidebar" id="dropSidebar" style="display:none">
+        <div class="drop-panel-inner">
+          <div class="drop-panel-head" id="dropPanelHead">
+            <div class="dph-left">
+              <div id="dropCarrierLogo"></div>
+              <div>
+                <div class="dph-title" id="dropCarrierTitle">Drop-off Points</div>
+                <div class="dph-sub" id="dropCarrierSub">Nearest drop locations</div>
+              </div>
+            </div>
+            <div class="dph-right">
+              <span class="drop-count-badge" id="dropCount">0</span>
+              <button type="button" class="drop-close-btn" id="closeDropSidebar" title="Close drop-off points">&times;</button>
+            </div>
+          </div>
+          <div class="drop-panel-body" id="dropBody"></div>
+        </div>
+      </aside>
     </div>
-    <div class="panel" id="surPanel">
-      <h3>Surcharges</h3>
-      <p class="sub">Applied per shipment in addition to the delivery price where relevant. Duties &amp; taxes are passed on at cost.</p>
-      <table><thead><tr><th>Surcharge</th><th>Carrier</th><th>When it applies</th><th>Charge</th></tr></thead><tbody id="surBody"></tbody></table>
-    </div>
-    <div class="notes" id="notesBox"></div>
-    <div class="foot" id="foot"></div>
-   </div>
-   <aside class="rail railR" id="railDPDwrap" style="display:none">
-     <div class="railHead dpd">
-       <img class="raillogo" data-k="dpd" data-c="DPD" src="https://app.heyvoila.io/courier-service-logos/dpd.jpg" alt="DPD"/>
-       <span class="railttl">Drop-off points</span><span class="rcount" id="railDPDcount"></span>
-     </div>
-     <div class="railBody" id="railDPD"></div>
-   </aside>
   </div>
+
+  <!-- Import Quote View -->
   <div id="importView" style="display:none">
-   <div class="imp">
-    <div class="panel">
-      <div class="phead"><span class="pn">1</span><h3>Collection &amp; delivery</h3><span class="sub">Where the goods ship from, and where they're delivered to you.</span></div>
-      <div class="duo">
-        <div class="party">
-          <div class="plab"><span class="dot"></span>Sender — shipping from<button type="button" class="abSave" id="is_saveAddr" title="Save this supplier for re-use">★ Save to address book</button></div>
-          <div class="pfields">
-            <div class="f span2"><label>Company <span class="abhint">— search saved suppliers or type a new one</span></label>
-              <div class="combo" id="is_companyCombo" style="width:100%">
-                <input id="is_company" type="text" autocomplete="off" spellcheck="false" placeholder="Search saved suppliers or type a new one…" role="combobox" aria-expanded="false" aria-autocomplete="list"/>
-                <div class="comboList" id="is_companyList" role="listbox"></div>
+    <div class="imp">
+      <div class="panel">
+        <div class="phead"><span class="pn">1</span><h3>Collection &amp; delivery</h3><span class="sub">Where the goods ship from, and where they're delivered to you.</span></div>
+        <div class="duo">
+          <div class="party">
+            <div class="plab"><span class="dot"></span>Sender — shipping from<button type="button" class="abSave" id="is_saveAddr" title="Save this supplier for re-use">★ Save to address book</button></div>
+            <div class="pfields">
+              <div class="f span2"><label>Company <span class="abhint">— search saved suppliers or type a new one</span></label>
+                <div class="combo" id="is_companyCombo" style="width:100%">
+                  <input id="is_company" type="text" autocomplete="off" spellcheck="false" placeholder="Search saved suppliers or type a new one…" role="combobox" aria-expanded="false" aria-autocomplete="list"/>
+                  <div class="comboList" id="is_companyList" role="listbox"></div>
+                </div>
+                <span class="abMsg" id="abMsg"></span>
               </div>
-              <span class="abMsg" id="abMsg"></span>
-            </div>
-            <div class="f span2"><label>Contact name</label><input id="is_name"/></div>
-            <div class="f span2"><label>Country</label>
-              <div class="combo" id="is_countryCombo" style="width:100%">
-                <input id="is_countryInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search any country…" role="combobox" aria-expanded="false" aria-autocomplete="list"/>
-                <div class="comboList" id="is_countryList" role="listbox"></div>
+              <div class="f span2"><label>Contact name</label><input id="is_name"/></div>
+              <div class="f span2"><label>Country</label>
+                <div class="combo" id="is_countryCombo" style="width:100%">
+                  <input id="is_countryInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search any country…" role="combobox" aria-expanded="false" aria-autocomplete="list"/>
+                  <div class="comboList" id="is_countryList" role="listbox"></div>
+                </div>
               </div>
+              <div class="f span2"><label>City</label><input id="is_city"/></div>
+              <div class="f span2"><label>Address line 1</label><input id="is_line1"/></div>
+              <div class="f span2"><label>Address line 2</label><input id="is_line2"/></div>
+              <div class="f"><label>Postcode</label><input id="is_postcode"/></div>
+              <div class="f"><label>Phone</label><input id="is_phone"/></div>
+              <div class="f span2"><label>Email</label><input id="is_email"/></div>
             </div>
-            <div class="f span2"><label>City</label><input id="is_city"/></div>
-            <div class="f span2"><label>Address line 1</label><input id="is_line1"/></div>
-            <div class="f span2"><label>Address line 2</label><input id="is_line2"/></div>
-            <div class="f"><label>Postcode</label><input id="is_postcode"/></div>
-            <div class="f"><label>Phone</label><input id="is_phone"/></div>
-            <div class="f span2"><label>Email</label><input id="is_email"/></div>
           </div>
-        </div>
-        <div class="party">
-          <div class="plab"><span class="dot"></span>Receiver — delivering to (you)</div>
-          <div class="pfields">
-            <div class="f span2"><label>Company</label><input id="ir_company"/></div>
-            <div class="f span2"><label>Contact name</label><input id="ir_name"/></div>
-            <div class="f"><label>Country</label><select id="ir_country">
-              <option value="GB" selected>United Kingdom</option><option value="IE">Ireland</option>
-            </select></div>
-            <div class="f"><label>City</label><input id="ir_city"/></div>
-            <div class="f span2"><label>Address line 1</label><input id="ir_line1"/></div>
-            <div class="f span2"><label>Address line 2</label><input id="ir_line2"/></div>
-            <div class="f"><label>Postcode</label><input id="ir_postcode"/></div>
-            <div class="f"><label>Phone</label><input id="ir_phone"/></div>
-            <div class="f span2"><label>Email</label><input id="ir_email"/></div>
+          <div class="party">
+            <div class="plab"><span class="dot"></span>Receiver — delivering to (you)</div>
+            <div class="pfields">
+              <div class="f span2"><label>Company</label><input id="ir_company"/></div>
+              <div class="f span2"><label>Contact name</label><input id="ir_name"/></div>
+              <div class="f"><label>Country</label><select id="ir_country">
+                <option value="GB" selected>United Kingdom</option><option value="IE">Ireland</option>
+              </select></div>
+              <div class="f"><label>City</label><input id="ir_city"/></div>
+              <div class="f span2"><label>Address line 1</label><input id="ir_line1"/></div>
+              <div class="f span2"><label>Address line 2</label><input id="ir_line2"/></div>
+              <div class="f"><label>Postcode</label><input id="ir_postcode"/></div>
+              <div class="f"><label>Phone</label><input id="ir_phone"/></div>
+              <div class="f span2"><label>Email</label><input id="ir_email"/></div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="panel">
-      <div class="phead"><span class="pn">2</span><h3>Packages</h3><span class="sub">Add each parcel size — set how many of each.</span></div>
-      <div id="iparcels"></div>
-      <button type="button" class="addP" id="iaddParcel">＋ Add another package</button>
-      <div class="pfields" style="margin-top:14px;max-width:520px;align-items:start">
-        <div class="f"><label>Total goods value (£)</label><input id="igoods" type="number" min="0" step="1" placeholder="e.g. 250"/></div>
-        <div class="f"><label>HS / tariff lines</label><input id="ihslines" type="number" min="0" step="1" value="5" placeholder="e.g. 5"/><span class="fhint">First 5 free, £2.95 each after</span></div>
+      <div class="panel">
+        <div class="phead"><span class="pn">2</span><h3>Packages</h3><span class="sub">Add each parcel size — set how many of each.</span></div>
+        <div id="iparcels"></div>
+        <button type="button" class="addP" id="iaddParcel">＋ Add another package</button>
+        <div class="pfields" style="margin-top:14px;max-width:520px;align-items:start">
+          <div class="f"><label>Total goods value (£)</label><input id="igoods" type="number" min="0" step="1" placeholder="e.g. 250"/></div>
+          <div class="f"><label>HS / tariff lines</label><input id="ihslines" type="number" min="0" step="1" value="5" placeholder="e.g. 5"/><span class="fhint">First 5 free, £2.95 each after</span></div>
+        </div>
+        <div class="isum" id="isummary"></div>
       </div>
-      <div class="isum" id="isummary"></div>
+      <div class="iactions">
+        <button type="button" class="print" id="igetQuotes">Get import quotes →</button>
+        <span class="note">Live UPS rates, priced with your agreed rates.</span>
+      </div>
+      <div id="iresults" class="panel" style="display:none">
+        <h3 id="iresTitle">Import quotes</h3>
+        <p class="sub" id="iresnote">Cheapest first — every price includes your agreed rate.</p>
+        <div class="cards iq" id="iqcards"></div>
+      </div>
+      <div class="foot">Prices indicative and subject to final confirmation. Excludes VAT. Import duties &amp; taxes billed separately at import.</div>
     </div>
-    <div class="iactions">
-      <button type="button" class="print" id="igetQuotes">Get import quotes →</button>
-      <span class="note">Live UPS rates, priced with your agreed rates.</span>
-    </div>
-    <div id="iresults" class="panel" style="display:none">
-      <h3 id="iresTitle">Import quotes</h3>
-      <p class="sub" id="iresnote">Cheapest first — every price includes your agreed rate.</p>
-      <div class="cards iq" id="iqcards"></div>
-    </div>
-    <div class="foot">Prices indicative and subject to final confirmation. Excludes VAT. Import duties &amp; taxes billed separately at import.</div>
-   </div>
   </div>
+
+  <!-- Leaflet Map Modal -->
   <div id="dropModal" class="modal" style="display:none">
     <div class="modalCard">
       <button type="button" class="modalX" id="dropModalX" aria-label="Close">&times;</button>
-      <div class="modalHead"><div class="mName" id="dmName"></div><div class="mAddr" id="dmAddr"></div></div>
+      <div class="modalHead">
+        <div class="mName" id="dmName"></div>
+        <div class="mAddr" id="dmAddr"></div>
+      </div>
       <div id="dropModalMap" class="modalMap"></div>
       <a id="dmDirections" class="modalDir" href="#" target="_blank" rel="noopener">Get directions ↗</a>
     </div>
   </div>
 </div>
+
 <script>
-const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2), eur=v=>'€'+Number(v).toFixed(2);
-const num=id=>{const v=parseFloat($(id).value);return isNaN(v)?0:v;};
-let RC=null, curCountry=null, curToken=null, senderIso='', addrBook=[];
-let upsKey=null, upsData=null, upsTimer=null, upsAbortCtrl=null; // live UPS rate-card state
-const CARRIER_LOGOS={
-  dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',
-  ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
-function carrierMark(c,cls){const k=c.toLowerCase();const src=CARRIER_LOGOS[k]||('/carrier-'+k+'.svg');
-  return '<img class="'+(cls||'cmark')+'" src="'+src+'" data-k="'+k+'" data-c="'+c+'" alt="'+c+'"/>';}
-function wireCarrierMarks(box){box.querySelectorAll('img.cmark').forEach(img=>{
-  const fb=()=>{img.outerHTML='<span class="cbadge '+img.dataset.k+'">'+img.dataset.c+'</span>';};
-  img.onerror=fb; if(img.complete&&!img.naturalWidth)fb();});}
-const region=c=>(RC.eu||[]).includes(c)?'eu':'row';
-const accList=()=>RC.accessorials||[];
-// EU per-SKU customs duty (all carriers), shown natively in euros. For EU the Value field is
-// entered in euros, so the low-value threshold is a direct euro comparison. Not folded into the £ total.
-function euCustoms(c){
-  const e=RC.euDuty; if(!e||!e.enabled)return null;
-  if(region(c)!=='eu')return null;
-  if(num('V')>(Number(e.thresholdEur)||150))return {over:true};   // goods value (€) over threshold: €3 duty doesn't apply
-  const sku=Math.max(1,Math.floor(num('SK')||1));
-  const eur=Math.round(sku*(Number(e.perSku)||0)*100)/100;
-  if(eur<=0)return null;
-  return {sku,perSku:Number(e.perSku),eur};
+const $ = id => document.getElementById(id);
+const money = v => v == null ? '—' : '£' + Number(v).toFixed(2);
+const eur = v => '€' + Number(v).toFixed(2);
+const num = id => { const v = parseFloat($(id).value); return isNaN(v) ? 0 : v; };
+
+let RC = null, curCountry = null, curToken = null, senderIso = '', addrBook = [];
+let upsKey = null, upsData = null, upsTimer = null, upsAbortCtrl = null;
+let activeDropCarrier = null; // Currently opened carrier in drop shops drawer
+
+const CARRIER_LOGOS = {
+  dpd: 'https://app.heyvoila.io/courier-service-logos/dpd.jpg',
+  ups: 'https://app.heyvoila.io/courier-service-logos/ups.jpg'
+};
+
+function carrierMark(c, cls) {
+  const k = (c || '').toLowerCase();
+  const src = CARRIER_LOGOS[k] || ('/carrier-' + k + '.svg');
+  return '<img class="' + (cls || 'cmark') + '" src="' + src + '" data-k="' + k + '" data-c="' + c + '" alt="' + c + '"/>';
 }
-function accGeom(){const L=num('L'),W=num('W'),H=num('H');const s=[L,W,H].filter(x=>x>0).sort((a,b)=>b-a);
-  return {longest:s[0]||0,second:s[1]||0,girth:(L&&W&&H)?(s[0]+2*(s[1]||0)+2*(s[2]||0)):0};}
-function accApplies(a,c,actual){const g=accGeom();
-  if(a.cond==='toggle'){const el=$('tg_'+(a.group||a.key));return !!(el&&el.checked);}
-  if(a.cond==='always')return true;
-  if(a.cond==='countryIn')return (a.countries||[]).includes(c);
-  if(a.cond==='region')return region(c)===a.region;
-  if(a.cond==='auto'){
-    if(a.key==='addlHandling')return actual>25||g.longest>100||g.second>76;
-    if(a.key==='largePackage')return g.girth>300;
-    if(a.key==='overMax')return actual>70||g.longest>274||g.girth>400;}
-  return false;}
-function accAmount(a){if(a.basis==='pctValue')return Math.max((a.pct||0)*num('V')/100,a.min||0);return a.amount||0;}
-function whenText(a){return a.cond==='auto'?'By size / weight':a.cond==='always'?'Every shipment':a.cond==='countryIn'?((a.countries||[]).join(', ')):a.cond==='region'?((a.region||'').toUpperCase()+' destinations'):'When selected';}
-function rateText(a){return a.basis==='pctValue'?((a.pct||0)+'% of goods value'+(a.min?(' (min £'+Number(a.min).toFixed(2)+')'):'')):('£'+Number(a.amount||0).toFixed(2)+' per shipment');}
-function priceOf(s,c,chg){
-  const B=RC.bands;
-  if(s.type==='band'){const arr=s.prices[c];if(!arr)return{p:null,avail:false};
-    if(chg>B[B.length-1]+1e-9)return{p:null,avail:true,note:'over '+B[B.length-1]+' kg'};
-    for(let i=0;i<B.length;i++)if(B[i]>=chg-1e-9)return{p:arr[i],avail:true,band:B[i]};
-    return{p:null,avail:true};}
-  if(s.type==='flat'){const p=s.prices[c];if(p==null)return{p:null,avail:false};
-    if(chg>s.cap+1e-9)return{p:null,avail:true,note:'over '+s.cap+' kg'};
-    return{p:p,avail:true,band:'≤'+s.cap+'kg'};}
-  const z=s.zmap[c], zd=z&&s.zones[z];if(!z||!zd)return{p:null,avail:false};
-  const mB=zd[zd.length-1][0];
-  if(chg<=mB+1e-9){for(const[w,pr]of zd)if(w>=chg-1e-9)return{p:pr,avail:true,band:w};}
-  return{p:zd[zd.length-1][1],avail:true,band:'>'+mB+'kg'};
+
+function wireCarrierMarks(box) {
+  if (!box) return;
+  box.querySelectorAll('img.cmark, img.surlogo, img.dph-logo').forEach(img => {
+    const fb = () => {
+      const sp = document.createElement('span');
+      sp.className = 'cbadge ' + (img.dataset.k || '');
+      sp.textContent = img.dataset.c || '';
+      img.replaceWith(sp);
+    };
+    img.onerror = fb;
+    if (img.complete && !img.naturalWidth) fb();
+  });
 }
-function renderToggles(){const box=$('toggles');if(!box)return;box.innerHTML='';
-  const seen={},groups=[];
-  accList().filter(a=>a.cond==='toggle').forEach(a=>{const g=a.group||a.key;if(!seen[g]){seen[g]=1;groups.push({g,name:a.name});}});
-  if(!groups.length){box.style.display='none';return;}
-  box.style.display='flex';
-  groups.forEach(({g,name})=>{const lab=document.createElement('label');lab.className='tg';
-    lab.innerHTML='<input type="checkbox" id="tg_'+g+'"/> '+name;
-    box.appendChild(lab);lab.querySelector('input').addEventListener('change',calc);});}
-// Choose a column count from the ACTUAL available width (rails can squeeze the centre), and
-// avoid leaving a single card alone on the last row (e.g. 4 -> 2+2, not 3+1).
-function layoutCards(box){
-  if(!box)return;
-  const n=box.querySelectorAll('.card').length; if(!n)return;
-  const w=box.clientWidth||box.getBoundingClientRect().width||0;
-  let cols=w>=880?3:(w>=560?2:1);
-  cols=Math.min(cols,n);
-  if(cols>=3 && n%3===1) cols=2;
-  box.style.gridTemplateColumns='repeat('+Math.max(1,cols)+',minmax(0,1fr))';
+
+const region = c => (RC.eu || []).includes(c) ? 'eu' : 'row';
+const accList = () => RC.accessorials || [];
+
+function euCustoms(c) {
+  const e = RC.euDuty;
+  if (!e || !e.enabled) return null;
+  if (region(c) !== 'eu') return null;
+  if (num('V') > (Number(e.thresholdEur) || 150)) return { over: true };
+  const sku = Math.max(1, Math.floor(num('SK') || 1));
+  const eurVal = Math.round(sku * (Number(e.perSku) || 0) * 100) / 100;
+  if (eurVal <= 0) return null;
+  return { sku, perSku: Number(e.perSku), eur: eurVal };
 }
-// ---- live UPS pricing (outbound via the API), with static fallback ----
+
+function accGeom() {
+  const L = num('L'), W = num('W'), H = num('H');
+  const s = [L, W, H].filter(x => x > 0).sort((a, b) => b - a);
+  return {
+    longest: s[0] || 0,
+    second: s[1] || 0,
+    girth: (L && W && H) ? (s[0] + 2 * (s[1] || 0) + 2 * (s[2] || 0)) : 0
+  };
+}
+
+function accApplies(a, c, actual) {
+  const g = accGeom();
+  if (a.cond === 'toggle') {
+    const el = $('tg_' + (a.group || a.key));
+    return !!(el && el.checked);
+  }
+  if (a.cond === 'always') return true;
+  if (a.cond === 'countryIn') return (a.countries || []).includes(c);
+  if (a.cond === 'region') return region(c) === a.region;
+  if (a.cond === 'auto') {
+    if (a.key === 'addlHandling') return actual > 25 || g.longest > 100 || g.second > 76;
+    if (a.key === 'largePackage') return g.girth > 300;
+    if (a.key === 'overMax') return actual > 70 || g.longest > 274 || g.girth > 400;
+  }
+  return false;
+}
+
+function accAmount(a) {
+  if (a.basis === 'pctValue') return Math.max((a.pct || 0) * num('V') / 100, a.min || 0);
+  return a.amount || 0;
+}
+
+function whenText(a) {
+  return a.cond === 'auto' ? 'By size / weight' :
+         a.cond === 'always' ? 'Every shipment' :
+         a.cond === 'countryIn' ? ((a.countries || []).join(', ')) :
+         a.cond === 'region' ? ((a.region || '').toUpperCase() + ' destinations') : 'When selected';
+}
+
+function rateText(a) {
+  return a.basis === 'pctValue' ?
+    ((a.pct || 0) + '% of goods value' + (a.min ? (' (min £' + Number(a.min).toFixed(2) + ')') : '')) :
+    ('£' + Number(a.amount || 0).toFixed(2) + ' per shipment');
+}
+
+function priceOf(s, c, chg) {
+  const B = RC.bands;
+  if (s.type === 'band') {
+    const arr = s.prices[c];
+    if (!arr) return { p: null, avail: false };
+    if (chg > B[B.length - 1] + 1e-9) return { p: null, avail: true, note: 'over ' + B[B.length - 1] + ' kg' };
+    for (let i = 0; i < B.length; i++) {
+      if (B[i] >= chg - 1e-9) return { p: arr[i], avail: true, band: B[i] };
+    }
+    return { p: null, avail: true };
+  }
+  if (s.type === 'flat') {
+    const p = s.prices[c];
+    if (p == null) return { p: null, avail: false };
+    if (chg > s.cap + 1e-9) return { p: null, avail: true, note: 'over ' + s.cap + ' kg' };
+    return { p: p, avail: true, band: '≤' + s.cap + 'kg' };
+  }
+  const z = s.zmap[c], zd = z && s.zones[z];
+  if (!z || !zd) return { p: null, avail: false };
+  const mB = zd[zd.length - 1][0];
+  if (chg <= mB + 1e-9) {
+    for (const [w, pr] of zd) {
+      if (w >= chg - 1e-9) return { p: pr, avail: true, band: w };
+    }
+  }
+  return { p: zd[zd.length - 1][1], avail: true, band: '>' + mB + 'kg' };
+}
+
+function renderToggles() {
+  const box = $('toggles');
+  if (!box) return;
+  box.innerHTML = '';
+  const seen = {}, groups = [];
+  accList().filter(a => a.cond === 'toggle').forEach(a => {
+    const g = a.group || a.key;
+    if (!seen[g]) { seen[g] = 1; groups.push({ g, name: a.name }); }
+  });
+  if (!groups.length) { box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  groups.forEach(({ g, name }) => {
+    const lab = document.createElement('label');
+    lab.className = 'tg';
+    lab.innerHTML = '<input type="checkbox" id="tg_' + g + '"/> ' + name;
+    box.appendChild(lab);
+    lab.querySelector('input').addEventListener('change', calc);
+  });
+}
+
 const LIVE_CODE_TO_KEY = {
   '270': 'residential',
   '100': 'addlHandling',
@@ -470,579 +1472,915 @@ const LIVE_CODE_TO_KEY = {
   '300': 'saturday',
   '573': 'merchantProc',
 };
-function activeTogglesKey(){
-  const list=[];
-  document.querySelectorAll('#toggles input[type="checkbox"]').forEach(cb=>{if(cb.checked)list.push(cb.id);});
+
+function activeTogglesKey() {
+  const list = [];
+  document.querySelectorAll('#toggles input[type="checkbox"]').forEach(cb => { if (cb.checked) list.push(cb.id); });
   return list.sort().join(',');
 }
-function upsLaneKey(){return [curCountry,ival('pc'),num('wt'),num('L'),num('W'),num('H'),num('V'),activeTogglesKey()].join('|');}
-function scheduleUpsFetch(key,c){clearTimeout(upsTimer);upsTimer=setTimeout(()=>doUpsFetch(key,c),300);}
-function doUpsFetch(key,c){
-  if(upsAbortCtrl){try{upsAbortCtrl.abort();}catch(_){}}
-  upsAbortCtrl=new AbortController();
-  const resiEl=$('tg_residential');
-  const isResi=!!(resiEl&&resiEl.checked);
-  const body={token:curToken,country:c,postcode:ival('pc'),weight:num('wt'),l:num('L'),w:num('W'),h:num('H'),value:num('V'),residential:isResi};
-  const timeoutId=setTimeout(()=>{if(upsAbortCtrl)upsAbortCtrl.abort();},5500);
-  fetch('/api/card-rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:upsAbortCtrl.signal})
-    .then(r=>r.json()).then(d=>{
+
+function upsLaneKey() {
+  return [curCountry, ival('pc'), num('wt'), num('L'), num('W'), num('H'), num('V'), activeTogglesKey()].join('|');
+}
+
+function scheduleUpsFetch(key, c) {
+  clearTimeout(upsTimer);
+  upsTimer = setTimeout(() => doUpsFetch(key, c), 300);
+}
+
+function doUpsFetch(key, c) {
+  if (upsAbortCtrl) { try { upsAbortCtrl.abort(); } catch (_) {} }
+  upsAbortCtrl = new AbortController();
+  const resiEl = $('tg_residential');
+  const isResi = !!(resiEl && resiEl.checked);
+  const body = {
+    token: curToken, country: c, postcode: ival('pc'),
+    weight: num('wt'), l: num('L'), w: num('W'), h: num('H'),
+    value: num('V'), residential: isResi
+  };
+  const timeoutId = setTimeout(() => { if (upsAbortCtrl) upsAbortCtrl.abort(); }, 5500);
+  fetch('/api/card-rate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: upsAbortCtrl.signal })
+    .then(r => r.json())
+    .then(d => {
       clearTimeout(timeoutId);
-      upsKey=key;upsData=d;
+      upsKey = key; upsData = d;
       calc();
     })
-    .catch((err)=>{
+    .catch((err) => {
       clearTimeout(timeoutId);
-      if(err&&err.name==='AbortError'&&upsLaneKey()!==key)return;
-      upsKey=key;upsData={enabled:false};
+      if (err && err.name === 'AbortError' && upsLaneKey() !== key) return;
+      upsKey = key; upsData = { enabled: false };
       calc();
     });
 }
-function staticRow(s,c,chg,applicable){
-  const r=priceOf(s,c,chg);
-  if(!r.avail||r.p==null)return {s,r,total:null};
-  const base=r.p, fuel=Math.round(base*(s.fuel||0)/100*100)/100, carr=s.carrier.toLowerCase();
-  const sur=applicable.filter(a=>a.carrier.toLowerCase()===carr).map(a=>({name:a.name,amt:Math.round(accAmount(a)*100)/100})).filter(x=>x.amt>0);
-  const surTotal=sur.reduce((t,x)=>t+x.amt,0);
-  return {s,r,base,fuel,sur,total:Math.round((base+fuel+surTotal)*100)/100,days:s.days};
+
+function staticRow(s, c, chg, applicable) {
+  const r = priceOf(s, c, chg);
+  if (!r.avail || r.p == null) return { s, r, total: null };
+  const base = r.p, fuel = Math.round(base * (s.fuel || 0) / 100 * 100) / 100, carr = s.carrier.toLowerCase();
+  const sur = applicable.filter(a => a.carrier.toLowerCase() === carr).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
+  const surTotal = sur.reduce((t, x) => t + x.amt, 0);
+  return { s, r, base, fuel, sur, total: Math.round((base + fuel + surTotal) * 100) / 100, days: s.days };
 }
-function calc(){
-  const c=curCountry,actual=num('wt'),L=num('L'),W=num('W'),H=num('H');
-  if(!c)return;
-  const isEu=region(c)==='eu';
-  const vl=$('vlab'); if(vl)vl.textContent=isEu?'Value (€)':'Value (£)';   // EU goods value is entered in euros
-  const vol=(L&&W&&H)?(L*W*H)/RC.divisor:0, chg=Math.max(actual,vol);
-  $('volw').textContent=vol?vol.toFixed(2)+' kg':'—';
-  $('chgw').textContent=chg?chg.toFixed(2)+' kg':'—';
-  $('driver').textContent=!chg?'—':(vol>actual?'Volumetric weight':'Actual weight');
-  const dn=$('dimNote');
-  if(vol>actual+1e-9&&chg>0){dn.style.display='block';
-    dn.innerHTML='<span class="big"><span class="ic">!</span>Priced on volumetric (dimensional) weight</span>'
-      +'This shipment is charged on its <b>size</b>, not its actual weight. Volumetric weight = (L × W × H) ÷ '+RC.divisor+' = <b>'+vol.toFixed(2)+' kg</b>, which is greater than the actual '+actual.toFixed(2)+' kg — so every price below is based on <b>'+chg.toFixed(2)+' kg</b>.';
-  }else dn.style.display='none';
-  const applicable=accList().filter(a=>accApplies(a,c,actual));
-  const cd=euCustoms(c);                        // EU per-SKU customs duty (all carriers), or {over:true}, or null
-  const cdLine=(cd&&!cd.over)?cd:null;
-  const epCap=(RC.caps&&RC.caps.ep)||3;
-  const svcList=RC.services.filter(s=>!(s.key==='ep'&&region(c)==='eu'&&chg>epCap));  // hide ExpressPak for EU over 3 kg
 
-  // UPS services are priced live from the API; DPD stays static/instant.
-  const key=upsLaneKey();
-  const hasUps=svcList.some(s=>s.carrier.toLowerCase()==='ups');
-  const upsReady=(upsKey===key)?upsData:null;
-  const upsLoading=hasUps&&chg>0&&!upsReady;
-  if(upsLoading)scheduleUpsFetch(key,c);
+function exceedsLimits(carrier, actual, L, W, H, isEp) {
+  const sides = [L, W, H].filter(x => x > 0).sort((a, b) => b - a);
+  const longest = sides[0] || 0, second = sides[1] || 0, third = sides[2] || 0;
+  const girth = (L && W && H) ? (longest + 2 * second + 2 * third) : 0;
+  const carr = (carrier || '').toLowerCase();
+  if (carr === 'dpd') {
+    if (isEp && actual > 3) return { exceeded: true, reason: 'DPD Classic ExpressPak max weight is 3 kg' };
+    if (actual > 31.5) return { exceeded: true, reason: 'Weight exceeds DPD limit of 31.5 kg' };
+    if (longest > 175) return { exceeded: true, reason: 'Length exceeds DPD limit of 175 cm' };
+    if (girth > 300) return { exceeded: true, reason: 'Girth (L + 2W + 2H) exceeds DPD limit of 300 cm' };
+  } else if (carr === 'ups') {
+    if (actual > 70) return { exceeded: true, reason: 'Weight exceeds UPS small package limit of 70 kg' };
+    if (longest > 274) return { exceeded: true, reason: 'Length exceeds UPS limit of 274 cm' };
+    if (girth > 400) return { exceeded: true, reason: 'Combined Length + Girth exceeds UPS limit of 400 cm' };
+  }
+  return { exceeded: false };
+}
 
-  let rows=[];
-  const dpdServices=svcList.filter(s=>s.carrier.toLowerCase()!=='ups');
-  dpdServices.forEach(s=>{
-    const r=staticRow(s,c,chg,applicable);
-    if(r&&r.total!=null)rows.push(r);
-  });
+function calc() {
+  const c = curCountry, actual = num('wt'), L = num('L'), W = num('W'), H = num('H');
+  if (!c) return;
+  const isEu = region(c) === 'eu';
+  const vl = $('vlab'); if (vl) vl.textContent = isEu ? 'Value (€)' : 'Value (£)';
+  const vol = (L && W && H) ? (L * W * H) / RC.divisor : 0, chg = Math.max(actual, vol);
+  $('volw').textContent = vol ? vol.toFixed(2) + ' kg' : '—';
+  $('chgw').textContent = chg ? chg.toFixed(2) + ' kg' : '—';
+  $('driver').textContent = !chg ? '—' : (vol > actual ? 'Volumetric weight' : 'Actual weight');
 
-  if(hasUps){
-    if(upsLoading){
-      rows.push({s:{key:'ups',name:'UPS',carrier:'UPS'},loading:true,total:null});
-    }else if(upsReady&&upsReady.enabled){
-      (upsReady.services||[]).forEach(live=>{
-        const liveSur=(live.accessorials||[]).map(a=>({name:a.name,code:a.code,amt:a.amt,remote:a.remote}));
-        const coveredKeys=new Set(liveSur.map(a=>LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
-        const upsCustom=applicable.filter(a=>a.carrier.toLowerCase()==='ups').filter(a=>{
-          const k=a.key||a.group;
+  const dn = $('dimNote');
+  if (vol > actual + 1e-9 && chg > 0) {
+    dn.style.display = 'block';
+    dn.innerHTML = '<span class="big"><span class="ic">!</span>Priced on volumetric (dimensional) weight</span>'
+      + 'This shipment is charged on its <b>size</b>, not its actual weight. Volumetric weight = (L × W × H) ÷ ' + RC.divisor + ' = <b>' + vol.toFixed(2) + ' kg</b>, which is greater than actual ' + actual.toFixed(2) + ' kg — so all rates are based on <b>' + chg.toFixed(2) + ' kg</b>.';
+  } else {
+    dn.style.display = 'none';
+  }
+
+  const applicable = accList().filter(a => accApplies(a, c, actual));
+  const cd = euCustoms(c);
+  const cdLine = (cd && !cd.over) ? cd : null;
+  const epCap = (RC.caps && RC.caps.ep) || 3;
+  const svcList = RC.services.filter(s => !(s.key === 'ep' && region(c) === 'eu' && chg > epCap));
+
+  const dpdLimit = exceedsLimits('dpd', actual, L, W, H);
+  const upsLimit = exceedsLimits('ups', actual, L, W, H);
+
+  const key = upsLaneKey();
+  const hasUps = svcList.some(s => s.carrier.toLowerCase() === 'ups');
+  const upsReady = (upsKey === key) ? upsData : null;
+  const upsLoading = hasUps && chg > 0 && !upsLimit.exceeded && !upsReady;
+  if (upsLoading) scheduleUpsFetch(key, c);
+
+  let rows = [];
+  if (!dpdLimit.exceeded) {
+    const dpdServices = svcList.filter(s => s.carrier.toLowerCase() !== 'ups' && !(s.key === 'ep' && actual > 3));
+    dpdServices.forEach(s => {
+      const r = staticRow(s, c, chg, applicable);
+      if (r && r.total != null) rows.push(r);
+    });
+  }
+
+  if (hasUps && !upsLimit.exceeded) {
+    if (upsLoading) {
+      rows.push({ s: { key: 'ups', name: 'UPS', carrier: 'UPS' }, loading: true, total: null });
+    } else if (upsReady && upsReady.enabled) {
+      const ALLOWED_UPS = new Set(['ux', 'us', 'ups_65', 'ups_11']);
+      (upsReady.services || []).filter(live => ALLOWED_UPS.has(live.key) || ['65', '11'].includes(String(live.code))).forEach(live => {
+        const liveSur = (live.accessorials || []).map(a => ({ name: a.name, code: a.code, amt: a.amt, remote: a.remote }));
+        const coveredKeys = new Set(liveSur.map(a => LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
+        const upsCustom = applicable.filter(a => a.carrier.toLowerCase() === 'ups').filter(a => {
+          const k = a.key || a.group;
           return !coveredKeys.has(k);
-        }).map(a=>({name:a.name,amt:Math.round(accAmount(a)*100)/100})).filter(x=>x.amt>0);
-        const mergedSur=[...liveSur,...upsCustom];
-        const surTotal=mergedSur.reduce((t,x)=>t+x.amt,0);
-        const total=Math.round((live.base+live.fuel+surTotal)*100)/100;
+        }).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
+        const mergedSur = [...liveSur, ...upsCustom];
+        const surTotal = mergedSur.reduce((t, x) => t + x.amt, 0);
+        const total = Math.round((live.base + live.fuel + surTotal) * 100) / 100;
         rows.push({
-          s:{key:live.key,name:live.name,carrier:'UPS'},
-          live:true,
-          base:live.base,
-          fuel:live.fuel,
-          sur:mergedSur,
+          s: { key: live.key, name: live.name, carrier: 'UPS' },
+          live: true,
+          base: live.base,
+          fuel: live.fuel,
+          sur: mergedSur,
           total,
-          days:live.days,
+          days: live.days,
         });
       });
-    }else{
-      // Fallback to static UPS services if API is not responding
-      const staticUps=svcList.filter(s=>s.carrier.toLowerCase()==='ups');
-      staticUps.forEach(s=>{
-        const r=staticRow(s,c,chg,applicable);
-        if(r&&r.total!=null)rows.push(r);
+    } else {
+      const staticUps = svcList.filter(s => s.carrier.toLowerCase() === 'ups');
+      staticUps.forEach(s => {
+        const r = staticRow(s, c, chg, applicable);
+        if (r && r.total != null) rows.push(r);
       });
     }
   }
 
-  // Filter out any unavailable services so no n/a cards are rendered
-  rows=rows.filter(x=>x.loading||(x.total!=null&&x.total>0));
-  rows.sort((a,b)=>(a.total==null)-(b.total==null)||((a.total==null||b.total==null)?0:a.total-b.total));
-  const totals=rows.filter(x=>x.total!=null).map(x=>x.total);
-  const min=totals.length?Math.min(...totals):null;
-  const daysList=rows.filter(x=>x.days!=null&&x.days>0).map(x=>x.days);
-  const minDays=daysList.length?Math.min(...daysList):null;
-  const maxDays=daysList.length?Math.max(...daysList):null;
-  const hasTransitDiff=(daysList.length>=2 && minDays!=null && maxDays!=null && minDays<maxDays);
+  rows = rows.filter(x => x.loading || (x.total != null && x.total > 0));
+  rows.sort((a, b) => (a.total == null) - (b.total == null) || ((a.total == null || b.total == null) ? 0 : a.total - b.total));
+  const totals = rows.filter(x => x.total != null).map(x => x.total);
+  const min = totals.length ? Math.min(...totals) : null;
+  const daysList = rows.filter(x => x.days != null && x.days > 0).map(x => x.days);
+  const minDays = daysList.length ? Math.min(...daysList) : null;
+  const maxDays = daysList.length ? Math.max(...daysList) : null;
+  const hasTransitDiff = (daysList.length >= 2 && minDays != null && maxDays != null && minDays < maxDays);
 
-  const box=$('cards');box.innerHTML='';
-  rows.forEach(({s,r,base,fuel,sur,total,loading,live,days})=>{
-    const d=document.createElement('div');let cls='card '+s.carrier.toLowerCase();
-    const head=`<div>${carrierMark(s.carrier)}</div><div class="svc">${s.name}${live?' <span class="livepill">live</span>':''}</div>`;
-    if(loading){d.className=cls+' na loadcard';d.innerHTML=head+`<div class="price"><span class="spin"></span></div><div class="unit">getting live UPS price…</div>`;box.appendChild(d);return;}
-    if(total==null){d.className=cls+' na';d.innerHTML=head+`<div class="price">n/a</div><div class="unit">${(r&&r.note)||'not available'}</div>`;box.appendChild(d);return;}
+  const sn = $('staticNotice');
+  if (sn) {
+    const isStaticFallback = chg > 0 && !upsLoading && !upsLimit.exceeded && hasUps && (!upsReady || !upsReady.enabled);
+    sn.style.display = isStaticFallback ? 'block' : 'none';
+  }
 
-    const isCheapest=(RC.showBest&&total===min&&totals.length>1);
-    const isFastest=(hasTransitDiff&&days!=null&&days===minDays);
+  const box = $('cards');
+  box.innerHTML = '';
+  rows.forEach(({ s, r, base, fuel, sur, total, loading, live, days }) => {
+    const carr = (s.carrier || '').toUpperCase();
+    const d = document.createElement('div');
+    let cls = 'card ' + s.carrier.toLowerCase();
+    const head = '<div class="chead">' + carrierMark(s.carrier) + '</div>'
+      + '<div class="svc">' + s.name + (live ? ' <span class="livepill">live</span>' : '') + '</div>';
 
-    let badge='';
-    if(isCheapest&&isFastest){
-      cls+=' win fast';
-      badge='<span class="badge best-both">BEST &amp; FASTEST</span>';
-    }else if(isCheapest){
-      cls+=' win';
-      badge='<span class="badge">BEST PRICE</span>';
-    }else if(isFastest){
-      cls+=' fast';
-      badge='<span class="badge fastest">FASTEST · '+days+' DAY'+(days===1?'':'S')+'</span>';
+    if (loading) {
+      d.className = cls + ' na loadcard';
+      d.innerHTML = head + '<div class="price-row"><div class="price"><span class="spin"></span></div><div class="unit">getting live UPS price…</div></div>';
+      box.appendChild(d);
+      return;
     }
-    d.className=cls;
-    const bt=live?null:(typeof (r&&r.band)==='number'?r.band+' kg band':(r&&r.band));
-    const surLines=(sur||[]).map(x=>`<div class="row${x.remote?' remote':''}"><span>${x.name}</span><span>${money(x.amt)}</span></div>`).join('');
-    d.innerHTML=badge+head
-      +`<div class="price">${money(total)}</div><div class="unit">total incl. fuel${(sur&&sur.length)?' &amp; surcharges':''}${days!=null&&days>0?' · '+days+' business day'+(days===1?'':'s'):''}</div>`
-      +`<div class="brk">`
-      +`<div class="row"><span>${live?'UPS rate':('Base rate'+(bt?' ('+bt+')':''))}</span><span>${money(base)}</span></div>`
-      +`<div class="row"><span>Fuel${live?'':' ('+(s.fuel||0)+'%)'}</span><span>${money(fuel)}</span></div>`
-      +surLines
-      +`<div class="row tot"><span>Total</span><span>${money(total)}</span></div>`
-      +(cdLine?`<div class="row cust"><span>EU customs duty</span><span>${eur(cdLine.eur)}</span></div>`
-        +`<div class="custsub">${cdLine.sku} item${cdLine.sku>1?'s':''} × €${cdLine.perSku} · paid at import</div>`:'')
-      +`</div>`;
+    if (total == null) {
+      d.className = cls + ' na';
+      d.innerHTML = head + '<div class="price-row"><div class="price">n/a</div><div class="unit">' + ((r && r.note) || 'not available') + '</div></div>';
+      box.appendChild(d);
+      return;
+    }
+
+    const isCheapest = (RC.showBest && total === min && totals.length > 1);
+    const isFastest = (hasTransitDiff && days != null && days === minDays);
+
+    let badge = '';
+    if (isCheapest && isFastest) {
+      cls += ' win fast';
+      badge = '<span class="badge best-both">BEST &amp; FASTEST</span>';
+    } else if (isCheapest) {
+      cls += ' win';
+      badge = '<span class="badge">BEST PRICE</span>';
+    } else if (isFastest) {
+      cls += ' fast';
+      badge = '<span class="badge fastest">FASTEST · ' + days + ' DAY' + (days === 1 ? '' : 'S') + '</span>';
+    }
+    d.className = cls;
+
+    const bt = live ? null : (typeof (r && r.band) === 'number' ? r.band + ' kg band' : (r && r.band));
+    const surLines = (sur || []).map(x => '<div class="row' + (x.remote ? ' remote' : '') + '"><span>' + x.name + '</span><span>' + money(x.amt) + '</span></div>').join('');
+    const etaText = (days != null && days > 0) ? (' · ' + days + ' business day' + (days === 1 ? '' : 's')) : '';
+
+    const dropBtnActive = (activeDropCarrier === carr) ? ' active' : '';
+    const dropBtnText = (activeDropCarrier === carr) ? '✓ Showing nearest drop shops' : ('📍 Find ' + carr + ' drop shops');
+
+    d.innerHTML = badge + head
+      + '<div class="price-row"><div class="price">' + money(total) + '</div>'
+      + '<div class="unit">total incl. fuel' + ((sur && sur.length) ? ' &amp; surcharges' : '') + etaText + '</div></div>'
+      + '<div class="brk">'
+      + '<div class="row"><span>' + (live ? 'UPS base rate' : ('Base rate' + (bt ? ' (' + bt + ')' : ''))) + '</span><span>' + money(base) + '</span></div>'
+      + '<div class="row"><span>Fuel' + (live ? '' : (' (' + (s.fuel || 0) + '%)')) + '</span><span>' + money(fuel) + '</span></div>'
+      + surLines
+      + '<div class="row tot"><span>Total</span><span>' + money(total) + '</span></div>'
+      + (cdLine ? '<div class="row cust"><span>EU customs duty</span><span>' + eur(cdLine.eur) + '</span></div>'
+        + '<div class="custsub">' + cdLine.sku + ' item' + (cdLine.sku > 1 ? 's' : '') + ' × €' + cdLine.perSku + ' · paid at import</div>' : '')
+      + '</div>'
+      + '<div class="card-actions">'
+      + '<button type="button" class="btn-drop-finder' + dropBtnActive + '" data-carrier="' + carr + '">' + dropBtnText + '</button>'
+      + '</div>';
+
     box.appendChild(d);
   });
+
   wireCarrierMarks(box);
-  layoutCards(box);
-  let note=chg?(totals.length?('Showing '+totals.length+' service'+(totals.length>1?'s':'')+' to '+c+' at '+chg.toFixed(2)+' kg chargeable. Every price is a full quote including fuel, duties and any options selected.'):(upsLoading?'Fetching live UPS prices…':('No services available to '+c+' at this weight.'))):'Enter a weight to see prices.';
-  if(hasUps&&upsReady&&upsReady.enabled)note+=upsReady.postcodeUsed?' UPS prices are live, including remote-area surcharges for this postcode.':' UPS prices are live — add a destination postcode for exact remote-area surcharges.';
-  else if(hasUps&&upsReady&&!upsReady.enabled)note+=' (UPS shown from standard rates — live pricing is unavailable right now.)';
-  if(cd&&cdLine)note+=' An EU customs duty of '+eur(cdLine.eur)+' ('+cdLine.sku+' item'+(cdLine.sku>1?'s':'')+' × €'+cdLine.perSku+') applies at import — shown separately in euros, on top of the £ prices.';
-  else if(cd&&cd.over)note+=' Goods value is over €'+(Number(RC.euDuty.thresholdEur)||150)+' — the €'+(Number(RC.euDuty.perSku))+'-per-item duty does not apply; standard EU tariffs apply instead.';
-  $('cnote').textContent=note;
+
+  // Wire drop shop buttons
+  box.querySelectorAll('.btn-drop-finder').forEach(btn => {
+    btn.addEventListener('click', () => {
+      toggleDropShop(btn.dataset.carrier);
+    });
+  });
+
+  let note = chg ? (totals.length ? ('Showing ' + totals.length + ' service' + (totals.length > 1 ? 's' : '') + ' to ' + c + ' at ' + chg.toFixed(2) + ' kg chargeable. Every price is a full quote including fuel, duties and any options selected.') : (upsLoading ? 'Fetching live UPS prices…' : ('No services available to ' + c + ' at this weight.'))) : 'Enter a weight to see prices.';
+  if (!totals.length && chg > 0) {
+    if (dpdLimit.exceeded && upsLimit.exceeded) note = 'Shipment exceeds carrier limits (DPD: ' + dpdLimit.reason + '; UPS: ' + upsLimit.reason + '). No parcel services available.';
+    else if (dpdLimit.exceeded) note = 'Shipment exceeds DPD limits: ' + dpdLimit.reason + '. No other services available to ' + c + '.';
+    else if (upsLimit.exceeded) note = 'Shipment exceeds UPS limits: ' + upsLimit.reason + '. No other services available to ' + c + '.';
+  } else if (hasUps && upsReady && upsReady.enabled) {
+    note += upsReady.postcodeUsed ? ' UPS prices are live, including remote-area surcharges for this postcode.' : ' UPS prices are live — add a destination postcode for exact remote-area surcharges.';
+  }
+  if (cd && cdLine) note += ' An EU customs duty of ' + eur(cdLine.eur) + ' (' + cdLine.sku + ' item' + (cdLine.sku > 1 ? 's' : '') + ' × €' + cdLine.perSku + ') applies at import — shown separately in euros, on top of the £ prices.';
+  else if (cd && cd.over) note += ' Goods value is over €' + (Number(RC.euDuty.thresholdEur) || 150) + ' — the €' + (Number(RC.euDuty.perSku)) + '-per-item duty does not apply; standard EU tariffs apply instead.';
+  $('cnote').textContent = note;
 }
-const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-const todayD=()=>{const g=new Date().getDay();return g===0?7:g;};   // 1..7 Mon..Sun
-const nowMins=()=>{const n=new Date();return n.getHours()*60+n.getMinutes();};
-const toMins=hm=>{if(!hm)return null;if(hm==='24:00')return 1440;const m=/^(\d{1,2}):(\d{2})/.exec(hm);return m?(+m[1]*60+ +m[2]):null;};
-const dayLabel=d=>DAYS[d-1]||'';
-function statusOf(p){
-  if(p.open24)return {cls:'h24',txt:'Open 24 hours'};
-  const hrs=Array.isArray(p.hours)?p.hours:null;
-  if(!hrs||!hrs.length)return p.hoursText?{cls:'open',txt:p.hoursText}:null;
-  const td=todayD(),now=nowMins(),t=hrs.find(h=>h.d===td);
-  if(t&&!t.closed){const o=toMins(t.open),c=toMins(t.close);
-    if(o!=null&&c!=null){
-      if(now<o)return {cls:'closed',txt:'Closed · opens '+t.open};
-      if(now<c)return {cls:'open',txt:'Open now · closes '+t.close};}}
-  for(let i=1;i<=7;i++){const nd=((td-1+i)%7)+1,e=hrs.find(h=>h.d===nd);
-    if(e&&!e.closed)return {cls:'closed',txt:'Closed · opens '+(i===1?'tomorrow':dayLabel(nd))+' '+e.open};}
-  return {cls:'closed',txt:'Closed'};
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const todayD = () => { const g = new Date().getDay(); return g === 0 ? 7 : g; };
+const nowMins = () => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); };
+const toMins = hm => { if (!hm) return null; if (hm === '24:00') return 1440; const m = /^(\d{1,2}):(\d{2})/.exec(hm); return m ? (+m[1] * 60 + +m[2]) : null; };
+const dayLabel = d => DAYS[d - 1] || '';
+
+function statusOf(p) {
+  if (p.open24) return { cls: 'h24', txt: 'Open 24 hours' };
+  const hrs = Array.isArray(p.hours) ? p.hours : null;
+  if (!hrs || !hrs.length) return p.hoursText ? { cls: 'open', txt: p.hoursText } : null;
+  const td = todayD(), now = nowMins(), t = hrs.find(h => h.d === td);
+  if (t && !t.closed) {
+    const o = toMins(t.open), c = toMins(t.close);
+    if (o != null && c != null) {
+      if (now < o) return { cls: 'closed', txt: 'Closed · opens ' + t.open };
+      if (now < c) return { cls: 'open', txt: 'Open now · closes ' + t.close };
+    }
+  }
+  for (let i = 1; i <= 7; i++) {
+    const nd = ((td - 1 + i) % 7) + 1, e = hrs.find(h => h.d === nd);
+    if (e && !e.closed) return { cls: 'closed', txt: 'Closed · opens ' + (i === 1 ? 'tomorrow' : dayLabel(nd)) + ' ' + e.open };
+  }
+  return { cls: 'closed', txt: 'Closed' };
 }
-function featChips(p){const out=[],hrs=Array.isArray(p.hours)?p.hours:[];
-  if(p.qr)out.push({t:'QR / paperless',good:true});
-  if(p.labelPrint)out.push({t:'Label printing',good:true});
-  const late=p.openLate!=null?p.openLate:(!p.open24&&hrs.some(h=>!h.closed&&toMins(h.close)>=1200));
-  if(late)out.push({t:'Open late'});
-  if(p.parking)out.push({t:'Parking'});
-  if(p.disabledAccess)out.push({t:'Step-free access'});
+
+function featChips(p) {
+  const out = [], hrs = Array.isArray(p.hours) ? p.hours : [];
+  if (p.qr) out.push({ t: 'QR / paperless', good: true });
+  if (p.labelPrint) out.push({ t: 'Label printing', good: true });
+  const late = p.openLate != null ? p.openLate : (!p.open24 && hrs.some(h => !h.closed && toMins(h.close) >= 1200));
+  if (late) out.push({ t: 'Open late' });
+  if (p.parking) out.push({ t: 'Parking' });
+  if (p.disabledAccess) out.push({ t: 'Step-free access' });
   return out;
 }
-// Group consecutive days with identical hours into ranges (e.g. "Mon–Fri 09:00–17:00").
-function groupHours(hrs){
-  const key=h=>h.closed?'closed':(h.open+'-'+h.close);
-  const groups=[];
-  hrs.forEach(h=>{const k=key(h);const last=groups[groups.length-1];
-    if(last&&last.k===k)last.days.push(h.d);
-    else groups.push({k,days:[h.d],closed:h.closed,open:h.open,close:h.close});});
+
+function groupHours(hrs) {
+  const key = h => h.closed ? 'closed' : (h.open + '-' + h.close);
+  const groups = [];
+  hrs.forEach(h => {
+    const k = key(h);
+    const last = groups[groups.length - 1];
+    if (last && last.k === k) last.days.push(h.d);
+    else groups.push({ k, days: [h.d], closed: h.closed, open: h.open, close: h.close });
+  });
   return groups;
 }
-// Opening hours, always exploded (no toggle), grouped into day ranges for compactness.
-function hoursBlockHTML(p){
-  if(p.open24)return '<div class="hblock"><div class="lab">Opening hours</div><div class="h24">Open 24 hours, 7 days a week</div></div>';
-  const hrs=Array.isArray(p.hours)?p.hours:[];
-  if(!hrs.length)return p.hoursText?('<div class="hblock"><div class="lab">Opening hours</div><div class="htext">'+esc(p.hoursText)+'</div></div>'):'';
-  const td=todayD();
-  const rows=groupHours(hrs).map(g=>{
-    const label=g.days.length>1?(dayLabel(g.days[0])+'–'+dayLabel(g.days[g.days.length-1])):dayLabel(g.days[0]);
-    const cls=[g.days.includes(td)?'now':'',g.closed?'cl':''].filter(Boolean).join(' ');
-    return '<div class="hrow'+(cls?' '+cls:'')+'"><span class="d">'+label+'</span><span class="t">'+(g.closed?'Closed':esc(g.open)+'–'+esc(g.close))+'</span></div>';}).join('');
-  return '<div class="hblock"><div class="lab">Opening hours</div><div class="hours">'+rows+'</div></div>';
+
+function hoursBlockHTML(p) {
+  if (p.open24) return '<div class="hblock"><div class="lab">Opening hours</div><div class="h24">Open 24 hours, 7 days a week</div></div>';
+  const hrs = Array.isArray(p.hours) ? p.hours : [];
+  if (!hrs.length) return p.hoursText ? ('<div class="hblock"><div class="lab">Opening hours</div><div class="htext">' + esc(p.hoursText) + '</div></div>') : '';
+  const td = todayD();
+  const rows = groupHours(hrs).map(g => {
+    const label = g.days.length > 1 ? (dayLabel(g.days[0]) + '–'+ dayLabel(g.days[g.days.length - 1])) : dayLabel(g.days[0]);
+    const cls = [g.days.includes(td) ? 'now' : '', g.closed ? 'cl' : ''].filter(Boolean).join(' ');
+    return '<div class="hrow' + (cls ? ' ' + cls : '') + '"><span class="d">' + label + '</span><span class="t">' + (g.closed ? 'Closed' : esc(g.open) + '–' + esc(g.close)) + '</span></div>';
+  }).join('');
+  return '<div class="hblock"><div class="lab">Opening hours</div><div class="hours">' + rows + '</div></div>';
 }
-// Drop-off deadlines, always shown; services with identical deadlines are grouped, "none" when no Saturday collection.
-function deadlinesHTML(p){
-  if(!(p.deadlines&&p.deadlines.length))return '';
-  const byKey={},order=[];
-  p.deadlines.forEach(d=>{const sat=(d.sat&&d.sat!=='--')?d.sat:'';const k=d.mf+'|'+sat;
-    if(!byKey[k]){byKey[k]={svcs:[],mf:d.mf,sat};order.push(k);}byKey[k].svcs.push(d.svc);});
-  const rows=order.map(k=>{const g=byKey[k];const satTxt=g.sat?('Sat '+esc(g.sat)):'Sat: none';
-    return '<div class="dlrow"><span class="svc">'+esc(g.svcs.join(' · '))+'</span><span class="wk">Mon–Fri '+esc(g.mf)+'</span><span class="st">'+satTxt+'</span></div>';}).join('');
-  return '<div class="dl"><div class="lab">Drop-off deadlines</div>'+rows+'</div>';
+
+function deadlinesHTML(p) {
+  if (!(p.deadlines && p.deadlines.length)) return '';
+  const byKey = {}, order = [];
+  p.deadlines.forEach(d => {
+    const sat = (d.sat && d.sat !== '--') ? d.sat : '';
+    const k = d.mf + '|' + sat;
+    if (!byKey[k]) { byKey[k] = { svcs: [], mf: d.mf, sat }; order.push(k); }
+    byKey[k].svcs.push(d.svc);
+  });
+  const rows = order.map(k => {
+    const g = byKey[k];
+    const satTxt = g.sat ? ('Sat ' + esc(g.sat)) : 'Sat: none';
+    return '<div class="dlrow"><span class="svc">' + esc(g.svcs.join(' · ')) + '</span><span class="wk">Mon–Fri ' + esc(g.mf) + '</span><span class="st">' + satTxt + '</span></div>';
+  }).join('');
+  return '<div class="dl"><div class="lab">Drop-off deadlines</div>' + rows + '</div>';
 }
-const PIN_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
-function loadLeaflet(cb){
-  // NB: an <input id="L"> makes window.L the element, so check for the Leaflet API specifically.
-  if(window.L&&window.L.map){cb();return;}
-  if(loadLeaflet._q){loadLeaflet._q.push(cb);return;}
-  loadLeaflet._q=[cb];
-  const css=document.createElement('link');css.rel='stylesheet';css.href='/vendor/leaflet/leaflet.css';document.head.appendChild(css);
-  const js=document.createElement('script');js.src='/vendor/leaflet/leaflet.js';
-  const done=()=>{(loadLeaflet._q||[]).forEach(f=>f());loadLeaflet._q=null;};
-  js.onload=done;js.onerror=done;document.head.appendChild(js);
+
+const PIN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+
+function loadLeaflet(cb) {
+  if (window.L && window.L.map) { cb(); return; }
+  if (loadLeaflet._q) { loadLeaflet._q.push(cb); return; }
+  loadLeaflet._q = [cb];
+  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/vendor/leaflet/leaflet.css'; document.head.appendChild(css);
+  const js = document.createElement('script'); js.src = '/vendor/leaflet/leaflet.js';
+  const done = () => { (loadLeaflet._q || []).forEach(f => f()); loadLeaflet._q = null; };
+  js.onload = done; js.onerror = done; document.head.appendChild(js);
 }
-let dropMap=null;
-function openDropMap(lat,lng,name,addr){
-  lat=+lat;lng=+lng;
-  $('dmName').textContent=name||'Drop-off point';
-  $('dmAddr').textContent=addr||'';
-  $('dmDirections').href='https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng;
-  $('dropModal').style.display='flex';
-  const fail=()=>{$('dropModalMap').innerHTML='<div class="mapFail">Map couldn’t load — use “Get directions” below.</div>';};
-  loadLeaflet(()=>{try{const L=window.L; if(!L||!L.map){fail();return;}
-    if(dropMap){dropMap.remove();dropMap=null;}
-    $('dropModalMap').innerHTML='';
-    dropMap=L.map('dropModalMap',{scrollWheelZoom:false}).setView([lat,lng],15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(dropMap);
-    L.circleMarker([lat,lng],{radius:9,color:'#0E9C63',weight:2,fillColor:'#1DFB9D',fillOpacity:1}).addTo(dropMap)
-      .bindPopup('<b>'+esc(name||'')+'</b>'+(addr?'<br>'+esc(addr):'')).openPopup();
-    setTimeout(()=>{try{dropMap.invalidateSize();}catch(_){}} ,60);
-  }catch(e){fail();}});
+
+let dropMap = null;
+function openDropMap(lat, lng, name, addr) {
+  lat = +lat; lng = +lng;
+  $('dmName').textContent = name || 'Drop-off point';
+  $('dmAddr').textContent = addr || '';
+  $('dmDirections').href = 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng;
+  $('dropModal').style.display = 'flex';
+  const fail = () => { $('dropModalMap').innerHTML = '<div class="mapFail">Map couldn’t load — use “Get directions” below.</div>'; };
+  loadLeaflet(() => {
+    try {
+      const L = window.L;
+      if (!L || !L.map) { fail(); return; }
+      if (dropMap) { dropMap.remove(); dropMap = null; }
+      $('dropModalMap').innerHTML = '';
+      dropMap = L.map('dropModalMap', { scrollWheelZoom: false }).setView([lat, lng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(dropMap);
+      L.circleMarker([lat, lng], { radius: 9, color: '#0E9C63', weight: 2, fillOpacity: 1, fillColor: '#1DFB9D' }).addTo(dropMap)
+        .bindPopup('<b>' + esc(name || '') + '</b>' + (addr ? '<br>' + esc(addr) : '')).openPopup();
+      setTimeout(() => { try { dropMap.invalidateSize(); } catch (_) {} }, 60);
+    } catch (e) { fail(); }
+  });
 }
-function closeDropModal(){$('dropModal').style.display='none';}
-function dropCardHTML(p,i){const k=(p.carrier||'').toLowerCase(),st=statusOf(p);
-  const chips=featChips(p).map(c=>'<span class="chip'+(c.good?' good':'')+'">'+c.t+'</span>').join('');
-  const more=hoursBlockHTML(p)+deadlinesHTML(p);
-  const hasDl=p.deadlines&&p.deadlines.length;
-  const moreBlock=more?('<details class="dropmore"><summary>Opening hours'+(hasDl?' &amp; drop-off deadlines':'')+'</summary><div class="drTray">'+more+'</div></details>'):'';
-  const nm=p.name||('Drop-off '+(i+1));
-  const pin='<button type="button" class="mapbtn" data-lat="'+p.lat+'" data-lng="'+p.lng+'" data-name="'+esc(nm)+'" data-addr="'+esc(p.address||'')+'" aria-label="Show '+esc(nm)+' on map" title="Show on map">'+PIN_SVG+'</button>';
-  return '<div class="drop '+k+'">'
-    +'<div class="dh"><div><div class="nm">'+esc(nm)+'</div>'
-      +(p.type?'<div class="ty">'+esc(p.type)+'</div>':'')+'</div>'
-      +'<div class="dhr">'+(p.distance?'<span class="dist">'+esc(p.distance)+'</span>':'')+pin+'</div></div>'
-    +(p.address?'<div class="addr">'+esc(p.address)+'</div>':'')
-    +(st?'<div class="dstatus '+st.cls+'"><span class="dot"></span>'+esc(st.txt)+'</div>':'')
-    +(chips?'<div class="chips">'+chips+'</div>':'')
-    +moreBlock+'</div>';
+function closeDropModal() { $('dropModal').style.display = 'none'; }
+
+function dropCardHTML(p, i) {
+  const k = (p.carrier || '').toLowerCase(), st = statusOf(p);
+  const chips = featChips(p).map(c => '<span class="chip' + (c.good ? ' good' : '') + '">' + c.t + '</span>').join('');
+  const more = hoursBlockHTML(p) + deadlinesHTML(p);
+  const hasDl = p.deadlines && p.deadlines.length;
+  const moreBlock = more ? ('<details class="dropmore"><summary>Opening hours' + (hasDl ? ' &amp; drop-off deadlines' : '') + '</summary><div class="drTray">' + more + '</div></details>') : '';
+  const nm = p.name || ('Drop-off ' + (i + 1));
+  const pin = '<button type="button" class="mapbtn" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-name="' + esc(nm) + '" data-addr="' + esc(p.address || '') + '" aria-label="Show ' + esc(nm) + ' on map" title="Show on map">' + PIN_SVG + '</button>';
+  return '<div class="drop ' + k + '">'
+    + '<div class="dh"><div><div class="nm">' + esc(nm) + '</div>'
+    + (p.type ? '<div class="ty">' + esc(p.type) + '</div>' : '') + '</div>'
+    + '<div class="dhr">' + (p.distance ? '<span class="dist">' + esc(p.distance) + '</span>' : '') + pin + '</div></div>'
+    + (p.address ? '<div class="addr">' + esc(p.address) + '</div>' : '')
+    + (st ? '<div class="dstatus ' + st.cls + '"><span class="dot"></span>' + esc(st.txt) + '</div>' : '')
+    + (chips ? '<div class="chips">' + chips + '</div>' : '')
+    + moreBlock + '</div>';
 }
-const RAIL_INIT=3;
-function fillRail(list,bodyId,wrapId,countId){
-  const wrap=$(wrapId);if(!wrap)return;
-  if(!list.length){wrap.style.display='none';return;}
-  wrap.style.display='flex';
-  if($(countId))$(countId).textContent=list.length;
-  const body=$(bodyId);
-  function draw(showAll){
-    const shown=showAll?list.length:Math.min(RAIL_INIT,list.length);
-    let html=list.slice(0,shown).map((p,i)=>dropCardHTML(p,i)).join('');
-    if(!showAll&&list.length>RAIL_INIT)html+='<button type="button" class="loadMore">Show '+(list.length-RAIL_INIT)+' more</button>';
-    body.innerHTML=html;
-    const btn=body.querySelector('.loadMore');
-    if(btn)btn.addEventListener('click',()=>draw(true));
+
+const SIDEBAR_INIT = 4;
+function toggleDropShop(carrier) {
+  const sidebar = $('dropSidebar');
+  const layout = $('ratesLayout');
+  const carr = (carrier || 'DPD').toUpperCase();
+
+  if (activeDropCarrier === carr && sidebar.style.display !== 'none') {
+    // Close sidebar
+    activeDropCarrier = null;
+    sidebar.style.display = 'none';
+    layout.classList.remove('has-sidebar');
+    calc(); // re-render button states
+    return;
   }
-  draw(false);
+
+  activeDropCarrier = carr;
+  sidebar.style.display = 'flex';
+  layout.classList.add('has-sidebar');
+
+  // Set sidebar header
+  const isDpd = carr === 'DPD';
+  $('dropPanelHead').className = 'drop-panel-head ' + (isDpd ? 'dpd' : 'ups');
+  $('dropCarrierTitle').textContent = isDpd ? 'DPD Drop-off Points' : 'UPS Access Points';
+  $('dropCarrierSub').textContent = 'Nearest locations to you';
+  $('dropCarrierLogo').innerHTML = carrierMark(carr, 'dph-logo');
+  wireCarrierMarks($('dropCarrierLogo'));
+
+  // Filter carrier dropoffs
+  const pts = (RC.dropoffs || []).filter(p => p && p.lat != null && p.lng != null);
+  const filtered = pts.filter(p => isDpd ? (String(p.carrier || '').toUpperCase() !== 'UPS') : (String(p.carrier || '').toUpperCase() === 'UPS'));
+
+  $('dropCount').textContent = filtered.length;
+  const body = $('dropBody');
+
+  function drawList(showAll) {
+    if (!filtered.length) {
+      body.innerHTML = '<div style="padding:20px 10px;text-align:center;color:var(--muted);font-size:13px">No drop-off locations configured for ' + carr + '. Standard parcel collection or official drop-off depots apply.</div>';
+      return;
+    }
+    const shown = showAll ? filtered.length : Math.min(SIDEBAR_INIT, filtered.length);
+    let html = filtered.slice(0, shown).map((p, i) => dropCardHTML(p, i)).join('');
+    if (!showAll && filtered.length > SIDEBAR_INIT) {
+      html += '<button type="button" class="loadMore">Show ' + (filtered.length - SIDEBAR_INIT) + ' more ' + carr + ' locations</button>';
+    }
+    body.innerHTML = html;
+    const btn = body.querySelector('.loadMore');
+    if (btn) btn.addEventListener('click', () => drawList(true));
+  }
+
+  drawList(false);
+  calc(); // update active card buttons
 }
-function wireRailLogos(){document.querySelectorAll('img.raillogo').forEach(img=>{
-  const fb=()=>{img.outerHTML='<span class="raillogo fallback '+img.dataset.k+'">'+img.dataset.c+'</span>';};
-  img.onerror=fb; if(img.complete&&!img.naturalWidth)fb();});}
-function renderDropoffs(){
-  const pts=(RC.dropoffs||[]).filter(p=>p&&p.lat!=null&&p.lng!=null);
-  const up=(c)=>String(c||'').toUpperCase();
-  const ups=pts.filter(p=>up(p.carrier)==='UPS');
-  const dpd=pts.filter(p=>up(p.carrier)!=='UPS'); // DPD (and any other carrier) on the right rail
-  fillRail(ups,'railUPS','railUPSwrap','railUPScount');
-  fillRail(dpd,'railDPD','railDPDwrap','railDPDcount');
-  wireRailLogos();
-}
-// Searchable destination combobox.
-function initCombo(list, initial){
-  const box=$('destCombo'), inp=$('countryInput'), menu=$('countryList');
-  let items=list.slice(), active=-1;
-  const setCountry=(name)=>{curCountry=name; inp.value=name; close(); calc();};
-  const open=()=>{box.classList.add('open'); inp.setAttribute('aria-expanded','true');};
-  const close=()=>{box.classList.remove('open'); inp.setAttribute('aria-expanded','false'); active=-1;};
-  function render(q){
-    const s=(q||'').trim().toLowerCase();
-    const matches=s?list.filter(c=>c.toLowerCase().includes(s)):list;
-    items=matches;
-    if(!matches.length){menu.innerHTML='<div class="comboEmpty">No matching country</div>';return;}
-    menu.innerHTML=matches.map((c,i)=>'<div class="comboOpt" role="option" data-i="'+i+'"'+(c===curCountry?' aria-selected="true"':'')+'>'+esc(c)+'</div>').join('');
-    menu.querySelectorAll('.comboOpt').forEach(el=>{
-      el.addEventListener('mousedown',ev=>{ev.preventDefault();setCountry(items[+el.dataset.i]);});
+
+// Searchable destination combobox
+function initCombo(list, initial) {
+  const box = $('destCombo'), inp = $('countryInput'), menu = $('countryList');
+  let items = list.slice(), active = -1;
+  const setCountry = (name) => { curCountry = name; inp.value = name; close(); calc(); };
+  const open = () => { box.classList.add('open'); inp.setAttribute('aria-expanded', 'true'); };
+  const close = () => { box.classList.remove('open'); inp.setAttribute('aria-expanded', 'false'); active = -1; };
+
+  function render(q) {
+    const s = (q || '').trim().toLowerCase();
+    const matches = s ? list.filter(c => c.toLowerCase().includes(s)) : list;
+    items = matches;
+    if (!matches.length) { menu.innerHTML = '<div class="comboEmpty">No matching country</div>'; return; }
+    menu.innerHTML = matches.map((c, i) => '<div class="comboOpt" role="option" data-i="' + i + '"' + (c === curCountry ? ' aria-selected="true"' : '') + '>' + esc(c) + '</div>').join('');
+    menu.querySelectorAll('.comboOpt').forEach(el => {
+      el.addEventListener('mousedown', ev => { ev.preventDefault(); setCountry(items[+el.dataset.i]); });
     });
   }
-  const highlight=()=>{const els=menu.querySelectorAll('.comboOpt');els.forEach((e,i)=>e.classList.toggle('active',i===active));
-    if(active>=0&&els[active])els[active].scrollIntoView({block:'nearest'});};
-  inp.addEventListener('focus',()=>{render(inp.value===curCountry?'':inp.value);open();});
-  inp.addEventListener('input',()=>{active=-1;render(inp.value);open();});
-  inp.addEventListener('keydown',e=>{
-    if(e.key==='ArrowDown'){e.preventDefault();if(!box.classList.contains('open')){render('');open();}active=Math.min(active+1,items.length-1);highlight();}
-    else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(active-1,0);highlight();}
-    else if(e.key==='Enter'){e.preventDefault();if(active>=0&&items[active])setCountry(items[active]);else if(items.length===1)setCountry(items[0]);}
-    else if(e.key==='Escape'){close();inp.value=curCountry||'';}
+
+  const highlight = () => {
+    const els = menu.querySelectorAll('.comboOpt');
+    els.forEach((e, i) => e.classList.toggle('active', i === active));
+    if (active >= 0 && els[active]) els[active].scrollIntoView({ block: 'nearest' });
+  };
+
+  inp.addEventListener('focus', () => { render(inp.value === curCountry ? '' : inp.value); open(); });
+  inp.addEventListener('input', () => { active = -1; render(inp.value); open(); });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!box.classList.contains('open')) { render(''); open(); } active = Math.min(active + 1, items.length - 1); highlight(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); highlight(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (active >= 0 && items[active]) setCountry(items[active]); else if (items.length === 1) setCountry(items[0]); }
+    else if (e.key === 'Escape') { close(); inp.value = curCountry || ''; }
   });
-  inp.addEventListener('blur',()=>{setTimeout(()=>{close();if(inp.value!==curCountry)inp.value=curCountry||'';},120);});
-  document.addEventListener('click',e=>{if(!box.contains(e.target))close();});
-  curCountry=initial; inp.value=initial; render('');
+  inp.addEventListener('blur', () => { setTimeout(() => { close(); if (inp.value !== curCountry) inp.value = curCountry || ''; }, 120); });
+  document.addEventListener('click', e => { if (!box.contains(e.target)) close(); });
+  curCountry = initial; inp.value = initial; render('');
 }
-// ===== Import quote tab =====
-const WORLD_COUNTRIES=[{n:"Afghanistan",c:"AF"},{n:"Åland Islands",c:"AX"},{n:"Albania",c:"AL"},{n:"Algeria",c:"DZ"},{n:"American Samoa",c:"AS"},{n:"Andorra",c:"AD"},{n:"Angola",c:"AO"},{n:"Anguilla",c:"AI"},{n:"Antigua & Barbuda",c:"AG"},{n:"Argentina",c:"AR"},{n:"Armenia",c:"AM"},{n:"Aruba",c:"AW"},{n:"Australia",c:"AU"},{n:"Austria",c:"AT"},{n:"Azerbaijan",c:"AZ"},{n:"Bahamas",c:"BS"},{n:"Bahrain",c:"BH"},{n:"Bangladesh",c:"BD"},{n:"Barbados",c:"BB"},{n:"Belarus",c:"BY"},{n:"Belgium",c:"BE"},{n:"Belize",c:"BZ"},{n:"Benin",c:"BJ"},{n:"Bermuda",c:"BM"},{n:"Bhutan",c:"BT"},{n:"Bolivia",c:"BO"},{n:"Bosnia & Herzegovina",c:"BA"},{n:"Botswana",c:"BW"},{n:"Brazil",c:"BR"},{n:"British Indian Ocean Territory",c:"IO"},{n:"British Virgin Islands",c:"VG"},{n:"Brunei",c:"BN"},{n:"Bulgaria",c:"BG"},{n:"Burkina Faso",c:"BF"},{n:"Burundi",c:"BI"},{n:"Cambodia",c:"KH"},{n:"Cameroon",c:"CM"},{n:"Canada",c:"CA"},{n:"Cape Verde",c:"CV"},{n:"Cayman Islands",c:"KY"},{n:"Central African Republic",c:"CF"},{n:"Chad",c:"TD"},{n:"Chile",c:"CL"},{n:"China",c:"CN"},{n:"Colombia",c:"CO"},{n:"Comoros",c:"KM"},{n:"Congo - Brazzaville",c:"CG"},{n:"Congo - Kinshasa",c:"CD"},{n:"Cook Islands",c:"CK"},{n:"Costa Rica",c:"CR"},{n:"Côte d’Ivoire",c:"CI"},{n:"Croatia",c:"HR"},{n:"Cuba",c:"CU"},{n:"Curaçao",c:"CW"},{n:"Cyprus",c:"CY"},{n:"Czechia",c:"CZ"},{n:"Denmark",c:"DK"},{n:"Djibouti",c:"DJ"},{n:"Dominica",c:"DM"},{n:"Dominican Republic",c:"DO"},{n:"Ecuador",c:"EC"},{n:"Egypt",c:"EG"},{n:"El Salvador",c:"SV"},{n:"Equatorial Guinea",c:"GQ"},{n:"Eritrea",c:"ER"},{n:"Estonia",c:"EE"},{n:"Eswatini",c:"SZ"},{n:"Ethiopia",c:"ET"},{n:"Falkland Islands",c:"FK"},{n:"Faroe Islands",c:"FO"},{n:"Fiji",c:"FJ"},{n:"Finland",c:"FI"},{n:"France",c:"FR"},{n:"French Guiana",c:"GF"},{n:"French Polynesia",c:"PF"},{n:"Gabon",c:"GA"},{n:"Gambia",c:"GM"},{n:"Georgia",c:"GE"},{n:"Germany",c:"DE"},{n:"Ghana",c:"GH"},{n:"Gibraltar",c:"GI"},{n:"Greece",c:"GR"},{n:"Greenland",c:"GL"},{n:"Grenada",c:"GD"},{n:"Guadeloupe",c:"GP"},{n:"Guam",c:"GU"},{n:"Guatemala",c:"GT"},{n:"Guernsey",c:"GG"},{n:"Guinea",c:"GN"},{n:"Guinea-Bissau",c:"GW"},{n:"Guyana",c:"GY"},{n:"Haiti",c:"HT"},{n:"Honduras",c:"HN"},{n:"Hong Kong SAR China",c:"HK"},{n:"Hungary",c:"HU"},{n:"Iceland",c:"IS"},{n:"India",c:"IN"},{n:"Indonesia",c:"ID"},{n:"Iran",c:"IR"},{n:"Iraq",c:"IQ"},{n:"Ireland",c:"IE"},{n:"Isle of Man",c:"IM"},{n:"Israel",c:"IL"},{n:"Italy",c:"IT"},{n:"Jamaica",c:"JM"},{n:"Japan",c:"JP"},{n:"Jersey",c:"JE"},{n:"Jordan",c:"JO"},{n:"Kazakhstan",c:"KZ"},{n:"Kenya",c:"KE"},{n:"Kiribati",c:"KI"},{n:"Kuwait",c:"KW"},{n:"Kyrgyzstan",c:"KG"},{n:"Laos",c:"LA"},{n:"Latvia",c:"LV"},{n:"Lebanon",c:"LB"},{n:"Lesotho",c:"LS"},{n:"Liberia",c:"LR"},{n:"Libya",c:"LY"},{n:"Liechtenstein",c:"LI"},{n:"Lithuania",c:"LT"},{n:"Luxembourg",c:"LU"},{n:"Macao SAR China",c:"MO"},{n:"Madagascar",c:"MG"},{n:"Malawi",c:"MW"},{n:"Malaysia",c:"MY"},{n:"Maldives",c:"MV"},{n:"Mali",c:"ML"},{n:"Malta",c:"MT"},{n:"Marshall Islands",c:"MH"},{n:"Martinique",c:"MQ"},{n:"Mauritania",c:"MR"},{n:"Mauritius",c:"MU"},{n:"Mayotte",c:"YT"},{n:"Mexico",c:"MX"},{n:"Micronesia",c:"FM"},{n:"Moldova",c:"MD"},{n:"Monaco",c:"MC"},{n:"Mongolia",c:"MN"},{n:"Montenegro",c:"ME"},{n:"Montserrat",c:"MS"},{n:"Morocco",c:"MA"},{n:"Mozambique",c:"MZ"},{n:"Myanmar (Burma)",c:"MM"},{n:"Namibia",c:"NA"},{n:"Nauru",c:"NR"},{n:"Nepal",c:"NP"},{n:"Netherlands",c:"NL"},{n:"New Caledonia",c:"NC"},{n:"New Zealand",c:"NZ"},{n:"Nicaragua",c:"NI"},{n:"Niger",c:"NE"},{n:"Nigeria",c:"NG"},{n:"North Macedonia",c:"MK"},{n:"Norway",c:"NO"},{n:"Oman",c:"OM"},{n:"Pakistan",c:"PK"},{n:"Palau",c:"PW"},{n:"Palestinian Territories",c:"PS"},{n:"Panama",c:"PA"},{n:"Papua New Guinea",c:"PG"},{n:"Paraguay",c:"PY"},{n:"Peru",c:"PE"},{n:"Philippines",c:"PH"},{n:"Poland",c:"PL"},{n:"Portugal",c:"PT"},{n:"Puerto Rico",c:"PR"},{n:"Qatar",c:"QA"},{n:"Réunion",c:"RE"},{n:"Romania",c:"RO"},{n:"Russia",c:"RU"},{n:"Rwanda",c:"RW"},{n:"Samoa",c:"WS"},{n:"San Marino",c:"SM"},{n:"São Tomé & Príncipe",c:"ST"},{n:"Saudi Arabia",c:"SA"},{n:"Senegal",c:"SN"},{n:"Serbia",c:"RS"},{n:"Seychelles",c:"SC"},{n:"Sierra Leone",c:"SL"},{n:"Singapore",c:"SG"},{n:"Sint Maarten",c:"SX"},{n:"Slovakia",c:"SK"},{n:"Slovenia",c:"SI"},{n:"Solomon Islands",c:"SB"},{n:"Somalia",c:"SO"},{n:"South Africa",c:"ZA"},{n:"South Korea",c:"KR"},{n:"South Sudan",c:"SS"},{n:"Spain",c:"ES"},{n:"Sri Lanka",c:"LK"},{n:"St. Barthélemy",c:"BL"},{n:"St. Kitts & Nevis",c:"KN"},{n:"St. Lucia",c:"LC"},{n:"St. Martin",c:"MF"},{n:"St. Pierre & Miquelon",c:"PM"},{n:"St. Vincent & Grenadines",c:"VC"},{n:"Sudan",c:"SD"},{n:"Suriname",c:"SR"},{n:"Sweden",c:"SE"},{n:"Switzerland",c:"CH"},{n:"Syria",c:"SY"},{n:"Taiwan",c:"TW"},{n:"Tajikistan",c:"TJ"},{n:"Tanzania",c:"TZ"},{n:"Thailand",c:"TH"},{n:"Timor-Leste",c:"TL"},{n:"Togo",c:"TG"},{n:"Tonga",c:"TO"},{n:"Trinidad & Tobago",c:"TT"},{n:"Tunisia",c:"TN"},{n:"Türkiye",c:"TR"},{n:"Turkmenistan",c:"TM"},{n:"Turks & Caicos Islands",c:"TC"},{n:"Tuvalu",c:"TV"},{n:"U.S. Virgin Islands",c:"VI"},{n:"Uganda",c:"UG"},{n:"Ukraine",c:"UA"},{n:"United Arab Emirates",c:"AE"},{n:"United Kingdom",c:"GB"},{n:"United States",c:"US"},{n:"Uruguay",c:"UY"},{n:"Uzbekistan",c:"UZ"},{n:"Vanuatu",c:"VU"},{n:"Vatican City",c:"VA"},{n:"Venezuela",c:"VE"},{n:"Vietnam",c:"VN"},{n:"Yemen",c:"YE"},{n:"Zambia",c:"ZM"},{n:"Zimbabwe",c:"ZW"}];
-// Generic searchable country combo (label shown, ISO code stored via onPick).
-function initCountryCombo(boxId,inputId,menuId,onPick){
-  const box=$(boxId), inp=$(inputId), menu=$(menuId);
-  let items=WORLD_COUNTRIES.slice(), active=-1, curLabel='';
-  const open=()=>{box.classList.add('open');inp.setAttribute('aria-expanded','true');};
-  const close=()=>{box.classList.remove('open');inp.setAttribute('aria-expanded','false');active=-1;};
-  const pick=(o)=>{curLabel=o.n; inp.value=o.n; onPick(o.c,o.n); close();};
-  function render(q){
-    const s=(q||'').trim().toLowerCase();
-    const matches=!s?WORLD_COUNTRIES:WORLD_COUNTRIES.filter(o=>o.n.toLowerCase().includes(s)||o.c.toLowerCase()===s);
-    items=matches;
-    if(!matches.length){menu.innerHTML='<div class="comboEmpty">No matching country</div>';return;}
-    menu.innerHTML=matches.slice(0,320).map((o,i)=>'<div class="comboOpt" role="option" data-i="'+i+'"'+(o.n===curLabel?' aria-selected="true"':'')+'>'+esc(o.n)+'</div>').join('');
-    menu.querySelectorAll('.comboOpt').forEach(el=>{el.addEventListener('mousedown',ev=>{ev.preventDefault();pick(items[+el.dataset.i]);});});
+
+// ===== Import Quote Tab =====
+const WORLD_COUNTRIES = [
+  { n: "Afghanistan", c: "AF" }, { n: "Albania", c: "AL" }, { n: "Algeria", c: "DZ" },
+  { n: "Argentina", c: "AR" }, { n: "Australia", c: "AU" }, { n: "Austria", c: "AT" },
+  { n: "Bahrain", c: "BH" }, { n: "Bangladesh", c: "BD" }, { n: "Belgium", c: "BE" },
+  { n: "Brazil", c: "BR" }, { n: "Bulgaria", c: "BG" }, { n: "Canada", c: "CA" },
+  { n: "Chile", c: "CL" }, { n: "China", c: "CN" }, { n: "Colombia", c: "CO" },
+  { n: "Croatia", c: "HR" }, { n: "Cyprus", c: "CY" }, { n: "Czechia", c: "CZ" },
+  { n: "Denmark", c: "DK" }, { n: "Egypt", c: "EG" }, { n: "Estonia", c: "EE" },
+  { n: "Finland", c: "FI" }, { n: "France", c: "FR" }, { n: "Germany", c: "DE" },
+  { n: "Greece", c: "GR" }, { n: "Hong Kong SAR China", c: "HK" }, { n: "Hungary", c: "HU" },
+  { n: "India", c: "IN" }, { n: "Indonesia", c: "ID" }, { n: "Ireland", c: "IE" },
+  { n: "Israel", c: "IL" }, { n: "Italy", c: "IT" }, { n: "Japan", c: "JP" },
+  { n: "Lithuania", c: "LT" }, { n: "Luxembourg", c: "LU" }, { n: "Malaysia", c: "MY" },
+  { n: "Mexico", c: "MX" }, { n: "Netherlands", c: "NL" }, { n: "New Zealand", c: "NZ" },
+  { n: "Norway", c: "NO" }, { n: "Pakistan", c: "PK" }, { n: "Philippines", c: "PH" },
+  { n: "Poland", c: "PL" }, { n: "Portugal", c: "PT" }, { n: "Qatar", c: "QA" },
+  { n: "Romania", c: "RO" }, { n: "Saudi Arabia", c: "SA" }, { n: "Singapore", c: "SG" },
+  { n: "Slovakia", c: "SK" }, { n: "Slovenia", c: "SI" }, { n: "South Africa", c: "ZA" },
+  { n: "South Korea", c: "KR" }, { n: "Spain", c: "ES" }, { n: "Sweden", c: "SE" },
+  { n: "Switzerland", c: "CH" }, { n: "Taiwan", c: "TW" }, { n: "Thailand", c: "TH" },
+  { n: "Turkey", c: "TR" }, { n: "United Arab Emirates", c: "AE" }, { n: "United Kingdom", c: "GB" },
+  { n: "United States", c: "US" }, { n: "Vietnam", c: "VN" }
+];
+
+function initCountryCombo(boxId, inputId, menuId, onPick) {
+  const box = $(boxId), inp = $(inputId), menu = $(menuId);
+  let items = WORLD_COUNTRIES.slice(), active = -1, curLabel = '';
+  const open = () => { box.classList.add('open'); inp.setAttribute('aria-expanded', 'true'); };
+  const close = () => { box.classList.remove('open'); inp.setAttribute('aria-expanded', 'false'); active = -1; };
+  const pick = (o) => { curLabel = o.n; inp.value = o.n; onPick(o.c, o.n); close(); };
+
+  function render(q) {
+    const s = (q || '').trim().toLowerCase();
+    const matches = !s ? WORLD_COUNTRIES : WORLD_COUNTRIES.filter(o => o.n.toLowerCase().includes(s) || o.c.toLowerCase() === s);
+    items = matches;
+    if (!matches.length) { menu.innerHTML = '<div class="comboEmpty">No matching country</div>'; return; }
+    menu.innerHTML = matches.slice(0, 320).map((o, i) => '<div class="comboOpt" role="option" data-i="' + i + '"' + (o.n === curLabel ? ' aria-selected="true"' : '') + '>' + esc(o.n) + '</div>').join('');
+    menu.querySelectorAll('.comboOpt').forEach(el => {
+      el.addEventListener('mousedown', ev => { ev.preventDefault(); pick(items[+el.dataset.i]); });
+    });
   }
-  const highlight=()=>{const els=menu.querySelectorAll('.comboOpt');els.forEach((e,i)=>e.classList.toggle('active',i===active));if(active>=0&&els[active])els[active].scrollIntoView({block:'nearest'});};
-  inp.addEventListener('focus',()=>{render(inp.value===curLabel?'':inp.value);open();});
-  inp.addEventListener('input',()=>{active=-1;render(inp.value);open();});
-  inp.addEventListener('keydown',e=>{
-    if(e.key==='ArrowDown'){e.preventDefault();if(!box.classList.contains('open')){render('');open();}active=Math.min(active+1,items.length-1);highlight();}
-    else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(active-1,0);highlight();}
-    else if(e.key==='Enter'){e.preventDefault();if(active>=0&&items[active])pick(items[active]);else if(items.length===1)pick(items[0]);}
-    else if(e.key==='Escape'){close();inp.value=curLabel;}
+
+  const highlight = () => {
+    const els = menu.querySelectorAll('.comboOpt');
+    els.forEach((e, i) => e.classList.toggle('active', i === active));
+    if (active >= 0 && els[active]) els[active].scrollIntoView({ block: 'nearest' });
+  };
+
+  inp.addEventListener('focus', () => { render(''); open(); });
+  inp.addEventListener('input', () => { active = -1; render(inp.value); open(); });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!box.classList.contains('open')) { render(''); open(); } active = Math.min(active + 1, items.length - 1); highlight(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); highlight(); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (active >= 0 && items[active]) pick(items[active]); }
+    else if (e.key === 'Escape') { close(); }
   });
-  inp.addEventListener('blur',()=>{setTimeout(()=>{close();if(inp.value!==curLabel)inp.value=curLabel;},120);});
-  document.addEventListener('click',e=>{if(!box.contains(e.target))close();});
+  inp.addEventListener('blur', () => { setTimeout(() => { close(); }, 120); });
+  document.addEventListener('click', e => { if (!box.contains(e.target)) close(); });
 }
-function setView(v){
-  const imp=v==='import';
-  document.querySelectorAll('#viewTabs button').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
-  $('ratesView').style.display=imp?'none':'';
-  $('importView').style.display=imp?'block':'none';
-  window.scrollTo(0,0);
+
+function setView(v) {
+  const imp = v === 'import';
+  document.querySelectorAll('#viewTabs button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  $('ratesView').style.display = imp ? 'none' : '';
+  $('importView').style.display = imp ? 'block' : 'none';
+  window.scrollTo(0, 0);
 }
-let ipc=0;
-function iparcelHTML(i){return '<div class="iparcel" data-i="'+i+'">'
-  +(i>0?'<button type="button" class="rmP" title="Remove">×</button>':'')
-  +'<span class="pbadge">Package '+(i+1)+'</span>'
-  +'<div class="f ippack"><label>Packaging</label><select class="ipkg">'
-    +'<option value="mine">My Packaging</option>'
-    +'<option value="tube">UPS Tube</option>'
-    +'<option value="expressbox">UPS Express Box</option>'
-    +'<option value="pallet">Pallet</option>'
-    +'</select></div>'
-  +'<div class="ipgrid">'
-  +'<div class="f"><label>How many</label><input type="number" class="ipq" min="1" step="1" value="1"/></div>'
-  +'<div class="f"><label>Weight (kg)</label><input type="number" class="ipw" min="0" step="0.1" value="5"/></div>'
-  +'<div class="f"><label>Length (cm)</label><input type="number" class="ipl" min="0" step="1"/></div>'
-  +'<div class="f"><label>Width (cm)</label><input type="number" class="ipwd" min="0" step="1"/></div>'
-  +'<div class="f"><label>Height (cm)</label><input type="number" class="iph" min="0" step="1"/></div>'
-  +'</div></div>';}
-function applyPackaging(el){
-  const v=el.querySelector('.ipkg').value;
-  const L=el.querySelector('.ipl'),W=el.querySelector('.ipwd'),H=el.querySelector('.iph');
-  const wasFixed=L.disabled;
-  const fixed=(a,b,c)=>{[[L,a],[W,b],[H,c]].forEach(([x,n])=>{x.value=n;x.disabled=true;x.classList.add('ipfix');});};
-  const free=()=>{[L,W,H].forEach(x=>{x.disabled=false;x.classList.remove('ipfix');});if(wasFixed){L.value='';W.value='';H.value='';}};
-  if(v==='tube')fixed(97,17,17);
-  else if(v==='expressbox')fixed(46,32,10);
-  else free(); // My Packaging or Pallet: free entry
+
+let ipc = 0;
+function iparcelHTML(i) {
+  return '<div class="iparcel" data-i="' + i + '">'
+    + (i > 0 ? '<button type="button" class="rmP" title="Remove">×</button>' : '')
+    + '<span class="pbadge">Package ' + (i + 1) + '</span>'
+    + '<div class="f ippack"><label>Packaging</label><select class="ipkg">'
+    + '<option value="mine">My Packaging</option>'
+    + '<option value="tube">UPS Tube</option>'
+    + '<option value="expressbox">UPS Express Box</option>'
+    + '<option value="pallet">Pallet</option>'
+    + '</select></div>'
+    + '<div class="ipgrid">'
+    + '<div class="f"><label>How many</label><input type="number" class="ipq" min="1" step="1" value="1"/></div>'
+    + '<div class="f"><label>Weight (kg)</label><input type="number" class="ipw" min="0" step="0.1" value="5"/></div>'
+    + '<div class="f"><label>Length (cm)</label><input type="number" class="ipl" min="0" step="1"/></div>'
+    + '<div class="f"><label>Width (cm)</label><input type="number" class="ipwd" min="0" step="1"/></div>'
+    + '<div class="f"><label>Height (cm)</label><input type="number" class="iph" min="0" step="1"/></div>'
+    + '</div></div>';
 }
-function iaddParcel(){const box=$('iparcels');const d=document.createElement('div');d.innerHTML=iparcelHTML(ipc++);const el=d.firstChild;box.appendChild(el);
-  el.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',irecalc));
-  const pk=el.querySelector('.ipkg');if(pk)pk.addEventListener('change',()=>applyPackaging(el));
-  const rm=el.querySelector('.rmP');if(rm)rm.addEventListener('click',()=>{el.remove();irenumber();irecalc();});
-  irecalc();}
-function irenumber(){[...document.querySelectorAll('#iparcels .iparcel')].forEach((el,i)=>{el.querySelector('.pbadge').textContent='Package '+(i+1);});}
-function irecalc(){let n=0,wt=0;document.querySelectorAll('#iparcels .iparcel').forEach(el=>{const q=parseFloat(el.querySelector('.ipq').value)||0;const w=parseFloat(el.querySelector('.ipw').value)||0;n+=q;wt+=q*w;});
-  $('isummary').innerHTML='<b>'+n+'</b> package'+(n===1?'':'s')+' · <b>'+(Math.round(wt*10)/10)+' kg</b> total';}
-function ival(id){const el=$(id);return el?(el.value||'').trim():'';}
-function icollect(){
-  const parcels=[...document.querySelectorAll('#iparcels .iparcel')].map(el=>({
-    qty:parseFloat(el.querySelector('.ipq').value)||1,weight:parseFloat(el.querySelector('.ipw').value)||0,
-    l:parseFloat(el.querySelector('.ipl').value)||0,w:parseFloat(el.querySelector('.ipwd').value)||0,h:parseFloat(el.querySelector('.iph').value)||0,
-    packaging:(el.querySelector('.ipkg')?el.querySelector('.ipkg').value:'mine')}));
-  const g=k=>({country:ival(k+'country'),company:ival(k+'company'),name:ival(k+'name'),line1:ival(k+'line1'),line2:ival(k+'line2'),city:ival(k+'city'),postcode:ival(k+'postcode'),phone:ival(k+'phone'),email:ival(k+'email')});
-  const sender=g('is_'); sender.country=senderIso; // ISO from the searchable combo
-  return {mode:'import',token:curToken,sender,receiver:g('ir_'),packages:parcels,value:parseFloat(ival('igoods'))||0,currency:'GBP',hsLines:parseInt(ival('ihslines'),10)||0};
+
+function applyPackaging(el) {
+  const v = el.querySelector('.ipkg').value;
+  const L = el.querySelector('.ipl'), W = el.querySelector('.ipwd'), H = el.querySelector('.iph');
+  const wasFixed = L.disabled;
+  const fixed = (a, b, c) => { [[L, a], [W, b], [H, c]].forEach(([x, n]) => { x.value = n; x.disabled = true; x.classList.add('ipfix'); }); };
+  const free = () => { [L, W, H].forEach(x => { x.disabled = false; x.classList.remove('ipfix'); }); if (wasFixed) { L.value = ''; W.value = ''; H.value = ''; } };
+  if (v === 'tube') fixed(97, 17, 17);
+  else if (v === 'expressbox') fixed(46, 32, 10);
+  else free();
 }
-function imoney(v){return '£'+Number(v).toFixed(2);}
-function ieta(d){if(d==null)return 'Transit estimate on request';if(d<=1)return '1 business day';return d+' business days';}
-const ICON_LORRY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h11v9H2z"/><path d="M13 8.5h3.6l3.4 3.3v2.7H13z"/><circle cx="6" cy="17" r="1.7"/><circle cx="17" cy="17" r="1.7"/></svg>';
-const ICON_PLANE='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-1.7l-7.5-4.6V4.1c0-.9-.7-1.6-1.5-1.6s-1.5.7-1.5 1.6v5.1L3 13.8v1.7l7.5-2.2v4.4l-2 1.4v1.4L12 19.6l3.5.9v-1.4l-2-1.4v-4.4z"/></svg>';
-// UPS Standard/Ground = road (lorry); Worldwide Saver/Express etc. = air (plane).
-function isRoad(code,name){if(['03','11','12'].indexOf(String(code))>=0)return true;const n=(name||'').toLowerCase();return n.indexOf('standard')>=0||n.indexOf('ground')>=0;}
-function irender(services){
-  const box=$('iqcards');box.innerHTML='';$('iresults').style.display='block';
-  if(!services.length){box.innerHTML='<div class="note">No UPS services came back for this lane — please check the addresses and try again.</div>';return;}
-  services.slice().sort((a,b)=>a.price-b.price).forEach((q,i)=>{
-    const road=isRoad(q.code,q.name);const icon=road?ICON_LORRY:ICON_PLANE;const cls=road?'road':'air';
-    const d=document.createElement('div');d.className='card'+(i===0?' win':'');
-    const surLines=(q.surcharges||[]).map(x=>`<div class="row${x.remote?' remote':''}"><span>${x.name}</span><span>${imoney(x.amt)}</span></div>`).join('');
-    const brkHTML=(q.base!=null||(q.surcharges&&q.surcharges.length))?(
-      `<div class="brk">`
-      +(q.base!=null?`<div class="row"><span>UPS rate</span><span>${imoney(q.base)}</span></div>`:'')
-      +(q.fuel!=null?`<div class="row"><span>Fuel</span><span>${imoney(q.fuel)}</span></div>`:'')
-      +surLines
-      +`<div class="row tot"><span>Total</span><span>${imoney(q.price)}</span></div>`
-      +`</div>`
-    ):'';
-    d.innerHTML=(i===0?'<span class="badge">Best price</span>':'')
-      +'<span class="cbadge ups">UPS</span>'
-      +'<div class="svc">'+q.name+'</div>'
-      +'<div class="price">'+imoney(q.price)+'</div>'
-      +'<div class="qeta '+cls+'"><span class="veh">'+icon+'</span><span><span class="days">'+ieta(q.days)+'</span><br><span class="dsub">'+(road?'Road service':'Air express')+' · duties &amp; VAT at import</span></span></div>'
-      +brkHTML;
-    box.appendChild(d);});
+
+function iaddParcel() {
+  const box = $('iparcels');
+  const d = document.createElement('div');
+  d.innerHTML = iparcelHTML(ipc++);
+  const el = d.firstChild;
+  box.appendChild(el);
+  el.querySelectorAll('input').forEach(inp => inp.addEventListener('input', irecalc));
+  const pk = el.querySelector('.ipkg');
+  if (pk) pk.addEventListener('change', () => applyPackaging(el));
+  const rm = el.querySelector('.rmP');
+  if (rm) rm.addEventListener('click', () => { el.remove(); irenumber(); irecalc(); });
+  irecalc();
 }
-async function igetQuotes(){
-  if(!senderIso){$('iresults').style.display='block';$('iqcards').innerHTML='<div class="note">Please choose the sender country the goods are shipping from.</div>';$('is_countryInput').focus();return;}
-  const btn=$('igetQuotes');const old=btn.textContent;btn.disabled=true;btn.textContent='Getting quotes…';
-  try{
-    const res=await fetch('/api/import-quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(icollect())});
-    const d=await res.json();
-    if(d&&d.enabled&&Array.isArray(d.services)){irender(d.services);
-      const hs=d.hs;
-      if(hs&&hs.charge>0)$('iresnote').innerHTML='Cheapest first — every price includes your agreed rate and a <b>'+imoney(hs.charge)+'</b> customs entry charge ('+hs.extra+' tariff line'+(hs.extra===1?'':'s')+' over the '+hs.free+' free).';
-      else $('iresnote').textContent='Cheapest first — every price includes your agreed rate. First '+((hs&&hs.free!=null)?hs.free:5)+' HS/tariff lines are free.';
+
+function irenumber() {
+  [...document.querySelectorAll('#iparcels .iparcel')].forEach((el, i) => {
+    el.querySelector('.pbadge').textContent = 'Package ' + (i + 1);
+  });
+}
+
+function irecalc() {
+  let n = 0, wt = 0;
+  document.querySelectorAll('#iparcels .iparcel').forEach(el => {
+    const q = parseFloat(el.querySelector('.ipq').value) || 0;
+    const w = parseFloat(el.querySelector('.ipw').value) || 0;
+    n += q; wt += q * w;
+  });
+  $('isummary').innerHTML = '<b>' + n + '</b> package' + (n === 1 ? '' : 's') + ' · <b>' + (Math.round(wt * 10) / 10) + ' kg</b> total';
+}
+
+function ival(id) { const el = $(id); return el ? (el.value || '').trim() : ''; }
+
+function icollect() {
+  const parcels = [...document.querySelectorAll('#iparcels .iparcel')].map(el => ({
+    qty: parseFloat(el.querySelector('.ipq').value) || 1,
+    weight: parseFloat(el.querySelector('.ipw').value) || 0,
+    l: parseFloat(el.querySelector('.ipl').value) || 0,
+    w: parseFloat(el.querySelector('.ipwd').value) || 0,
+    h: parseFloat(el.querySelector('.iph').value) || 0,
+    packaging: (el.querySelector('.ipkg') ? el.querySelector('.ipkg').value : 'mine')
+  }));
+  const g = k => ({
+    country: ival(k + 'country'), company: ival(k + 'company'), name: ival(k + 'name'),
+    line1: ival(k + 'line1'), line2: ival(k + 'line2'), city: ival(k + 'city'),
+    postcode: ival(k + 'postcode'), phone: ival(k + 'phone'), email: ival(k + 'email')
+  });
+  const sender = g('is_');
+  sender.country = senderIso;
+  return {
+    mode: 'import', token: curToken, sender, receiver: g('ir_'),
+    packages: parcels, value: parseFloat(ival('igoods')) || 0,
+    currency: 'GBP', hsLines: parseInt(ival('ihslines'), 10) || 0
+  };
+}
+
+function imoney(v) { return '£' + Number(v).toFixed(2); }
+function ieta(d) { if (d == null) return 'Transit estimate on request'; if (d <= 1) return '1 business day'; return d + ' business days'; }
+
+const ICON_LORRY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h11v9H2z"/><path d="M13 8.5h3.6l3.4 3.3v2.7H13z"/><circle cx="6" cy="17" r="1.7"/><circle cx="17" cy="17" r="1.7"/></svg>';
+const ICON_PLANE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-1.7l-7.5-4.6V4.1c0-.9-.7-1.6-1.5-1.6s-1.5.7-1.5 1.6v5.1L3 13.8v1.7l7.5-2.2v4.4l-2 1.4v1.4L12 19.6l3.5.9v-1.4l-2-1.4v-4.4z"/></svg>';
+
+function isRoad(code, name) {
+  if (['03', '11', '12'].indexOf(String(code)) >= 0) return true;
+  const n = (name || '').toLowerCase();
+  return n.indexOf('standard') >= 0 || n.indexOf('ground') >= 0;
+}
+
+function irender(services) {
+  const box = $('iqcards');
+  box.innerHTML = '';
+  $('iresults').style.display = 'block';
+  if (!services.length) {
+    box.innerHTML = '<div class="note">No UPS services returned for this lane — please verify addresses.</div>';
+    return;
+  }
+  services.slice().sort((a, b) => a.price - b.price).forEach((q, i) => {
+    const road = isRoad(q.code, q.name);
+    const icon = road ? ICON_LORRY : ICON_PLANE;
+    const cls = road ? 'road' : 'air';
+    const d = document.createElement('div');
+    d.className = 'card' + (i === 0 ? ' win' : '');
+    const surLines = (q.surcharges || []).map(x => '<div class="row' + (x.remote ? ' remote' : '') + '"><span>' + x.name + '</span><span>' + imoney(x.amt) + '</span></div>').join('');
+    const brkHTML = (q.base != null || (q.surcharges && q.surcharges.length)) ? (
+      '<div class="brk">'
+      + (q.base != null ? '<div class="row"><span>UPS rate</span><span>' + imoney(q.base) + '</span></div>' : '')
+      + (q.fuel != null ? '<div class="row"><span>Fuel</span><span>' + imoney(q.fuel) + '</span></div>' : '')
+      + surLines
+      + '<div class="row tot"><span>Total</span><span>' + imoney(q.price) + '</span></div>'
+      + '</div>'
+    ) : '';
+    d.innerHTML = (i === 0 ? '<span class="badge">Best price</span>' : '')
+      + '<span class="cbadge ups">UPS</span>'
+      + '<div class="svc">' + q.name + '</div>'
+      + '<div class="price">' + imoney(q.price) + '</div>'
+      + '<div class="qeta ' + cls + '"><span class="veh">' + icon + '</span><span><span class="days">' + ieta(q.days) + '</span><br><span class="dsub">' + (road ? 'Road service' : 'Air express') + ' · duties &amp; VAT at import</span></span></div>'
+      + brkHTML;
+    box.appendChild(d);
+  });
+}
+
+async function igetQuotes() {
+  if (!senderIso) {
+    $('iresults').style.display = 'block';
+    $('iqcards').innerHTML = '<div class="note">Please choose the sender country the goods are shipping from.</div>';
+    $('is_countryInput').focus();
+    return;
+  }
+  const btn = $('igetQuotes');
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Getting quotes…';
+  try {
+    const res = await fetch('/api/import-quote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(icollect()) });
+    const d = await res.json();
+    if (d && d.enabled && Array.isArray(d.services)) {
+      irender(d.services);
+      const hs = d.hs;
+      if (hs && hs.charge > 0) $('iresnote').innerHTML = 'Cheapest first — every price includes your agreed rate and a <b>' + imoney(hs.charge) + '</b> customs entry charge (' + hs.extra + ' tariff line' + (hs.extra === 1 ? '' : 's') + ' over the ' + hs.free + ' free).';
+      else $('iresnote').textContent = 'Cheapest first — every price includes your agreed rate. First ' + ((hs && hs.free != null) ? hs.free : 5) + ' HS/tariff lines are free.';
+    } else {
+      $('iresults').style.display = 'block';
+      $('iqcards').innerHTML = '<div class="note">Live quoting isn\'t available right now — please contact us directly.</div>';
     }
-    else{$('iresults').style.display='block';$('iqcards').innerHTML='<div class="note">Live quoting isn\'t available right now — please contact us and we\'ll quote you directly.</div>';}
-  }catch(e){$('iresults').style.display='block';$('iqcards').innerHTML='<div class="note">Sorry — we couldn\'t fetch a quote just now. Please try again in a moment.</div>';}
-  btn.disabled=false;btn.textContent=old;
+  } catch (e) {
+    $('iresults').style.display = 'block';
+    $('iqcards').innerHTML = '<div class="note">Sorry — we couldn\'t fetch quotes right now. Please try again.</div>';
+  }
+  btn.disabled = false;
+  btn.textContent = old;
 }
-function prefillReceiver(){
-  const rc=(RC&&RC.receiver)||null; if(!rc)return;
-  const set=(id,v)=>{const el=$(id); if(el&&v!=null&&v!=='')el.value=v;};
-  set('ir_company',rc.company);set('ir_name',rc.name);set('ir_line1',rc.line1);set('ir_line2',rc.line2);
-  set('ir_city',rc.city);set('ir_postcode',rc.postcode);set('ir_phone',rc.phone);set('ir_email',rc.email);
-  if(rc.country&&$('ir_country')&&[...$('ir_country').options].some(o=>o.value===rc.country))$('ir_country').value=rc.country;
+
+function prefillReceiver() {
+  const rc = (RC && RC.receiver) || null;
+  if (!rc) return;
+  const set = (id, v) => { const el = $(id); if (el && v != null && v !== '') el.value = v; };
+  set('ir_company', rc.company); set('ir_name', rc.name); set('ir_line1', rc.line1); set('ir_line2', rc.line2);
+  set('ir_city', rc.city); set('ir_postcode', rc.postcode); set('ir_phone', rc.phone); set('ir_email', rc.email);
+  if (rc.country && $('ir_country') && [...$('ir_country').options].some(o => o.value === rc.country)) $('ir_country').value = rc.country;
 }
-// ---- sender address book ----
-function countryName(iso){const m=WORLD_COUNTRIES.find(o=>o.c===iso);return m?m.n:iso;}
-function applySender(a){
-  const set=(id,v)=>{const el=$(id);if(el)el.value=v||'';};
-  set('is_company',a.company);set('is_name',a.name);set('is_line1',a.line1);set('is_line2',a.line2);
-  set('is_city',a.city);set('is_postcode',a.postcode);set('is_phone',a.phone);set('is_email',a.email);
-  senderIso=a.country||''; $('is_countryInput').value=a.country?countryName(a.country):'';
+
+function countryName(iso) { const m = WORLD_COUNTRIES.find(o => o.c === iso); return m ? m.n : iso; }
+
+function applySender(a) {
+  const set = (id, v) => { const el = $(id); if (el) el.value = v || ''; };
+  set('is_company', a.company); set('is_name', a.name); set('is_line1', a.line1); set('is_line2', a.line2);
+  set('is_city', a.city); set('is_postcode', a.postcode); set('is_phone', a.phone); set('is_email', a.email);
+  senderIso = a.country || '';
+  $('is_countryInput').value = a.country ? countryName(a.country) : '';
 }
-function abMsg(t,ok){const el=$('abMsg');if(!el)return;el.style.color=ok===false?'#B91C1C':'var(--g)';el.textContent=t||'';}
-async function persistAB(msg){
-  try{const r=await fetch('/api/card/'+encodeURIComponent(curToken)+'/addressbook',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({addressBook:addrBook})});
-    const d=await r.json(); if(d&&Array.isArray(d.addressBook))addrBook=d.addressBook;
-    abMsg(msg||'Saved.');
-  }catch(e){abMsg('Could not save to the address book right now.',false);}
+
+function abMsg(t, ok) {
+  const el = $('abMsg');
+  if (!el) return;
+  el.style.color = ok === false ? '#B91C1C' : 'var(--green-dark)';
+  el.textContent = t || '';
 }
-function saveSenderAddr(){
-  const a={company:ival('is_company'),name:ival('is_name'),country:senderIso,line1:ival('is_line1'),line2:ival('is_line2'),city:ival('is_city'),postcode:ival('is_postcode'),phone:ival('is_phone'),email:ival('is_email')};
-  if(!a.company&&!a.line1&&!a.postcode){abMsg('Fill in the sender details first, then save.',false);return;}
-  const key=x=>((x.company||'')+'|'+(x.postcode||'')).toLowerCase().trim();
-  const i=addrBook.findIndex(x=>key(x)===key(a));
-  if(i>=0)addrBook[i]=a; else addrBook.unshift(a);
-  persistAB(a.company?('“'+a.company+'” saved to your address book.'):'Address saved.');
+
+async function persistAB(msg) {
+  try {
+    const r = await fetch('/api/card/' + encodeURIComponent(curToken) + '/addressbook', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ addressBook: addrBook }) });
+    const d = await r.json();
+    if (d && Array.isArray(d.addressBook)) addrBook = d.addressBook;
+    abMsg(msg || 'Saved.');
+  } catch (e) {
+    abMsg('Could not save to the address book right now.', false);
+  }
 }
-function deleteAddr(idx){addrBook.splice(idx,1);persistAB('Removed from address book.');}
-function initCompanyCombo(){
-  const box=$('is_companyCombo'), inp=$('is_company'), menu=$('is_companyList');
-  let items=[], active=-1;
-  const open=()=>{box.classList.add('open');inp.setAttribute('aria-expanded','true');};
-  const close=()=>{box.classList.remove('open');inp.setAttribute('aria-expanded','false');active=-1;};
-  const subOf=a=>[a.line1,a.city,a.country?countryName(a.country):''].filter(Boolean).join(' · ');
-  function render(q){
-    const s=(q||'').trim().toLowerCase();
-    const matches=!addrBook.length?[]:(!s?addrBook:addrBook.filter(a=>[a.company,a.city,a.postcode,a.country,countryName(a.country)].some(v=>(v||'').toLowerCase().includes(s))));
-    items=matches;
-    if(!addrBook.length){menu.innerHTML='<div class="comboEmpty">No saved suppliers yet — fill the sender details and press ★ Save to address book.</div>';return;}
-    if(!matches.length){menu.innerHTML='<div class="comboEmpty">No saved supplier matches — type to enter a new one.</div>';return;}
-    menu.innerHTML=matches.map((a,i)=>'<div class="comboOpt abopt" role="option" data-i="'+i+'"><div class="abmain"><b>'+esc(a.company||'(no name)')+'</b><span class="absub">'+esc(subOf(a))+'</span></div><button type="button" class="abdel" data-i="'+i+'" title="Remove">×</button></div>').join('');
-    menu.querySelectorAll('.abopt').forEach(el=>{
-      el.addEventListener('mousedown',ev=>{
-        if(ev.target.closest('.abdel')){ev.preventDefault();const gi=addrBook.indexOf(items[+el.dataset.i]);if(gi>=0)deleteAddr(gi);render(inp.value);return;}
-        ev.preventDefault();applySender(items[+el.dataset.i]);close();abMsg('Loaded — check the details and get your quote.');
+
+function saveSenderAddr() {
+  const a = {
+    company: ival('is_company'), name: ival('is_name'), country: senderIso,
+    line1: ival('is_line1'), line2: ival('is_line2'), city: ival('is_city'),
+    postcode: ival('is_postcode'), phone: ival('is_phone'), email: ival('is_email')
+  };
+  if (!a.company && !a.line1 && !a.postcode) { abMsg('Fill in sender details first, then save.', false); return; }
+  const key = x => ((x.company || '') + '|' + (x.postcode || '')).toLowerCase().trim();
+  const i = addrBook.findIndex(x => key(x) === key(a));
+  if (i >= 0) addrBook[i] = a; else addrBook.unshift(a);
+  persistAB(a.company ? ('“' + a.company + '” saved to your address book.') : 'Address saved.');
+}
+
+function deleteAddr(idx) {
+  addrBook.splice(idx, 1);
+  persistAB('Removed from address book.');
+}
+
+function initCompanyCombo() {
+  const box = $('is_companyCombo'), inp = $('is_company'), menu = $('is_companyList');
+  let items = [], active = -1;
+  const open = () => { box.classList.add('open'); inp.setAttribute('aria-expanded', 'true'); };
+  const close = () => { box.classList.remove('open'); inp.setAttribute('aria-expanded', 'false'); active = -1; };
+  const subOf = a => [a.line1, a.city, a.country ? countryName(a.country) : ''].filter(Boolean).join(' · ');
+
+  function render(q) {
+    const s = (q || '').trim().toLowerCase();
+    const matches = !addrBook.length ? [] : (!s ? addrBook : addrBook.filter(a => [a.company, a.city, a.postcode, a.country, countryName(a.country)].some(v => (v || '').toLowerCase().includes(s))));
+    items = matches;
+    if (!addrBook.length) { menu.innerHTML = '<div class="comboEmpty">No saved suppliers yet — fill sender details and press ★ Save to address book.</div>'; return; }
+    if (!matches.length) { menu.innerHTML = '<div class="comboEmpty">No supplier matches — type to enter a new one.</div>'; return; }
+    menu.innerHTML = matches.map((a, i) => '<div class="comboOpt abopt" role="option" data-i="' + i + '"><div class="abmain"><b>' + esc(a.company || '(no name)') + '</b><span class="absub">' + esc(subOf(a)) + '</span></div><button type="button" class="abdel" data-i="' + i + '" title="Remove">×</button></div>').join('');
+    menu.querySelectorAll('.abopt').forEach(el => {
+      el.addEventListener('mousedown', ev => {
+        if (ev.target.closest('.abdel')) {
+          ev.preventDefault();
+          const gi = addrBook.indexOf(items[+el.dataset.i]);
+          if (gi >= 0) deleteAddr(gi);
+          render(inp.value);
+          return;
+        }
+        ev.preventDefault();
+        applySender(items[+el.dataset.i]);
+        close();
+        abMsg('Loaded — get your quote below.');
       });
     });
   }
-  const highlight=()=>{const els=menu.querySelectorAll('.abopt');els.forEach((e,i)=>e.classList.toggle('active',i===active));if(active>=0&&els[active])els[active].scrollIntoView({block:'nearest'});};
-  inp.addEventListener('focus',()=>{render('');open();});
-  inp.addEventListener('input',()=>{active=-1;render(inp.value);open();abMsg('');});
-  inp.addEventListener('keydown',e=>{
-    if(e.key==='ArrowDown'){e.preventDefault();if(!box.classList.contains('open')){render('');open();}active=Math.min(active+1,items.length-1);highlight();}
-    else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(active-1,0);highlight();}
-    else if(e.key==='Enter'){if(active>=0&&items[active]){e.preventDefault();applySender(items[active]);close();}}
-    else if(e.key==='Escape'){close();}
+
+  const highlight = () => {
+    const els = menu.querySelectorAll('.abopt');
+    els.forEach((e, i) => e.classList.toggle('active', i === active));
+    if (active >= 0 && els[active]) els[active].scrollIntoView({ block: 'nearest' });
+  };
+
+  inp.addEventListener('focus', () => { render(''); open(); });
+  inp.addEventListener('input', () => { active = -1; render(inp.value); open(); abMsg(''); });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!box.classList.contains('open')) { render(''); open(); } active = Math.min(active + 1, items.length - 1); highlight(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); highlight(); }
+    else if (e.key === 'Enter') { if (active >= 0 && items[active]) { e.preventDefault(); applySender(items[active]); close(); } }
+    else if (e.key === 'Escape') { close(); }
   });
-  document.addEventListener('click',e=>{if(!box.contains(e.target))close();});
-}
-function initImportTab(){
-  iaddParcel();
-  prefillReceiver();
-  addrBook=(RC&&Array.isArray(RC.addressBook))?RC.addressBook.slice():[];
-  initCompanyCombo();
-  $('is_saveAddr').addEventListener('click',saveSenderAddr);
-  initCountryCombo('is_countryCombo','is_countryInput','is_countryList',(iso)=>{senderIso=iso;});
-  $('iaddParcel').addEventListener('click',iaddParcel);
-  $('igetQuotes').addEventListener('click',igetQuotes);
-  document.querySelectorAll('#viewTabs button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+  document.addEventListener('click', e => { if (!box.contains(e.target)) close(); });
 }
 
-async function boot(){
-  const token=location.pathname.split('/').filter(Boolean).pop();
-  curToken=token;
-  try{
-    const res=await fetch('/api/card/'+encodeURIComponent(token));
-    if(!res.ok){$('state').textContent='This rate card link is not available.';return;}
-    RC=await res.json();
-  }catch(e){$('state').textContent='Could not load this rate card.';return;}
-  $('state').style.display='none';$('app').style.display='block';
-  $('title').textContent=RC.customer||RC.title||'International Rate Card';
-  $('today').textContent=' · '+new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  initCombo(RC.countries, RC.countries.includes('USA')?'USA':RC.countries[0]);
+function initImportTab() {
+  iaddParcel();
+  prefillReceiver();
+  addrBook = (RC && Array.isArray(RC.addressBook)) ? RC.addressBook.slice() : [];
+  initCompanyCombo();
+  $('is_saveAddr').addEventListener('click', saveSenderAddr);
+  initCountryCombo('is_countryCombo', 'is_countryInput', 'is_countryList', (iso) => { senderIso = iso; });
+  $('iaddParcel').addEventListener('click', iaddParcel);
+  $('igetQuotes').addEventListener('click', igetQuotes);
+  document.querySelectorAll('#viewTabs button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+}
+
+async function boot() {
+  const token = location.pathname.split('/').filter(Boolean).pop();
+  curToken = token;
+  try {
+    const res = await fetch('/api/card/' + encodeURIComponent(token));
+    if (!res.ok) { $('state').textContent = 'This rate card link is not available.'; return; }
+    RC = await res.json();
+  } catch (e) {
+    $('state').textContent = 'Could not load this rate card.';
+    return;
+  }
+  $('state').style.display = 'none';
+  $('app').style.display = 'block';
+  $('title').textContent = RC.customer || RC.title || 'International Rate Card';
+  $('today').textContent = ' · ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  initCombo(RC.countries, RC.countries.includes('USA') ? 'USA' : RC.countries[0]);
   renderToggles();
-  ['wt','L','W','H','V','SK','pc'].forEach(id=>$(id)&&$(id).addEventListener('input',calc));
-  const shortRate=a=>a.basis==='pctValue'?((a.pct||0)+'% of value'+(a.min?(' (min £'+Number(a.min).toFixed(2)+')'):'')):('£'+Number(a.amount||0).toFixed(2));
-  const acc=accList().filter(a=>a.basis==='pctValue'||(a.amount||0)>0);
-  const dutyByCarrier={},others=[];
-  acc.forEach(a=>{if(a.cond==='region'){(dutyByCarrier[a.carrier]=dutyByCarrier[a.carrier]||[]).push(a);}else others.push(a);});
-  const rows=[];
-  const rOrder={eu:0,usa:1,row:2};
-  Object.keys(dutyByCarrier).forEach(carr=>{
-    dutyByCarrier[carr].slice().sort((a,b)=>(rOrder[a.region]??9)-(rOrder[b.region]??9)).forEach(a=>{
-      const lbl=a.region==='eu'?'EU':a.region==='usa'?'USA':'Rest of world';
-      rows.push({name:'Duties &amp; taxes',carrier:carr,when:lbl,rate:shortRate(a)});
+
+  ['wt', 'L', 'W', 'H', 'V', 'SK', 'pc'].forEach(id => $(id) && $(id).addEventListener('input', calc));
+
+  const shortRate = a => a.basis === 'pctValue' ?
+    ((a.pct || 0) + '% of value' + (a.min ? (' (min £' + Number(a.min).toFixed(2) + ')') : '')) :
+    ('£' + Number(a.amount || 0).toFixed(2));
+
+  const acc = accList().filter(a => a.basis === 'pctValue' || (a.amount || 0) > 0);
+  const dutyByCarrier = {}, others = [];
+  acc.forEach(a => {
+    if (a.cond === 'region') {
+      (dutyByCarrier[a.carrier] = dutyByCarrier[a.carrier] || []).push(a);
+    } else others.push(a);
+  });
+
+  const rows = [];
+  const rOrder = { eu: 0, usa: 1, row: 2 };
+  Object.keys(dutyByCarrier).forEach(carr => {
+    dutyByCarrier[carr].slice().sort((a, b) => (rOrder[a.region] ?? 9) - (rOrder[b.region] ?? 9)).forEach(a => {
+      const lbl = a.region === 'eu' ? 'EU' : a.region === 'usa' ? 'USA' : 'Rest of world';
+      rows.push({ name: 'Duties &amp; taxes', carrier: carr, when: lbl, rate: shortRate(a) });
     });
   });
-  others.forEach(a=>rows.push({name:a.name,carrier:a.carrier,when:whenText(a),rate:rateText(a)}));
-  if(RC.euDuty&&RC.euDuty.enabled){
-    rows.push({name:'EU customs duty',carrier:'',carrierText:'All carriers',
-      when:'EU destinations, goods value ≤ €'+(Number(RC.euDuty.thresholdEur)||150),
-      rate:'€'+(Number(RC.euDuty.perSku))+' per item (SKU)'});
+  others.forEach(a => rows.push({ name: a.name, carrier: a.carrier, when: whenText(a), rate: rateText(a) }));
+
+  if (RC.euDuty && RC.euDuty.enabled) {
+    rows.push({
+      name: 'EU customs duty', carrier: '', carrierText: 'All carriers',
+      when: 'EU destinations, goods value ≤ €' + (Number(RC.euDuty.thresholdEur) || 150),
+      rate: '€' + (Number(RC.euDuty.perSku)) + ' per item (SKU)'
+    });
   }
-  if(rows.length){const sb=$('surBody');
-    rows.forEach(r=>{const tr=document.createElement('tr');
-      const carrCell=r.carrier?carrierMark(r.carrier,'surlogo'):'<span style="font-size:11px;font-weight:800;color:#475569">'+(r.carrierText||'All')+'</span>';
-      tr.innerHTML='<td>'+r.name+'</td><td>'+carrCell+'</td><td>'+r.when+'</td><td class="r">'+r.rate+'</td>';sb.appendChild(tr);});
+
+  if (rows.length) {
+    const sb = $('surBody');
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      const carrCell = r.carrier ? carrierMark(r.carrier, 'surlogo') : '<span style="font-size:11px;font-weight:800;color:#475569">' + (r.carrierText || 'All') + '</span>';
+      tr.innerHTML = '<td>' + r.name + '</td><td>' + carrCell + '</td><td>' + r.when + '</td><td class="r">' + r.rate + '</td>';
+      sb.appendChild(tr);
+    });
     wireCarrierMarks($('surBody'));
-  }else $('surPanel').style.display='none';
-  $('notesBox').textContent=RC.notes||'';
-  $('foot').textContent='Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor '+RC.divisor+'.';
+  } else {
+    $('surPanel').style.display = 'none';
+  }
+
+  $('notesBox').textContent = RC.notes || '';
+  $('foot').textContent = 'Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor ' + RC.divisor + '.';
+
   calc();
   initImportTab();
-  renderDropoffs();
-  // drop-off map modal (delegated so it works for rail cards rendered on demand)
-  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.mapbtn');
-    if(b){e.preventDefault();openDropMap(b.dataset.lat,b.dataset.lng,b.dataset.name,b.dataset.addr);}});
-  $('dropModalX').addEventListener('click',closeDropModal);
-  $('dropModal').addEventListener('click',e=>{if(e.target===$('dropModal'))closeDropModal();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDropModal();});
-  window.addEventListener('resize',()=>layoutCards($('cards')));
+
+  // Wire sidebar close button
+  $('closeDropSidebar').addEventListener('click', () => {
+    activeDropCarrier = null;
+    $('dropSidebar').style.display = 'none';
+    $('ratesLayout').classList.remove('has-sidebar');
+    calc();
+  });
+
+  // Wire drop modal
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('.mapbtn');
+    if (b) {
+      e.preventDefault();
+      openDropMap(b.dataset.lat, b.dataset.lng, b.dataset.name, b.dataset.addr);
+    }
+  });
+
+  $('dropModalX').addEventListener('click', closeDropModal);
+  $('dropModal').addEventListener('click', e => { if (e.target === $('dropModal')) closeDropModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDropModal(); });
 }
+
 boot();
 </script>
-</body></html>
+</body>
+</html>
