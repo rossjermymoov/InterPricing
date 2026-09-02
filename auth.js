@@ -49,4 +49,8 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-module.exports = { COOKIE, hashPassword, checkPassword, signToken, cookieOptions, attachUser, requireAuth, requireAdmin };
+function getUserFromReq(req) {
+  return (req && req.user) ? req.user : null;
+}
+
+module.exports = { COOKIE, hashPassword, checkPassword, signToken, cookieOptions, attachUser, requireAuth, requireAdmin, getUserFromReq };

@@ -695,7 +695,7 @@ app.post('/api/collections/cancel', async (req, res) => {
     if (token) {
       const card = db.hasDb ? await db.getCardByToken(token) : null;
       if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Rate card not available' });
-    } else if (!auth.getUserFromReq(req)) {
+    } else if (!req.user) {
       return res.status(401).json({ ok: false, error: 'Authentication required' });
     }
 
@@ -724,7 +724,7 @@ app.post('/api/collections/reschedule', async (req, res) => {
     if (token) {
       const card = db.hasDb ? await db.getCardByToken(token) : null;
       if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Rate card not available' });
-    } else if (!auth.getUserFromReq(req)) {
+    } else if (!req.user) {
       return res.status(401).json({ ok: false, error: 'Authentication required' });
     }
 
@@ -798,7 +798,7 @@ app.post('/api/collections/create-for-shipment', async (req, res) => {
     if (token) {
       card = db.hasDb ? await db.getCardByToken(token) : null;
       if (!card) return res.status(404).json({ ok: false, error: 'Invalid card token' });
-    } else if (!auth.getUserFromReq(req)) {
+    } else if (!req.user) {
       return res.status(401).json({ ok: false, error: 'Authorization required.' });
     }
 
@@ -1085,7 +1085,7 @@ app.post('/api/shipments/cancel', async (req, res) => {
     if (token) {
       card = db.hasDb ? await db.getCardByToken(token) : null;
       if (!card) return res.status(404).json({ ok: false, error: 'Invalid card token' });
-    } else if (!auth.getUserFromReq(req)) {
+    } else if (!req.user) {
       return res.status(401).json({ ok: false, error: 'Authorization required to cancel shipment.' });
     }
 
