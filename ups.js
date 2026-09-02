@@ -346,14 +346,18 @@ async function createPickup(payload) {
   if (!tk) return { ok: false, error: 'UPS credentials not configured' };
 
   const reqBody = buildPickupRequest(payload);
+  const headers = {
+    'Authorization': 'Bearer ' + tk,
+    'Content-Type': 'application/json',
+    'transId': 'moov_pickup_' + Date.now(),
+    'transactionSrc': 'MOOV-InterPricing',
+  };
+  if (process.env.UPS_ACCOUNT_NUMBER) {
+    headers['x-merchant-id'] = process.env.UPS_ACCOUNT_NUMBER;
+  }
   const res = await fetch(base() + '/api/pickupcreation/v1/pickup', {
     method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + tk,
-      'Content-Type': 'application/json',
-      'transId': 'moov_pickup_' + Date.now(),
-      'transactionSrc': 'MOOV-InterPricing',
-    },
+    headers,
     body: JSON.stringify(reqBody),
     signal: AbortSignal.timeout(10000),
   });
