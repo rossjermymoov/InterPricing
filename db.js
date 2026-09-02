@@ -498,6 +498,15 @@ async function updateShipmentStatus(idOrTracking, status) {
   return rows[0] || null;
 }
 
+async function updateShipmentPrn(identifierOrOldPrn, newPrn) {
+  if (!pool || !identifierOrOldPrn) return null;
+  const { rows } = await pool.query(
+    `UPDATE shipments SET prn = $2 WHERE prn = $1 OR id::text = $1 OR tracking_number = $1 OR shipment_id = $1 RETURNING *`,
+    [String(identifierOrOldPrn), newPrn]
+  );
+  return rows[0] || null;
+}
+
 async function deleteShipment(idOrTracking) {
   if (!pool || !idOrTracking) return false;
   const { rowCount } = await pool.query(
