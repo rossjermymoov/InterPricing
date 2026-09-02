@@ -1158,14 +1158,22 @@ $('qSearch').addEventListener('input',()=>{clearTimeout(qTimer);qTimer=setTimeou
 function populateColCountries() {
   const c1 = $('colCountry'), c2 = $('colDestCountry');
   if (!c1 || c1.options.length) return;
-  const list = (P && P.countries && P.countries.length) ? P.countries : ['United Kingdom', 'USA', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Ireland', 'Canada', 'Australia'];
-  list.forEach(c => {
-    c1.appendChild(new Option(c, c));
-    c2.appendChild(new Option(c, c));
+  const rawList = (P && P.countries && P.countries.length) ? P.countries : [];
+  const allSet = new Set(['United Kingdom', ...rawList]);
+  const sorted = Array.from(allSet).sort((a, b) => a.localeCompare(b));
+
+  c1.appendChild(new Option('United Kingdom (GB)', 'United Kingdom'));
+  c2.appendChild(new Option('United Kingdom (GB)', 'United Kingdom'));
+
+  sorted.forEach(c => {
+    if (c !== 'United Kingdom') {
+      c1.appendChild(new Option(c, c));
+      c2.appendChild(new Option(c, c));
+    }
   });
-  const ukDefault = list.find(c => ['United Kingdom', 'UK', 'GB', 'Great Britain'].includes(c)) || list[0];
-  c1.value = ukDefault;
-  c2.value = ukDefault;
+
+  c1.value = 'United Kingdom';
+  c2.value = 'United Kingdom';
 
   const today = new Date();
   if (today.getHours() >= 16) today.setDate(today.getDate() + 1);

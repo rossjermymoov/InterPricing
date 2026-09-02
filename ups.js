@@ -7,6 +7,7 @@
 
 const PROD = 'https://onlinetools.ups.com';
 const TEST = 'https://wwwcie.ups.com';
+const { nameToIso } = require('./countries');
 const base = () => (String(process.env.UPS_ENV || 'test').toLowerCase().startsWith('prod') ? PROD : TEST);
 const ver = () => process.env.UPS_RATING_VERSION || 'v2403';
 
@@ -279,8 +280,16 @@ function buildPickupRequest(p) {
   const phone = String(p.phone || '').replace(/[^0-9+]/g, '');
   const parcels = Math.max(1, Math.floor(Number(p.parcels) || 1));
   const weight = Math.max(0.1, Number(p.weight || p.totalWeight) || 1.0);
-  const destCountry = S(p.destinationCountry || p.destCountry || p.country || 'GB').toUpperCase();
-  const originCountry = S(p.country || 'GB').toUpperCase();
+  const toIso = (c, fallback = 'GB') => {
+    if (!c) return fallback;
+    const iso = nameToIso(c);
+    if (iso) return iso;
+    const s = String(c).trim();
+    if (/^[A-Za-z]{2}$/.test(s)) return s.toUpperCase();
+    return fallback;
+  };
+  const originCountry = toIso(p.country || 'GB', 'GB');
+  const destCountry = toIso(p.destinationCountry || p.destCountry || p.country || 'GB', 'GB');
   const serviceCode = S(p.serviceCode || '011');
   const trackingNumber = p.trackingNumber ? String(p.trackingNumber).trim() : null;
 
