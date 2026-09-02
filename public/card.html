@@ -1468,7 +1468,7 @@ body {
 
         <div style="background:#f9fafb;border:1px solid var(--line);border-radius:8px;padding:18px;text-align:left;margin-bottom:24px">
           <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px">
-            <span style="color:var(--muted)">UPS Tracking Number:</span>
+            <span style="color:var(--muted)">UPS Master Tracking:</span>
             <span style="font-family:monospace;font-weight:800;color:var(--ink)" id="ibResTracking">—</span>
           </div>
           <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px">
@@ -1476,15 +1476,20 @@ body {
             <span style="font-weight:800;color:#059669" id="ibResPrn">—</span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:13px">
-            <span style="color:var(--muted)">Paperless Customs Docs:</span>
-            <span style="font-weight:700;color:var(--ink)">✓ Attached Electronically</span>
+            <span style="color:var(--muted)">Customs Clearance:</span>
+            <span id="ibResCustoms" style="font-weight:700;color:var(--ink)">—</span>
           </div>
         </div>
 
-        <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">
-          <a id="ibDownloadLabel" class="btn primary" style="padding:10px 22px;text-decoration:none;font-weight:700" target="_blank" download="UPS_Shipping_Label.gif">Download Shipping Label</a>
-          <button type="button" class="btn" id="ibRescheduleBtn" style="padding:10px 18px;font-weight:700">Reschedule Collection 🔄</button>
-          <button type="button" class="btn" id="ibDoneBtn" style="padding:10px 20px">Done</button>
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          <button type="button" class="btn primary" id="ibPrintThermalBtn" style="padding:10px 18px;font-weight:700">Print All Labels (Thermal 4"×6") 🖨️</button>
+          <button type="button" class="btn" id="ibPrintA4Btn" style="padding:10px 18px;font-weight:700">Print All Labels (A4 Paper) 📄</button>
+        </div>
+
+        <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
+          <button type="button" class="btn" id="ibRescheduleBtn" style="padding:8px 16px;font-weight:700">Reschedule Collection 🔄</button>
+          <button type="button" class="btn" id="ibCancelShipmentBtn" style="padding:8px 16px;font-weight:700;color:#b91c1c">Cancel Shipment ❌</button>
+          <button type="button" class="btn" id="ibDoneBtn" style="padding:8px 20px">Done</button>
         </div>
       </div>
     </div>
@@ -2685,6 +2690,11 @@ async function submitImportBooking() {
     $('ibResTracking').textContent = d.trackingNumber || 'Generated';
     $('ibResPrn').textContent = d.prn ? d.prn : (d.pickupBooked ? 'Pickup Scheduled' : 'Not requested');
 
+    const hasDocs = d.documentsAttached && (d.documentsAttached.invoice || d.documentsAttached.packingSlip);
+    $('ibResCustoms').innerHTML = hasDocs
+      ? '<span style="color:#059669;font-weight:800">✓ Electronic Upload (Paperless Clearance)</span>'
+      : '<span style="color:#b45309;font-weight:700">No electronic files attached (paper copies required at collection)</span>';
+
     if (d.prn) {
       $('ibRescheduleBtn').style.display = 'inline-flex';
       $('ibRescheduleBtn').onclick = () => openRescheduleModal(d.prn);
@@ -2693,16 +2703,40 @@ async function submitImportBooking() {
     }
 
     const pkgsList = Array.isArray(d.packages) ? d.packages : [];
-    if (pkgsList.length > 0 && pkgsList.some(p => p.labelGraphic)) {
-      $('ibDownloadLabel').style.display = 'inline-flex';
-      $('ibDownloadLabel').textContent = pkgsList.length > 1 ? ('Print All ' + pkgsList.length + ' Labels (PDF / 4x6) 🖨️') : 'Print / Download Label 🖨️';
-      $('ibDownloadLabel').onclick = (e) => {
-        e.preventDefault();
-        printAllShipmentLabels(pkgsList);
-      };
-    } else {
-      $('ibDownloadLabel').style.display = 'none';
-    }
+    $('ibPrintThermalBtn').onclick = () => printAllShipmentLabels(pkgsList, 'thermal');
+    $('ibPrintA4Btn').onclick = () => printAllShipmentLabels(pkgsList, 'a4');
+
+    $('ibCancelShipmentBtn').onclick = async () => {
+      if (!confirm('Are you sure you want to cancel this UPS shipment and collection?')) return;
+      $('ibCancelShipmentBtn').disabled = true;
+      $('ibCancelShipmentBtn').textContent = 'Cancelling with UPS…';
+      try {
+        const res = await fetch('/api/shipments/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token: curToken,
+            shipmentId: d.shipmentId,
+            trackingNumber: d.trackingNumber,
+            prn: d.prn,
+          }),
+        });
+        const cd = await res.json();
+        if (!res.ok || !cd.ok) {
+          alert('UPS Cancellation Error: ' + (cd.error || 'Failed to cancel shipment.'));
+          $('ibCancelShipmentBtn').disabled = false;
+          $('ibCancelShipmentBtn').textContent = 'Cancel Shipment ❌';
+        } else {
+          alert('Shipment ' + (d.trackingNumber || '') + ' and collection PRN ' + (d.prn || '') + ' have been successfully cancelled with UPS.');
+          closeImportBookingModal();
+          if ($('bookingsView') && $('bookingsView').style.display !== 'none') loadCustomerBookings();
+        }
+      } catch (err) {
+        alert('Network Error: ' + err.message);
+        $('ibCancelShipmentBtn').disabled = false;
+        $('ibCancelShipmentBtn').textContent = 'Cancel Shipment ❌';
+      }
+    };
   } catch (err) {
     errBox.textContent = 'Network Error: Could not complete booking. ' + err.message;
     errBox.style.display = 'block';
@@ -2711,13 +2745,16 @@ async function submitImportBooking() {
   }
 }
 
-function printAllShipmentLabels(pkgs) {
+function printAllShipmentLabels(pkgs, format = 'thermal') {
   const list = (Array.isArray(pkgs) ? pkgs : []).filter(p => p && (p.labelGraphic || p.graphicImage));
   if (!list.length) { alert('No label graphics available to print.'); return; }
   const w = window.open('', '_blank');
   if (!w) { alert('Please allow popups to open the printable labels.'); return; }
+
+  const isA4 = format === 'a4';
   const imgs = list.map((p, i) => `
-    <div class="label-page">
+    <div class="label-page ${isA4 ? 'a4' : 'thermal'}">
+      <div class="label-header-info no-print">Piece ${i + 1} of ${list.length} — Tracking: <b>${p.trackingNumber || '—'}</b></div>
       <img src="data:image/gif;base64,${p.labelGraphic || p.graphicImage}" alt="UPS Label ${i + 1}" />
     </div>
   `).join('');
@@ -2726,25 +2763,39 @@ function printAllShipmentLabels(pkgs) {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>UPS Shipping Labels (${list.length} Parcel${list.length === 1 ? '' : 's'})</title>
+      <title>UPS Shipping Labels (${list.length} Parcel${list.length === 1 ? '' : 's'} — ${isA4 ? 'A4 Paper' : 'Thermal 4x6'})</title>
       <style>
-        @page { size: 4in 6in; margin: 0; }
-        @media print {
-          html, body { margin: 0; padding: 0; }
-          .no-print { display: none !important; }
-          .label-page { page-break-after: always; break-after: page; width: 4in; height: 6in; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-          .label-page img { width: 100%; height: 100%; object-fit: contain; }
-        }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f3f4f6; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
-        .label-page { background: #fff; width: 384px; height: 576px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; border-radius: 4px; overflow: hidden; }
-        .label-page img { width: 100%; height: 100%; object-fit: contain; }
+        ${isA4 ? `
+          @page { size: A4 portrait; margin: 10mm; }
+          @media print {
+            html, body { margin: 0; padding: 0; background: #fff; }
+            .no-print { display: none !important; }
+            .label-page { page-break-after: always; break-after: page; width: 100%; max-width: 170mm; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 95vh; }
+            .label-page img { max-width: 100%; max-height: 90vh; object-fit: contain; }
+          }
+        ` : `
+          @page { size: 4in 6in; margin: 0; }
+          @media print {
+            html, body { margin: 0; padding: 0; background: #fff; }
+            .no-print { display: none !important; }
+            .label-page { page-break-after: always; break-after: page; width: 4in; height: 6in; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+            .label-page img { width: 100%; height: 100%; object-fit: contain; }
+          }
+        `}
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f3f4f6; margin: 0; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
+        .label-page.thermal { background: #fff; width: 384px; height: 576px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden; }
+        .label-page.thermal img { width: 100%; height: 100%; object-fit: contain; }
+        .label-page.a4 { background: #fff; width: 595px; height: 842px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; padding: 20px; box-sizing: border-box; }
+        .label-page.a4 img { max-width: 90%; max-height: 90%; object-fit: contain; }
+        .label-header-info { font-size: 12px; color: #64748b; margin-bottom: 8px; font-weight: 600; text-align: center; }
         .print-bar { position: sticky; top: 12px; background: #111827; color: #fff; padding: 12px 24px; border-radius: 8px; z-index: 100; display: flex; gap: 14px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.25); }
         .print-btn { background: #0E9C63; color: #fff; border: none; padding: 8px 18px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .switch-btn { background: #374151; color: #fff; border: none; padding: 8px 14px; font-weight: 600; border-radius: 6px; cursor: pointer; font-size: 12px; }
       </style>
     </head>
     <body>
       <div class="print-bar no-print">
-        <span><b>${list.length} UPS Label${list.length === 1 ? '' : 's'}</b> ready to print</span>
+        <span><b>${list.length} UPS Label${list.length === 1 ? '' : 's'}</b> (${isA4 ? 'A4 Paper' : 'Thermal 4"×6"'})</span>
         <button class="print-btn" onclick="window.print()">Print / Save PDF 🖨️</button>
       </div>
       ${imgs}
@@ -2870,7 +2921,8 @@ function renderCustomerBookings(shipments) {
     const r = (typeof x.receiver === 'object' && x.receiver) ? x.receiver : {};
     const pkgs = (Array.isArray(x.packages) && x.packages.length) ? x.packages : [];
     const docs = (typeof x.documents_attached === 'object' && x.documents_attached) ? x.documents_attached : {};
-    const totalParcels = pkgs.reduce((sum, p) => sum + (parseInt(p.qty, 10) || 1), 0) || (x.parcels || 1);
+    const hasDocs = docs && (docs.invoice || docs.packingSlip);
+    const totalParcels = pkgs.reduce((sum, p) => sum + (parseInt(p.qty, 10) || 1), 0) || (x.parcels || pkgs.length || 1);
     const totalWeight = Number(x.total_weight_kg) || pkgs.reduce((sum, p) => sum + (Number(p.weight) || 0) * (parseInt(p.qty, 10) || 1), 0);
     const dateStr = x.created_at ? (new Date(x.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ' at ' + new Date(x.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })) : '—';
 
@@ -2896,13 +2948,17 @@ function renderCustomerBookings(shipments) {
       const l = Number(p.l) || 0, w = Number(p.w) || 0, h = Number(p.h) || 0;
       const volWt = (l && w && h) ? Math.round((l * w * h / 5000) * 10) / 10 : '—';
       const typeStr = p.packaging === 'tube' ? 'UPS Tube' : (p.packaging === 'expressbox' ? 'UPS Express Box' : (p.packaging === 'pallet' ? 'Pallet' : 'Custom Box'));
+      const trk = p.trackingNumber || x.tracking_number || '—';
       return '<tr style="border-bottom:1px solid var(--line)">'
         + '<td style="padding:8px 10px;font-weight:700">Piece ' + (idx + 1) + '</td>'
+        + '<td style="padding:8px 10px;font-family:monospace;font-size:11.5px">' + esc(trk) + '</td>'
         + '<td style="padding:8px 10px">' + typeStr + '</td>'
-        + '<td style="padding:8px 10px;text-align:center">' + q + '</td>'
         + '<td style="padding:8px 10px">' + (l ? (l + ' × ' + w + ' × ' + h + ' cm') : 'Standard') + '</td>'
         + '<td style="padding:8px 10px;text-align:right;font-weight:700">' + wt + ' kg</td>'
         + '<td style="padding:8px 10px;text-align:right;color:var(--muted)">' + volWt + (volWt !== '—' ? ' kg' : '') + '</td>'
+        + '<td style="padding:8px 10px;text-align:right">'
+        + (p.labelGraphic ? ('<button type="button" class="btn ghost btn-print-single" data-img="' + p.labelGraphic + '" style="padding:3px 8px;font-size:11px">Print Label</button>') : '—')
+        + '</td>'
         + '</tr>';
     }).join('');
 
@@ -2934,7 +2990,7 @@ function renderCustomerBookings(shipments) {
         <div>
           <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:4px">3. Shipment Details</div>
           <div style="font-weight:700;font-size:13px;color:var(--ink)">${trackLink}</div>
-          <div style="font-size:12px;color:var(--muted)">Goods Value: <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b> · ${(docs.invoice || docs.packingSlip) ? '<b style="color:var(--green-dark)">✓ Paperless Docs</b>' : 'Standard'}</div>
+          <div style="font-size:12px;color:var(--muted)">Goods Value: <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b> · ${hasDocs ? '<b style="color:#059669">✓ Electronic Docs</b>' : '<span style="color:#b45309">No docs uploaded</span>'}</div>
         </div>
 
         <div>
@@ -2949,14 +3005,15 @@ function renderCustomerBookings(shipments) {
           ${prnBadge}
           ${(x.prn && !isCancelled) ? `
             <button type="button" class="btn ghost btn-cust-resched" data-prn="${esc(x.prn)}" style="padding:6px 12px;font-size:12px;font-weight:700">Reschedule Collection 🔄</button>
-            <button type="button" class="btn ghost btn-cust-cancel" data-prn="${esc(x.prn)}" style="padding:6px 12px;font-size:12px;font-weight:700;color:#b91c1c">Cancel ❌</button>
+          ` : ''}
+          ${!isCancelled ? `
+            <button type="button" class="btn ghost btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || '')}" data-prn="${esc(x.prn || '')}" style="padding:6px 12px;font-size:12px;font-weight:700;color:#b91c1c">Cancel Shipment ❌</button>
           ` : ''}
         </div>
 
-        <div style="display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap">
-          ${x.label_base64 ? `
-            <a href="data:image/gif;base64,${x.label_base64}" download="UPS_Shipping_Label_${esc(x.tracking_number || x.id)}.gif" class="btn primary" target="_blank" style="padding:6px 14px;font-size:12px;font-weight:700;text-decoration:none">Download Label 🖨️</a>
-          ` : ''}
+        <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
+          <button type="button" class="btn primary btn-print-batch-thermal" data-id="${x.id}" style="padding:6px 12px;font-size:12px;font-weight:700">Print (Thermal 4"×6") 🖨️</button>
+          <button type="button" class="btn btn-print-batch-a4" data-id="${x.id}" style="padding:6px 12px;font-size:12px;font-weight:700">Print (A4) 📄</button>
           <button type="button" class="btn btn-toggle-explode" data-id="${x.id}" style="padding:6px 14px;font-size:12px;font-weight:700">Package Specs &amp; Full Details ▾</button>
         </div>
       </div>
@@ -2991,20 +3048,21 @@ function renderCustomerBookings(shipments) {
         </div>
 
         <div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px">
-          <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:8px">Package Specifications &amp; Dimensions</div>
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:8px">Package Specifications &amp; Labels (${pkgs.length} Pieces)</div>
           <table style="width:100%;border-collapse:collapse;font-size:12.5px">
             <thead>
               <tr style="background:#f8fafc;border-bottom:1.5px solid var(--line);font-size:11px;text-transform:uppercase;color:#475569">
                 <th style="padding:8px 10px;text-align:left">Package</th>
-                <th style="padding:8px 10px;text-align:left">Packaging</th>
-                <th style="padding:8px 10px;text-align:center">Qty</th>
+                <th style="padding:8px 10px;text-align:left">Tracking #</th>
+                <th style="padding:8px 10px;text-align:left">Type</th>
                 <th style="padding:8px 10px;text-align:left">Dimensions</th>
                 <th style="padding:8px 10px;text-align:right">Dead Wt</th>
                 <th style="padding:8px 10px;text-align:right">Vol Wt</th>
+                <th style="padding:8px 10px;text-align:right">Action</th>
               </tr>
             </thead>
             <tbody>
-              ${pkgRowsHtml || '<tr><td colspan="6" style="padding:10px;text-align:center;color:var(--muted)">1 package</td></tr>'}
+              ${pkgRowsHtml || '<tr><td colspan="7" style="padding:10px;text-align:center;color:var(--muted)">1 package</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -3016,7 +3074,7 @@ function renderCustomerBookings(shipments) {
           </div>
           <div>
             <span style="color:var(--muted)">Commercial Invoice:</span>
-            <b>${docs.invoice ? '✓ Electronic (002 attached)' : 'Standard'}</b>
+            <b>${docs.invoice ? '✓ Electronic (002 attached)' : 'Paper required'}</b>
           </div>
           <div>
             <span style="color:var(--muted)">Packing Slip:</span>
@@ -3026,6 +3084,8 @@ function renderCustomerBookings(shipments) {
       </div>
     `;
 
+    // Store packages array on card element for batch printing
+    card._packages = pkgs;
     box.appendChild(card);
   });
 }
@@ -3050,6 +3110,39 @@ function initCustomerBookingsEvents() {
       return;
     }
 
+    // Batch Print Thermal
+    const printThermalBtn = e.target.closest && e.target.closest('.btn-print-batch-thermal');
+    if (printThermalBtn) {
+      e.preventDefault();
+      const card = printThermalBtn.closest('.calc-card');
+      if (card && card._packages) {
+        printAllShipmentLabels(card._packages, 'thermal');
+      }
+      return;
+    }
+
+    // Batch Print A4
+    const printA4Btn = e.target.closest && e.target.closest('.btn-print-batch-a4');
+    if (printA4Btn) {
+      e.preventDefault();
+      const card = printA4Btn.closest('.calc-card');
+      if (card && card._packages) {
+        printAllShipmentLabels(card._packages, 'a4');
+      }
+      return;
+    }
+
+    // Single Label Print
+    const singlePrintBtn = e.target.closest && e.target.closest('.btn-print-single');
+    if (singlePrintBtn) {
+      e.preventDefault();
+      const imgB64 = singlePrintBtn.dataset.img;
+      if (imgB64) {
+        printAllShipmentLabels([{ labelGraphic: imgB64 }], 'thermal');
+      }
+      return;
+    }
+
     // Customer Reschedule button
     const reschedBtn = e.target.closest && e.target.closest('.btn-cust-resched');
     if (reschedBtn) {
@@ -3058,25 +3151,27 @@ function initCustomerBookingsEvents() {
       return;
     }
 
-    // Customer Cancel button
-    const cancelBtn = e.target.closest && e.target.closest('.btn-cust-cancel');
-    if (cancelBtn) {
+    // Customer Cancel Shipment button
+    const cancelShipmentBtn = e.target.closest && e.target.closest('.btn-cust-cancel-shipment');
+    if (cancelShipmentBtn) {
       e.preventDefault();
-      const prn = cancelBtn.dataset.prn;
-      if (!confirm('Are you sure you want to cancel UPS collection PRN ' + prn + '?')) return;
-      cancelBtn.disabled = true;
-      cancelBtn.textContent = 'Cancelling…';
+      const trk = cancelShipmentBtn.dataset.tracking;
+      const sId = cancelShipmentBtn.dataset.shipmentid;
+      const prn = cancelShipmentBtn.dataset.prn;
+      if (!confirm('Are you sure you want to cancel this UPS shipment (' + (trk || sId) + ')' + (prn ? (' and collection PRN ' + prn) : '') + '?')) return;
+      cancelShipmentBtn.disabled = true;
+      cancelShipmentBtn.textContent = 'Cancelling…';
       try {
-        const res = await fetch('/api/collections/cancel', {
+        const res = await fetch('/api/shipments/cancel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: curToken, prn }),
+          body: JSON.stringify({ token: curToken, trackingNumber: trk, shipmentId: sId, prn }),
         });
         const d = await res.json();
         if (!res.ok || !d.ok) {
-          alert('UPS Cancellation Error: ' + (d.error || 'Failed to cancel collection.'));
+          alert('UPS Cancellation Error: ' + (d.error || 'Failed to cancel shipment.'));
         } else {
-          alert('Collection PRN ' + prn + ' was successfully cancelled with UPS.');
+          alert('Shipment ' + (trk || sId) + ' was successfully cancelled with UPS.');
         }
         await loadCustomerBookings();
       } catch (err) {

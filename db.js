@@ -483,12 +483,27 @@ async function getShipmentById(id) {
   return rows[0] || null;
 }
 
+async function getShipmentByTracking(tracking) {
+  if (!pool) return null;
+  const { rows } = await pool.query(`SELECT * FROM shipments WHERE tracking_number = $1 OR shipment_id = $1 LIMIT 1`, [tracking]);
+  return rows[0] || null;
+}
+
+async function updateShipmentStatus(idOrTracking, status) {
+  if (!pool) return null;
+  const { rows } = await pool.query(
+    `UPDATE shipments SET status = $2 WHERE id = $1 OR tracking_number = $1 OR shipment_id = $1 RETURNING *`,
+    [String(idOrTracking), status]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   initDb, getConfig, setConfig, getSecret,
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
   createCard, listCards, getCardByToken, getCardById, updateCard, deleteCard,
   createQuoteLog, listQuoteLogs, quoteStats,
   createCollectionRecord, listCollections, getCollectionByPrn, updateCollectionByPrn,
-  createShipmentRecord, listShipments, getShipmentById,
+  createShipmentRecord, listShipments, getShipmentById, getShipmentByTracking, updateShipmentStatus,
   hasDb: !!pool,
 };

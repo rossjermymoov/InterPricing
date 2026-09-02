@@ -747,4 +747,53 @@ async function bookShipment(payload) {
   };
 }
 
-module.exports = { quoteRates, quoteRatesRaw, createPickup, cancelPickup, buildPickupRequest, bookShipment, buildShipmentRequest, svcName, configured };
+// Void (Cancel) an existing booked shipment with UPS
+async function voidShipment({ shipmentId, trackingNumber } = {}) {
+  const tk = await token();
+  if (!tk) return { ok: false, error: 'UPS credentials not configured' };
+  const sId = String(shipmentId || trackingNumber || '').trim();
+  if (!sId) return { ok: false, error: 'Shipment ID or tracking number required to void shipment' };
+
+  const headers = {
+    'Authorization': 'Bearer ' + tk,
+    'transId': 'moov_void_' + Date.now(),
+    'transactionSrc': 'MOOV-InterPricing',
+  };
+  if (process.env.UPS_ACCOUNT_NUMBER) {
+    headers['x-merchant-id'] = process.env.UPS_ACCOUNT_NUMBER;
+  }
+
+  let url = base() + '/api/shipments/v1/void/cancel/' + encodeURIComponent(sId);
+  if (trackingNumber && trackingNumber !== sId) {
+    url += '?trackingnumber=' + encodeURIComponent(trackingNumber);
+  }
+
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers,
+    signal: AbortSignal.timeout(10000),
+  });
+
+  const text = await res.text();
+  let json = null;
+  try { json = JSON.parse(text); } catch (_) {}
+
+  if (!res.ok) {
+    let errMsg = 'UPS Void Error ' + res.status;
+    if (json && json.response && json.response.errors && json.response.errors.length) {
+      errMsg = json.response.errors.map((e) => e.message || e.code).join('; ');
+    } else if (json && json.Error && json.Error.Description) {
+      errMsg = json.Error.Description;
+    } else if (text) {
+      errMsg += ': ' + text.slice(0, 300);
+    }
+    return { ok: false, status: res.status, error: errMsg, raw: text };
+  }
+
+  return { ok: true, status: res.status, raw: text, json };
+}
+
+module.exports = {
+  quoteRates, quoteRatesRaw, createPickup, cancelPickup, buildPickupRequest,
+  bookShipment, buildShipmentRequest, voidShipment, svcName, configured
+};

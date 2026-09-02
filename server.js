@@ -876,6 +876,20 @@ app.post('/api/book-import', async (req, res) => {
 
     // 3. Save booking into database
     const totalWt = pkgs.reduce((sum, p) => sum + (Math.max(1, parseInt(p.qty, 10) || 1) * (Number(p.weight) || 1)), 0);
+    const compiledPackages = (shipResult.packages || []).map((sp, idx) => {
+      const orig = pkgs[idx] || pkgs[0] || {};
+      return {
+        trackingNumber: sp.trackingNumber,
+        labelGraphic: sp.labelGraphic,
+        htmlImage: sp.htmlImage,
+        weight: orig.weight || 1,
+        l: orig.l || 10,
+        w: orig.w || 10,
+        h: orig.h || 10,
+        packaging: orig.packaging || 'custom',
+      };
+    });
+
     let saved = null;
     try {
       saved = await db.createShipmentRecord({
@@ -891,7 +905,7 @@ app.post('/api/book-import', async (req, res) => {
         token: token || null,
         sender,
         receiver,
-        packages: pkgs,
+        packages: compiledPackages.length ? compiledPackages : pkgs,
         total_weight_kg: Math.round(totalWt * 10) / 10,
         goods_value: Number(goodsValue) || 0,
         cost_price: shipResult.totalCost,
@@ -914,11 +928,65 @@ app.post('/api/book-import', async (req, res) => {
       shipmentId: shipResult.shipmentId,
       trackingNumber,
       prn,
-      packages: shipResult.packages,
+      packages: compiledPackages.length ? compiledPackages : shipResult.packages,
+      documentsAttached: {
+        invoice: !!invoiceBase64,
+        packingSlip: !!packingSlipBase64,
+      },
       pickupBooked: !!prn,
       pickupError: (pickupResult && !pickupResult.ok) ? pickupResult.error : null,
       savedId: saved ? saved.id : null,
       createdAt: saved ? saved.created_at : new Date().toISOString(),
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// PUBLIC / AUTH: Void / Cancel a booked UPS shipment
+app.post('/api/shipments/cancel', async (req, res) => {
+  try {
+    const { token, shipmentId, trackingNumber, prn } = req.body || {};
+    let card = null;
+    if (token) {
+      card = db.hasDb ? await db.getCardByToken(token) : null;
+      if (!card) return res.status(404).json({ ok: false, error: 'Invalid card token' });
+    } else if (!auth.getUserFromReq(req)) {
+      return res.status(401).json({ ok: false, error: 'Authorization required to cancel shipment.' });
+    }
+
+    const sId = shipmentId || trackingNumber;
+    if (!sId && !prn) {
+      return res.status(400).json({ ok: false, error: 'Tracking number or PRN required to cancel.' });
+    }
+
+    let voidResult = { ok: true };
+    if (sId) {
+      voidResult = await ups.voidShipment({ shipmentId: sId, trackingNumber });
+    }
+
+    let pickupResult = { ok: true };
+    if (prn) {
+      pickupResult = await ups.cancelPickup(prn);
+    }
+
+    if (db.hasDb) {
+      if (sId) await db.updateShipmentStatus(sId, 'cancelled');
+      if (prn) await db.updateCollectionByPrn(prn, { status: 'cancelled' });
+    }
+
+    if (!voidResult.ok && !pickupResult.ok) {
+      return res.status(400).json({
+        ok: false,
+        error: voidResult.error || pickupResult.error || 'Failed to cancel shipment with UPS',
+      });
+    }
+
+    res.json({
+      ok: true,
+      voided: voidResult.ok,
+      pickupCancelled: pickupResult.ok,
+      message: 'Shipment and collection successfully cancelled with UPS.',
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
