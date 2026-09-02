@@ -2940,20 +2940,14 @@ function renderCustomerBookings(shipments) {
 
   if (!shipments.length) {
     box.innerHTML = '<div style="padding:56px 24px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:0;color:var(--muted)">'
-      + '<div style="font-size:18px;font-weight:800;color:var(--ink);margin-bottom:8px">No Bookings Found</div>'
-      + '<div style="font-size:13.5px;max-width:480px;margin:0 auto">When you book an import shipment, it will appear here with live tracking, package specs, and collection controls.</div>'
-      + '</div>';
-    return;
-  }
-
-  const STAGES = [
-    { name: 'Collected', icon: '📦', desc: 'Supplier Pickup' },
-    { name: 'In Transit', icon: '🚚', desc: 'Origin Transit' },
-    { name: 'At Hub', icon: '🏢', desc: 'Export Hub' },
-    { name: 'In Transit', icon: '✈️', desc: 'Cross-Border' },
-    { name: 'At Depot', icon: '📍', desc: 'UK Depot' },
-    { name: 'Out for Delivery', icon: '🚐', desc: 'Local Driver' },
-    { name: 'Delivered', icon: '✅', desc: 'Signed' },
+      + '<div style="font-size:18px;font-weight:800;color:var(--ink);margin-bottom:8px">No Bookings  const STAGES = [
+    { name: 'Collected', desc: 'Supplier Pickup' },
+    { name: 'In Transit', desc: 'Origin Transit' },
+    { name: 'At Hub', desc: 'Export Hub' },
+    { name: 'In Transit', desc: 'Cross-Border' },
+    { name: 'At Depot', desc: 'UK Depot' },
+    { name: 'Out for Delivery', desc: 'Local Driver' },
+    { name: 'Delivered', desc: 'Signed' },
   ];
 
   shipments.forEach(x => {
@@ -2983,12 +2977,10 @@ function renderCustomerBookings(shipments) {
       : '<span style="font-size:12px;color:var(--muted)">No pickup scheduled</span>';
 
     const trackLink = x.tracking_number
-      ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:13px;font-weight:800;color:var(--brand);text-decoration:none;display:inline-flex;align-items:center;gap:4px">🔗 ' + esc(x.tracking_number) + '</a>')
+      ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:13px;font-weight:800;color:var(--brand);text-decoration:none;display:inline-flex;align-items:center;gap:4px">' + esc(x.tracking_number) + '</a>')
       : '—';
 
-    // 7-Stage Progress calculation:
-    // Initial booked shipment: currentStageIdx = 0 (all 7 nodes greyed out).
-    // When live tracking updates: stage 1 = collected, 2 = origin transit, 3 = hub, 4 = cross border, 5 = depot, 6 = out for delivery, 7 = delivered.
+    // 7-Stage Progress calculation
     let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : 0);
     const progressPercent = currentStageIdx === 0 ? 0 : Math.min(100, Math.round(((currentStageIdx - 1) / 6) * 100));
 
@@ -2999,7 +2991,7 @@ function renderCustomerBookings(shipments) {
       return `
         <div class="moov-timeline-node ${cls}">
           <div class="moov-timeline-dot">
-            ${isDone ? '✓' : (isCurrent ? st.icon : (i + 1))}
+            ${isDone ? '✓' : (i + 1)}
           </div>
           <div class="moov-timeline-title">${st.name}</div>
           <div class="moov-timeline-sub">${st.desc}</div>
@@ -3030,9 +3022,9 @@ function renderCustomerBookings(shipments) {
     card.innerHTML = `
       <!-- Card Header -->
       <div style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <img src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS" style="height:22px;width:auto;object-fit:contain;vertical-align:middle"/>
           <span style="font-weight:800;font-size:15px;color:var(--ink)">${esc(x.service_name || 'UPS Service')}</span>
-          <span style="font-size:10px;font-weight:900;background:var(--brand);color:var(--green);padding:2px 8px;letter-spacing:.05em;text-transform:uppercase">${esc(x.mode || 'import')}</span>
           ${statusBadge}
         </div>
         <div style="display:flex;align-items:center;gap:12px">
@@ -3044,8 +3036,8 @@ function renderCustomerBookings(shipments) {
         <!-- Connected Courier Timeline -->
         <div style="padding:16px 20px 14px;background:#ffffff;border-bottom:1px solid var(--line)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Live Courier Journey</span>
-            <button type="button" class="btn ghost btn-cust-track-live" data-tracking="${esc(x.tracking_number || '')}" style="padding:4px 12px;font-size:11.5px;font-weight:700;color:var(--brand);border:1px solid var(--line-strong)">Track Telemetry &amp; POD 📡</button>
+            <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Courier Journey</span>
+            <button type="button" class="btn ghost btn-cust-track-live" data-tracking="${esc(x.tracking_number || '')}" style="padding:5px 14px;font-size:12px;font-weight:700;color:var(--brand);border:1px solid var(--line-strong)">Track Shipment</button>
           </div>
 
           <div class="moov-timeline-wrap">
@@ -3091,22 +3083,22 @@ function renderCustomerBookings(shipments) {
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           ${prnBadge}
           ${(!x.prn && !isCancelled) ? `
-            <button type="button" class="btn ghost btn-cust-book-pickup" style="padding:7px 14px;font-size:12px;font-weight:700;color:var(--green-dark);border-color:var(--green-dark)">Book Collection 🚚</button>
+            <button type="button" class="btn ghost btn-cust-book-pickup" style="padding:7px 14px;font-size:12px;font-weight:700;color:var(--green-dark);border-color:var(--green-dark)">Book Collection</button>
           ` : ''}
           ${(x.prn && !isCancelled) ? `
-            <button type="button" class="btn ghost btn-cust-resched" data-prn="${esc(x.prn)}" style="padding:7px 14px;font-size:12px;font-weight:700">Amend Collection 🔄</button>
+            <button type="button" class="btn ghost btn-cust-resched" data-prn="${esc(x.prn)}" style="padding:7px 14px;font-size:12px;font-weight:700">Amend Collection</button>
           ` : ''}
           ${!isCancelled ? `
-            <button type="button" class="btn ghost btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}" style="padding:7px 14px;font-size:12px;font-weight:700;color:#b91c1c;border-color:#fecaca">Cancel Shipment ❌</button>
+            <button type="button" class="btn ghost btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}" style="padding:7px 14px;font-size:12px;font-weight:700;color:#b91c1c;border-color:#fecaca">Cancel Shipment</button>
           ` : `
-            <button type="button" class="btn ghost btn-cust-delete-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}" style="padding:7px 14px;font-size:12px;font-weight:700;color:#b91c1c;background:#fee2e2;border-color:#fca5a5">Remove from History 🗑️</button>
+            <button type="button" class="btn ghost btn-cust-delete-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}" style="padding:7px 14px;font-size:12px;font-weight:700;color:#b91c1c;background:#fee2e2;border-color:#fca5a5">Remove from History</button>
           `}
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
-          <button type="button" class="btn primary btn-print-batch-thermal" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print (Thermal 4"×6") 🖨️</button>
-          <button type="button" class="btn btn-print-batch-a4" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print (A4) 📄</button>
-          <button type="button" class="btn btn-toggle-explode" data-id="${x.id}" style="padding:7px 16px;font-size:12px;font-weight:700">Specs &amp; Full Details ▾</button>
+          <button type="button" class="btn primary btn-print-batch-thermal" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print Labels (Thermal 4"×6")</button>
+          <button type="button" class="btn btn-print-batch-a4" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print Labels (A4)</button>
+          <button type="button" class="btn btn-toggle-explode" data-id="${x.id}" style="padding:7px 16px;font-size:12px;font-weight:700">Specs &amp; Details ▾</button>
         </div>
       </div>
 
@@ -3189,7 +3181,7 @@ async function openLiveTrackingModal(trackingNumber) {
   const body = $('tmBody');
   m.style.display = 'flex';
   $('tmModalTitle').textContent = 'Tracking ' + trackingNumber;
-  $('tmModalSub').textContent = 'Live courier telemetry & proof of delivery';
+  $('tmModalSub').textContent = 'Live UPS tracking & delivery status';
   body.innerHTML = '<div style="padding:36px;text-align:center;color:var(--muted)"><div style="font-size:15px;font-weight:700;margin-bottom:6px">Contacting UPS Tracking API…</div><div style="font-size:12px">Querying current location, milestone scans, and delivery confirmation</div></div>';
 
   try {
@@ -3198,7 +3190,7 @@ async function openLiveTrackingModal(trackingNumber) {
 
     if (!res.ok || !d.ok) {
       body.innerHTML = `
-        <div style="padding:24px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b">
+        <div style="padding:24px;background:#fef2f2;border:1px solid #fecaca;border-radius:0;color:#991b1b">
           <div style="font-weight:800;font-size:14px;margin-bottom:4px">Tracking Update Unavailable</div>
           <div style="font-size:12.5px">${esc(d.error || 'UPS has not recorded any physical scan activity for this tracking number yet.')}</div>
         </div>
@@ -3214,22 +3206,16 @@ async function openLiveTrackingModal(trackingNumber) {
     let celebrationBanner = '';
     if (isCollected && !isDelivered) {
       celebrationBanner = `
-        <div style="background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border:1.5px solid #10b981;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;color:#065f46">
-          <span style="font-size:28px">🎉</span>
-          <div>
-            <div style="font-weight:800;font-size:14px">Parcel Collected by UPS Courier — On Its Way!</div>
-            <div style="font-size:12.5px;opacity:0.9;margin-top:2px">The courier has collected the consignment from the supplier. It is currently in active transit.</div>
-          </div>
+        <div style="background:#ecfdf5;border:1.5px solid #10b981;padding:14px 18px;margin-bottom:20px;color:#065f46">
+          <div style="font-weight:800;font-size:14px">Parcel Collected by UPS Courier — On Its Way</div>
+          <div style="font-size:12.5px;opacity:0.9;margin-top:2px">The courier has collected the consignment from the supplier. It is currently in active transit.</div>
         </div>
       `;
     } else if (isDelivered) {
       celebrationBanner = `
-        <div style="background:linear-gradient(135deg,#ecfdf5 0%,#bbf7d0 100%);border:1.5px solid #059669;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;color:#065f46">
-          <span style="font-size:28px">✅</span>
-          <div>
-            <div style="font-weight:800;font-size:14px">Successfully Delivered &amp; Signed</div>
-            <div style="font-size:12.5px;opacity:0.9;margin-top:2px">Delivered ${del.receivedBy ? ('to <b>' + esc(del.receivedBy) + '</b>') : ''} ${del.location ? ('at ' + esc(del.location)) : ''}. Proof of Delivery recorded.</div>
-          </div>
+        <div style="background:#ecfdf5;border:1.5px solid #059669;padding:14px 18px;margin-bottom:20px;color:#065f46">
+          <div style="font-weight:800;font-size:14px">Successfully Delivered &amp; Signed</div>
+          <div style="font-size:12.5px;opacity:0.9;margin-top:2px">Delivered ${del.receivedBy ? ('to <b>' + esc(del.receivedBy) + '</b>') : ''} ${del.location ? ('at ' + esc(del.location)) : ''}. Proof of Delivery recorded.</div>
         </div>
       `;
     }
