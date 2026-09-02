@@ -478,21 +478,21 @@ async function listShipments({ token, limit } = {}) {
 }
 
 async function getShipmentById(id) {
-  if (!pool) return null;
-  const { rows } = await pool.query(`SELECT * FROM shipments WHERE id = $1`, [id]);
+  if (!pool || !id) return null;
+  const { rows } = await pool.query(`SELECT * FROM shipments WHERE id::text = $1`, [String(id)]);
   return rows[0] || null;
 }
 
 async function getShipmentByTracking(tracking) {
-  if (!pool) return null;
-  const { rows } = await pool.query(`SELECT * FROM shipments WHERE tracking_number = $1 OR shipment_id = $1 LIMIT 1`, [tracking]);
+  if (!pool || !tracking) return null;
+  const { rows } = await pool.query(`SELECT * FROM shipments WHERE tracking_number = $1 OR shipment_id = $1 OR id::text = $1 LIMIT 1`, [String(tracking)]);
   return rows[0] || null;
 }
 
 async function updateShipmentStatus(idOrTracking, status) {
-  if (!pool) return null;
+  if (!pool || !idOrTracking) return null;
   const { rows } = await pool.query(
-    `UPDATE shipments SET status = $2 WHERE id = $1 OR tracking_number = $1 OR shipment_id = $1 RETURNING *`,
+    `UPDATE shipments SET status = $2 WHERE id::text = $1 OR tracking_number = $1 OR shipment_id = $1 RETURNING *`,
     [String(idOrTracking), status]
   );
   return rows[0] || null;
