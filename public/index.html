@@ -705,15 +705,19 @@ a:hover { text-decoration: underline; }
   border-top: 3px solid var(--mv-purple);
   box-shadow: 0 16px 36px rgba(0,0,0,.25);
   width: 100%;
-  max-width: 480px;
+  max-width: 580px;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
 }
 .ds-modal-head {
   padding: 20px 24px 12px;
+  border-bottom: 1px solid var(--mv-hairline);
 }
 .ds-modal-body {
-  padding: 0 24px 20px;
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
 }
 .ds-modal-foot {
   padding: 14px 24px;
@@ -911,6 +915,111 @@ a:hover { text-decoration: underline; }
       </div>
     </div>
 
+    <!-- MODAL: EDIT CUSTOMER RATE CARD -->
+    <div class="ds-modal-scrim" id="editCardModal" style="display:none">
+      <div class="ds-modal" style="max-width:680px">
+        <div class="ds-modal-head">
+          <div class="ds-kicker">EDIT RATE CARD</div>
+          <h2 style="margin:4px 0 0;font-size:20px" id="editModalTitle">Edit Customer Rate Card</h2>
+          <p class="ds-blurb" style="font-size:12.5px;margin-top:4px">Update customer details, per-service markups, import rates, and delivery settings.</p>
+        </div>
+        <div class="ds-modal-body">
+          <input type="hidden" id="editCardId"/>
+          
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin-bottom:8px">1. CUSTOMER &amp; CONTACT DETAILS</div>
+          <div class="ds-grid ds-grid-2">
+            <div class="ds-field-wrap">
+              <label class="ds-label">Customer / Company Name *</label>
+              <input id="editCustName" type="text" class="ds-input"/>
+            </div>
+            <div class="ds-field-wrap">
+              <label class="ds-label">Contact Person</label>
+              <input id="editCustContact" type="text" class="ds-input"/>
+            </div>
+          </div>
+          <div class="ds-grid ds-grid-2" style="margin-top:12px">
+            <div class="ds-field-wrap">
+              <label class="ds-label">Contact Phone</label>
+              <input id="editCustPhone" type="tel" class="ds-input"/>
+            </div>
+            <div class="ds-field-wrap">
+              <label class="ds-label">Contact Email</label>
+              <input id="editCustEmail" type="email" class="ds-input"/>
+            </div>
+          </div>
+
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin:20px 0 8px">2. DELIVERY / RETURN ADDRESS (FOR IMPORTS)</div>
+          <div class="ds-field-wrap">
+            <label class="ds-label">Address Line 1</label>
+            <input id="editCustLine1" type="text" class="ds-input"/>
+          </div>
+          <div class="ds-grid ds-grid-3" style="margin-top:12px">
+            <div class="ds-field-wrap"><label class="ds-label">City</label><input id="editCustCity" type="text" class="ds-input"/></div>
+            <div class="ds-field-wrap"><label class="ds-label">Postcode</label><input id="editCustPostcode" type="text" class="ds-input"/></div>
+            <div class="ds-field-wrap">
+              <label class="ds-label">Country</label>
+              <select id="editCustCountry" class="ds-select">
+                <option value="GB">United Kingdom</option>
+                <option value="IE">Ireland</option>
+                <option value="US">USA</option>
+                <option value="DE">Germany</option>
+                <option value="FR">France</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin:20px 0 8px">3. PRICING MARKUPS FOR THIS CUSTOMER</div>
+          <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap">
+            <div class="ds-field-wrap" style="width:130px">
+              <label class="ds-label">Card Global Markup %</label>
+              <input id="editCustMkGlobal" type="number" min="0" step="1" value="10" class="ds-input num"/>
+            </div>
+            <button class="ds-btn ds-btn-secondary" id="editCustMkApply" style="padding:7px 14px">Apply to all services</button>
+            
+            <div class="ds-field-wrap" style="margin-left:8px">
+              <label class="ds-label">Volume Presets</label>
+              <div class="ds-chips" id="editCustVolTabs" style="margin-top:0">
+                <div class="ds-chip" data-mk="70">Low · 70%</div>
+                <div class="ds-chip" data-mk="50">Medium · 50%</div>
+                <div class="ds-chip" data-mk="30">High · 30%</div>
+                <div class="ds-chip active" data-mk="10">Standard · 10%</div>
+                <div class="ds-chip" data-mk="0">At Cost · 0%</div>
+              </div>
+            </div>
+
+            <div class="ds-field-wrap" style="width:160px;margin-left:auto">
+              <label class="ds-label">Import Quote Markup %</label>
+              <input id="editCustImportMarkup" type="number" min="0" step="1" value="25" class="ds-input num"/>
+            </div>
+          </div>
+
+          <div id="editRcMkList" class="ds-mklist" style="margin-top:16px"></div>
+
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin:20px 0 8px">4. SERVICES &amp; DISPLAY OPTIONS</div>
+          <div class="ds-field-wrap">
+            <label class="ds-label" style="margin-bottom:8px">Services To Include</label>
+            <div id="editRcServices" style="display:flex;gap:12px 20px;flex-wrap:wrap"></div>
+          </div>
+          <div class="ds-field-wrap" style="margin-top:14px">
+            <label class="ds-label">Notes to customer</label>
+            <textarea id="editRcNotes" rows="2" class="ds-textarea"></textarea>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px">
+            <label class="ds-toggle"><input type="checkbox" id="editRcSur" checked/> <span>Include surcharges section</span></label>
+            <label class="ds-toggle"><input type="checkbox" id="editRcCheapest" checked/> <span>Highlight best price</span></label>
+            <label class="ds-toggle"><input type="checkbox" id="editRcBreakdown"/> <span>Show base &amp; fuel separately</span></label>
+            <label class="ds-toggle" style="margin-left:auto"><input type="checkbox" id="editCardEnabled" checked/> <span>Rate Card Active</span></label>
+          </div>
+
+          <div id="editCardMsg" style="margin-top:12px;font-size:13px;font-weight:700"></div>
+        </div>
+        <div class="ds-modal-foot">
+          <button class="ds-btn ds-btn-secondary" id="editCardCancel">Cancel</button>
+          <button class="ds-btn ds-btn-primary" id="editCardSave">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 1. RATE CALCULATOR (app) -->
     <div id="app" style="display:none">
       <div class="ds-pagehead">
@@ -1015,7 +1124,7 @@ a:hover { text-decoration: underline; }
 
       <!-- CHART COMPARISON -->
       <div class="ds-section" style="margin-top:36px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:gap;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:12px">
           <div class="ds-section-title" style="margin:0">Multi-Weight Comparison (1–30 kg)</div>
           <div style="display:flex;gap:14px;align-items:center">
             <div class="legend" id="legend" style="display:flex;gap:12px;font-size:12px"></div>
@@ -1465,6 +1574,17 @@ function custCardMarkupObj() {
   return obj;
 }
 
+function editCardMarkupObj() {
+  const obj = {};
+  const g = num('editCustMkGlobal') || 10;
+  SERVICES.forEach(s => {
+    const el = $('edit_cust_mk_' + s.key);
+    obj[s.key] = el ? (parseFloat(el.value) || 0) : g;
+  });
+  obj.default = g;
+  return obj;
+}
+
 function upsLaneKey(){
   const c=$('country')?$('country').value:'';
   const pc=$('postcode')?$('postcode').value.trim():'';
@@ -1618,6 +1738,23 @@ function renderCustCardMarkup(){
   });
 }
 
+function renderEditCardMarkup(markupObj, defaultVal){
+  const wrap=$('editRcMkList'); if(!wrap) return;
+  wrap.innerHTML='';
+  const g = defaultVal != null ? defaultVal : (num('editCustMkGlobal') || 10);
+  SERVICES.forEach(svc=>{
+    const val = (markupObj && markupObj[svc.key] != null) ? markupObj[svc.key] : g;
+    const row=document.createElement('div');
+    row.className='ds-mkrow';
+    row.innerHTML='<div class="nm"><span class="sw" style="background:'+svc.color+'"></span><span>'+svc.name+'</span></div>' +
+      '<div style="display:flex;align-items:center;gap:4px">' +
+      '<input id="edit_cust_mk_'+svc.key+'" type="number" min="0" step="1" value="'+val+'" class="ds-input num" style="width:70px"/>' +
+      '<span style="font-size:12px;color:var(--mv-ink-55)">%</span>' +
+      '</div>';
+    wrap.appendChild(row);
+  });
+}
+
 function applyGlobalMarkup(){
   const g=num('mkGlobal');
   SERVICES.forEach(svc=>{
@@ -1637,6 +1774,15 @@ function applyCustGlobalMarkup(){
   syncCustVolTabs();
 }
 
+function applyEditCustGlobalMarkup(){
+  const g=num('editCustMkGlobal');
+  SERVICES.forEach(svc=>{
+    const el=$('edit_cust_mk_'+svc.key);
+    if(el) el.value=g;
+  });
+  syncEditCustVolTabs();
+}
+
 function syncVolTabs(){
   const g=String(num('mkGlobal'));
   document.querySelectorAll('#volTabs .ds-chip').forEach(b=>{
@@ -1651,6 +1797,13 @@ function syncCustVolTabs(){
   });
 }
 
+function syncEditCustVolTabs(){
+  const g=String(num('editCustMkGlobal'));
+  document.querySelectorAll('#editCustVolTabs .ds-chip').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mk===g);
+  });
+}
+
 function volTabClick(val){
   $('mkGlobal').value=val;
   applyGlobalMarkup();
@@ -1661,6 +1814,11 @@ function custVolTabClick(val){
   applyCustGlobalMarkup();
 }
 
+function editCustVolTabClick(val){
+  $('editCustMkGlobal').value=val;
+  applyEditCustGlobalMarkup();
+}
+
 function renderRcServices(){
   const box=$('rcServices'); if(!box) return;
   box.innerHTML='';
@@ -1668,6 +1826,19 @@ function renderRcServices(){
     const lab=document.createElement('label');
     lab.className='ds-toggle';
     lab.innerHTML='<input type="checkbox" data-svc="'+svc.key+'" checked/> <span>'+svc.name+'</span>';
+    box.appendChild(lab);
+  });
+}
+
+function renderEditRcServices(includedList){
+  const box=$('editRcServices'); if(!box) return;
+  box.innerHTML='';
+  const incSet = Array.isArray(includedList) ? new Set(includedList) : new Set(SERVICES.map(s=>s.key));
+  SERVICES.forEach(svc=>{
+    const lab=document.createElement('label');
+    lab.className='ds-toggle';
+    const checked = incSet.has(svc.key) ? 'checked' : '';
+    lab.innerHTML='<input type="checkbox" data-svc="'+svc.key+'" '+checked+'/> <span>'+svc.name+'</span>';
     box.appendChild(lab);
   });
 }
@@ -1867,6 +2038,12 @@ function bootCalc(){
     document.querySelectorAll('#custVolTabs .ds-chip').forEach(b=>{
       b.addEventListener('click', ()=>custVolTabClick(b.dataset.mk));
     });
+
+    $('editCustMkGlobal').addEventListener('input', applyEditCustGlobalMarkup);
+    $('editCustMkApply').addEventListener('click', applyEditCustGlobalMarkup);
+    document.querySelectorAll('#editCustVolTabs .ds-chip').forEach(b=>{
+      b.addEventListener('click', ()=>editCustVolTabClick(b.dataset.mk));
+    });
   }
   calc();
 }
@@ -1877,7 +2054,10 @@ function screen(id){
   const authed=(id==='app'||id==='cards'||id==='settings'||id==='quotes'||id==='collection');
   $(id).style.display='block';
   $('hdr').style.display=authed?'flex':'none';
-  if(!authed)$('pwPanel').style.display='none';
+  if(!authed){
+    $('pwPanel').style.display='none';
+    $('editCardModal').style.display='none';
+  }
 
   document.querySelectorAll('.mv-rail-item').forEach(el=>el.classList.remove('active'));
   if(id==='app')$('navCalc').classList.add('active');
@@ -1939,6 +2119,8 @@ $('pwSave').onclick=async()=>{$('pwMsg').className='ok';$('pwMsg').textContent='
   $('pwMsg').style.color='var(--mv-green-deep)';$('pwMsg').textContent='Password updated.';$('pwCur').value='';$('pwNew').value='';};
 
 // ── Rate Cards Screen ──────────────────────────────────────────────────────
+let cachedCards = [];
+
 async function openCards() {
   screen('cards');
   $('custMsg').textContent = '';
@@ -1953,6 +2135,7 @@ async function loadCards(searchQ) {
     if (!r.ok) { $('cardsEmpty').textContent = 'Could not load rate cards.'; return; }
     let { cards } = await r.json();
     cards = cards || [];
+    cachedCards = cards;
     if (searchQ) {
       const q = searchQ.toLowerCase();
       cards = cards.filter(c => (c.customer || '').toLowerCase().includes(q) || (c.creator_name || '').toLowerCase().includes(q));
@@ -1975,10 +2158,17 @@ function renderCardsTable(cards) {
     try { cfg = (typeof c.config === 'string') ? JSON.parse(c.config || '{}') : (c.config || {}); } catch (_) {}
     const importMarkupStr = (cfg.importMarkupPct != null ? (cfg.importMarkupPct + '%') : (cfg.importMarkup != null ? (cfg.importMarkup + '%') : '—'));
 
+    let mkSummary = 'Default';
+    if (cfg.markup) {
+      if (typeof cfg.markup === 'number') mkSummary = cfg.markup + '%';
+      else if (cfg.markup.default != null) mkSummary = 'Global ' + cfg.markup.default + '%';
+      else if (Object.keys(cfg.markup).length) mkSummary = Object.keys(cfg.markup).length + ' custom rates';
+    }
+
     tr.innerHTML = '<td>' +
       '<b>' + qesc(c.customer || '(Unnamed Card)') + '</b>' +
       (cfg.contactName ? ('<div style="font-size:11.5px;color:var(--mv-ink-75)">' + qesc(cfg.contactName) + '</div>') : '') +
-      '<div style="font-size:11px;color:var(--mv-ink-55)">Created ' + qDT(c.created_at) + '</div>' +
+      '<div style="font-size:11px;color:var(--mv-ink-55)">Created ' + qDT(c.created_at) + ' · <span style="color:var(--mv-purple);font-weight:700">' + qesc(mkSummary) + '</span></div>' +
       '</td>' +
       '<td>' +
       '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
@@ -1997,7 +2187,10 @@ function renderCardsTable(cards) {
       '</span>' +
       '</td>' +
       '<td class="r">' +
+      '<div style="display:flex;gap:6px;justify-content:flex-end">' +
+      '<button class="ds-btn ds-btn-secondary edit-card-btn" data-id="' + c.id + '" style="padding:4px 10px;font-size:11px">Edit Markups</button>' +
       '<button class="ds-btn ds-btn-danger del-card-btn" data-id="' + c.id + '" style="padding:4px 8px;font-size:11px">Delete</button>' +
+      '</div>' +
       '</td>';
     tb.appendChild(tr);
   });
@@ -2010,6 +2203,10 @@ function renderCardsTable(cards) {
     };
   });
 
+  tb.querySelectorAll('.edit-card-btn').forEach(btn => {
+    btn.onclick = () => openEditCardModal(btn.dataset.id);
+  });
+
   tb.querySelectorAll('.del-card-btn').forEach(btn => {
     btn.onclick = async () => {
       if (!confirm('Delete this customer rate card?')) return;
@@ -2020,6 +2217,110 @@ function renderCardsTable(cards) {
 
   $('cardsEmpty').textContent = cards.length ? '' : 'No customer rate cards found.';
 }
+
+function openEditCardModal(cardId) {
+  const card = cachedCards.find(c => String(c.id) === String(cardId));
+  if (!card) return;
+
+  $('editCardId').value = card.id;
+  $('editModalTitle').textContent = 'Edit Rate Card: ' + (card.customer || 'Customer');
+  $('editCustName').value = card.customer || '';
+  $('editCardEnabled').checked = (card.enabled !== false);
+  $('editCardMsg').textContent = '';
+
+  let cfg = {};
+  try { cfg = (typeof card.config === 'string') ? JSON.parse(card.config || '{}') : (card.config || {}); } catch (_) {}
+
+  $('editCustContact').value = cfg.contactName || '';
+  $('editCustPhone').value = cfg.phone || '';
+  $('editCustEmail').value = cfg.email || '';
+  $('editCustImportMarkup').value = (cfg.importMarkupPct != null ? cfg.importMarkupPct : 25);
+
+  const da = cfg.deliveryAddress || {};
+  $('editCustLine1').value = da.line1 || '';
+  $('editCustCity').value = da.city || '';
+  $('editCustPostcode').value = da.postcode || '';
+  if ($('editCustCountry')) $('editCustCountry').value = da.country || 'GB';
+
+  $('editRcNotes').value = cfg.notes || '';
+  $('editRcSur').checked = (cfg.showSurcharges !== false);
+  $('editRcCheapest').checked = (cfg.highlightCheapest !== false);
+  $('editRcBreakdown').checked = !!cfg.showBreakdown;
+
+  const mk = cfg.markup || {};
+  const globalMk = (typeof mk === 'number') ? mk : (mk.default != null ? mk.default : 10);
+  $('editCustMkGlobal').value = globalMk;
+  syncEditCustVolTabs();
+
+  renderEditCardMarkup((typeof mk === 'object' ? mk : {}), globalMk);
+  renderEditRcServices(cfg.services || cfg.includedServices);
+
+  $('editCardModal').style.display = 'flex';
+}
+
+$('editCardCancel').onclick = () => {
+  $('editCardModal').style.display = 'none';
+};
+
+$('editCardSave').onclick = async () => {
+  const cardId = $('editCardId').value;
+  const name = $('editCustName').value.trim();
+  if (!name) { alert('Customer name is required'); return; }
+
+  $('editCardSave').disabled = true;
+  $('editCardMsg').style.color = 'var(--mv-purple)';
+  $('editCardMsg').textContent = 'Saving changes…';
+
+  const incServices = [];
+  document.querySelectorAll('#editRcServices input[type=checkbox]:checked').forEach(cb => {
+    incServices.push(cb.dataset.svc);
+  });
+
+  const da = {
+    line1: $('editCustLine1').value.trim(),
+    city: $('editCustCity').value.trim(),
+    postcode: $('editCustPostcode').value.trim(),
+    country: $('editCustCountry').value,
+  };
+
+  const cfg = {
+    contactName: $('editCustContact').value.trim(),
+    phone: $('editCustPhone').value.trim(),
+    email: $('editCustEmail').value.trim(),
+    importMarkupPct: num('editCustImportMarkup'),
+    markup: editCardMarkupObj(),
+    services: incServices,
+    includedServices: incServices,
+    notes: $('editRcNotes').value.trim(),
+    showSurcharges: $('editRcSur').checked,
+    highlightCheapest: $('editRcCheapest').checked,
+    showBreakdown: $('editRcBreakdown').checked,
+    deliveryAddress: da,
+  };
+
+  try {
+    const r = await jpatch('/api/cards/' + cardId, {
+      customer: name,
+      enabled: $('editCardEnabled').checked,
+      config: cfg
+    });
+    const d = await r.json();
+    $('editCardSave').disabled = false;
+
+    if (!r.ok || !d.card) {
+      $('editCardMsg').style.color = 'var(--mv-magenta-deep)';
+      $('editCardMsg').textContent = d.error || 'Failed to update rate card';
+      return;
+    }
+
+    $('editCardModal').style.display = 'none';
+    await loadCards($('custSearch').value.trim());
+  } catch (e) {
+    $('editCardSave').disabled = false;
+    $('editCardMsg').style.color = 'var(--mv-magenta-deep)';
+    $('editCardMsg').textContent = 'Error: ' + e.message;
+  }
+};
 
 $('cardsRefresh').onclick = () => loadCards($('custSearch').value.trim());
 $('custSearch').addEventListener('input', () => loadCards($('custSearch').value.trim()));
