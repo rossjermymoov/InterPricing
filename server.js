@@ -430,7 +430,7 @@ const CODE2KEY = {
   '96': 'uf', // Worldwide Express Freight
 };
 
-const ALLOWED_UPS_CODES = new Set(['11', '65', '011', '065', '07', '08', '7', '8', '54', '01', '02', '03']);
+const ALLOWED_UPS_CODES = new Set(['11', '65', '011', '065']); // strictly UPS Standard ('11') and UPS Worldwide Saver ('65')
 
 app.post('/api/card-rate', async (req, res) => {
   try {

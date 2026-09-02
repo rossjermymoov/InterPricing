@@ -43,18 +43,46 @@ async function token() {
 const num = (v) => { const n = typeof v === 'string' ? parseFloat(v) : v; return (typeof n === 'number' && !isNaN(n)) ? n : null; };
 const S = (v) => (v == null ? '' : String(v));
 
-const toIso = (c) => nameToIso(c) || (/^[A-Za-z]{2}$/.test(c) ? c.toUpperCase() : 'GB');
+const COUNTRY_DEFAULTS = {
+  'US': { city: 'New York', postcode: '10001' },
+  'CA': { city: 'Toronto', postcode: 'M5V 2T6' },
+  'AU': { city: 'Sydney', postcode: '2000' },
+  'DE': { city: 'Berlin', postcode: '10115' },
+  'FR': { city: 'Paris', postcode: '75001' },
+  'IT': { city: 'Rome', postcode: '00118' },
+  'ES': { city: 'Madrid', postcode: '28001' },
+  'NL': { city: 'Amsterdam', postcode: '1012' },
+  'IE': { city: 'Dublin', postcode: 'D02 X285' },
+  'BE': { city: 'Brussels', postcode: '1000' },
+  'CH': { city: 'Zurich', postcode: '8001' },
+  'AT': { city: 'Vienna', postcode: '1010' },
+  'PL': { city: 'Warsaw', postcode: '00-001' },
+  'SE': { city: 'Stockholm', postcode: '111 20' },
+  'NO': { city: 'Oslo', postcode: '0150' },
+  'DK': { city: 'Copenhagen', postcode: '1050' },
+  'JP': { city: 'Tokyo', postcode: '100-0001' },
+  'CN': { city: 'Shanghai', postcode: '200000' },
+  'HK': { city: 'Hong Kong', postcode: '999077' },
+  'SG': { city: 'Singapore', postcode: '018989' },
+  'NZ': { city: 'Auckland', postcode: '1010' },
+  'AE': { city: 'Dubai', postcode: '00000' },
+  'SA': { city: 'Riyadh', postcode: '11564' },
+};
 
 function addressOf(a, fallbackCountry) {
   a = a || {};
   const c = toIso(a.country || fallbackCountry) || 'GB';
   const lines = [a.line1, a.line2].map(S).filter(Boolean);
+  const def = COUNTRY_DEFAULTS[c] || {};
+  const city = (a.city && String(a.city).trim()) || def.city || '';
+  const postcode = (a.postcode && String(a.postcode).trim()) || def.postcode || '';
+
   const addr = {
     AddressLine: lines.length ? lines : ['1 Main Street'],
     CountryCode: c.toUpperCase(),
   };
-  if (a.city && String(a.city).trim()) addr.City = String(a.city).trim();
-  if (a.postcode && String(a.postcode).trim()) addr.PostalCode = String(a.postcode).trim();
+  if (city) addr.City = city;
+  if (postcode) addr.PostalCode = postcode;
   if (a.residential) {
     addr.ResidentialAddressIndicator = 'Y';
   }

@@ -1929,7 +1929,7 @@ function calc(){
     if(upsLoading){
       rows.push({svc:{key:'ups',name:'UPS',carrier:'ups',color:UPS_COLOR},loading:true,built:{sell:null}});
     }else if(upsReady&&upsReady.enabled){
-      const ALLOWED_UPS=new Set(['ux','us','ue','ud','up','u1','u2','ug','ups_65','ups_11','ups_07','ups_08','ups_54','65','11','065','011','07','08','7','8','54']);
+      const ALLOWED_UPS=new Set(['ux','us','ups_65','ups_11','65','11','065','011']);
       (upsReady.services||[]).filter(live=>ALLOWED_UPS.has(live.key)||ALLOWED_UPS.has(String(live.code))).forEach(live=>{
         const built={
           live:true, days:live.days, raw:live.costBase,
