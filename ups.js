@@ -277,28 +277,47 @@ async function callRate(payload) {
 }
 
 // Live use: rated services (cost only — the caller applies markup). Returns null if not configured.
-// Also returns the raw response text + the exact request we sent, so an admin can inspect the
-// full UPS charge breakdown (base, fuel, accessorials, negotiated vs published) when diagnosing prices.
 async function quoteRates(payload) {
   const request = buildRateRequest(payload);
   const r = await callRate(payload);
-  if (!r) return { enabled: false };
-  if (!r.ok) throw new Error('UPS Rating ' + r.status + ': ' + (r.text || '').slice(0, 400));
+  if (!r) return { enabled: false, error: 'UPS credentials not configured' };
+  if (!r.ok) {
+    return {
+      enabled: false,
+      error: 'UPS Rating ' + r.status + ': ' + (r.text || '').slice(0, 400),
+      status: r.status,
+      raw: r.text,
+      request,
+    };
+  }
   return { enabled: true, services: parseRates(r.json), raw: r.text, status: r.status, request };
 }
 
-// Admin debug: raw request/response so we can confirm the field shapes against CIE.
+// Admin debug: raw request/response with full endpoint and headers so admins can inspect live UPS calls.
 async function quoteRatesRaw(payload) {
-  const out = { env: String(process.env.UPS_ENV || 'test'), configured: configured(), account: process.env.UPS_ACCOUNT_NUMBER ? 'set' : 'missing' };
+  const acct = process.env.UPS_ACCOUNT_NUMBER || '';
+  const endpoint = base() + '/api/rating/' + ver() + '/Shoptimeintransit';
+  const request = buildRateRequest(payload);
+  const out = {
+    env: String(process.env.UPS_ENV || 'test'),
+    configured: configured(),
+    account: acct ? (acct.slice(0, 3) + '***' + acct.slice(-2)) : 'missing',
+    endpoint,
+    request,
+  };
   try {
     const tk = await token();
-    out.token = tk ? 'ok' : 'not configured';
+    out.token = tk ? 'acquired (Bearer ' + tk.slice(0, 6) + '...)' : 'failed / not configured';
     if (!tk) return out;
     const r = await callRate(payload);
-    out.status = r.status; out.ok = r.ok;
+    out.status = r.status;
+    out.ok = r.ok;
     out.services = r.json ? parseRates(r.json).slice(0, 12) : [];
-    out.raw = (r.text || '').slice(0, 8000);
-  } catch (e) { out.error = e.message; }
+    out.raw = (r.text || '').slice(0, 12000);
+    try { out.responseJson = r.json || JSON.parse(r.text); } catch (_) {}
+  } catch (e) {
+    out.error = e.message;
+  }
   return out;
 }
 

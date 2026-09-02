@@ -510,7 +510,16 @@ app.post('/api/calc-rate', async (req, res) => {
       receiver: { country: iso, postcode: postcode || '', residential: !!residential },
       packages: [{ qty: 1, weight: numWeight || 1, l, w, h }], value: goodsVal, currency: 'GBP',
     });
-    if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
+    if (!r || !r.enabled) {
+      return res.json({
+        enabled: false,
+        error: r ? r.error : 'UPS rate call returned no rates',
+        status: r ? r.status : null,
+        raw: r ? r.raw : null,
+        request: r ? r.request : null,
+        services: []
+      });
+    }
 
     const services = [];
     (r.services || []).filter((s) => ALLOWED_UPS_CODES.has(String(s.code))).forEach((s) => {
@@ -544,8 +553,39 @@ app.post('/api/calc-rate', async (req, res) => {
         remote: accessorials.some((a) => a.remote),
       });
     });
-    res.json({ enabled: true, postcodeUsed: !!(postcode && String(postcode).trim()), residentialUsed: !!residential, services });
-  } catch (e) { res.json({ enabled: false, error: e.message, services: [] }); }
+    res.json({
+      enabled: true,
+      postcodeUsed: !!(postcode && String(postcode).trim()),
+      residentialUsed: !!residential,
+      status: r.status,
+      raw: r.raw,
+      request: r.request,
+      services
+    });
+  } catch (e) {
+    res.json({ enabled: false, error: e.message, services: [] });
+  }
+});
+
+// PUBLIC/ADMIN: Live UPS Call Inspector (returns exact request JSON, endpoint URL, headers, and raw response)
+app.post('/api/ups-inspect-rate', async (req, res) => {
+  try {
+    const { country, postcode, weight, l, w, h, residential, value } = req.body || {};
+    const iso = nameToIso(country) || country || 'US';
+    const numWeight = Number(weight) || 5;
+    const goodsVal = Number(value) || 100;
+    const out = await ups.quoteRatesRaw({
+      mode: 'export',
+      sender: MOOV_ORIGIN,
+      receiver: { country: iso, postcode: postcode || '', residential: !!residential },
+      packages: [{ qty: 1, weight: numWeight, l: l || 30, w: w || 20, h: h || 15 }],
+      value: goodsVal,
+      currency: 'GBP',
+    });
+    res.json(out);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ADMIN/SALES: quote reporting — the log and the daily stats.

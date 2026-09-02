@@ -744,8 +744,8 @@ a:hover { text-decoration: underline; }
   background: #FEF3C7;
   border: 1px solid #FDE68A;
   border-left: 3px solid #D97706;
-  padding: 10px 14px;
-  font-size: 12px;
+  padding: 12px 16px;
+  font-size: 12.5px;
   color: #92400E;
   margin: 16px 0 8px;
   line-height: 1.45;
@@ -1112,7 +1112,12 @@ a:hover { text-decoration: underline; }
       </div>
 
       <div id="staticNotice" class="ds-notice-static" style="display:none">
-        <b>Standard Rate Card Notice:</b> Live UPS rates are currently unavailable. Prices below are calculated from your baseline rate tables and do not include destination-specific remote surcharges.
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div>
+            <b>Standard Rate Card Notice:</b> <span id="staticNoticeMsg">Live UPS rates are currently unavailable. Prices below are calculated from your baseline rate tables.</span>
+          </div>
+          <button class="rawcopy" id="viewUpsErrorBtn" style="padding:3px 8px;font-size:11px">Inspect UPS Call Details 🔍</button>
+        </div>
       </div>
 
       <!-- CARRIER RESULTS -->
@@ -1120,6 +1125,37 @@ a:hover { text-decoration: underline; }
         <div class="ds-section-title">Carrier Quotes</div>
         <div class="ds-results" id="results"></div>
         <div id="verdict" style="margin-top:14px;font-size:13px;color:var(--mv-ink-75)"></div>
+      </div>
+
+      <!-- UPS LIVE CALL INSPECTOR -->
+      <div class="ds-section" style="margin-top:28px;background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:18px 22px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:10px">
+          <div class="ds-section-title" style="margin:0">UPS Live API Inspector &amp; Debugger</div>
+          <button class="ds-btn ds-btn-secondary" id="inspBtn" style="padding:6px 14px;font-size:12px">Inspect Live UPS Request &amp; Response 🔍</button>
+        </div>
+        <p class="ds-blurb" style="font-size:12px;margin-bottom:12px">Click the button above to execute a direct call to UPS with the current shipment parameters and view the exact URL endpoint, authentication token status, JSON request payload, and raw UPS response.</p>
+
+        <div id="inspPanel" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--mv-hairline)">
+          <div style="display:flex;gap:18px;align-items:center;margin-bottom:14px;flex-wrap:wrap;font-size:12.5px">
+            <div><b>Status:</b> <span id="inspStatus">—</span></div>
+            <div><b>Environment:</b> <span id="inspEnv">—</span></div>
+            <div><b>OAuth Token:</b> <span id="inspToken">—</span></div>
+            <div><b>Account #:</b> <span id="inspAcct">—</span></div>
+            <button class="rawcopy" id="inspCopy" style="margin-left:auto">Copy Diagnostic JSON</button>
+          </div>
+          <div class="ds-grid ds-grid-2" style="gap:16px">
+            <div>
+              <div class="ds-label">1. Endpoint &amp; Request Sent To UPS</div>
+              <div id="inspUrl" style="font-family:monospace;font-size:11px;background:#fff;padding:6px 10px;border:1px solid var(--mv-hairline-2);margin-bottom:6px;word-break:break-all"></div>
+              <pre class="rawpre" id="inspReq" style="height:280px;font-size:11px"></pre>
+            </div>
+            <div>
+              <div class="ds-label">2. Raw Response Returned by UPS</div>
+              <div id="inspStatusBadge" style="font-size:11px;padding:6px 10px;border:1px solid var(--mv-hairline-2);margin-bottom:6px;font-weight:700"></div>
+              <pre class="rawpre" id="inspRes" style="height:280px;font-size:11px"></pre>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- CHART COMPARISON -->
@@ -1594,7 +1630,7 @@ function upsLaneKey(){
   return [c,pc,w,l,w2,h,gv,isResi?'resi':'comm',mk].join('|');
 }
 
-let upsKey=null, upsData=null, upsTimer=null, upsAbortCtrl=null;
+let upsKey=null, upsData=null, upsTimer=null, upsAbortCtrl=null, lastUpsError=null;
 function scheduleUpsFetch(key, c){
   if(upsKey===key) return;
   clearTimeout(upsTimer);
@@ -1622,12 +1658,14 @@ function fetchUpsQuote(key, c){
     .then(r=>r.json()).then(d=>{
       clearTimeout(timeoutId);
       upsKey=key; upsData=d;
+      lastUpsError = d && !d.enabled ? (d.error || 'UPS rate call returned no rates') : null;
       calc();
     })
     .catch((err)=>{
       clearTimeout(timeoutId);
       if(err&&err.name==='AbortError'&&upsLaneKey()!==key)return;
       upsKey=key; upsData={enabled:false};
+      lastUpsError = err ? err.message : 'Network error fetching UPS live rates';
       calc();
     });
 }
@@ -1933,6 +1971,9 @@ function calc(){
   if(sn){
     const isStaticFallback=chg>0&&!upsLoading&&!upsLimit.exceeded&&(!upsReady||!upsReady.enabled);
     sn.style.display=isStaticFallback?'block':'none';
+    if(isStaticFallback&&$('staticNoticeMsg')){
+      $('staticNoticeMsg').textContent = lastUpsError ? ('Live UPS API response: ' + lastUpsError + '. Showing standard baseline rate card tables.') : 'Live UPS rates are currently unavailable. Prices below are calculated from your baseline rate tables.';
+    }
   }
 
   const R=$('results'); R.innerHTML='';
@@ -2380,6 +2421,69 @@ $('custCreateBtn').onclick = async () => {
     $('custMsg').textContent = 'Error: ' + e.message;
   }
 };
+
+let lastInspData = null;
+if ($('inspBtn')) {
+  $('inspBtn').onclick = async () => {
+    $('inspBtn').disabled = true;
+    $('inspBtn').textContent = 'Calling UPS API…';
+    $('inspPanel').style.display = 'block';
+    $('inspStatus').textContent = 'Connecting…';
+    $('inspReq').textContent = 'Sending request…';
+    $('inspRes').textContent = 'Waiting for UPS response…';
+
+    const body = {
+      country: $('country').value,
+      postcode: $('postcode').value.trim(),
+      weight: num('wt'),
+      l: num('L'),
+      w: num('W'),
+      h: num('H'),
+      value: num('goodsValue'),
+      residential: $('acc_resi') ? $('acc_resi').checked : false,
+    };
+
+    try {
+      const r = await jpost('/api/ups-inspect-rate', body);
+      const d = await r.json();
+      lastInspData = d;
+      $('inspBtn').disabled = false;
+      $('inspBtn').textContent = 'Inspect Live UPS Request & Response 🔍';
+
+      $('inspStatus').innerHTML = d.ok ? '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>SUCCESS (' + d.status + ')</span>' : '<span class="ds-status ds-status--attention"><span class="ds-mark ds-mark--attention"></span>HTTP ' + (d.status || 'ERROR') + '</span>';
+      $('inspEnv').textContent = d.env || 'test';
+      $('inspToken').textContent = d.token || '—';
+      $('inspAcct').textContent = d.account || '—';
+      $('inspUrl').textContent = 'POST ' + (d.endpoint || 'https://onlinetools.ups.com/api/rating/v2403/Shoptimeintransit');
+
+      $('inspStatusBadge').innerHTML = d.ok ? '<span style="color:var(--mv-green-deep)">✓ HTTP ' + d.status + ' OK · ' + (d.services || []).length + ' rated service(s) returned</span>' : '<span style="color:var(--mv-magenta-deep)">✗ HTTP ' + (d.status || 'Error') + ' · ' + qesc(d.error || 'UPS rejected request') + '</span>';
+
+      $('inspReq').textContent = JSON.stringify(d.request || {}, null, 2);
+      $('inspRes').textContent = d.responseJson ? JSON.stringify(d.responseJson, null, 2) : (d.raw || d.error || 'No response body');
+    } catch (e) {
+      $('inspBtn').disabled = false;
+      $('inspBtn').textContent = 'Inspect Live UPS Request & Response 🔍';
+      $('inspStatus').innerHTML = '<span class="ds-status ds-status--attention"><span class="ds-mark ds-mark--attention"></span>ERROR</span>';
+      $('inspRes').textContent = 'Network / Server Error: ' + e.message;
+    }
+  };
+}
+
+if ($('viewUpsErrorBtn')) {
+  $('viewUpsErrorBtn').onclick = () => {
+    if ($('inspBtn')) $('inspBtn').click();
+    $('inspPanel').scrollIntoView({ behavior: 'smooth' });
+  };
+}
+
+if ($('inspCopy')) {
+  $('inspCopy').onclick = () => {
+    if (!lastInspData) return;
+    if (navigator.clipboard) navigator.clipboard.writeText(JSON.stringify(lastInspData, null, 2));
+    $('inspCopy').textContent = 'Copied!';
+    setTimeout(() => { if ($('inspCopy')) $('inspCopy').textContent = 'Copy Diagnostic JSON'; }, 1500);
+  };
+}
 
 function populateColCountries() {
   const c1 = $('colCountry'), c2 = $('colDestCountry');
