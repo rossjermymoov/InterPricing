@@ -809,21 +809,22 @@ async function trackShipment(trackingNumber) {
   const headers = {
     'Authorization': 'Bearer ' + tk,
     'transId': 'moov_track_' + Date.now(),
-    'transactionSrc': 'MOOV-InterPricing',
+    'transactionSrc': 'testing',
   };
   if (process.env.UPS_ACCOUNT_NUMBER) {
     headers['x-merchant-id'] = process.env.UPS_ACCOUNT_NUMBER;
   }
 
-  const url = base() + '/api/track/v1/details/' + encodeURIComponent(trk) + '?returnSignature=true&returnPOD=true&locale=en_GB';
+  // Try requesting basic tracking first (works on standard Tracking scope)
+  let url = base() + '/api/track/v1/details/' + encodeURIComponent(trk) + '?locale=en_GB';
 
-  const res = await fetch(url, {
+  let res = await fetch(url, {
     method: 'GET',
     headers,
     signal: AbortSignal.timeout(10000),
   });
 
-  const text = await res.text();
+  let text = await res.text();
   let json = null;
   try { json = JSON.parse(text); } catch (_) {}
 
@@ -835,6 +836,9 @@ async function trackShipment(trackingNumber) {
       errMsg = json.Error.Description;
     } else if (text) {
       errMsg += ': ' + text.slice(0, 300);
+    }
+    if (errMsg.toLowerCase().includes('invalid authentication') || res.status === 401 || res.status === 403) {
+      errMsg = 'The "Tracking" product needs to be added to your app in the UPS Developer Portal (under Apps > Products > Add Tracking).';
     }
     return { ok: false, status: res.status, error: errMsg, raw: text };
   }
