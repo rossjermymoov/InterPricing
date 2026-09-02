@@ -4,6 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>International Rate Card</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* ===== DESIGN TOKENS & THEMING (MoovOS Design System) ===== */
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap');
@@ -2805,20 +2806,119 @@ function extractAllLabels(input) {
   return list;
 }
 
-function printAllShipmentLabels(target, format = 'thermal') {
+function rotateLabelUpright(base64Graphic) {
+  return new Promise((resolve) => {
+    if (!base64Graphic) { resolve(null); return; }
+    const src = base64Graphic.startsWith('data:') ? base64Graphic : ('data:image/gif;base64,' + base64Graphic);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        // If image is landscape (width > height), UPS provided it rotated 90° CCW -> rotate 90° CW to stand upright portrait
+        if (img.width > img.height) {
+          canvas.width = img.height;
+          canvas.height = img.width;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.translate(canvas.width, 0);
+          ctx.rotate((90 * Math.PI) / 180);
+          ctx.drawImage(img, 0, 0);
+        } else {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        }
+        resolve(canvas.toDataURL('image/png', 1.0));
+      } catch (e) {
+        resolve(src);
+      }
+    };
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+}
+
+async function printAllShipmentLabels(target, format = 'thermal') {
   const list = extractAllLabels(target);
   if (!list.length) {
     alert('No label graphics found for this shipment. Please make sure the shipment has completed booking.');
     return;
   }
+
+  // Pre-rotate all sideways labels upright
+  const rotatedItems = await Promise.all(list.map(async (item) => {
+    const uprightPng = await rotateLabelUpright(item.labelGraphic);
+    return {
+      trackingNumber: item.trackingNumber,
+      labelGraphic: uprightPng,
+    };
+  }));
+
+  const isA4 = format === 'a4';
+
+  // 1. If jsPDF is available, generate true downloadable/printable multi-page PDF
+  if (window.jspdf && window.jspdf.jsPDF) {
+    try {
+      let doc;
+      if (isA4) {
+        doc = new window.jspdf.jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4',
+        });
+        rotatedItems.forEach((p, idx) => {
+          if (idx > 0) doc.addPage('a4', 'portrait');
+          // Center upright 4x6 label on A4 sheet (210 x 297 mm)
+          doc.addImage(p.labelGraphic, 'PNG', 45, 25, 120, 180);
+          doc.setFontSize(9);
+          doc.setTextColor(120, 120, 120);
+          doc.text(`Parcel ${idx + 1} of ${rotatedItems.length} — Tracking: ${p.trackingNumber || ''}`, 105, 215, { align: 'center' });
+        });
+      } else {
+        // Thermal 4" x 6"
+        doc = new window.jspdf.jsPDF({
+          orientation: 'portrait',
+          unit: 'in',
+          format: [4, 6],
+        });
+        rotatedItems.forEach((p, idx) => {
+          if (idx > 0) doc.addPage([4, 6], 'portrait');
+          // Fill 4x6 thermal page with slight margin
+          doc.addImage(p.labelGraphic, 'PNG', 0.08, 0.08, 3.84, 5.84);
+        });
+      }
+
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const w = window.open(pdfUrl, '_blank');
+      if (!w) {
+        // Fallback to direct download if browser blocked popup
+        const a = document.createElement('a');
+        a.href = pdfUrl;
+        a.download = `UPS_Shipping_Labels_${rotatedItems.length}_Parcels_${isA4 ? 'A4' : 'Thermal_4x6'}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      return;
+    } catch (pdfErr) {
+      console.error('[PDF Generation Error]', pdfErr);
+    }
+  }
+
+  // 2. Fallback HTML printable view with upright rotated images
   const w = window.open('', '_blank');
   if (!w) { alert('Please allow popups to open the printable labels.'); return; }
 
-  const isA4 = format === 'a4';
-  const imgs = list.map((p, i) => `
+  const imgs = rotatedItems.map((p, i) => `
     <div class="label-page ${isA4 ? 'a4' : 'thermal'}">
-      <div class="label-header-info no-print">Piece ${i + 1} of ${list.length} — Tracking: <b>${p.trackingNumber || '—'}</b></div>
-      <img src="data:image/gif;base64,${p.labelGraphic}" alt="UPS Label ${i + 1}" />
+      <div class="label-header-info no-print">Piece ${i + 1} of ${rotatedItems.length} — Tracking: <b>${p.trackingNumber || '—'}</b></div>
+      <img src="${p.labelGraphic}" alt="UPS Label ${i + 1}" />
     </div>
   `).join('');
 
@@ -2826,7 +2926,7 @@ function printAllShipmentLabels(target, format = 'thermal') {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>UPS Shipping Labels (${list.length} Parcel${list.length === 1 ? '' : 's'} — ${isA4 ? 'A4 Paper' : 'Thermal 4x6'})</title>
+      <title>UPS Shipping Labels (${rotatedItems.length} Parcel${rotatedItems.length === 1 ? '' : 's'} — ${isA4 ? 'A4 Paper' : 'Thermal 4"×6"'})</title>
       <style>
         ${isA4 ? `
           @page { size: A4 portrait; margin: 10mm; }
@@ -2834,7 +2934,7 @@ function printAllShipmentLabels(target, format = 'thermal') {
             html, body { margin: 0; padding: 0; background: #fff; }
             .no-print { display: none !important; }
             .label-page { page-break-after: always; break-after: page; width: 100%; max-width: 170mm; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 95vh; }
-            .label-page img { max-width: 100%; max-height: 90vh; object-fit: contain; }
+            .label-page img { max-width: 100%; max-height: 85vh; object-fit: contain; }
           }
         ` : `
           @page { size: 4in 6in; margin: 0; }
@@ -2849,16 +2949,15 @@ function printAllShipmentLabels(target, format = 'thermal') {
         .label-page.thermal { background: #fff; width: 384px; height: 576px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden; }
         .label-page.thermal img { width: 100%; height: 100%; object-fit: contain; }
         .label-page.a4 { background: #fff; width: 595px; height: 842px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; padding: 20px; box-sizing: border-box; }
-        .label-page.a4 img { max-width: 90%; max-height: 90%; object-fit: contain; }
+        .label-page.a4 img { max-width: 85%; max-height: 85%; object-fit: contain; }
         .label-header-info { font-size: 12px; color: #64748b; margin-bottom: 8px; font-weight: 600; text-align: center; }
         .print-bar { position: sticky; top: 12px; background: #111827; color: #fff; padding: 12px 24px; border-radius: 8px; z-index: 100; display: flex; gap: 14px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.25); }
         .print-btn { background: #0E9C63; color: #fff; border: none; padding: 8px 18px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 13px; }
-        .switch-btn { background: #374151; color: #fff; border: none; padding: 8px 14px; font-weight: 600; border-radius: 6px; cursor: pointer; font-size: 12px; }
       </style>
     </head>
     <body>
       <div class="print-bar no-print">
-        <span><b>${list.length} UPS Label${list.length === 1 ? '' : 's'}</b> (${isA4 ? 'A4 Paper' : 'Thermal 4"×6"'})</span>
+        <span><b>${rotatedItems.length} UPS Label${rotatedItems.length === 1 ? '' : 's'}</b> (${isA4 ? 'A4 Paper' : 'Thermal 4"×6"'})</span>
         <button class="print-btn" onclick="window.print()">Print / Save PDF 🖨️</button>
       </div>
       ${imgs}
