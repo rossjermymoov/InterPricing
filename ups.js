@@ -579,6 +579,7 @@ function buildShipmentRequest(p) {
         AttentionName: S(sender.name || sender.company || 'Contact').slice(0, 35),
         Phone: { Number: S(sender.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
         EMailAddress: S(sender.email || '').slice(0, 50),
+        ShipperNumber: acct,
         Address: senderAddr.Address,
       }
     : {
