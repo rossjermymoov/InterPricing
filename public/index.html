@@ -522,6 +522,39 @@ a:hover { text-decoration: underline; }
   border-color: var(--mv-ink);
 }
 
+/* Markup Matrix List */
+.ds-mklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px 20px;
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-hairline-2);
+}
+.ds-mkrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--mv-hairline);
+}
+.ds-mkrow .nm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mv-ink);
+}
+.ds-mkrow .sw {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  flex: none;
+}
+
 .ds-table-wrap {
   overflow-x: auto;
   margin-top: 12px;
@@ -934,10 +967,33 @@ a:hover { text-decoration: underline; }
           <div class="lab">Pricing Driver</div>
           <div class="val" id="driver" style="font-size:20px">—</div>
         </div>
-        <div class="ds-figure">
-          <div class="lab">Markup Scheme</div>
-          <div class="ds-chips" id="volTabs" style="margin-top:2px"></div>
+      </div>
+
+      <!-- MARKUP CONTROLS (GLOBAL + PER-SERVICE + PRESETS) -->
+      <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:18px 22px">
+        <div class="ds-section-title" style="margin-bottom:8px">Pricing Markups (Global &amp; Per-Service)</div>
+        <p class="ds-blurb" style="font-size:12.5px;margin-bottom:14px">Set a global markup or click a preset to apply across all services, then fine-tune individual services below.</p>
+        
+        <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap">
+          <div class="ds-field-wrap" style="width:130px">
+            <label class="ds-label">Global Markup %</label>
+            <input id="mkGlobal" type="number" min="0" step="1" value="10" class="ds-input num"/>
+          </div>
+          <button class="ds-btn ds-btn-secondary" id="mkApply" style="padding:7px 14px">Apply to all</button>
+          
+          <div class="ds-field-wrap" style="margin-left:8px">
+            <label class="ds-label">Volume Presets</label>
+            <div class="ds-chips" id="volTabs" style="margin-top:0">
+              <div class="ds-chip" data-mk="70">Low · 70%</div>
+              <div class="ds-chip" data-mk="50">Medium · 50%</div>
+              <div class="ds-chip" data-mk="30">High · 30%</div>
+              <div class="ds-chip active" data-mk="10">Standard · 10%</div>
+              <div class="ds-chip" data-mk="0">At Cost · 0%</div>
+            </div>
+          </div>
         </div>
+
+        <div id="mkList" class="ds-mklist"></div>
       </div>
 
       <div id="staticNotice" class="ds-notice-static" style="display:none">
@@ -974,39 +1030,70 @@ a:hover { text-decoration: underline; }
       <div class="ds-pagehead">
         <div class="ds-kicker">SHAREABLE LINKS</div>
         <h1 class="ds-h1">Customer Rate Cards</h1>
-        <p class="ds-blurb">Create branded customer rate cards with custom markups and generate one-click shareable public links.</p>
+        <p class="ds-blurb">Create branded customer rate cards with custom markups, import rates, delivery addresses, and generate one-click shareable links.</p>
       </div>
 
       <!-- Create New Card Panel -->
-      <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:20px 24px">
-        <div class="ds-section-title" style="margin-bottom:8px">Create Customer Rate Card</div>
-        <p class="ds-blurb" style="font-size:12.5px;margin-bottom:16px">Give the rate card a customer or brand name, select the pricing markup scheme, and generate an active link.</p>
-        <div class="ds-grid ds-grid-3" style="align-items:flex-end">
-          <div class="ds-field-wrap">
-            <label class="ds-label">Customer / Account Name *</label>
-            <input id="newCardCustomer" type="text" class="ds-input" placeholder="e.g. Acme Wholesale, Skagen Imports"/>
+      <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:22px 26px">
+        <div class="ds-section-title" style="margin-bottom:6px">Create Customer Rate Card &amp; Link</div>
+        <p class="ds-blurb" style="font-size:12.5px;margin-bottom:16px">Configures customer-specific export &amp; import pricing. The customer will see only their tailored prices—never your cost or base tariffs.</p>
+        
+        <div class="ds-grid ds-grid-2" style="gap:20px 28px">
+          <div>
+            <div class="ds-field-wrap">
+              <label class="ds-label">Customer Name *</label>
+              <input id="custName" type="text" class="ds-input" placeholder="e.g. Acme Wholesale Ltd, Skagen Imports"/>
+            </div>
+            <div class="ds-field-wrap" style="margin-top:14px">
+              <label class="ds-label">Contact Person</label>
+              <input id="custContact" type="text" class="ds-input" placeholder="Primary contact name"/>
+            </div>
+            <div class="ds-grid ds-grid-2" style="margin-top:14px">
+              <div class="ds-field-wrap">
+                <label class="ds-label">Contact Phone</label>
+                <input id="custPhone" type="tel" class="ds-input" placeholder="Phone number"/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">Contact Email</label>
+                <input id="custEmail" type="email" class="ds-input" placeholder="Email address"/>
+              </div>
+            </div>
           </div>
-          <div class="ds-field-wrap">
-            <label class="ds-label">Markup Scheme</label>
-            <select id="newCardScheme" class="ds-select">
-              <option value="flat10">Flat 10% Markup</option>
-              <option value="flat5">Flat 5% Markup</option>
-              <option value="flat15">Flat 15% Markup</option>
-              <option value="standard">Standard Cost Rate</option>
-            </select>
-          </div>
-          <div class="ds-field-wrap">
-            <label class="ds-label">Volumetric Divisor</label>
-            <select id="newCardDivisor" class="ds-select">
-              <option value="5000">5000 (Standard)</option>
-              <option value="4000">4000</option>
-              <option value="6000">6000</option>
-            </select>
+
+          <div>
+            <div class="ds-field-wrap">
+              <label class="ds-label">Import Quote Markup %</label>
+              <input id="custImportMarkup" type="number" min="0" step="1" value="25" class="ds-input num" placeholder="e.g. 25"/>
+            </div>
+            <div class="ds-field-wrap" style="margin-top:14px">
+              <label class="ds-label">Delivery Address (Where imports come back to)</label>
+              <input id="custLine1" type="text" class="ds-input" placeholder="Street address line 1"/>
+            </div>
+            <div class="ds-grid ds-grid-3" style="margin-top:14px">
+              <div class="ds-field-wrap"><label class="ds-label">City</label><input id="custCity" type="text" class="ds-input"/></div>
+              <div class="ds-field-wrap"><label class="ds-label">Postcode</label><input id="custPostcode" type="text" class="ds-input"/></div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">Country</label>
+                <select id="custCountry" class="ds-select">
+                  <option value="GB" selected>United Kingdom</option>
+                  <option value="IE">Ireland</option>
+                  <option value="US">USA</option>
+                  <option value="DE">Germany</option>
+                  <option value="FR">France</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
-        <div style="margin-top:18px;display:flex;align-items:center;gap:14px">
-          <button class="ds-btn ds-btn-primary" id="createCardBtn">Create Rate Card &amp; Generate Link</button>
-          <span id="cardCreateMsg" style="font-size:13px;font-weight:700"></span>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--mv-hairline)">
+          <div class="ds-label" style="margin-bottom:8px">Services To Include on Customer Card</div>
+          <div id="rcServices" style="display:flex;gap:12px 24px;flex-wrap:wrap"></div>
+        </div>
+
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--mv-hairline);display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+          <button class="ds-btn ds-btn-primary" id="custCreateBtn" style="padding:10px 22px;font-size:14px">Create Customer Link</button>
+          <span id="custMsg" style="font-size:13px;font-weight:700"></span>
         </div>
       </div>
 
@@ -1014,7 +1101,10 @@ a:hover { text-decoration: underline; }
       <div class="ds-section" style="margin-top:32px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div class="ds-section-title" style="margin:0">Active Customer Rate Cards</div>
-          <button class="ds-btn ds-btn-secondary" id="cardsRefresh" style="padding:5px 10px;font-size:11px">Refresh</button>
+          <div style="display:flex;gap:10px;align-items:center">
+            <input id="custSearch" placeholder="Search customer cards…" class="ds-input" style="width:240px;padding:4px 0"/>
+            <button class="ds-btn ds-btn-secondary" id="cardsRefresh" style="padding:5px 10px;font-size:11px">Refresh</button>
+          </div>
         </div>
         <div class="ds-table-wrap">
           <table class="ds-table">
@@ -1022,7 +1112,7 @@ a:hover { text-decoration: underline; }
               <tr>
                 <th>Customer Name</th>
                 <th>Shareable Link</th>
-                <th>Markup &amp; Settings</th>
+                <th>Import Markup</th>
                 <th>Created By</th>
                 <th class="r">Views</th>
                 <th>Status</th>
@@ -1237,11 +1327,11 @@ a:hover { text-decoration: underline; }
       </div>
 
       <div class="ds-section">
-        <div class="ds-section-title">Tariff Lines &amp; UPS Global Markup</div>
+        <div class="ds-section-title">Tariff Lines &amp; Global UPS Markup</div>
         <div class="ds-grid ds-grid-4">
           <div class="ds-field-wrap"><label class="ds-label">Free HS Lines</label><input id="hsFreeLines" type="number" min="0" step="1" class="ds-input num"/></div>
           <div class="ds-field-wrap"><label class="ds-label">Charge per Extra Line (£)</label><input id="hsLineCharge" type="number" min="0" step="0.05" class="ds-input num"/></div>
-          <div class="ds-field-wrap"><label class="ds-label">Global Markup (%)</label><input id="upsMarkup" type="number" step="0.1" class="ds-input num"/></div>
+          <div class="ds-field-wrap"><label class="ds-label">UPS Global Markup (%)</label><input id="upsMarkup" type="number" step="0.1" class="ds-input num"/></div>
           <div class="ds-toggle" style="align-self:end;padding-bottom:6px"><input id="debugRaw" type="checkbox"/><label for="debugRaw">Capture Raw UPS JSON</label></div>
         </div>
       </div>
@@ -1293,12 +1383,22 @@ function exceedsLimits(carrier, w, l, w2, h) {
   return { exceeded: false };
 }
 
+function activeMarkupObj() {
+  const obj = {};
+  SERVICES.forEach(s => {
+    const el = $('mk_' + s.key);
+    obj[s.key] = el ? (parseFloat(el.value) || 0) : num('mkGlobal');
+  });
+  obj.default = num('mkGlobal');
+  return obj;
+}
+
 function upsLaneKey(){
   const c=$('country')?$('country').value:'';
   const pc=$('postcode')?$('postcode').value.trim():'';
   const w=num('wt'), l=num('L'), w2=num('W'), h=num('H'), gv=num('goodsValue');
   const isResi=$('acc_resi')?$('acc_resi').checked:false;
-  const mk=markupSchemeKey();
+  const mk=JSON.stringify(activeMarkupObj());
   return [c,pc,w,l,w2,h,gv,isResi?'resi':'comm',mk].join('|');
 }
 
@@ -1314,14 +1414,11 @@ function fetchUpsQuote(key, c){
   const pc=$('postcode')?$('postcode').value.trim():'';
   const isResi=$('acc_resi')?$('acc_resi').checked:false;
   upsAbortCtrl=new AbortController();
-  const mkObj={};
-  if(typeof activeMarkupObj==='function'){Object.assign(mkObj, activeMarkupObj());}
-  else{SERVICES.filter(s=>s.carrier==='ups').forEach(s=>{mkObj[s.key]=markupPct(s);});}
 
   const body={
     country:c, postcode:pc,
     weight:num('wt'), l:num('L'), w:num('W'), h:num('H'),
-    value:num('goodsValue'), residential:isResi, markup:mkObj,
+    value:num('goodsValue'), residential:isResi, markup:activeMarkupObj(),
   };
   const timeoutId=setTimeout(()=>{if(upsAbortCtrl)upsAbortCtrl.abort();},5500);
   fetch('/api/calc-rate',{
@@ -1414,31 +1511,57 @@ function build(raw, svc){
 }
 
 function renderMarkup(){
-  const box=$('volTabs'); if(!box) return;
-  box.innerHTML='';
-  const tabs=[
-    {id:'flat5', label:'Flat 5%', mk:{ae:5,ca:5,ep:5,cp:5,ux:5,us:5,default:5}},
-    {id:'flat10',label:'Flat 10%',mk:{ae:10,ca:10,ep:10,cp:10,ux:10,us:10,default:10}},
-    {id:'flat15',label:'Flat 15%',mk:{ae:15,ca:15,ep:15,cp:15,ux:15,us:15,default:15}},
-    {id:'custom',label:'Custom', mk:{}}
-  ];
-  tabs.forEach(t=>{
-    const btn=document.createElement('div');
-    btn.className='ds-chip'+(t.id==='flat10'?' active':'');
-    btn.textContent=t.label;
-    btn.onclick=()=>{
-      box.querySelectorAll('.ds-chip').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      activeScheme=t.id;
-      activeMarkupObj=()=>t.mk;
-      calc();
-    };
-    box.appendChild(btn);
+  const wrap=$('mkList'); if(!wrap) return;
+  wrap.innerHTML='';
+  const g=num('mkGlobal') || 10;
+  SERVICES.forEach(svc=>{
+    const row=document.createElement('div');
+    row.className='ds-mkrow';
+    row.innerHTML='<div class="nm"><span class="sw" style="background:'+svc.color+'"></span><span>'+svc.name+'</span></div>' +
+      '<div style="display:flex;align-items:center;gap:4px">' +
+      '<input id="mk_'+svc.key+'" type="number" min="0" step="1" value="'+g+'" class="ds-input num" style="width:70px"/>' +
+      '<span style="font-size:12px;color:var(--mv-ink-55)">%</span>' +
+      '</div>';
+    wrap.appendChild(row);
+  });
+  SERVICES.forEach(svc=>{
+    const el=$('mk_'+svc.key);
+    if(el) el.addEventListener('input',calc);
   });
 }
-let activeScheme='flat10';
-let activeMarkupObj=()=>({ae:10,ca:10,ep:10,cp:10,ux:10,us:10,default:10});
-function markupSchemeKey(){return activeScheme;}
+
+function applyGlobalMarkup(){
+  const g=num('mkGlobal');
+  SERVICES.forEach(svc=>{
+    const el=$('mk_'+svc.key);
+    if(el) el.value=g;
+  });
+  syncVolTabs();
+  calc();
+}
+
+function syncVolTabs(){
+  const g=String(num('mkGlobal'));
+  document.querySelectorAll('#volTabs .ds-chip').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mk===g);
+  });
+}
+
+function volTabClick(val){
+  $('mkGlobal').value=val;
+  applyGlobalMarkup();
+}
+
+function renderRcServices(){
+  const box=$('rcServices'); if(!box) return;
+  box.innerHTML='';
+  SERVICES.forEach(svc=>{
+    const lab=document.createElement('label');
+    lab.className='ds-toggle';
+    lab.innerHTML='<input type="checkbox" data-svc="'+svc.key+'" checked/> <span>'+svc.name+'</span>';
+    box.appendChild(lab);
+  });
+}
 
 function renderToggles(){
   const box=$('toggles'); box.innerHTML='';
@@ -1618,12 +1741,17 @@ function drawChart(){
 function bootCalc(){
   bands=P.bands; CAPS=P.settings.caps;
   const s=P.settings;
-  renderToggles(); renderMarkup();
+  renderToggles(); renderMarkup(); renderRcServices();
   const csel=$('country');
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
     csel.value=P.countries.includes('USA')?'USA':P.countries[0];
     ['country','postcode','wt','L','W','H','goodsValue','SK','metric'].forEach(id=>$(id).addEventListener('input',calc));
+    $('mkGlobal').addEventListener('input', applyGlobalMarkup);
+    $('mkApply').addEventListener('click', applyGlobalMarkup);
+    document.querySelectorAll('#volTabs .ds-chip').forEach(b=>{
+      b.addEventListener('click', ()=>volTabClick(b.dataset.mk));
+    });
   }
   calc();
 }
@@ -1698,16 +1826,21 @@ $('pwSave').onclick=async()=>{$('pwMsg').className='ok';$('pwMsg').textContent='
 // ── Rate Cards Screen ──────────────────────────────────────────────────────
 async function openCards() {
   screen('cards');
-  $('cardCreateMsg').textContent = '';
+  $('custMsg').textContent = '';
   await loadCards();
 }
 
-async function loadCards() {
+async function loadCards(searchQ) {
   try {
     const r = await fetch('/api/cards');
     if (!r.ok) { $('cardsEmpty').textContent = 'Could not load rate cards.'; return; }
-    const d = await r.json();
-    renderCardsTable(d.cards || []);
+    let { cards } = await r.json();
+    cards = cards || [];
+    if (searchQ) {
+      const q = searchQ.toLowerCase();
+      cards = cards.filter(c => (c.customer || '').toLowerCase().includes(q) || (c.creator_name || '').toLowerCase().includes(q));
+    }
+    renderCardsTable(cards);
   } catch (e) {
     $('cardsEmpty').textContent = 'Error: ' + e.message;
   }
@@ -1723,11 +1856,11 @@ function renderCardsTable(cards) {
     const cardUrl = origin + '/card/' + encodeURIComponent(c.token);
     let cfg = {};
     try { cfg = (typeof c.config === 'string') ? JSON.parse(c.config || '{}') : (c.config || {}); } catch (_) {}
-    const mkDesc = cfg.markupScheme === 'flat15' ? 'Flat 15%' : (cfg.markupScheme === 'flat5' ? 'Flat 5%' : (cfg.markupScheme === 'standard' ? 'Standard 0%' : 'Flat 10%'));
-    const divisorDesc = (cfg.divisor ? ('Divisor ' + cfg.divisor) : 'Divisor 5000');
+    const importMarkupStr = (cfg.importMarkupPct != null ? (cfg.importMarkupPct + '%') : (cfg.importMarkup != null ? (cfg.importMarkup + '%') : '—'));
 
     tr.innerHTML = '<td>' +
       '<b>' + qesc(c.customer || '(Unnamed Card)') + '</b>' +
+      (cfg.contactName ? ('<div style="font-size:11.5px;color:var(--mv-ink-75)">' + qesc(cfg.contactName) + '</div>') : '') +
       '<div style="font-size:11px;color:var(--mv-ink-55)">Created ' + qDT(c.created_at) + '</div>' +
       '</td>' +
       '<td>' +
@@ -1737,7 +1870,7 @@ function renderCardsTable(cards) {
       '<a href="' + cardUrl + '" target="_blank" class="ds-btn ds-btn-secondary" style="padding:4px 8px;font-size:11px">Open ↗</a>' +
       '</div>' +
       '</td>' +
-      '<td><b>' + qesc(mkDesc) + '</b><div style="font-size:11px;color:var(--mv-ink-55)">' + qesc(divisorDesc) + '</div></td>' +
+      '<td><b>' + qesc(importMarkupStr) + '</b><div style="font-size:11px;color:var(--mv-ink-55)">' + (cfg.deliveryAddress && cfg.deliveryAddress.city ? qesc(cfg.deliveryAddress.city + ', ' + (cfg.deliveryAddress.country || 'GB')) : 'Standard') + '</div></td>' +
       '<td>' + qesc(c.creator_name || c.creator_email || '—') + '</td>' +
       '<td class="r mv-num">' + (c.views || 0) + '</td>' +
       '<td>' +
@@ -1768,45 +1901,59 @@ function renderCardsTable(cards) {
     };
   });
 
-  $('cardsEmpty').textContent = cards.length ? '' : 'No customer rate cards created yet.';
+  $('cardsEmpty').textContent = cards.length ? '' : 'No customer rate cards found.';
 }
 
-$('cardsRefresh').onclick = loadCards;
+$('cardsRefresh').onclick = () => loadCards($('custSearch').value.trim());
+$('custSearch').addEventListener('input', () => loadCards($('custSearch').value.trim()));
 
-$('createCardBtn').onclick = async () => {
-  const name = $('newCardCustomer').value.trim();
+$('custCreateBtn').onclick = async () => {
+  const name = $('custName').value.trim();
   if (!name) { alert('Please enter a customer name'); return; }
 
-  $('createCardBtn').disabled = true;
-  $('cardCreateMsg').style.color = 'var(--mv-purple)';
-  $('cardCreateMsg').textContent = 'Creating rate card…';
+  $('custCreateBtn').disabled = true;
+  $('custMsg').style.color = 'var(--mv-purple)';
+  $('custMsg').textContent = 'Creating rate card…';
 
-  const mkScheme = $('newCardScheme').value;
+  const incServices = [];
+  document.querySelectorAll('#rcServices input[type=checkbox]:checked').forEach(cb => {
+    incServices.push(cb.dataset.svc);
+  });
+
   const cfg = {
-    markupScheme: mkScheme,
-    markup: mkScheme === 'flat15' ? { default: 15 } : (mkScheme === 'flat5' ? { default: 5 } : (mkScheme === 'standard' ? { default: 0 } : { default: 10 })),
-    divisor: num('newCardDivisor') || 5000,
+    contactName: $('custContact').value.trim(),
+    phone: $('custPhone').value.trim(),
+    email: $('custEmail').value.trim(),
+    importMarkupPct: num('custImportMarkup'),
+    markup: activeMarkupObj(),
+    includedServices: incServices,
+    deliveryAddress: {
+      line1: $('custLine1').value.trim(),
+      city: $('custCity').value.trim(),
+      postcode: $('custPostcode').value.trim(),
+      country: $('custCountry').value,
+    }
   };
 
   try {
     const r = await jpost('/api/cards', { customer: name, config: cfg });
     const d = await r.json();
-    $('createCardBtn').disabled = false;
+    $('custCreateBtn').disabled = false;
 
     if (!r.ok || !d.card) {
-      $('cardCreateMsg').style.color = 'var(--mv-magenta-deep)';
-      $('cardCreateMsg').textContent = d.error || 'Failed to create rate card';
+      $('custMsg').style.color = 'var(--mv-magenta-deep)';
+      $('custMsg').textContent = d.error || 'Failed to create rate card';
       return;
     }
 
-    $('cardCreateMsg').style.color = 'var(--mv-green-deep)';
-    $('cardCreateMsg').textContent = 'Rate card created for ' + name + '! Link is ready below.';
-    $('newCardCustomer').value = '';
+    $('custMsg').style.color = 'var(--mv-green-deep)';
+    $('custMsg').textContent = 'Rate card link created for ' + name + '!';
+    $('custName').value = '';
     await loadCards();
   } catch (e) {
-    $('createCardBtn').disabled = false;
-    $('cardCreateMsg').style.color = 'var(--mv-magenta-deep)';
-    $('cardCreateMsg').textContent = 'Error: ' + e.message;
+    $('custCreateBtn').disabled = false;
+    $('custMsg').style.color = 'var(--mv-magenta-deep)';
+    $('custMsg').textContent = 'Error: ' + e.message;
   }
 };
 
