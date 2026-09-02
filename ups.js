@@ -569,61 +569,34 @@ function buildShipmentRequest(p) {
 
   const isImport = (p.mode === 'import') || ((senderAddr.Address.CountryCode || '').toUpperCase() !== 'GB');
 
-  // Shipper definition:
-  // In UPS API, Shipper.Address.CountryCode MUST match ShipFrom.Address.CountryCode.
-  // For imports (e.g. NL -> GB), Shipper represents the origin sender in NL.
-  // For exports (GB -> overseas), Shipper represents MOOV Parcel in GB.
-  const shipperObj = isImport
-    ? {
-        Name: S(sender.company || sender.name || 'Supplier').slice(0, 35),
-        AttentionName: S(sender.name || sender.company || 'Contact').slice(0, 35),
-        Phone: { Number: S(sender.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
-        EMailAddress: S(sender.email || '').slice(0, 50),
-        ShipperNumber: acct,
-        Address: senderAddr.Address,
-      }
-    : {
-        Name: 'MOOV Parcel',
-        AttentionName: 'Operations',
-        TaxIdentificationNumber: 'GB446867375',
-        Phone: { Number: '07498991612' },
-        ShipperNumber: acct,
-        Address: {
-          AddressLine: ['1 Mellor Meadows'],
-          City: 'Whittington',
-          PostalCode: 'SY11 4FN',
-          CountryCode: 'GB',
-        },
-      };
+  // Shipper is always the account owner (MOOV Parcel in the UK) with your ShipperNumber.
+  // For cross-border imports originating overseas (e.g. NL -> GB), UPS requires the ReturnService
+  // container (Code: '9' Print Return Label) so the shipment originates from ShipFrom (NL)
+  // and delivers to ShipTo (GB) billed to the UK Shipper account.
+  const shipperObj = {
+    Name: 'MOOV Parcel',
+    AttentionName: 'Operations',
+    TaxIdentificationNumber: 'GB446867375',
+    Phone: { Number: '07498991612' },
+    ShipperNumber: acct,
+    Address: {
+      AddressLine: ['1 Mellor Meadows'],
+      City: 'Whittington',
+      PostalCode: 'SY11 4FN',
+      CountryCode: 'GB',
+    },
+  };
 
-  // PaymentInformation:
-  // For imports (origin outside UK), UK account pays via BillThirdParty
-  // For exports (origin in UK), UK account pays via BillShipper
-  const paymentInfo = isImport
-    ? {
-        ShipmentCharge: [
-          {
-            Type: '01', // Transportation
-            BillThirdParty: {
-              AccountNumber: acct,
-              Address: {
-                PostalCode: 'SY11 4FN',
-                CountryCode: 'GB',
-              },
-            },
-          },
-        ],
-      }
-    : {
-        ShipmentCharge: [
-          {
-            Type: '01', // Transportation
-            BillShipper: {
-              AccountNumber: acct,
-            },
-          },
-        ],
-      };
+  const paymentInfo = {
+    ShipmentCharge: [
+      {
+        Type: '01', // Transportation
+        BillShipper: {
+          AccountNumber: acct,
+        },
+      },
+    ],
+  };
 
   const shipmentObj = {
     Description: S(p.description || 'Commercial Goods / International Express').slice(0, 50),
@@ -651,6 +624,13 @@ function buildShipmentRequest(p) {
     ItemizedChargesRequestedIndicator: '',
     RatingMethodRequestedIndicator: '',
   };
+
+  if (isImport) {
+    shipmentObj.ReturnService = {
+      Code: '9', // UPS Print Return Label
+      Description: 'UPS Print Return Label',
+    };
+  }
 
   // Attach Paperless Documents (Commercial Invoice / Packing Slip) via Base64 UserCreatedForm
   const forms = [];
