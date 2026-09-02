@@ -790,6 +790,105 @@ app.post('/api/collections/reschedule', async (req, res) => {
   }
 });
 
+// PUBLIC / AUTH: Create / Book a pickup collection for an existing booked shipment
+app.post('/api/collections/create-for-shipment', async (req, res) => {
+  try {
+    const { token, shipmentId, trackingNumber, pickupDate, readyTime, closeTime, instructions } = req.body || {};
+    let card = null;
+    if (token) {
+      card = db.hasDb ? await db.getCardByToken(token) : null;
+      if (!card) return res.status(404).json({ ok: false, error: 'Invalid card token' });
+    } else if (!auth.getUserFromReq(req)) {
+      return res.status(401).json({ ok: false, error: 'Authorization required.' });
+    }
+
+    const sId = shipmentId || trackingNumber;
+    if (!sId) return res.status(400).json({ ok: false, error: 'Shipment ID or tracking number required.' });
+
+    let existing = null;
+    if (db.hasDb) {
+      existing = await db.getShipmentByTracking(sId) || await db.getShipmentById(sId);
+    }
+    if (!existing) {
+      return res.status(404).json({ ok: false, error: 'Shipment record not found.' });
+    }
+
+    const sender = (typeof existing.sender === 'object' && existing.sender) ? existing.sender : {};
+    const pkgs = Array.isArray(existing.packages) ? existing.packages : [];
+    const totalWt = Number(existing.total_weight_kg) || pkgs.reduce((sum, p) => sum + (Number(p.weight) || 0) * (parseInt(p.qty, 10) || 1), 0) || 1;
+    const totalPieces = pkgs.reduce((sum, p) => sum + (parseInt(p.qty, 10) || 1), 0) || 1;
+
+    const pickupRes = await ups.createPickup({
+      companyName: sender.company || sender.name || 'Sender',
+      contactName: sender.name || sender.company || 'Sender',
+      phone: sender.phone || '07498991612',
+      email: sender.email || '',
+      addressLine: sender.line1 || '1 Main Street',
+      addressLine2: sender.line2 || '',
+      city: sender.city || '',
+      postcode: sender.postcode || '',
+      country: sender.country || 'GB',
+      destinationCountry: (existing.receiver && existing.receiver.country) || 'GB',
+      pickupDate: pickupDate,
+      readyTime: readyTime || '10:00',
+      closeTime: closeTime || '17:00',
+      parcels: totalPieces,
+      weight: Math.round(totalWt * 10) / 10,
+      trackingNumber: existing.tracking_number || trackingNumber,
+      specialInstruction: instructions || '',
+      serviceCode: existing.service_code || '065',
+    });
+
+    if (!pickupRes.ok) {
+      return res.status(400).json({
+        ok: false,
+        error: 'UPS Collection Error: ' + pickupRes.error,
+        raw: pickupRes.raw,
+      });
+    }
+
+    if (db.hasDb) {
+      await db.updateShipmentPrn(sId, pickupRes.prn);
+      await db.createCollectionRecord({
+        prn: pickupRes.prn,
+        status: 'booked',
+        carrier: 'UPS',
+        service_code: existing.service_code || '065',
+        card_id: existing.card_id || (card ? card.id : null),
+        customer: existing.customer || (card ? card.customer : null),
+        token: token || null,
+        company_name: sender.company || sender.name || 'Sender',
+        contact_name: sender.name || sender.company || 'Sender',
+        phone: sender.phone || '',
+        email: sender.email || '',
+        address_line: sender.line1 || '',
+        city: sender.city || '',
+        postal_code: sender.postcode || '',
+        country_code: sender.country,
+        pickup_date: pickupDate,
+        ready_time: readyTime || '10:00',
+        close_time: closeTime || '17:00',
+        parcels: totalPieces,
+        total_weight_kg: Math.round(totalWt * 10) / 10,
+        tracking_number: existing.tracking_number || trackingNumber,
+        special_instruction: instructions || '',
+        response: pickupRes.json,
+      });
+    }
+
+    res.json({
+      ok: true,
+      prn: pickupRes.prn,
+      pickupDate,
+      readyTime: readyTime || '10:00',
+      closeTime: closeTime || '17:00',
+      message: 'Collection successfully booked with UPS. PRN: ' + pickupRes.prn,
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // PUBLIC / CARD-AUTHENTICATED: Book Import Shipment with UPS & Electronic Documents + Schedule Collection
 app.post('/api/book-import', async (req, res) => {
   try {
@@ -802,36 +901,35 @@ app.post('/api/book-import', async (req, res) => {
     let card = null;
     if (token) {
       card = db.hasDb ? await db.getCardByToken(token) : null;
-      if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Rate card not available or disabled' });
-    } else if (!auth.getUserFromReq(req)) {
-      return res.status(401).json({ ok: false, error: 'Authorization required to book shipment.' });
+      if (!card) return res.status(404).json({ ok: false, error: 'Invalid card token' });
     }
 
-    if (!sender || !sender.country || (!sender.line1 && !sender.city)) {
-      return res.status(400).json({ ok: false, error: 'Sender / collection address is incomplete.' });
+    if (!sender || !sender.country || !sender.city || !sender.line1) {
+      return res.status(400).json({ ok: false, error: 'Origin sender collection address (line1, city, country) is required.' });
     }
-    if (!receiver || (!receiver.line1 && !receiver.postcode)) {
-      return res.status(400).json({ ok: false, error: 'Receiver delivery address is incomplete.' });
+    if (!receiver || !receiver.country || !receiver.city || !receiver.line1) {
+      return res.status(400).json({ ok: false, error: 'Destination delivery address (line1, city, country) is required.' });
     }
-    const pkgs = Array.isArray(packages) && packages.length ? packages : [{ weight: 1, l: 10, w: 10, h: 10 }];
 
-    // 1. Call UPS Shipment Booking API with electronic forms attached
+    const pkgs = (Array.isArray(packages) && packages.length) ? packages : [{ weight: 1, qty: 1 }];
+
+    // 1. Book the shipment with UPS (Step 1)
     const shipResult = await ups.bookShipment({
       sender,
       receiver,
       packages: pkgs,
       serviceCode: serviceCode || '65',
+      goodsValue: goodsValue || 0,
       invoiceBase64,
-      invoiceFormat: invoiceFormat || 'PDF',
+      invoiceFormat,
       packingSlipBase64,
-      packingSlipFormat: packingSlipFormat || 'PDF',
+      packingSlipFormat,
     });
 
     if (!shipResult.ok) {
       return res.status(400).json({
         ok: false,
-        error: shipResult.error || 'UPS rejected shipment booking',
-        status: shipResult.status,
+        error: shipResult.error || 'UPS failed to book shipment consignment.',
         raw: shipResult.raw,
         request: shipResult.request,
       });
@@ -841,8 +939,10 @@ app.post('/api/book-import', async (req, res) => {
     let prn = null;
     let pickupResult = null;
 
-    // 2. Automatically schedule collection if requested
+    // 2. Automatically schedule collection (Step 2: made sequentially with tracking number)
     if (bookPickup !== false && trackingNumber) {
+      // Brief pause to ensure UPS registers tracking number in its transaction ledger
+      await new Promise(r => setTimeout(r, 600));
       try {
         const totalWt = pkgs.reduce((sum, p) => sum + (Math.max(1, parseInt(p.qty, 10) || 1) * (Number(p.weight) || 1)), 0);
         const totalPieces = pkgs.reduce((sum, p) => sum + Math.max(1, parseInt(p.qty, 10) || 1), 0);
@@ -857,6 +957,7 @@ app.post('/api/book-import', async (req, res) => {
           city: sender.city || '',
           postcode: sender.postcode || '',
           country: sender.country,
+          destinationCountry: receiver.country || 'GB',
           pickupDate: pickupDate,
           readyTime: readyTime || '10:00',
           closeTime: closeTime || '17:00',
@@ -899,6 +1000,8 @@ app.post('/api/book-import', async (req, res) => {
               console.error('[book-import collection db error]', cdbErr.message);
             }
           }
+        } else {
+          console.error('[book-import pickup error]', pickupResult ? pickupResult.error : 'Unknown pickup error');
         }
       } catch (e) {
         console.error('[book-import pickup error]', e.message);

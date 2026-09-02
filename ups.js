@@ -356,13 +356,14 @@ function buildPickupRequest(p) {
   const today = new Date();
   const defaultDateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
   const dateStr = String(p.pickupDate || defaultDateStr).replace(/[^0-9]/g, '');
-  const readyStr = String(p.readyTime || '09:00').replace(/[^0-9]/g, '').padEnd(4, '0').slice(0, 4);
+  const readyStr = String(p.readyTime || '10:00').replace(/[^0-9]/g, '').padEnd(4, '0').slice(0, 4);
   const closeStr = String(p.closeTime || '17:00').replace(/[^0-9]/g, '').padEnd(4, '0').slice(0, 4);
 
   const addrLines = [p.addressLine1 || p.addressLine || p.address, p.addressLine2].map(S).filter(Boolean);
   if (!addrLines.length) addrLines.push(S(p.address || 'Address'));
 
-  const phone = String(p.phone || '').replace(/[^0-9+]/g, '');
+  let phone = String(p.phone || '').replace(/[^0-9+]/g, '');
+  if (!phone || phone.length < 7) phone = '07498991612';
   const parcels = Math.max(1, Math.floor(Number(p.parcels) || 1));
   const weight = Math.max(0.1, Number(p.weight || p.totalWeight) || 1.0);
   const toIso = (c, fallback = 'GB') => {
@@ -375,7 +376,11 @@ function buildPickupRequest(p) {
   };
   const originCountry = toIso(p.country || 'GB', 'GB');
   const destCountry = toIso(p.destinationCountry || p.destCountry || p.country || 'GB', 'GB');
-  const serviceCode = S(p.serviceCode || '011');
+  let rawSvc = String(p.serviceCode || '065').trim();
+  if (rawSvc === '65') rawSvc = '065';
+  if (rawSvc === '11') rawSvc = '011';
+  if (rawSvc === '7' || rawSvc === '07') rawSvc = '007';
+  const serviceCode = rawSvc.padStart(3, '0');
   const trackingNumber = p.trackingNumber ? String(p.trackingNumber).trim() : null;
 
   const req = {
@@ -401,10 +406,10 @@ function buildPickupRequest(p) {
         CountryCode: originCountry || 'GB',
         ResidentialIndicator: p.residential ? 'Y' : 'N',
         Phone: {
-          Number: phone || '01234567890',
+          Number: phone,
         },
       },
-      AlternateAddressIndicator: 'Y',
+      AlternateAddressIndicator: originCountry !== 'GB' ? 'Y' : 'N',
       PickupPiece: [
         {
           ServiceCode: serviceCode,

@@ -1501,13 +1501,13 @@ body {
     <div style="background:#fff;border-radius:12px;width:100%;max-width:520px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative">
       <div style="padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
         <div>
-          <h2 style="margin:0;font-size:17px;font-weight:800;color:var(--ink)">Amend / Reschedule UPS Collection</h2>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Update collection date, driver pickup window, or special instructions</div>
+          <h2 style="margin:0;font-size:17px;font-weight:800;color:var(--ink)" id="reschedModalTitle">Amend / Reschedule UPS Collection</h2>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px" id="reschedModalSub">Update collection date, driver pickup window, or special instructions</div>
         </div>
         <button type="button" id="closeReschedModal" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1">&times;</button>
       </div>
       <div style="padding:22px">
-        <div style="background:#f9fafb;border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:13px;display:flex;justify-content:space-between">
+        <div id="reschedPrnRow" style="background:#f9fafb;border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:13px;display:flex;justify-content:space-between">
           <span style="color:var(--muted)">Current Pickup PRN:</span>
           <span style="font-weight:800;font-family:monospace;color:#059669" id="reschedCurrentPrn">—</span>
         </div>
@@ -2971,12 +2971,27 @@ async function printAllShipmentLabels(target, format = 'thermal') {
 }
 
 let activeReschedPrn = null;
+let activeBookingShipment = null;
+
 function openRescheduleModal(prn, existingData = {}) {
-  activeReschedPrn = prn;
-  $('reschedCurrentPrn').textContent = prn || '—';
+  activeReschedPrn = prn || null;
+  activeBookingShipment = (!prn && existingData) ? existingData : null;
+
+  if (activeReschedPrn) {
+    $('reschedModalTitle').textContent = 'Amend / Reschedule UPS Collection';
+    $('reschedModalSub').textContent = 'Update collection date, driver pickup window, or special instructions';
+    $('reschedPrnRow').style.display = 'flex';
+    $('reschedCurrentPrn').textContent = activeReschedPrn;
+    $('reschedSubmitBtn').textContent = 'Confirm Collection Amendment';
+  } else {
+    $('reschedModalTitle').textContent = 'Book UPS Collection for Parcel';
+    $('reschedModalSub').textContent = 'Schedule driver collection at supplier address (' + ((existingData && (existingData.tracking_number || existingData.id)) || '') + ')';
+    $('reschedPrnRow').style.display = 'none';
+    $('reschedSubmitBtn').textContent = 'Confirm & Book Collection 🚚';
+  }
+
   $('reschedErrMsg').style.display = 'none';
   $('reschedSubmitBtn').disabled = false;
-  $('reschedSubmitBtn').textContent = 'Confirm Collection Amendment';
 
   if (existingData && existingData.pickup_date) {
     $('reschedDate').value = existingData.pickup_date;
@@ -3009,7 +3024,6 @@ function closeRescheduleModal() {
 }
 
 async function submitReschedule() {
-  if (!activeReschedPrn) return;
   const pDate = $('reschedDate').value;
   if (!pDate) {
     $('reschedErrMsg').textContent = 'Please choose a pickup date.';
@@ -3019,36 +3033,51 @@ async function submitReschedule() {
 
   const btn = $('reschedSubmitBtn');
   btn.disabled = true;
-  btn.textContent = 'Updating collection with UPS…';
+  btn.textContent = activeReschedPrn ? 'Updating collection with UPS…' : 'Booking collection with UPS…';
   $('reschedErrMsg').style.display = 'none';
 
   try {
-    const res = await fetch('/api/collections/reschedule', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    let url = '/api/collections/reschedule';
+    let bodyObj = {
+      token: curToken,
+      oldPrn: activeReschedPrn,
+      pickupDate: pDate,
+      readyTime: $('reschedReady').value,
+      closeTime: $('reschedClose').value,
+      instructions: $('reschedInstructions').value,
+    };
+
+    if (!activeReschedPrn && activeBookingShipment) {
+      url = '/api/collections/create-for-shipment';
+      bodyObj = {
         token: curToken,
-        oldPrn: activeReschedPrn,
+        shipmentId: activeBookingShipment.id,
+        trackingNumber: activeBookingShipment.tracking_number,
         pickupDate: pDate,
         readyTime: $('reschedReady').value,
         closeTime: $('reschedClose').value,
         instructions: $('reschedInstructions').value,
-      }),
+      };
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyObj),
     });
     const d = await res.json();
 
     if (!res.ok || !d.ok) {
-      $('reschedErrMsg').textContent = 'UPS Amendment Error: ' + (d.error || 'Failed to update collection.');
+      $('reschedErrMsg').textContent = 'UPS Collection Error: ' + (d.error || 'Failed to process collection.');
       $('reschedErrMsg').style.display = 'block';
       btn.disabled = false;
-      btn.textContent = 'Confirm Collection Amendment';
+      btn.textContent = activeReschedPrn ? 'Confirm Collection Amendment' : 'Confirm & Book Collection 🚚';
       return;
     }
 
     // Success
-    alert('Collection successfully updated with UPS!\n\nNew Pickup PRN: ' + (d.newPrn || d.oldPrn) + '\nDate: ' + pDate + '\nWindow: ' + d.readyTime + ' – ' + d.closeTime);
-    $('ibResPrn').textContent = d.newPrn || d.oldPrn;
-    activeReschedPrn = d.newPrn || d.oldPrn;
+    alert('Collection successfully ' + (activeReschedPrn ? 'updated' : 'booked') + ' with UPS!\n\nPickup PRN: ' + (d.prn || d.newPrn || d.oldPrn) + '\nDate: ' + pDate + '\nWindow: ' + d.readyTime + ' – ' + d.closeTime);
+    $('ibResPrn').textContent = d.prn || d.newPrn || d.oldPrn;
     closeRescheduleModal();
     if ($('bookingsView') && $('bookingsView').style.display !== 'none') {
       loadCustomerBookings();
@@ -3057,7 +3086,7 @@ async function submitReschedule() {
     $('reschedErrMsg').textContent = 'Network Error: ' + err.message;
     $('reschedErrMsg').style.display = 'block';
     btn.disabled = false;
-    btn.textContent = 'Confirm Collection Amendment';
+    btn.textContent = activeReschedPrn ? 'Confirm Collection Amendment' : 'Confirm & Book Collection 🚚';
   }
 }
 
@@ -3181,11 +3210,14 @@ function renderCustomerBookings(shipments) {
       <div style="padding:12px 18px;background:#f9fafb;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           ${prnBadge}
+          ${(!x.prn && !isCancelled) ? `
+            <button type="button" class="btn ghost btn-cust-book-pickup" style="padding:6px 12px;font-size:12px;font-weight:700;color:var(--green-dark)">Book Collection 🚚</button>
+          ` : ''}
           ${(x.prn && !isCancelled) ? `
             <button type="button" class="btn ghost btn-cust-resched" data-prn="${esc(x.prn)}" style="padding:6px 12px;font-size:12px;font-weight:700">Amend Collection 🔄</button>
           ` : ''}
           ${!isCancelled ? `
-            <button type="button" class="btn ghost btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || '')}" data-prn="${esc(x.prn || '')}" style="padding:6px 12px;font-size:12px;font-weight:700;color:#b91c1c">Cancel Shipment ❌</button>
+            <button type="button" class="btn ghost btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}" style="padding:6px 12px;font-size:12px;font-weight:700;color:#b91c1c">Cancel Shipment ❌</button>
           ` : ''}
         </div>
 
@@ -3319,6 +3351,16 @@ function initCustomerBookingsEvents() {
       if (imgB64) {
         printAllShipmentLabels([{ labelGraphic: imgB64 }], 'thermal');
       }
+      return;
+    }
+
+    // Customer Book Collection button (for shipments without a PRN)
+    const bookPickupBtn = e.target.closest && e.target.closest('.btn-cust-book-pickup');
+    if (bookPickupBtn) {
+      e.preventDefault();
+      const card = bookPickupBtn.closest('.calc-card');
+      const sh = card && card._shipment;
+      openRescheduleModal(null, sh || {});
       return;
     }
 

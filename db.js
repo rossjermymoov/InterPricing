@@ -498,13 +498,13 @@ async function updateShipmentStatus(idOrTracking, status) {
   return rows[0] || null;
 }
 
-async function updateShipmentPrn(oldPrn, newPrn) {
-  if (!pool || !oldPrn) return null;
+async function updateShipmentPrn(identifierOrOldPrn, newPrn) {
+  if (!pool || !identifierOrOldPrn) return null;
   const { rows } = await pool.query(
-    `UPDATE shipments SET prn = $2, status = 'rescheduled' WHERE prn = $1 RETURNING *`,
-    [oldPrn, newPrn]
+    `UPDATE shipments SET prn = $2 WHERE prn = $1 OR id::text = $1 OR tracking_number = $1 OR shipment_id = $1 RETURNING *`,
+    [String(identifierOrOldPrn), newPrn]
   );
-  return rows;
+  return rows[0] || null;
 }
 
 module.exports = {
