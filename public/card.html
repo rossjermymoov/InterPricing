@@ -2242,6 +2242,7 @@ function setView(v) {
   document.querySelectorAll('#viewTabs button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
   $('ratesView').style.display = imp ? 'none' : '';
   $('importView').style.display = imp ? 'block' : 'none';
+  if (imp) prefillReceiver();
   window.scrollTo(0, 0);
 }
 
@@ -2416,12 +2417,23 @@ async function igetQuotes() {
 }
 
 function prefillReceiver() {
-  const rc = (RC && RC.receiver) || null;
-  if (!rc) return;
+  const rc = (RC && (RC.receiver || RC.deliveryAddress)) || null;
+  const company = (RC && RC.customer) || (rc && rc.company) || '';
   const set = (id, v) => { const el = $(id); if (el && v != null && v !== '') el.value = v; };
-  set('ir_company', rc.company); set('ir_name', rc.name); set('ir_line1', rc.line1); set('ir_line2', rc.line2);
-  set('ir_city', rc.city); set('ir_postcode', rc.postcode); set('ir_phone', rc.phone); set('ir_email', rc.email);
-  if (rc.country && $('ir_country') && [...$('ir_country').options].some(o => o.value === rc.country)) $('ir_country').value = rc.country;
+  if (rc) {
+    set('ir_company', rc.company || company);
+    set('ir_name', rc.name || rc.contactName);
+    set('ir_line1', rc.line1 || rc.address || rc.addressLine1);
+    set('ir_line2', rc.line2 || rc.addressLine2);
+    set('ir_city', rc.city);
+    set('ir_postcode', rc.postcode || rc.postalCode);
+    set('ir_phone', rc.phone || rc.telephone);
+    set('ir_email', rc.email);
+    const country = rc.country || rc.countryCode || 'GB';
+    if ($('ir_country') && [...$('ir_country').options].some(o => o.value === country)) $('ir_country').value = country;
+  } else if (company) {
+    set('ir_company', company);
+  }
 }
 
 function countryName(iso) { const m = WORLD_COUNTRIES.find(o => o.c === iso); return m ? m.n : iso; }

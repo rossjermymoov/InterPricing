@@ -102,7 +102,18 @@ function buildCardPayload(cfg, card) {
     eu: (S.regions && S.regions.eu) || [],
     euDuty: euDutyPayload(S.euCustomsDuty),
     countries: countryList,
-    receiver: conf.receiver || null, // customer's saved delivery address (pre-fills import receiver)
+    receiver: conf.receiver || {
+      company: card.customer || '',
+      name: conf.contactName || '',
+      line1: (conf.deliveryAddress && conf.deliveryAddress.line1) || conf.address || '',
+      line2: (conf.deliveryAddress && conf.deliveryAddress.line2) || '',
+      city: (conf.deliveryAddress && conf.deliveryAddress.city) || '',
+      postcode: (conf.deliveryAddress && conf.deliveryAddress.postcode) || conf.postcode || '',
+      country: (conf.deliveryAddress && conf.deliveryAddress.country) || 'GB',
+      phone: conf.phone || '',
+      email: conf.email || '',
+    },
+    deliveryAddress: conf.deliveryAddress || null,
     addressBook: Array.isArray(conf.addressBook) ? conf.addressBook : [], // saved sender/supplier addresses
     services,
     accessorials,
