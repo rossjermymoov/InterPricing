@@ -861,8 +861,11 @@ a:hover { text-decoration: underline; }
 .pfields .f { margin: 0; }
 .pfields .span2 { grid-column: 1 / -1; }
 
-.iparcel { border: 1px solid var(--mv-hairline-2); padding: 14px; margin-bottom: 12px; position: relative; background: #fff; }
-.iparcel .pbadge { font-size: 9.5px; font-weight: 800; color: var(--mv-ink-55); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 8px; display: block; }
+.iparcel { border: 1px solid var(--mv-hairline-2); padding: 16px 20px 18px; margin-bottom: 12px; position: relative; background: #fff; }
+.iparcel .pbadge { font-size: 9.5px; font-weight: 800; color: var(--mv-ink-55); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 12px; display: block; }
+.ipgrid { display: flex; flex-wrap: wrap; gap: 16px 20px; align-items: flex-end; width: 100%; }
+.ipgrid .f input, .ipgrid .f select { width: 100%; }
+.iparcel .f input.ipfix { background: var(--mv-surface); color: var(--mv-ink-55); cursor: not-allowed; }
 .rmP { position: absolute; top: 10px; right: 10px; border: 1px solid var(--mv-hairline-2); background: #fff; width: 26px; height: 26px; cursor: pointer; color: var(--mv-magenta-deep); font-size: 14px; line-height: 1; }
 .rmP:hover { background: var(--mv-magenta-bg); border-color: var(--mv-magenta); }
 .addP { border: 1px solid var(--mv-divider); background: #fff; color: var(--mv-ink); font-weight: 700; font-size: 12.5px; padding: 8px 16px; cursor: pointer; font-family: inherit; }
@@ -1134,12 +1137,14 @@ a:hover { text-decoration: underline; }
       <div class="panel">
         <div class="phead"><span class="pn">2</span><h3>Packages</h3><span class="sub">Add each parcel size — set how many of each.</span></div>
         <div id="iparcels"></div>
-        <button type="button" class="addP" id="iaddParcel">＋ Add another package</button>
-        <div class="pfields" style="margin-top:14px;max-width:520px;align-items:start">
-          <div class="f"><label>Total goods value (£) <span class="pcopt">optional</span></label><input id="igoods" type="number" min="0" step="1" placeholder="Optional (e.g. 250)"/></div>
-          <div class="f"><label>HS / tariff lines</label><input id="ihslines" type="number" min="0" step="1" value="5" placeholder="e.g. 5"/><span class="fhint">First 5 free, £2.95 each after</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-top:14px">
+          <button type="button" class="addP" id="iaddParcel">＋ Add another package</button>
+          <div class="isum" id="isummary" style="margin:0;font-size:13px;font-weight:700"></div>
         </div>
-        <div class="isum" id="isummary"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px 24px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--mv-hairline-2);align-items:flex-end">
+          <div class="f" style="flex:1 1 200px;max-width:280px"><label>Total goods value (£) <span class="pcopt">optional</span></label><input id="igoods" type="number" min="0" step="1" placeholder="Optional (e.g. 250)"/></div>
+          <div class="f" style="flex:1 1 200px;max-width:280px"><label>HS / tariff lines</label><input id="ihslines" type="number" min="0" step="1" value="5" placeholder="e.g. 5"/><span class="fhint" style="font-size:10px;color:var(--mv-ink-55);margin-top:3px">First 5 free, £2.95 each after</span></div>
+        </div>
       </div>
       <div class="iactions">
         <button type="button" class="print" id="igetQuotes">Get import quotes →</button>
@@ -2093,18 +2098,18 @@ function iparcelHTML(i) {
   return '<div class="iparcel" data-i="' + i + '">'
     + (i > 0 ? '<button type="button" class="rmP" title="Remove">×</button>' : '')
     + '<span class="pbadge">Package ' + (i + 1) + '</span>'
-    + '<div class="f ippack"><label>Packaging</label><select class="ipkg">'
+    + '<div class="ipgrid">'
+    + '<div class="f" style="flex: 1.8 1 180px"><label>Packaging</label><select class="ipkg">'
     + '<option value="mine">My Packaging</option>'
     + '<option value="tube">UPS Tube</option>'
     + '<option value="expressbox">UPS Express Box</option>'
     + '<option value="pallet">Pallet</option>'
     + '</select></div>'
-    + '<div class="ipgrid">'
-    + '<div class="f"><label>How many</label><input type="number" class="ipq" min="1" step="1" value="1"/></div>'
-    + '<div class="f"><label>Weight (kg)</label><input type="number" class="ipw" min="0" step="0.1" value="5"/></div>'
-    + '<div class="f"><label>Length (cm)</label><input type="number" class="ipl" min="0" step="1"/></div>'
-    + '<div class="f"><label>Width (cm)</label><input type="number" class="ipwd" min="0" step="1"/></div>'
-    + '<div class="f"><label>Height (cm)</label><input type="number" class="iph" min="0" step="1"/></div>'
+    + '<div class="f" style="flex: 1 1 90px"><label>How many</label><input type="number" class="ipq" min="1" step="1" value="1"/></div>'
+    + '<div class="f" style="flex: 1 1 100px"><label>Weight (kg)</label><input type="number" class="ipw" min="0" step="0.1" value="5"/></div>'
+    + '<div class="f" style="flex: 1 1 90px"><label>Length (cm)</label><input type="number" class="ipl" min="0" step="1" placeholder="L"/></div>'
+    + '<div class="f" style="flex: 1 1 90px"><label>Width (cm)</label><input type="number" class="ipwd" min="0" step="1" placeholder="W"/></div>'
+    + '<div class="f" style="flex: 1 1 90px"><label>Height (cm)</label><input type="number" class="iph" min="0" step="1" placeholder="H"/></div>'
     + '</div></div>';
 }
 
