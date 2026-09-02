@@ -2783,9 +2783,9 @@ async function printAllShipmentLabels(target, format = 'thermal') {
         <button class="print-btn" onclick="window.print()">Print / Save PDF 🖨️</button>
       </div>
       ${imgs}
-      <script>
+      <' + 'script>
         window.onload = function() { setTimeout(function() { window.print(); }, 400); };
-      <\/script>
+      <\\/' + 'script>
     </body>
     </html>
   `);
@@ -2940,7 +2940,13 @@ function renderCustomerBookings(shipments) {
 
   if (!shipments.length) {
     box.innerHTML = '<div style="padding:56px 24px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:0;color:var(--muted)">'
-      + '<div style="font-size:18px;font-weight:800;color:var(--ink);margin-bottom:8px">No Bookings  const STAGES = [
+      + '<div style="font-size:18px;font-weight:800;color:var(--ink);margin-bottom:8px">No Bookings Found</div>'
+      + '<div style="font-size:13.5px;max-width:480px;margin:0 auto">When you book an import shipment, it will appear here with live tracking, package specs, and collection controls.</div>'
+      + '</div>';
+    return;
+  }
+
+  const STAGES = [
     { name: 'Collected', desc: 'Supplier Pickup' },
     { name: 'In Transit', desc: 'Origin Transit' },
     { name: 'At Hub', desc: 'Export Hub' },

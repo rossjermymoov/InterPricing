@@ -2903,9 +2903,7 @@ if ($('admReschedSubmit')) $('admReschedSubmit').onclick = async () => {
     }
 
     closeAdminReschedModal();
-    alert('Collection successfully rescheduled with UPS!
-
-New PRN: ' + (d.newPrn || d.oldPrn));
+    alert('Collection successfully rescheduled with UPS!\n\nNew PRN: ' + (d.newPrn || d.oldPrn));
     await loadCollections();
     await loadShipments();
   } catch (err) {
