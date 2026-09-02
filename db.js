@@ -389,6 +389,40 @@ async function listCollections({ limit } = {}) {
   return rows;
 }
 
+async function getCollectionByPrn(prn) {
+  if (!pool) return null;
+  const { rows } = await pool.query(`SELECT * FROM collections WHERE prn = $1`, [String(prn).trim()]);
+  return rows[0] || null;
+}
+
+async function updateCollectionByPrn(oldPrn, updates) {
+  if (!pool) return null;
+  const c = await getCollectionByPrn(oldPrn);
+  if (!c) return null;
+  const { rows } = await pool.query(
+    `UPDATE collections SET
+      prn = COALESCE($1, prn),
+      status = COALESCE($2, status),
+      pickup_date = COALESCE($3, pickup_date),
+      ready_time = COALESCE($4, ready_time),
+      close_time = COALESCE($5, close_time),
+      special_instruction = COALESCE($6, special_instruction),
+      response = COALESCE($7, response)
+     WHERE prn = $8 RETURNING *`,
+    [
+      updates.prn || null,
+      updates.status || null,
+      updates.pickup_date || null,
+      updates.ready_time || null,
+      updates.close_time || null,
+      updates.special_instruction || null,
+      updates.response ? JSON.stringify(updates.response) : null,
+      String(oldPrn).trim(),
+    ]
+  );
+  return rows[0] || null;
+}
+
 // ---- shipments (booked shipments with tracking & labels) ----
 async function createShipmentRecord(r) {
   if (!pool) return { id: Date.now(), ...r };
@@ -454,7 +488,7 @@ module.exports = {
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
   createCard, listCards, getCardByToken, getCardById, updateCard, deleteCard,
   createQuoteLog, listQuoteLogs, quoteStats,
-  createCollectionRecord, listCollections,
+  createCollectionRecord, listCollections, getCollectionByPrn, updateCollectionByPrn,
   createShipmentRecord, listShipments, getShipmentById,
   hasDb: !!pool,
 };

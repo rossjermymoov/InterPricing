@@ -485,6 +485,53 @@ async function createPickup(payload) {
   };
 }
 
+// ---- UPS Pickup Cancellation ----
+async function cancelPickup(prn) {
+  if (!prn) return { ok: false, error: 'PRN is required for cancellation' };
+  const tk = await token();
+  if (!tk) return { ok: false, error: 'UPS credentials not configured' };
+
+  const cleanPrn = String(prn).trim();
+  const headers = {
+    'Authorization': 'Bearer ' + tk,
+    'transId': 'moov_cancel_' + Date.now(),
+    'transactionSrc': 'MOOV-InterPricing',
+    'Prn': cleanPrn,
+  };
+  if (process.env.UPS_ACCOUNT_NUMBER) {
+    headers['x-merchant-id'] = process.env.UPS_ACCOUNT_NUMBER;
+  }
+
+  const res = await fetch(base() + '/api/pickupcreation/v1/pickup/' + encodeURIComponent(cleanPrn), {
+    method: 'DELETE',
+    headers,
+    signal: AbortSignal.timeout(10000),
+  });
+
+  const text = await res.text();
+  let json = null;
+  try { json = JSON.parse(text); } catch (_) {}
+
+  if (!res.ok) {
+    let errMsg = 'UPS Pickup Cancellation ' + res.status;
+    if (json && json.response && json.response.errors && json.response.errors.length) {
+      errMsg = json.response.errors.map((e) => e.message || e.code).join('; ');
+    } else if (json && json.Error && json.Error.Description) {
+      errMsg = json.Error.Description;
+    } else if (text) {
+      errMsg += ': ' + text.slice(0, 300);
+    }
+    return { ok: false, status: res.status, error: errMsg, raw: text };
+  }
+
+  return {
+    ok: true,
+    status: res.status,
+    raw: text,
+    json,
+  };
+}
+
 // ---- UPS Shipment Booking (Label Generation & Paperless Document Upload) ----
 function buildShipmentRequest(p) {
   const acct = process.env.UPS_ACCOUNT_NUMBER || '';
@@ -682,4 +729,4 @@ async function bookShipment(payload) {
   };
 }
 
-module.exports = { quoteRates, quoteRatesRaw, createPickup, buildPickupRequest, bookShipment, buildShipmentRequest, svcName, configured };
+module.exports = { quoteRates, quoteRatesRaw, createPickup, cancelPickup, buildPickupRequest, bookShipment, buildShipmentRequest, svcName, configured };

@@ -1101,6 +1101,46 @@ a:hover { text-decoration: underline; }
       </div>
     </div>
 
+    <!-- MODAL: RESCHEDULE UPS COLLECTION -->
+    <div class="ds-modal-scrim" id="adminReschedModal" style="display:none">
+      <div class="ds-modal" style="width:460px">
+        <div class="ds-modal-head">
+          <div class="ds-kicker">UPS PICKUP MANAGEMENT</div>
+          <h2 style="margin:4px 0 0;font-size:20px">Reschedule UPS Collection</h2>
+          <p class="ds-blurb" style="font-size:12px;margin-top:4px">Cancels previous pickup with UPS and requests a new collection window.</p>
+        </div>
+        <div class="ds-modal-body">
+          <div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);padding:10px 14px;margin-bottom:14px;font-size:12.5px;display:flex;justify-content:space-between">
+            <span style="color:var(--mv-ink-55)">Current PRN:</span>
+            <span style="font-family:monospace;font-weight:800;color:var(--mv-purple)" id="admReschedPrn">—</span>
+          </div>
+          <div class="ds-field-wrap">
+            <label class="ds-label">New Pickup Date *</label>
+            <input id="admReschedDate" type="date" class="ds-input"/>
+          </div>
+          <div class="ds-grid ds-grid-2" style="margin-top:12px">
+            <div class="ds-field-wrap">
+              <label class="ds-label">Opening Time</label>
+              <input id="admReschedReady" type="time" value="10:00" class="ds-input"/>
+            </div>
+            <div class="ds-field-wrap">
+              <label class="ds-label">Closing Time</label>
+              <input id="admReschedClose" type="time" value="17:00" class="ds-input"/>
+            </div>
+          </div>
+          <div class="ds-field-wrap" style="margin-top:12px">
+            <label class="ds-label">Special Instructions for Courier</label>
+            <input id="admReschedSpecial" type="text" class="ds-input" placeholder="e.g. Ring buzzer for loading bay" maxlength="100"/>
+          </div>
+          <div id="admReschedMsg" style="margin-top:8px;font-size:12px"></div>
+        </div>
+        <div class="ds-modal-foot">
+          <button class="ds-btn ds-btn-secondary" id="admReschedCancel">Cancel</button>
+          <button class="ds-btn ds-btn-primary" id="admReschedSubmit">Confirm Reschedule</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 1. RATE CALCULATOR (app) -->
     <div id="app" style="display:none">
       <div class="ds-pagehead">
@@ -1529,6 +1569,7 @@ a:hover { text-decoration: underline; }
                 <th>Parcels &amp; Weight</th>
                 <th>Tracking #</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody id="colHistoryBody"></tbody>
@@ -2695,13 +2736,15 @@ function renderShipments(list) {
       ? ('<a href="data:image/gif;base64,' + x.label_base64 + '" download="UPS_Label_' + (x.tracking_number || x.id) + '.gif" class="ds-btn ds-btn-secondary" style="padding:3px 8px;font-size:11px" target="_blank">Print Label 🖨️</a>')
       : '<span class="ds-status--waiting">—</span>';
 
+    const prnAction = x.prn ? ('<div style="margin-top:4px"><button class="ds-btn ds-btn-secondary btn-adm-resched" data-prn="' + qesc(x.prn) + '" style="padding:2px 6px;font-size:10px">Reschedule 🔄</button></div>') : '';
+
     tr.innerHTML = '<td>' + trackingStr + '</td>' +
       '<td><b>' + qesc(x.service_name || x.service_code || 'UPS') + '</b><div style="font-size:11px;color:var(--mv-ink-55)">' + qesc((x.mode || 'import').toUpperCase()) + '</div></td>' +
       '<td>' + qesc(x.customer || 'Direct') + '</td>' +
       '<td style="font-size:12px">' + qesc(fromStr) + '</td>' +
       '<td style="font-size:12px">' + qesc(toStr) + '</td>' +
       '<td>' + (x.total_weight_kg ? (x.total_weight_kg + ' kg') : '—') + '</td>' +
-      '<td>' + prnStr + '</td>' +
+      '<td>' + prnStr + prnAction + '</td>' +
       '<td>' + docsStr + '</td>' +
       '<td>' + labelBtn + '</td>' +
       '<td style="white-space:nowrap">' + qDT(x.created_at) + '</td>';
@@ -2730,11 +2773,24 @@ function renderCollections(list) {
   list.forEach(x => {
     const tr = document.createElement('tr');
     const prnStr = x.prn ? ('<b style="color:var(--mv-purple);font-family:monospace;font-size:13.5px">' + qesc(x.prn) + '</b>') : '<span class="ds-status--waiting">—</span>';
-    const statusChip = x.status === 'booked' ? '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>BOOKED</span>' : '<span class="ds-status ds-status--attention"><span class="ds-mark ds-mark--attention"></span>FAILED</span>';
+    const statusChip = x.status === 'booked'
+      ? '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>BOOKED</span>'
+      : (x.status === 'cancelled'
+        ? '<span class="ds-status ds-status--attention"><span class="ds-mark ds-mark--attention"></span>CANCELLED</span>'
+        : (x.status === 'rescheduled'
+          ? '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>RESCHEDULED</span>'
+          : '<span class="ds-status ds-status--attention"><span class="ds-mark ds-mark--attention"></span>FAILED</span>'));
     const timeWin = qesc(x.ready_time || '09:00') + ' – ' + qesc(x.close_time || '17:00');
     const weightStr = x.total_weight_kg ? (x.total_weight_kg + ' kg') : '';
     const parcelsStr = (x.parcels || 1) + ' parcel' + (x.parcels === 1 ? '' : 's') + (weightStr ? (' · ' + weightStr) : '');
     const trackingStr = x.tracking_number ? ('<span style="font-family:monospace;font-size:12px;font-weight:700">' + qesc(x.tracking_number) + '</span>') : '<span class="ds-status--waiting">—</span>';
+
+    const actionsHtml = (x.prn && x.status !== 'cancelled')
+      ? ('<div style="display:flex;gap:6px">' +
+          '<button class="ds-btn ds-btn-secondary btn-adm-resched" data-prn="' + qesc(x.prn) + '" data-date="' + qesc(x.pickup_date || '') + '" data-ready="' + qesc(x.ready_time || '10:00') + '" data-close="' + qesc(x.close_time || '17:00') + '" data-special="' + qesc(x.special_instruction || '') + '" style="padding:3px 8px;font-size:11px">Reschedule</button>' +
+          '<button class="ds-btn ds-btn-danger btn-adm-cancel" data-prn="' + qesc(x.prn) + '" style="padding:3px 8px;font-size:11px">Cancel</button>' +
+        '</div>')
+      : '—';
 
     tr.innerHTML = '<td>' + prnStr + '</td>' +
       '<td style="white-space:nowrap">' + qDT(x.created_at) + '</td>' +
@@ -2743,11 +2799,122 @@ function renderCollections(list) {
       '<td>' + qesc(x.address_line || '') + ', ' + qesc(x.city || '') + ' ' + qesc(x.postal_code || '') + '</td>' +
       '<td>' + parcelsStr + '</td>' +
       '<td>' + trackingStr + '</td>' +
-      '<td>' + statusChip + '</td>';
+      '<td>' + statusChip + '</td>' +
+      '<td>' + actionsHtml + '</td>';
     tb.appendChild(tr);
   });
   $('colEmpty').textContent = list.length ? '' : 'No collections booked yet.';
 }
+
+// Global click handler for Reschedule & Cancel buttons
+document.addEventListener('click', async e => {
+  const reschedBtn = e.target.closest && e.target.closest('.btn-adm-resched');
+  if (reschedBtn) {
+    e.preventDefault();
+    openAdminReschedModal(
+      reschedBtn.dataset.prn,
+      reschedBtn.dataset.date,
+      reschedBtn.dataset.ready,
+      reschedBtn.dataset.close,
+      reschedBtn.dataset.special
+    );
+    return;
+  }
+
+  const cancelBtn = e.target.closest && e.target.closest('.btn-adm-cancel');
+  if (cancelBtn) {
+    e.preventDefault();
+    const prn = cancelBtn.dataset.prn;
+    if (!confirm('Are you sure you want to cancel UPS collection PRN ' + prn + '?')) return;
+    cancelBtn.disabled = true;
+    cancelBtn.textContent = 'Cancelling…';
+    try {
+      const res = await jpost('/api/collections/cancel', { prn });
+      const d = await res.json();
+      if (!res.ok || !d.ok) {
+        alert('UPS Cancellation Error: ' + (d.error || 'Failed to cancel collection.'));
+      } else {
+        alert('Collection PRN ' + prn + ' was successfully cancelled with UPS.');
+      }
+      await loadCollections();
+      await loadShipments();
+    } catch (err) {
+      alert('Network Error: ' + err.message);
+    }
+    return;
+  }
+});
+
+let admActivePrn = null;
+function openAdminReschedModal(prn, date, ready, close, special) {
+  admActivePrn = prn;
+  $('admReschedPrn').textContent = prn || '—';
+  $('admReschedMsg').textContent = '';
+
+  const d = date ? new Date(date) : new Date();
+  if (!date) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+    if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+  }
+  $('admReschedDate').value = date || d.toISOString().slice(0, 10);
+  $('admReschedReady').value = ready || '10:00';
+  $('admReschedClose').value = close || '17:00';
+  $('admReschedSpecial').value = special || '';
+  $('admReschedSubmit').disabled = false;
+  $('admReschedSubmit').textContent = 'Confirm Reschedule';
+  $('adminReschedModal').style.display = 'flex';
+}
+
+function closeAdminReschedModal() {
+  $('adminReschedModal').style.display = 'none';
+}
+
+if ($('admReschedCancel')) $('admReschedCancel').onclick = closeAdminReschedModal;
+if ($('admReschedSubmit')) $('admReschedSubmit').onclick = async () => {
+  if (!admActivePrn) return;
+  const pDate = $('admReschedDate').value;
+  if (!pDate) {
+    $('admReschedMsg').style.color = 'var(--mv-magenta-deep)';
+    $('admReschedMsg').textContent = 'Please choose a pickup date.';
+    return;
+  }
+
+  const btn = $('admReschedSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Rescheduling with UPS…';
+  $('admReschedMsg').textContent = '';
+
+  try {
+    const res = await jpost('/api/collections/reschedule', {
+      oldPrn: admActivePrn,
+      pickupDate: pDate,
+      readyTime: $('admReschedReady').value,
+      closeTime: $('admReschedClose').value,
+      instructions: $('admReschedSpecial').value,
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      btn.disabled = false;
+      btn.textContent = 'Confirm Reschedule';
+      $('admReschedMsg').style.color = 'var(--mv-magenta-deep)';
+      $('admReschedMsg').textContent = 'UPS Error: ' + (d.error || 'Failed to reschedule.');
+      return;
+    }
+
+    closeAdminReschedModal();
+    alert('Collection successfully rescheduled with UPS!
+
+New PRN: ' + (d.newPrn || d.oldPrn));
+    await loadCollections();
+    await loadShipments();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Confirm Reschedule';
+    $('admReschedMsg').style.color = 'var(--mv-magenta-deep)';
+    $('admReschedMsg').textContent = 'Network Error: ' + err.message;
+  }
+};
 
 $('colRefresh').onclick = loadCollections;
 

@@ -679,6 +679,110 @@ app.post('/api/collections', auth.requireAuth, async (req, res) => {
   }
 });
 
+// AUTHENTICATED / CARD TOKEN: Cancel a collection request with UPS
+app.post('/api/collections/cancel', async (req, res) => {
+  try {
+    const { prn, token } = req.body || {};
+    if (!prn) return res.status(400).json({ ok: false, error: 'PRN is required to cancel a pickup.' });
+
+    if (token) {
+      const card = db.hasDb ? await db.getCardByToken(token) : null;
+      if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Rate card not available' });
+    } else if (!auth.getUserFromReq(req)) {
+      return res.status(401).json({ ok: false, error: 'Authentication required' });
+    }
+
+    const cancelRes = await ups.cancelPickup(prn);
+    if (!cancelRes.ok) {
+      return res.status(400).json({ ok: false, error: cancelRes.error, status: cancelRes.status });
+    }
+
+    if (db.hasDb) {
+      await db.updateCollectionByPrn(prn, { status: 'cancelled', response: cancelRes });
+    }
+
+    res.json({ ok: true, prn, status: 'cancelled', message: 'Collection successfully cancelled with UPS.' });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// AUTHENTICATED / CARD TOKEN: Reschedule a collection with UPS (cancels old PRN, books new date/time)
+app.post('/api/collections/reschedule', async (req, res) => {
+  try {
+    const { oldPrn, token, pickupDate, readyTime, closeTime, instructions } = req.body || {};
+    if (!oldPrn) return res.status(400).json({ ok: false, error: 'Current PRN is required to reschedule.' });
+    if (!pickupDate) return res.status(400).json({ ok: false, error: 'New pickup date is required.' });
+
+    if (token) {
+      const card = db.hasDb ? await db.getCardByToken(token) : null;
+      if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Rate card not available' });
+    } else if (!auth.getUserFromReq(req)) {
+      return res.status(401).json({ ok: false, error: 'Authentication required' });
+    }
+
+    const existing = db.hasDb ? await db.getCollectionByPrn(oldPrn) : null;
+
+    // 1. Send Cancellation to UPS
+    const cancelRes = await ups.cancelPickup(oldPrn);
+
+    // 2. Build payload for new pickup
+    const newPayload = {
+      companyName: existing ? existing.company_name : req.body.companyName,
+      contactName: existing ? existing.contact_name : req.body.contactName,
+      phone: existing ? existing.phone : req.body.phone,
+      email: existing ? existing.email : req.body.email,
+      addressLine: existing ? existing.address_line : req.body.addressLine,
+      city: existing ? existing.city : req.body.city,
+      postcode: existing ? existing.postal_code : req.body.postcode,
+      country: existing ? existing.country_code : (req.body.country || 'GB'),
+      pickupDate: pickupDate,
+      readyTime: readyTime || (existing ? existing.ready_time : '10:00'),
+      closeTime: closeTime || (existing ? existing.close_time : '17:00'),
+      parcels: existing ? existing.parcels : (req.body.parcels || 1),
+      weight: existing ? existing.total_weight_kg : (req.body.weight || 1),
+      trackingNumber: existing ? existing.tracking_number : req.body.trackingNumber,
+      specialInstruction: instructions || (existing ? existing.special_instruction : ''),
+      serviceCode: existing ? existing.service_code : (req.body.serviceCode || '011'),
+    };
+
+    const newPickup = await ups.createPickup(newPayload);
+    if (!newPickup.ok) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Failed to book rescheduled pickup with UPS: ' + newPickup.error,
+        cancelStatus: cancelRes.ok ? 'cancelled' : 'cancel_failed'
+      });
+    }
+
+    // 3. Update DB
+    if (db.hasDb) {
+      await db.updateCollectionByPrn(oldPrn, {
+        prn: newPickup.prn,
+        status: 'rescheduled',
+        pickup_date: pickupDate,
+        ready_time: newPayload.readyTime,
+        close_time: newPayload.closeTime,
+        special_instruction: newPayload.specialInstruction,
+        response: { cancel: cancelRes, newPickup },
+      });
+    }
+
+    res.json({
+      ok: true,
+      oldPrn,
+      newPrn: newPickup.prn,
+      pickupDate,
+      readyTime: newPayload.readyTime,
+      closeTime: newPayload.closeTime,
+      rateStatus: newPickup.rateStatus,
+      message: 'Collection successfully rescheduled with UPS.',
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // PUBLIC / CARD-AUTHENTICATED: Book Import Shipment with UPS & Electronic Documents + Schedule Collection
 app.post('/api/book-import', async (req, res) => {
   try {
