@@ -250,6 +250,70 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Tooltips */
+.tip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-left: 4px;
+  cursor: help;
+}
+.tip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--line, #e5e7eb);
+  color: var(--text, #111827);
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+.tip-bubble {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: normal;
+  width: max-content;
+  max-width: 250px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  z-index: 120;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  white-space: normal;
+}
+.tip-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1f2937 transparent transparent transparent;
+}
+.tip-wrap:hover .tip-bubble,
+.tip-wrap:focus .tip-bubble,
+.tip-wrap:focus-within .tip-bubble {
+  visibility: visible;
+  opacity: 1;
+}
+
 .combo {
   position: relative;
   width: 100%;
@@ -1099,7 +1163,13 @@ body {
               </div>
             </div>
             <div class="f postcode">
-              <label>Postcode <span class="pcopt">optional</span></label>
+              <label>
+                Postcode <span class="pcopt">optional</span>
+                <span class="tip-wrap" tabindex="0">
+                  <span class="tip-icon">?</span>
+                  <span class="tip-bubble">If you enter a postcode, we will give you a more accurate cost for services where a postcode remote area surcharge exists.</span>
+                </span>
+              </label>
               <input id="pc" type="text" autocomplete="off" placeholder="exact UPS surcharges"/>
             </div>
             <div class="f small">
@@ -1119,11 +1189,23 @@ body {
               <input id="H" type="number" min="0" step="1" placeholder="H"/>
             </div>
             <div class="f small">
-              <label id="vlab">Value (£)</label>
+              <label id="vlab">
+                Value (£)
+                <span class="tip-wrap" tabindex="0">
+                  <span class="tip-icon">?</span>
+                  <span class="tip-bubble">This will more accurately affect pricing for European orders and show you how much you would get charged for import duty. The goods value is used to work out duties and taxes fees.</span>
+                </span>
+              </label>
               <input id="V" type="number" min="0" step="1" value="0"/>
             </div>
             <div class="f small">
-              <label>SKUs</label>
+              <label>
+                SKUs
+                <span class="tip-wrap" tabindex="0">
+                  <span class="tip-icon">?</span>
+                  <span class="tip-bubble">For Europe, the number of SKUs affects the number of €3 surcharges that you'll pay. For international orders, it will affect the number of free included HS codes you get before the courier charges extras.</span>
+                </span>
+              </label>
               <input id="SK" type="number" min="1" step="1" value="1"/>
             </div>
           </div>

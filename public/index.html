@@ -309,6 +309,80 @@ a:hover { text-decoration: underline; }
   border-left: 1px solid var(--mv-hairline-2);
 }
 .ds-figure:first-child { border-left: 0; }
+.ds-label {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--mv-ink-75);
+  margin-bottom: 6px;
+}
+
+/* Tooltips */
+.ds-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-left: 5px;
+  cursor: help;
+}
+.ds-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--mv-hairline-2);
+  color: var(--mv-ink);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+.ds-tooltip-bubble {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--mv-ink);
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: normal;
+  width: max-content;
+  max-width: 260px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  border-top: 2px solid var(--mv-purple);
+  z-index: 120;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  white-space: normal;
+}
+.ds-tooltip-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--mv-ink) transparent transparent transparent;
+}
+.ds-tooltip-wrap:hover .ds-tooltip-bubble,
+.ds-tooltip-wrap:focus .ds-tooltip-bubble,
+.ds-tooltip-wrap:focus-within .ds-tooltip-bubble {
+  visibility: visible;
+  opacity: 1;
+}
 .ds-figure .lab {
   font-size: 9.5px;
   text-transform: uppercase;
@@ -1036,7 +1110,13 @@ a:hover { text-decoration: underline; }
             <select id="country" class="ds-select"></select>
           </div>
           <div class="ds-field-wrap">
-            <label class="ds-label">Postcode</label>
+            <label class="ds-label">
+              Postcode
+              <span class="ds-tooltip-wrap" tabindex="0">
+                <span class="ds-tooltip-icon">?</span>
+                <span class="ds-tooltip-bubble">If you enter a postcode, we will give you a more accurate cost for services where a postcode remote area surcharge exists.</span>
+              </span>
+            </label>
             <input id="postcode" type="text" class="ds-input" placeholder="e.g. 90210"/>
           </div>
           <div class="ds-field-wrap">
@@ -1056,11 +1136,23 @@ a:hover { text-decoration: underline; }
             <input id="H" type="number" min="0" step="1" class="ds-input num"/>
           </div>
           <div class="ds-field-wrap">
-            <label class="ds-label" id="gvlab">Goods Value (£)</label>
+            <label class="ds-label" id="gvlab">
+              Goods Value (£)
+              <span class="ds-tooltip-wrap" tabindex="0">
+                <span class="ds-tooltip-icon">?</span>
+                <span class="ds-tooltip-bubble">This will more accurately affect pricing for European orders and show you how much you would get charged for import duty. The goods value is used to work out duties and taxes fees.</span>
+              </span>
+            </label>
             <input id="goodsValue" type="number" min="0" step="1" value="0" class="ds-input num"/>
           </div>
           <div class="ds-field-wrap">
-            <label class="ds-label">SKUs</label>
+            <label class="ds-label">
+              SKUs
+              <span class="ds-tooltip-wrap" tabindex="0">
+                <span class="ds-tooltip-icon">?</span>
+                <span class="ds-tooltip-bubble">For Europe, the number of SKUs affects the number of €3 surcharges that you'll pay. For international orders, it will affect the number of free included HS codes you get before the courier charges extras.</span>
+              </span>
+            </label>
             <input id="SK" type="number" min="1" step="1" value="1" class="ds-input num"/>
           </div>
         </div>
