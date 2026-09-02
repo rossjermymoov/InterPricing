@@ -43,13 +43,18 @@ async function token() {
 const num = (v) => { const n = typeof v === 'string' ? parseFloat(v) : v; return (typeof n === 'number' && !isNaN(n)) ? n : null; };
 const S = (v) => (v == null ? '' : String(v));
 
+const toIso = (c) => nameToIso(c) || (/^[A-Za-z]{2}$/.test(c) ? c.toUpperCase() : 'GB');
+
 function addressOf(a, fallbackCountry) {
   a = a || {};
+  const c = toIso(a.country || fallbackCountry) || 'GB';
+  const lines = [a.line1, a.line2].map(S).filter(Boolean);
   const addr = {
-    AddressLine: [a.line1, a.line2].map(S).filter(Boolean),
-    City: S(a.city), PostalCode: S(a.postcode),
-    CountryCode: S(a.country || fallbackCountry).toUpperCase(),
+    AddressLine: lines.length ? lines : ['1 Main Street'],
+    CountryCode: c.toUpperCase(),
   };
+  if (a.city && String(a.city).trim()) addr.City = String(a.city).trim();
+  if (a.postcode && String(a.postcode).trim()) addr.PostalCode = String(a.postcode).trim();
   if (a.residential) {
     addr.ResidentialAddressIndicator = 'Y';
   }
@@ -228,14 +233,46 @@ function parseRates(data) {
 async function callRate(payload) {
   const tk = await token();
   if (!tk) return null;
-  const res = await fetch(base() + '/api/rating/' + ver() + '/Shoptimeintransit', {
+  const acct = process.env.UPS_ACCOUNT_NUMBER || '';
+  const headers = {
+    'Authorization': 'Bearer ' + tk,
+    'Content-Type': 'application/json',
+    'transId': 'moov' + Date.now(),
+    'transactionSrc': 'MOOV-InterPricing',
+  };
+  if (acct) headers['x-merchant-id'] = acct;
+
+  const reqBody = buildRateRequest(payload);
+  let res = await fetch(base() + '/api/rating/' + ver() + '/Shoptimeintransit', {
     method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + tk, 'Content-Type': 'application/json', 'transId': 'moov' + Date.now(), 'transactionSrc': 'MOOV-InterPricing' },
-    body: JSON.stringify(buildRateRequest(payload)),
+    headers,
+    body: JSON.stringify(reqBody),
     signal: AbortSignal.timeout(6500),
   });
-  const text = await res.text();
+  let text = await res.text();
   let json = null; try { json = JSON.parse(text); } catch (_) {}
+
+  // If Shoptimeintransit returns non-200, try standard /Shop endpoint
+  if (!res.ok) {
+    try {
+      const fallbackReq = JSON.parse(JSON.stringify(reqBody));
+      if (fallbackReq.RateRequest && fallbackReq.RateRequest.Shipment) {
+        delete fallbackReq.RateRequest.Shipment.DeliveryTimeInformation;
+      }
+      const resFallback = await fetch(base() + '/api/rating/' + ver() + '/Shop', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(fallbackReq),
+        signal: AbortSignal.timeout(6500),
+      });
+      if (resFallback.ok) {
+        text = await resFallback.text();
+        try { json = JSON.parse(text); } catch (_) {}
+        return { ok: true, status: resFallback.status, json, text };
+      }
+    } catch (_) {}
+  }
+
   return { ok: res.ok, status: res.status, json, text };
 }
 

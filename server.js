@@ -395,19 +395,19 @@ app.post('/api/import-quote', async (req, res) => {
 // charge breakdown — never raw cost. Falls back to enabled:false so the card uses static rates.
 const MOOV_ORIGIN = { country: 'GB', postcode: 'SY11 4FN', city: 'Whittington', line1: '1 Mellor Meadows', name: 'MOOV Parcel' };
 const CODE2KEY = {
-  '01': 'u1',
-  '02': 'u2',
-  '03': 'ug',
-  '07': 'ue', // Worldwide Express
-  '08': 'ud', // Worldwide Expedited
-  '11': 'us', // Standard
+  '01': 'u1', '1': 'u1',
+  '02': 'u2', '2': 'u2',
+  '03': 'ug', '3': 'ug',
+  '07': 'ue', '7': 'ue', // Worldwide Express
+  '08': 'ud', '8': 'ud', // Worldwide Expedited
+  '11': 'us', '011': 'us', // Standard
   '12': 'u3', // 3 Day Select
   '54': 'up', // Worldwide Express Plus
-  '65': 'ux', // Worldwide Saver
+  '65': 'ux', '065': 'ux', // Worldwide Saver
   '96': 'uf', // Worldwide Express Freight
 };
 
-const ALLOWED_UPS_CODES = new Set(['11', '65']); // strictly UPS Standard ('11') and UPS Express Saver ('65')
+const ALLOWED_UPS_CODES = new Set(['11', '65', '011', '065', '07', '08', '7', '8', '54', '01', '02', '03']);
 
 app.post('/api/card-rate', async (req, res) => {
   try {
