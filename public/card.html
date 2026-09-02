@@ -924,6 +924,175 @@ a:hover { text-decoration: underline; }
 .pcopt { font-weight: 600; color: var(--mv-ink-45); text-transform: none; letter-spacing: 0; font-size: 9.5px; }
 .spin { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--mv-hairline-2); border-top-color: var(--mv-purple); border-radius: 50% !important; animation: spin 0.7s linear infinite; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== COMPREHENSIVE RESPONSIVE MOBILE OPTIMIZATIONS ===== */
+@media (max-width: 768px) {
+  .hero .inner {
+    padding: 16px 16px 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .hero h1 {
+    font-size: 22px;
+  }
+  .hero .meta {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .brand-nav-row {
+    padding: 0 12px;
+  }
+  .tabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button {
+    flex-shrink: 0;
+    padding: 9px 14px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .rates-container {
+    padding: 16px 12px 60px;
+  }
+  .calc-card {
+    padding: 18px 16px;
+  }
+  .calc-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .calc-head h2 {
+    font-size: 14.5px;
+  }
+  .calc-grid {
+    gap: 14px 16px;
+  }
+  .f.country {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+  .f.postcode {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+  .f.small {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 120px;
+  }
+  .meta-chips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 16px;
+  }
+  .meta-chip {
+    padding: 10px 14px;
+    border-left: 0;
+    border-bottom: 1px solid var(--mv-hairline-2);
+  }
+  .meta-chip:nth-child(odd) {
+    border-right: 1px solid var(--mv-hairline-2);
+  }
+  .meta-chip:nth-last-child(-n+2) {
+    border-bottom: 0;
+  }
+  .meta-chip b {
+    font-size: 19px;
+  }
+  .toggles {
+    gap: 10px 16px;
+  }
+  .cards {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 16px;
+  }
+  .card {
+    padding: 18px 16px;
+  }
+  .card .amt {
+    font-size: 28px;
+  }
+  /* Import Quote View */
+  .duo {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .party {
+    padding: 14px;
+  }
+  .pfields {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .pfields .f.span2 {
+    grid-column: auto;
+  }
+  .panel {
+    padding: 16px 14px;
+    margin-top: 14px;
+  }
+  .ipgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 14px;
+  }
+  .ipgrid .f[style*="flex: 1.8 1"] {
+    grid-column: 1 / -1;
+  }
+  .iactions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .iactions .print {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 18px;
+  }
+  /* Bookings View */
+  .moov-timeline-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 10px 6px;
+  }
+  .moov-timeline-wrap .moov-timeline-nodes {
+    min-width: 520px;
+  }
+  .moov-timeline-track {
+    min-width: 460px;
+  }
+  .calc-card > div[style*="grid-template-columns:repeat(auto-fit"] {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+    padding: 16px 14px !important;
+  }
+  .btn-cust-track-live {
+    align-self: flex-start;
+  }
+  /* Modals */
+  .modal {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modalCard {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-bottom: 0;
+  }
+}
 </style>
 </head>
 <body>
