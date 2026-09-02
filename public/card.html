@@ -1337,7 +1337,7 @@ body {
         <div id="iparcels"></div>
         <button type="button" class="addP" id="iaddParcel">＋ Add another package</button>
         <div class="pfields" style="margin-top:14px;max-width:520px;align-items:start">
-          <div class="f"><label>Total goods value (£)</label><input id="igoods" type="number" min="0" step="1" placeholder="e.g. 250"/></div>
+          <div class="f"><label>Total goods value (£) <span class="pcopt">optional</span></label><input id="igoods" type="number" min="0" step="1" placeholder="Optional (e.g. 250)"/></div>
           <div class="f"><label>HS / tariff lines</label><input id="ihslines" type="number" min="0" step="1" value="5" placeholder="e.g. 5"/><span class="fhint">First 5 free, £2.95 each after</span></div>
         </div>
         <div class="isum" id="isummary"></div>
@@ -1391,7 +1391,7 @@ body {
       <div style="padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:10">
         <div>
           <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--ink)" id="ibModalTitle">Book Import Shipment</h2>
-          <div style="font-size:13px;color:var(--muted);margin-top:2px" id="ibModalSub">UPS Worldwide Saver · Collection &amp; Customs Included</div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px" id="ibModalSub">Direct overseas collection &amp; delivery via UPS</div>
         </div>
         <button type="button" id="closeIbModal" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1">&times;</button>
       </div>
@@ -1400,13 +1400,13 @@ body {
       <div id="ibFormView" style="padding:24px">
         <!-- Section 1: Electronic Customs Documents -->
         <div style="margin-bottom:20px">
-          <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink);margin-bottom:8px">1. Electronic Customs Documents (Paperless Upload)</div>
-          <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">Upload your commercial invoice and packing list. These will be securely transmitted directly to UPS customs clearance.</div>
+          <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink);margin-bottom:8px">1. Customs Documents (Optional Paperless Upload)</div>
+          <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">Upload your commercial invoice and packing list if you have them. If omitted, physical paper copies can be handed to the driver upon collection.</div>
           
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
             <!-- Commercial Invoice -->
             <div style="border:1.5px dashed var(--line-strong);border-radius:8px;padding:14px;background:#f9fafb;text-align:center;position:relative">
-              <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:4px">Commercial Invoice *</div>
+              <div style="font-size:12px;font-weight:700;color:var(--ink);margin-bottom:4px">Commercial Invoice (Optional)</div>
               <div style="font-size:11px;color:var(--muted);margin-bottom:10px" id="ciFileStatus">PDF, PNG, JPG (Max 5MB)</div>
               <input type="file" id="ciFileInput" accept=".pdf,.png,.jpg,.jpeg" style="display:none"/>
               <button type="button" class="btn" id="ciFileBtn" style="font-size:12px;padding:6px 12px">Choose File</button>
