@@ -552,6 +552,7 @@ function buildShipmentRequest(p) {
     const h = Math.max(1, Number(pkg.h) || 10);
     for (let i = 0; i < q; i++) {
       packagesArray.push({
+        Description: S(pkg.description || p.description || 'Commercial Goods').slice(0, 35),
         Packaging: { Code: '02', Description: 'Customer Supplied Package' },
         Dimensions: {
           UnitOfMeasurement: { Code: 'CM', Description: 'Centimeters' },

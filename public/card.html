@@ -2692,10 +2692,14 @@ async function submitImportBooking() {
       $('ibRescheduleBtn').style.display = 'none';
     }
 
-    const labelPkg = d.packages && d.packages[0];
-    if (labelPkg && labelPkg.labelGraphic) {
-      $('ibDownloadLabel').href = 'data:image/gif;base64,' + labelPkg.labelGraphic;
+    const pkgsList = Array.isArray(d.packages) ? d.packages : [];
+    if (pkgsList.length > 0 && pkgsList.some(p => p.labelGraphic)) {
       $('ibDownloadLabel').style.display = 'inline-flex';
+      $('ibDownloadLabel').textContent = pkgsList.length > 1 ? ('Print All ' + pkgsList.length + ' Labels (PDF / 4x6) 🖨️') : 'Print / Download Label 🖨️';
+      $('ibDownloadLabel').onclick = (e) => {
+        e.preventDefault();
+        printAllShipmentLabels(pkgsList);
+      };
     } else {
       $('ibDownloadLabel').style.display = 'none';
     }
@@ -2705,6 +2709,52 @@ async function submitImportBooking() {
     btn.disabled = false;
     btn.textContent = 'Confirm & Book Shipment';
   }
+}
+
+function printAllShipmentLabels(pkgs) {
+  const list = (Array.isArray(pkgs) ? pkgs : []).filter(p => p && (p.labelGraphic || p.graphicImage));
+  if (!list.length) { alert('No label graphics available to print.'); return; }
+  const w = window.open('', '_blank');
+  if (!w) { alert('Please allow popups to open the printable labels.'); return; }
+  const imgs = list.map((p, i) => `
+    <div class="label-page">
+      <img src="data:image/gif;base64,${p.labelGraphic || p.graphicImage}" alt="UPS Label ${i + 1}" />
+    </div>
+  `).join('');
+
+  w.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>UPS Shipping Labels (${list.length} Parcel${list.length === 1 ? '' : 's'})</title>
+      <style>
+        @page { size: 4in 6in; margin: 0; }
+        @media print {
+          html, body { margin: 0; padding: 0; }
+          .no-print { display: none !important; }
+          .label-page { page-break-after: always; break-after: page; width: 4in; height: 6in; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+          .label-page img { width: 100%; height: 100%; object-fit: contain; }
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f3f4f6; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .label-page { background: #fff; width: 384px; height: 576px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; border-radius: 4px; overflow: hidden; }
+        .label-page img { width: 100%; height: 100%; object-fit: contain; }
+        .print-bar { position: sticky; top: 12px; background: #111827; color: #fff; padding: 12px 24px; border-radius: 8px; z-index: 100; display: flex; gap: 14px; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.25); }
+        .print-btn { background: #0E9C63; color: #fff; border: none; padding: 8px 18px; font-weight: 700; border-radius: 6px; cursor: pointer; font-size: 13px; }
+      </style>
+    </head>
+    <body>
+      <div class="print-bar no-print">
+        <span><b>${list.length} UPS Label${list.length === 1 ? '' : 's'}</b> ready to print</span>
+        <button class="print-btn" onclick="window.print()">Print / Save PDF 🖨️</button>
+      </div>
+      ${imgs}
+      <script>
+        window.onload = function() { setTimeout(function() { window.print(); }, 400); };
+      <\/script>
+    </body>
+    </html>
+  `);
+  w.document.close();
 }
 
 let activeReschedPrn = null;
