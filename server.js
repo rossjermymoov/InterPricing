@@ -233,7 +233,8 @@ app.get('/api/card/:token', async (req, res) => {
     if (!card || card.enabled === false) return res.status(404).json({ error: 'This rate card is not available.' });
     res.set('Cache-Control', 'no-store');
     const payload = pricing.buildCardPayload(await db.getConfig(), card);
-    const pc = card.config && card.config.postcode;
+    const conf = card.config || {};
+    const pc = conf.postcode || (conf.deliveryAddress && conf.deliveryAddress.postcode);
     if (pc) {
       try {
         const carriers = [...new Set((payload.services || []).map((s) => s.carrier))];
@@ -243,6 +244,28 @@ app.get('/api/card/:token', async (req, res) => {
     }
     res.json(payload);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUBLIC: Live parcel shop / drop-off points lookup (DPD Pickup Shops & UPS Access Points)
+app.get('/api/pickups', async (req, res) => {
+  try {
+    const pc = String(req.query.postcode || '').trim() || 'SY11 4FN';
+    const carrier = req.query.carrier ? [req.query.carrier] : undefined;
+    const pk = await fetchPickups(pc, carrier);
+    res.json(pk || { dropoffs: [], origin: null, postcode: pc });
+  } catch (e) {
+    res.status(500).json({ error: e.message, dropoffs: [] });
+  }
+});
+app.post('/api/pickups', async (req, res) => {
+  try {
+    const { postcode, carriers } = req.body || {};
+    const pc = String(postcode || '').trim() || 'SY11 4FN';
+    const pk = await fetchPickups(pc, carriers);
+    res.json(pk || { dropoffs: [], origin: null, postcode: pc });
+  } catch (e) {
+    res.status(500).json({ error: e.message, dropoffs: [] });
+  }
 });
 // PUBLIC: the per-card sender address book (suppliers this customer imports from).
 // Authorized by possession of the card token — the same token that shows the card.

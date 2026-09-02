@@ -1172,6 +1172,10 @@ body {
               <button type="button" class="drop-close-btn" id="closeDropSidebar" title="Close drop-off points">&times;</button>
             </div>
           </div>
+          <div style="padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center">
+            <input type="text" id="dropSearchPc" placeholder="Enter UK postcode…" style="flex:1;padding:6px 10px;font-size:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:4px"/>
+            <button type="button" id="dropSearchBtn" class="btn" style="padding:6px 12px;font-size:12px">Search</button>
+          </div>
           <div class="drop-panel-body" id="dropBody"></div>
         </div>
       </aside>
@@ -1785,39 +1789,49 @@ function dropCardHTML(p, i) {
 }
 
 const SIDEBAR_INIT = 4;
-function toggleDropShop(carrier) {
-  const sidebar = $('dropSidebar');
-  const carr = (carrier || 'DPD').toUpperCase();
+async function fetchAndRenderDropoffs(carr, customPc) {
+  const isDpd = carr === 'DPD';
+  const body = $('dropBody');
+  const pcInput = $('dropSearchPc');
+  const pc = String(customPc || (pcInput && pcInput.value) || (RC && (RC.postcode || (RC.deliveryAddress && RC.deliveryAddress.postcode))) || 'SY11 4FN').trim();
+  if (pcInput && !pcInput.value) pcInput.value = pc;
 
-  if (activeDropCarrier === carr && sidebar.style.display !== 'none') {
-    // Close sidebar
-    activeDropCarrier = null;
-    sidebar.style.display = 'none';
-    calc(); // re-render button states
-    return;
+  // If we already have points for this carrier and no new postcode search was triggered, render directly
+  let pts = (RC.dropoffs || []).filter(p => p && p.lat != null && p.lng != null);
+  let filtered = pts.filter(p => isDpd ? (String(p.carrier || '').toUpperCase() !== 'UPS') : (String(p.carrier || '').toUpperCase() === 'UPS'));
+
+  if (!filtered.length || customPc) {
+    body.innerHTML = '<div style="padding:40px 10px;text-align:center;color:var(--muted);font-size:13px"><span class="spin"></span><div style="margin-top:8px">Finding nearest ' + carr + ' drop-off locations for ' + esc(pc) + '…</div></div>';
+    try {
+      const r = await fetch('/api/pickups?postcode=' + encodeURIComponent(pc) + '&carrier=' + encodeURIComponent(carr));
+      const d = await r.json();
+      if (d && Array.isArray(d.dropoffs)) {
+        if (!RC.dropoffs) RC.dropoffs = [];
+        const existingIds = new Set(RC.dropoffs.map(p => p.id || (p.lat + ',' + p.lng)));
+        d.dropoffs.forEach(p => {
+          const id = p.id || (p.lat + ',' + p.lng);
+          if (!existingIds.has(id)) {
+            RC.dropoffs.push(p);
+            existingIds.add(id);
+          }
+        });
+      }
+    } catch (e) {
+      console.error('[pickups]', e);
+    }
   }
 
-  activeDropCarrier = carr;
-  sidebar.style.display = 'flex';
-
-  // Set sidebar header
-  const isDpd = carr === 'DPD';
-  $('dropPanelHead').className = 'drop-panel-head ' + (isDpd ? 'dpd' : 'ups');
-  $('dropCarrierTitle').textContent = isDpd ? 'DPD Drop-off Points' : 'UPS Access Points';
-  $('dropCarrierSub').textContent = 'Nearest locations to you';
-  $('dropCarrierLogo').innerHTML = carrierMark(carr, 'dph-logo');
-  wireCarrierMarks($('dropCarrierLogo'));
-
-  // Filter carrier dropoffs
-  const pts = (RC.dropoffs || []).filter(p => p && p.lat != null && p.lng != null);
-  const filtered = pts.filter(p => isDpd ? (String(p.carrier || '').toUpperCase() !== 'UPS') : (String(p.carrier || '').toUpperCase() === 'UPS'));
+  pts = (RC.dropoffs || []).filter(p => p && p.lat != null && p.lng != null);
+  filtered = pts.filter(p => isDpd ? (String(p.carrier || '').toUpperCase() !== 'DPD' ? false : true) : (String(p.carrier || '').toUpperCase() === 'UPS'));
 
   $('dropCount').textContent = filtered.length;
-  const body = $('dropBody');
 
   function drawList(showAll) {
     if (!filtered.length) {
-      body.innerHTML = '<div style="padding:20px 10px;text-align:center;color:var(--muted);font-size:13px">No drop-off locations configured for ' + carr + '. Standard parcel collection or official drop-off depots apply.</div>';
+      body.innerHTML = '<div style="padding:24px 14px;text-align:center;color:var(--muted);font-size:13px">' +
+        'No ' + carr + ' drop-off locations found near <b>' + esc(pc) + '</b>.<br>' +
+        '<div style="margin-top:8px;font-size:12px">Try searching a nearby UK postcode above or book a parcel collection.</div>' +
+        '</div>';
       return;
     }
     const shown = showAll ? filtered.length : Math.min(SIDEBAR_INIT, filtered.length);
@@ -1831,7 +1845,46 @@ function toggleDropShop(carrier) {
   }
 
   drawList(false);
-  calc(); // update active card buttons
+  calc();
+}
+
+function toggleDropShop(carrier) {
+  const sidebar = $('dropSidebar');
+  const carr = (carrier || 'DPD').toUpperCase();
+
+  if (activeDropCarrier === carr && sidebar.style.display !== 'none') {
+    activeDropCarrier = null;
+    sidebar.style.display = 'none';
+    calc();
+    return;
+  }
+
+  activeDropCarrier = carr;
+  sidebar.style.display = 'flex';
+
+  const isDpd = carr === 'DPD';
+  $('dropPanelHead').className = 'drop-panel-head ' + (isDpd ? 'dpd' : 'ups');
+  $('dropCarrierTitle').textContent = isDpd ? 'DPD Drop-off Points' : 'UPS Access Points';
+  $('dropCarrierSub').textContent = 'Nearest locations to you';
+  $('dropCarrierLogo').innerHTML = carrierMark(carr, 'dph-logo');
+  wireCarrierMarks($('dropCarrierLogo'));
+
+  if ($('dropSearchBtn')) {
+    $('dropSearchBtn').onclick = () => {
+      const pc = $('dropSearchPc') ? $('dropSearchPc').value.trim() : '';
+      if (pc) fetchAndRenderDropoffs(activeDropCarrier, pc);
+    };
+  }
+  if ($('dropSearchPc')) {
+    $('dropSearchPc').onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        const pc = $('dropSearchPc').value.trim();
+        if (pc) fetchAndRenderDropoffs(activeDropCarrier, pc);
+      }
+    };
+  }
+
+  fetchAndRenderDropoffs(carr);
 }
 
 // Searchable destination combobox
