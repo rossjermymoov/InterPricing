@@ -434,7 +434,7 @@ a:hover { text-decoration: underline; }
   color: var(--mv-ink-55);
   margin-bottom: 4px;
 }
-.ds-input, .ds-select {
+.ds-input, .ds-select, .ds-textarea {
   font-family: var(--font-family);
   font-size: 14px;
   color: var(--mv-ink);
@@ -445,10 +445,16 @@ a:hover { text-decoration: underline; }
   outline: 0;
   width: 100%;
 }
-.ds-input:hover, .ds-select:hover {
+.ds-textarea {
+  border: 1px solid var(--mv-hairline-2);
+  padding: 8px;
+  background: var(--mv-surface);
+  resize: vertical;
+}
+.ds-input:hover, .ds-select:hover, .ds-textarea:hover {
   border-bottom-color: var(--mv-ink);
 }
-.ds-input:focus, .ds-select:focus {
+.ds-input:focus, .ds-select:focus, .ds-textarea:focus {
   border-bottom-color: var(--mv-purple);
   box-shadow: 0 1px 0 var(--mv-purple);
 }
@@ -1009,7 +1015,7 @@ a:hover { text-decoration: underline; }
 
       <!-- CHART COMPARISON -->
       <div class="ds-section" style="margin-top:36px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:gap;gap:12px">
           <div class="ds-section-title" style="margin:0">Multi-Weight Comparison (1–30 kg)</div>
           <div style="display:flex;gap:14px;align-items:center">
             <div class="legend" id="legend" style="display:flex;gap:12px;font-size:12px"></div>
@@ -1030,25 +1036,27 @@ a:hover { text-decoration: underline; }
       <div class="ds-pagehead">
         <div class="ds-kicker">SHAREABLE LINKS</div>
         <h1 class="ds-h1">Customer Rate Cards</h1>
-        <p class="ds-blurb">Create branded customer rate cards with custom markups, import rates, delivery addresses, and generate one-click shareable links.</p>
+        <p class="ds-blurb">Create branded customer rate cards with custom per-service markups, import rates, delivery addresses, and generate one-click shareable links.</p>
       </div>
 
       <!-- Create New Card Panel -->
-      <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:22px 26px">
+      <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:24px 28px">
         <div class="ds-section-title" style="margin-bottom:6px">Create Customer Rate Card &amp; Link</div>
-        <p class="ds-blurb" style="font-size:12.5px;margin-bottom:16px">Configures customer-specific export &amp; import pricing. The customer will see only their tailored prices—never your cost or base tariffs.</p>
+        <p class="ds-blurb" style="font-size:12.5px;margin-bottom:18px">Configures customer-specific export &amp; import pricing. The customer will see only their tailored prices—never your cost or base tariffs.</p>
         
-        <div class="ds-grid ds-grid-2" style="gap:20px 28px">
+        <!-- Section 1: Customer Details & Return Address -->
+        <div class="ds-grid ds-grid-2" style="gap:20px 32px">
           <div>
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin-bottom:8px">1. CUSTOMER &amp; CONTACT DETAILS</div>
             <div class="ds-field-wrap">
-              <label class="ds-label">Customer Name *</label>
+              <label class="ds-label">Customer / Company Name *</label>
               <input id="custName" type="text" class="ds-input" placeholder="e.g. Acme Wholesale Ltd, Skagen Imports"/>
             </div>
-            <div class="ds-field-wrap" style="margin-top:14px">
+            <div class="ds-field-wrap" style="margin-top:12px">
               <label class="ds-label">Contact Person</label>
               <input id="custContact" type="text" class="ds-input" placeholder="Primary contact name"/>
             </div>
-            <div class="ds-grid ds-grid-2" style="margin-top:14px">
+            <div class="ds-grid ds-grid-2" style="margin-top:12px">
               <div class="ds-field-wrap">
                 <label class="ds-label">Contact Phone</label>
                 <input id="custPhone" type="tel" class="ds-input" placeholder="Phone number"/>
@@ -1061,15 +1069,16 @@ a:hover { text-decoration: underline; }
           </div>
 
           <div>
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin-bottom:8px">2. DELIVERY / RETURN ADDRESS (FOR IMPORTS)</div>
             <div class="ds-field-wrap">
-              <label class="ds-label">Import Quote Markup %</label>
-              <input id="custImportMarkup" type="number" min="0" step="1" value="25" class="ds-input num" placeholder="e.g. 25"/>
-            </div>
-            <div class="ds-field-wrap" style="margin-top:14px">
-              <label class="ds-label">Delivery Address (Where imports come back to)</label>
+              <label class="ds-label">Address Line 1</label>
               <input id="custLine1" type="text" class="ds-input" placeholder="Street address line 1"/>
             </div>
-            <div class="ds-grid ds-grid-3" style="margin-top:14px">
+            <div class="ds-field-wrap" style="margin-top:12px">
+              <label class="ds-label">Address Line 2 (optional)</label>
+              <input id="custLine2" type="text" class="ds-input" placeholder="Unit, Suite, Building"/>
+            </div>
+            <div class="ds-grid ds-grid-3" style="margin-top:12px">
               <div class="ds-field-wrap"><label class="ds-label">City</label><input id="custCity" type="text" class="ds-input"/></div>
               <div class="ds-field-wrap"><label class="ds-label">Postcode</label><input id="custPostcode" type="text" class="ds-input"/></div>
               <div class="ds-field-wrap">
@@ -1086,19 +1095,71 @@ a:hover { text-decoration: underline; }
           </div>
         </div>
 
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--mv-hairline)">
-          <div class="ds-label" style="margin-bottom:8px">Services To Include on Customer Card</div>
-          <div id="rcServices" style="display:flex;gap:12px 24px;flex-wrap:wrap"></div>
+        <!-- Section 2: Dedicated Markups For This Customer Card -->
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--mv-hairline)">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin-bottom:4px">3. PRICING MARKUPS FOR THIS CUSTOMER</div>
+          <p class="ds-blurb" style="font-size:12px;margin-bottom:14px">Set a global default markup for this customer, then customize individual service markups below.</p>
+          
+          <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap">
+            <div class="ds-field-wrap" style="width:130px">
+              <label class="ds-label">Card Global Markup %</label>
+              <input id="custMkGlobal" type="number" min="0" step="1" value="10" class="ds-input num"/>
+            </div>
+            <button class="ds-btn ds-btn-secondary" id="custMkApply" style="padding:7px 14px">Apply to all services</button>
+            
+            <div class="ds-field-wrap" style="margin-left:8px">
+              <label class="ds-label">Volume Presets</label>
+              <div class="ds-chips" id="custVolTabs" style="margin-top:0">
+                <div class="ds-chip" data-mk="70">Low · 70%</div>
+                <div class="ds-chip" data-mk="50">Medium · 50%</div>
+                <div class="ds-chip" data-mk="30">High · 30%</div>
+                <div class="ds-chip active" data-mk="10">Standard · 10%</div>
+                <div class="ds-chip" data-mk="0">At Cost · 0%</div>
+              </div>
+            </div>
+
+            <div class="ds-field-wrap" style="width:160px;margin-left:auto">
+              <label class="ds-label">Import Quote Markup %</label>
+              <input id="custImportMarkup" type="number" min="0" step="1" value="25" class="ds-input num" placeholder="e.g. 25"/>
+            </div>
+          </div>
+
+          <!-- Per-Service Markup Inputs for this Customer Rate Card -->
+          <div id="rcMkList" class="ds-mklist" style="margin-top:16px"></div>
         </div>
 
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--mv-hairline);display:flex;gap:20px;align-items:center;flex-wrap:wrap">
-          <button class="ds-btn ds-btn-primary" id="custCreateBtn" style="padding:10px 22px;font-size:14px">Create Customer Link</button>
+        <!-- Section 3: Services To Include & Options -->
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--mv-hairline)">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin-bottom:8px">4. SERVICES &amp; DISPLAY OPTIONS</div>
+          
+          <div class="ds-grid ds-grid-2" style="gap:24px">
+            <div>
+              <label class="ds-label" style="margin-bottom:8px">Services To Include on Customer Card</label>
+              <div id="rcServices" style="display:flex;gap:12px 20px;flex-wrap:wrap"></div>
+            </div>
+            <div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">Notes to customer (optional)</label>
+                <textarea id="rcNotes" rows="2" class="ds-textarea" placeholder="e.g. Rates valid for 30 days. Daily collection from your premises."></textarea>
+              </div>
+              <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px">
+                <label class="ds-toggle"><input type="checkbox" id="rcSur" checked/> <span>Include surcharges section</span></label>
+                <label class="ds-toggle"><input type="checkbox" id="rcCheapest" checked/> <span>Highlight best price</span></label>
+                <label class="ds-toggle"><input type="checkbox" id="rcBreakdown"/> <span>Show base &amp; fuel separately</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 4: Create Button & Status -->
+        <div style="margin-top:24px;padding-top:18px;border-top:2px solid var(--mv-divider);display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+          <button class="ds-btn ds-btn-primary" id="custCreateBtn" style="padding:10px 24px;font-size:14px">Create Customer Rate Card &amp; Generate Link</button>
           <span id="custMsg" style="font-size:13px;font-weight:700"></span>
         </div>
       </div>
 
       <!-- Existing Rate Cards Table -->
-      <div class="ds-section" style="margin-top:32px">
+      <div class="ds-section" style="margin-top:36px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div class="ds-section-title" style="margin:0">Active Customer Rate Cards</div>
           <div style="display:flex;gap:10px;align-items:center">
@@ -1393,6 +1454,17 @@ function activeMarkupObj() {
   return obj;
 }
 
+function custCardMarkupObj() {
+  const obj = {};
+  const g = num('custMkGlobal') || 10;
+  SERVICES.forEach(s => {
+    const el = $('cust_mk_' + s.key);
+    obj[s.key] = el ? (parseFloat(el.value) || 0) : g;
+  });
+  obj.default = g;
+  return obj;
+}
+
 function upsLaneKey(){
   const c=$('country')?$('country').value:'';
   const pc=$('postcode')?$('postcode').value.trim():'';
@@ -1530,6 +1602,22 @@ function renderMarkup(){
   });
 }
 
+function renderCustCardMarkup(){
+  const wrap=$('rcMkList'); if(!wrap) return;
+  wrap.innerHTML='';
+  const g=num('custMkGlobal') || 10;
+  SERVICES.forEach(svc=>{
+    const row=document.createElement('div');
+    row.className='ds-mkrow';
+    row.innerHTML='<div class="nm"><span class="sw" style="background:'+svc.color+'"></span><span>'+svc.name+'</span></div>' +
+      '<div style="display:flex;align-items:center;gap:4px">' +
+      '<input id="cust_mk_'+svc.key+'" type="number" min="0" step="1" value="'+g+'" class="ds-input num" style="width:70px"/>' +
+      '<span style="font-size:12px;color:var(--mv-ink-55)">%</span>' +
+      '</div>';
+    wrap.appendChild(row);
+  });
+}
+
 function applyGlobalMarkup(){
   const g=num('mkGlobal');
   SERVICES.forEach(svc=>{
@@ -1540,6 +1628,15 @@ function applyGlobalMarkup(){
   calc();
 }
 
+function applyCustGlobalMarkup(){
+  const g=num('custMkGlobal');
+  SERVICES.forEach(svc=>{
+    const el=$('cust_mk_'+svc.key);
+    if(el) el.value=g;
+  });
+  syncCustVolTabs();
+}
+
 function syncVolTabs(){
   const g=String(num('mkGlobal'));
   document.querySelectorAll('#volTabs .ds-chip').forEach(b=>{
@@ -1547,9 +1644,21 @@ function syncVolTabs(){
   });
 }
 
+function syncCustVolTabs(){
+  const g=String(num('custMkGlobal'));
+  document.querySelectorAll('#custVolTabs .ds-chip').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mk===g);
+  });
+}
+
 function volTabClick(val){
   $('mkGlobal').value=val;
   applyGlobalMarkup();
+}
+
+function custVolTabClick(val){
+  $('custMkGlobal').value=val;
+  applyCustGlobalMarkup();
 }
 
 function renderRcServices(){
@@ -1741,7 +1850,7 @@ function drawChart(){
 function bootCalc(){
   bands=P.bands; CAPS=P.settings.caps;
   const s=P.settings;
-  renderToggles(); renderMarkup(); renderRcServices();
+  renderToggles(); renderMarkup(); renderCustCardMarkup(); renderRcServices();
   const csel=$('country');
   if(!csel.options.length){
     P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
@@ -1751,6 +1860,12 @@ function bootCalc(){
     $('mkApply').addEventListener('click', applyGlobalMarkup);
     document.querySelectorAll('#volTabs .ds-chip').forEach(b=>{
       b.addEventListener('click', ()=>volTabClick(b.dataset.mk));
+    });
+
+    $('custMkGlobal').addEventListener('input', applyCustGlobalMarkup);
+    $('custMkApply').addEventListener('click', applyCustGlobalMarkup);
+    document.querySelectorAll('#custVolTabs .ds-chip').forEach(b=>{
+      b.addEventListener('click', ()=>custVolTabClick(b.dataset.mk));
     });
   }
   calc();
@@ -1827,6 +1942,8 @@ $('pwSave').onclick=async()=>{$('pwMsg').className='ok';$('pwMsg').textContent='
 async function openCards() {
   screen('cards');
   $('custMsg').textContent = '';
+  renderCustCardMarkup();
+  renderRcServices();
   await loadCards();
 }
 
@@ -1925,10 +2042,16 @@ $('custCreateBtn').onclick = async () => {
     phone: $('custPhone').value.trim(),
     email: $('custEmail').value.trim(),
     importMarkupPct: num('custImportMarkup'),
-    markup: activeMarkupObj(),
+    markup: custCardMarkupObj(),
+    services: incServices,
     includedServices: incServices,
+    notes: $('rcNotes') ? $('rcNotes').value.trim() : '',
+    showSurcharges: $('rcSur') ? $('rcSur').checked : true,
+    highlightCheapest: $('rcCheapest') ? $('rcCheapest').checked : true,
+    showBreakdown: $('rcBreakdown') ? $('rcBreakdown').checked : false,
     deliveryAddress: {
       line1: $('custLine1').value.trim(),
+      line2: $('custLine2') ? $('custLine2').value.trim() : '',
       city: $('custCity').value.trim(),
       postcode: $('custPostcode').value.trim(),
       country: $('custCountry').value,
