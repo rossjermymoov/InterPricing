@@ -42,6 +42,7 @@ async function token() {
 
 const num = (v) => { const n = typeof v === 'string' ? parseFloat(v) : v; return (typeof n === 'number' && !isNaN(n)) ? n : null; };
 const S = (v) => (v == null ? '' : String(v));
+const toIso = (c) => nameToIso(c) || (/^[A-Za-z]{2}$/.test(c) ? String(c).toUpperCase() : 'GB');
 
 const COUNTRY_DEFAULTS = {
   'US': { city: 'New York', postcode: '10001' },
