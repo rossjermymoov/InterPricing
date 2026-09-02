@@ -1138,7 +1138,8 @@ body {
       <h1 id="title">International Rate Card</h1>
       <nav class="tabs" id="viewTabs">
         <button type="button" data-view="rates" class="active">My rates</button>
-        <button type="button" data-view="import">Request an import quote <span style="font-size:10px;font-weight:800;background:#7B2FBE;color:#fff;padding:2px 6px;margin-left:6px;letter-spacing:.02em">UPS</span></button>
+        <button type="button" data-view="import">Request an import quote</button>
+        <button type="button" data-view="bookings">Bookings</button>
       </nav>
     </div>
   </header>
@@ -1351,6 +1352,23 @@ body {
         <div class="cards iq" id="iqcards"></div>
       </div>
       <div class="foot">Prices indicative and subject to final confirmation. Excludes VAT. Import duties &amp; taxes billed separately at import.</div>
+    </div>
+  </div>
+
+  <!-- Bookings View (Third Page) -->
+  <div id="bookingsView" style="display:none" class="rates-container">
+    <div class="calc-card" style="margin-bottom:16px">
+      <div class="calc-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <h2><span>🏷️</span> My Bookings &amp; Collections</h2>
+          <span class="calc-sub">Track booked shipments, inspect package dimensions, download labels, and reschedule UPS courier collections.</span>
+        </div>
+        <button type="button" id="refreshCustBookingsBtn" class="btn" style="padding:8px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px">Refresh 🔄</button>
+      </div>
+    </div>
+
+    <div id="custBookingsList" style="display:flex;flex-direction:column;gap:14px">
+      <div style="padding:36px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--muted)">Loading your bookings…</div>
     </div>
   </div>
 
@@ -2238,11 +2256,12 @@ function initCountryCombo(boxId, inputId, menuId, onPick) {
 }
 
 function setView(v) {
-  const imp = v === 'import';
   document.querySelectorAll('#viewTabs button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
-  $('ratesView').style.display = imp ? 'none' : '';
-  $('importView').style.display = imp ? 'block' : 'none';
-  if (imp) prefillReceiver();
+  $('ratesView').style.display = v === 'rates' ? '' : 'none';
+  $('importView').style.display = v === 'import' ? 'block' : 'none';
+  $('bookingsView').style.display = v === 'bookings' ? 'block' : 'none';
+  if (v === 'import') prefillReceiver();
+  if (v === 'bookings') loadCustomerBookings();
   window.scrollTo(0, 0);
 }
 
@@ -2752,12 +2771,270 @@ async function submitReschedule() {
     $('ibResPrn').textContent = d.newPrn || d.oldPrn;
     activeReschedPrn = d.newPrn || d.oldPrn;
     closeRescheduleModal();
+    if ($('bookingsView') && $('bookingsView').style.display !== 'none') {
+      loadCustomerBookings();
+    }
   } catch (err) {
     $('reschedErrMsg').textContent = 'Network Error: ' + err.message;
     $('reschedErrMsg').style.display = 'block';
     btn.disabled = false;
     btn.textContent = 'Confirm Reschedule';
   }
+}
+
+async function loadCustomerBookings() {
+  const box = $('custBookingsList');
+  if (!box) return;
+  box.innerHTML = '<div style="padding:36px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--muted)">Loading your bookings…</div>';
+  try {
+    const res = await fetch('/api/card/' + encodeURIComponent(curToken) + '/shipments');
+    if (!res.ok) {
+      box.innerHTML = '<div style="padding:28px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--muted)">Could not load bookings right now.</div>';
+      return;
+    }
+    const d = await res.json();
+    renderCustomerBookings(d.shipments || []);
+  } catch (err) {
+    box.innerHTML = '<div style="padding:28px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--muted)">Failed to fetch bookings: ' + esc(err.message) + '</div>';
+  }
+}
+
+function renderCustomerBookings(shipments) {
+  const box = $('custBookingsList');
+  box.innerHTML = '';
+
+  if (!shipments.length) {
+    box.innerHTML = '<div style="padding:48px 24px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--muted)">'
+      + '<div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:6px">No Bookings Yet</div>'
+      + '<div style="font-size:13px">When you book an import shipment, it will appear here with live tracking, package specs, and collection controls.</div>'
+      + '</div>';
+    return;
+  }
+
+  shipments.forEach(x => {
+    const card = document.createElement('div');
+    card.className = 'calc-card';
+    card.style.cssText = 'padding:0;overflow:hidden;margin-bottom:0;border:1.5px solid var(--line-strong);transition:border-color 0.15s ease';
+
+    const s = (typeof x.sender === 'object' && x.sender) ? x.sender : {};
+    const r = (typeof x.receiver === 'object' && x.receiver) ? x.receiver : {};
+    const pkgs = (Array.isArray(x.packages) && x.packages.length) ? x.packages : [];
+    const docs = (typeof x.documents_attached === 'object' && x.documents_attached) ? x.documents_attached : {};
+    const totalParcels = pkgs.reduce((sum, p) => sum + (parseInt(p.qty, 10) || 1), 0) || (x.parcels || 1);
+    const totalWeight = Number(x.total_weight_kg) || pkgs.reduce((sum, p) => sum + (Number(p.weight) || 0) * (parseInt(p.qty, 10) || 1), 0);
+    const dateStr = x.created_at ? (new Date(x.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ' at ' + new Date(x.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })) : '—';
+
+    const isCancelled = x.status === 'cancelled';
+    const isRescheduled = x.status === 'rescheduled';
+    const statusBadge = isCancelled
+      ? '<span style="font-size:11px;font-weight:800;background:#fee2e2;color:#991b1b;padding:3px 8px;border-radius:4px;letter-spacing:.04em;border:1px solid #fecaca">CANCELLED</span>'
+      : (isRescheduled
+        ? '<span style="font-size:11px;font-weight:800;background:#ede9fe;color:#6b21a8;padding:3px 8px;border-radius:4px;letter-spacing:.04em;border:1px solid #ddd6fe">RESCHEDULED</span>'
+        : '<span style="font-size:11px;font-weight:800;background:#d1fae5;color:#065f46;padding:3px 8px;border-radius:4px;letter-spacing:.04em;border:1px solid #a7f3d0">BOOKED</span>');
+
+    const prnBadge = x.prn
+      ? ('<span style="font-family:monospace;font-size:12.5px;font-weight:800;background:#f3f4f6;color:var(--ink);padding:4px 10px;border-radius:4px;border:1px solid var(--line-strong)">PRN: <b>' + esc(x.prn) + '</b></span>')
+      : '<span style="font-size:12px;color:var(--muted)">No pickup requested</span>';
+
+    const trackLink = x.tracking_number
+      ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:13px;font-weight:800;color:var(--green-dark);text-decoration:none;display:inline-flex;align-items:center;gap:4px">🔗 ' + esc(x.tracking_number) + '</a>')
+      : '—';
+
+    const pkgRowsHtml = pkgs.map((p, idx) => {
+      const q = parseInt(p.qty, 10) || 1;
+      const wt = Number(p.weight) || 0;
+      const l = Number(p.l) || 0, w = Number(p.w) || 0, h = Number(p.h) || 0;
+      const volWt = (l && w && h) ? Math.round((l * w * h / 5000) * 10) / 10 : '—';
+      const typeStr = p.packaging === 'tube' ? 'UPS Tube' : (p.packaging === 'expressbox' ? 'UPS Express Box' : (p.packaging === 'pallet' ? 'Pallet' : 'Custom Box'));
+      return '<tr style="border-bottom:1px solid var(--line)">'
+        + '<td style="padding:8px 10px;font-weight:700">Piece ' + (idx + 1) + '</td>'
+        + '<td style="padding:8px 10px">' + typeStr + '</td>'
+        + '<td style="padding:8px 10px;text-align:center">' + q + '</td>'
+        + '<td style="padding:8px 10px">' + (l ? (l + ' × ' + w + ' × ' + h + ' cm') : 'Standard') + '</td>'
+        + '<td style="padding:8px 10px;text-align:right;font-weight:700">' + wt + ' kg</td>'
+        + '<td style="padding:8px 10px;text-align:right;color:var(--muted)">' + volWt + (volWt !== '—' ? ' kg' : '') + '</td>'
+        + '</tr>';
+    }).join('');
+
+    card.innerHTML = `
+      <div style="padding:14px 18px;background:#f9fafb;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-weight:800;font-size:14px;color:var(--ink)">${esc(x.service_name || 'UPS Service')}</span>
+          <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">${esc((x.mode || 'import').toUpperCase())}</span>
+          ${statusBadge}
+        </div>
+        <div style="font-size:12px;color:var(--muted)">
+          Booked: <b>${dateStr}</b>
+        </div>
+      </div>
+
+      <div style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;background:#fff">
+        <div>
+          <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:4px">1. Who</div>
+          <div style="font-weight:700;font-size:13.5px;color:var(--ink)">${esc(s.company || s.name || 'Supplier')}</div>
+          <div style="font-size:12px;color:var(--muted)">to <b>${esc(r.company || r.name || 'Customer')}</b></div>
+        </div>
+
+        <div>
+          <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:4px">2. Route</div>
+          <div style="font-weight:700;font-size:13px;color:var(--ink)">${esc(s.city || 'Origin')}, ${esc(s.country || '')}</div>
+          <div style="font-size:12px;color:var(--muted)">→ ${esc(r.city || 'Destination')}, ${esc(r.postcode || '')} ${esc(r.country || 'GB')}</div>
+        </div>
+
+        <div>
+          <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:4px">3. Shipment Details</div>
+          <div style="font-weight:700;font-size:13px;color:var(--ink)">${trackLink}</div>
+          <div style="font-size:12px;color:var(--muted)">Goods Value: <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b> · ${(docs.invoice || docs.packingSlip) ? '<b style="color:var(--green-dark)">✓ Paperless Docs</b>' : 'Standard'}</div>
+        </div>
+
+        <div>
+          <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:4px">4. Size &amp; Weight</div>
+          <div style="font-weight:800;font-size:14px;color:var(--ink)">${totalWeight} kg</div>
+          <div style="font-size:12px;color:var(--muted)">${totalParcels} parcel${totalParcels === 1 ? '' : 's'}</div>
+        </div>
+      </div>
+
+      <div style="padding:12px 18px;background:#f9fafb;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          ${prnBadge}
+          ${(x.prn && !isCancelled) ? `
+            <button type="button" class="btn ghost btn-cust-resched" data-prn="${esc(x.prn)}" style="padding:6px 12px;font-size:12px;font-weight:700">Reschedule Collection 🔄</button>
+            <button type="button" class="btn ghost btn-cust-cancel" data-prn="${esc(x.prn)}" style="padding:6px 12px;font-size:12px;font-weight:700;color:#b91c1c">Cancel ❌</button>
+          ` : ''}
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap">
+          ${x.label_base64 ? `
+            <a href="data:image/gif;base64,${x.label_base64}" download="UPS_Shipping_Label_${esc(x.tracking_number || x.id)}.gif" class="btn primary" target="_blank" style="padding:6px 14px;font-size:12px;font-weight:700;text-decoration:none">Download Label 🖨️</a>
+          ` : ''}
+          <button type="button" class="btn btn-toggle-explode" data-id="${x.id}" style="padding:6px 14px;font-size:12px;font-weight:700">Package Specs &amp; Full Details ▾</button>
+        </div>
+      </div>
+
+      <div id="explode_${x.id}" style="display:none;padding:20px;border-top:1.5px dashed var(--line-strong);background:#fafafa">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:16px;margin-bottom:18px">
+          <div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:6px">Supplier / Collection Address</div>
+            <div style="font-weight:800;font-size:13.5px;color:var(--ink)">${esc(s.company || '')}</div>
+            <div style="font-size:12.5px;color:var(--ink)">Contact: ${esc(s.name || '—')}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:4px">
+              ${esc(s.line1 || '')}${s.line2 ? (', ' + esc(s.line2)) : ''}<br>
+              ${esc(s.city || '')} ${esc(s.postcode || '')}<br>
+              ${esc(s.country || '')}
+            </div>
+            ${s.phone ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">Tel: ${esc(s.phone)}</div>` : ''}
+            ${s.email ? `<div style="font-size:12px;color:var(--muted)">Email: ${esc(s.email)}</div>` : ''}
+          </div>
+
+          <div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:6px">Receiver / Delivery Address</div>
+            <div style="font-weight:800;font-size:13.5px;color:var(--ink)">${esc(r.company || '')}</div>
+            <div style="font-size:12.5px;color:var(--ink)">Contact: ${esc(r.name || '—')}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:4px">
+              ${esc(r.line1 || '')}${r.line2 ? (', ' + esc(r.line2)) : ''}<br>
+              ${esc(r.city || '')} ${esc(r.postcode || '')}<br>
+              ${esc(r.country || 'GB')}
+            </div>
+            ${r.phone ? `<div style="font-size:12px;color:var(--muted);margin-top:4px">Tel: ${esc(r.phone)}</div>` : ''}
+            ${r.email ? `<div style="font-size:12px;color:var(--muted)">Email: ${esc(r.email)}</div>` : ''}
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:14px">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:8px">Package Specifications &amp; Dimensions</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+            <thead>
+              <tr style="background:#f8fafc;border-bottom:1.5px solid var(--line);font-size:11px;text-transform:uppercase;color:#475569">
+                <th style="padding:8px 10px;text-align:left">Package</th>
+                <th style="padding:8px 10px;text-align:left">Packaging</th>
+                <th style="padding:8px 10px;text-align:center">Qty</th>
+                <th style="padding:8px 10px;text-align:left">Dimensions</th>
+                <th style="padding:8px 10px;text-align:right">Dead Wt</th>
+                <th style="padding:8px 10px;text-align:right">Vol Wt</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pkgRowsHtml || '<tr><td colspan="6" style="padding:10px;text-align:center;color:var(--muted)">1 package</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12.5px">
+          <div>
+            <span style="color:var(--muted)">Customs Manifest:</span>
+            <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b>
+          </div>
+          <div>
+            <span style="color:var(--muted)">Commercial Invoice:</span>
+            <b>${docs.invoice ? '✓ Electronic (002 attached)' : 'Standard'}</b>
+          </div>
+          <div>
+            <span style="color:var(--muted)">Packing Slip:</span>
+            <b>${docs.packingSlip ? '✓ Electronic (004 attached)' : 'None'}</b>
+          </div>
+        </div>
+      </div>
+    `;
+
+    box.appendChild(card);
+  });
+}
+
+function initCustomerBookingsEvents() {
+  if ($('refreshCustBookingsBtn')) {
+    $('refreshCustBookingsBtn').addEventListener('click', loadCustomerBookings);
+  }
+
+  document.addEventListener('click', async e => {
+    // Explode toggle
+    const toggleBtn = e.target.closest && e.target.closest('.btn-toggle-explode');
+    if (toggleBtn) {
+      e.preventDefault();
+      const id = toggleBtn.dataset.id;
+      const el = $('explode_' + id);
+      if (el) {
+        const isHidden = el.style.display === 'none';
+        el.style.display = isHidden ? 'block' : 'none';
+        toggleBtn.textContent = isHidden ? 'Package Specs & Full Details ▴' : 'Package Specs & Full Details ▾';
+      }
+      return;
+    }
+
+    // Customer Reschedule button
+    const reschedBtn = e.target.closest && e.target.closest('.btn-cust-resched');
+    if (reschedBtn) {
+      e.preventDefault();
+      openRescheduleModal(reschedBtn.dataset.prn);
+      return;
+    }
+
+    // Customer Cancel button
+    const cancelBtn = e.target.closest && e.target.closest('.btn-cust-cancel');
+    if (cancelBtn) {
+      e.preventDefault();
+      const prn = cancelBtn.dataset.prn;
+      if (!confirm('Are you sure you want to cancel UPS collection PRN ' + prn + '?')) return;
+      cancelBtn.disabled = true;
+      cancelBtn.textContent = 'Cancelling…';
+      try {
+        const res = await fetch('/api/collections/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: curToken, prn }),
+        });
+        const d = await res.json();
+        if (!res.ok || !d.ok) {
+          alert('UPS Cancellation Error: ' + (d.error || 'Failed to cancel collection.'));
+        } else {
+          alert('Collection PRN ' + prn + ' was successfully cancelled with UPS.');
+        }
+        await loadCustomerBookings();
+      } catch (err) {
+        alert('Network Error: ' + err.message);
+      }
+      return;
+    }
+  });
 }
 
 function initImportTab() {
@@ -2799,6 +3076,7 @@ async function boot() {
 
   calc();
   initImportTab();
+  initCustomerBookingsEvents();
 
   // Wire sidebar close button
   $('closeDropSidebar').addEventListener('click', () => {

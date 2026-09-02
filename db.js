@@ -470,7 +470,7 @@ async function listShipments({ token, limit } = {}) {
   if (!pool) return [];
   const lim = Math.min(100, Math.max(1, Number(limit) || 50));
   if (token) {
-    const { rows } = await pool.query(`SELECT id, shipment_id, tracking_number, status, mode, carrier, service_code, service_name, total_weight_kg, goods_value, sell_price, prn, created_at FROM shipments WHERE token = $1 ORDER BY created_at DESC LIMIT ${lim}`, [token]);
+    const { rows } = await pool.query(`SELECT * FROM shipments WHERE token = $1 ORDER BY created_at DESC LIMIT ${lim}`, [token]);
     return rows;
   }
   const { rows } = await pool.query(`SELECT * FROM shipments ORDER BY created_at DESC LIMIT ${lim}`);
