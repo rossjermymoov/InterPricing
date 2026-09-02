@@ -384,7 +384,7 @@ function buildPickupRequest(p) {
       Shipper: {
         Account: {
           AccountNumber: acct,
-          AccountCountryCode: originCountry || 'GB',
+          AccountCountryCode: 'GB',
         },
       },
       PickupDateInfo: {
@@ -474,6 +474,7 @@ async function createPickup(payload) {
 
   const pResp = (json && json.PickupCreationResponse) || {};
   const prn = pResp.PRN || (pResp.Response && pResp.Response.PRN) || null;
+  const rateStatus = pResp.RateStatus || (pResp.PickupRate && pResp.PickupRate.RateStatus) || 'OK';
   return {
     ok: true,
     prn,

@@ -868,6 +868,37 @@ app.post('/api/book-import', async (req, res) => {
         });
         if (pickupResult && pickupResult.ok) {
           prn = pickupResult.prn;
+          if (db.hasDb) {
+            try {
+              await db.createCollectionRecord({
+                prn: pickupResult.prn,
+                status: 'booked',
+                carrier: 'UPS',
+                service_code: serviceCode || '065',
+                card_id: card ? card.id : null,
+                customer: card ? card.customer : (req.user ? req.user.email : null),
+                token: token || null,
+                company_name: sender.company || sender.name || 'Sender',
+                contact_name: sender.name || sender.company || 'Sender',
+                phone: sender.phone || '',
+                email: sender.email || '',
+                address_line: sender.line1 || '',
+                city: sender.city || '',
+                postal_code: sender.postcode || '',
+                country_code: sender.country,
+                pickup_date: pickupDate,
+                ready_time: readyTime || '10:00',
+                close_time: closeTime || '17:00',
+                parcels: totalPieces,
+                total_weight_kg: Math.round(totalWt * 10) / 10,
+                tracking_number: trackingNumber,
+                special_instruction: instructions || '',
+                response: pickupResult.json,
+              });
+            } catch (cdbErr) {
+              console.error('[book-import collection db error]', cdbErr.message);
+            }
+          }
         }
       } catch (e) {
         console.error('[book-import pickup error]', e.message);
