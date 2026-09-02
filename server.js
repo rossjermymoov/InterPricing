@@ -700,15 +700,18 @@ app.post('/api/collections/cancel', async (req, res) => {
     }
 
     const cancelRes = await ups.cancelPickup(prn);
-    if (!cancelRes.ok) {
-      return res.status(400).json({ ok: false, error: cancelRes.error, status: cancelRes.status });
-    }
 
     if (db.hasDb) {
       await db.updateCollectionByPrn(prn, { status: 'cancelled', response: cancelRes });
     }
 
-    res.json({ ok: true, prn, status: 'cancelled', message: 'Collection successfully cancelled with UPS.' });
+    res.json({
+      ok: true,
+      prn,
+      status: 'cancelled',
+      message: cancelRes.ok ? 'Collection successfully cancelled with UPS.' : 'Collection marked cancelled in Moov system.',
+      upsNotice: cancelRes.ok ? null : cancelRes.error,
+    });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -1121,19 +1124,13 @@ app.post('/api/shipments/cancel', async (req, res) => {
       if (targetPrn) await db.updateCollectionByPrn(targetPrn, { status: 'cancelled' });
     }
 
-    if (!voidResult.ok && !pickupResult.ok) {
-      return res.status(400).json({
-        ok: false,
-        error: voidResult.error || pickupResult.error || 'Failed to cancel shipment and collection with UPS',
-      });
-    }
-
     res.json({
       ok: true,
       voided: voidResult.ok,
       pickupCancelled: pickupResult.ok,
       prnCancelled: targetPrn || null,
-      message: 'Shipment ' + (sId || '') + (targetPrn ? (' and collection PRN ' + targetPrn) : '') + ' successfully cancelled with UPS.',
+      message: 'Shipment ' + (sId || '') + (targetPrn ? (' and collection PRN ' + targetPrn) : '') + ' cancelled successfully.',
+      upsNotice: (!voidResult.ok ? voidResult.error : null) || (!pickupResult.ok ? pickupResult.error : null),
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

@@ -501,12 +501,9 @@ async function cancelPickup(prn) {
   const headers = {
     'Authorization': 'Bearer ' + tk,
     'transId': 'moov_cancel_' + Date.now(),
-    'transactionSrc': 'MOOV-InterPricing',
+    'transactionSrc': 'testing',
     'Prn': cleanPrn,
   };
-  if (process.env.UPS_ACCOUNT_NUMBER) {
-    headers['x-merchant-id'] = process.env.UPS_ACCOUNT_NUMBER;
-  }
 
   const res = await fetch(base() + '/api/pickupcreation/v1/pickup/' + encodeURIComponent(cleanPrn), {
     method: 'DELETE',
@@ -763,11 +760,8 @@ async function voidShipment({ shipmentId, trackingNumber } = {}) {
   const headers = {
     'Authorization': 'Bearer ' + tk,
     'transId': 'moov_void_' + Date.now(),
-    'transactionSrc': 'MOOV-InterPricing',
+    'transactionSrc': 'testing',
   };
-  if (process.env.UPS_ACCOUNT_NUMBER) {
-    headers['x-merchant-id'] = process.env.UPS_ACCOUNT_NUMBER;
-  }
 
   let url = base() + '/api/shipments/v1/void/cancel/' + encodeURIComponent(sId);
   if (trackingNumber && trackingNumber !== sId) {
