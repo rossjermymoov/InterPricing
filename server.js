@@ -313,6 +313,13 @@ app.get('/api/ups/callback', (req, res) => {
     + '</p></body>');
 });
 
+// Allowed UPS Services across export and import quoting:
+// - UPS Standard ('11')
+// - UPS Worldwide Saver ('65')
+// - UPS Worldwide Express ('07' / '7')
+// Excluded / Ignored: Worldwide Express Plus ('54') and Worldwide Expedited ('08')
+const ALLOWED_UPS_CODES = new Set(['11', '65', '07', '7', '011', '065', '007']);
+
 // PUBLIC: live import/export quotes via UPS. Returns marked-up sell prices only (never cost).
 app.post('/api/import-quote', async (req, res) => {
   try {
@@ -360,7 +367,9 @@ app.post('/api/import-quote', async (req, res) => {
     });
     const customSurTotal = customSurcharges.reduce((sum, x) => sum + x.amt, 0);
 
-    const services = (r.services || []).map((s) => {
+    const services = (r.services || [])
+      .filter((s) => ALLOWED_UPS_CODES.has(String(s.code)))
+      .map((s) => {
       const bd = s.breakdown || {};
       const factor = 1 + markup / 100;
       const np = bd.negotiated ? 1 : ((bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1);
@@ -429,8 +438,6 @@ const CODE2KEY = {
   '65': 'ux', '065': 'ux', // Worldwide Saver
   '96': 'uf', // Worldwide Express Freight
 };
-
-const ALLOWED_UPS_CODES = new Set(['11', '65', '011', '065']); // strictly UPS Standard ('11') and UPS Worldwide Saver ('65')
 
 app.post('/api/card-rate', async (req, res) => {
   try {

@@ -2104,7 +2104,7 @@ function calc(){
     if(upsLoading){
       rows.push({svc:{key:'ups',name:'UPS',carrier:'ups',color:UPS_COLOR},loading:true,built:{sell:null}});
     }else if(upsReady&&upsReady.enabled){
-      const ALLOWED_UPS=new Set(['ux','us','ups_65','ups_11','65','11','065','011']);
+      const ALLOWED_UPS=new Set(['ux','us','ue','ups_65','ups_11','ups_07','65','11','07','7','065','011','007']);
       (upsReady.services||[]).filter(live=>ALLOWED_UPS.has(live.key)||ALLOWED_UPS.has(String(live.code))).forEach(live=>{
         const built={
           live:true, days:live.days, raw:live.costBase,
