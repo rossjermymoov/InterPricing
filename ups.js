@@ -474,8 +474,6 @@ async function createPickup(payload) {
 
   const pResp = (json && json.PickupCreationResponse) || {};
   const prn = pResp.PRN || (pResp.Response && pResp.Response.PRN) || null;
-  const rateStatus = (pResp.RateStatus && pResp.RateStatus.RateStatusText) || null;
-
   return {
     ok: true,
     prn,
@@ -487,4 +485,201 @@ async function createPickup(payload) {
   };
 }
 
-module.exports = { quoteRates, quoteRatesRaw, createPickup, buildPickupRequest, svcName, configured };
+// ---- UPS Shipment Booking (Label Generation & Paperless Document Upload) ----
+function buildShipmentRequest(p) {
+  const acct = process.env.UPS_ACCOUNT_NUMBER || '';
+  const sender = p.sender || {};
+  const receiver = p.receiver || {};
+  const pkgs = Array.isArray(p.packages) && p.packages.length ? p.packages : [{ weight: p.weight || 1, l: p.l || 10, w: p.w || 10, h: p.h || 10 }];
+  const svcCode = String(p.serviceCode || '65').padStart(2, '0'); // default to 65 (Worldwide Saver) or 11 (Standard)
+
+  const senderAddr = addressOf(sender, '');
+  const receiverAddr = addressOf(receiver, 'GB');
+
+  const packagesArray = [];
+  pkgs.forEach((pkg) => {
+    const q = Math.max(1, parseInt(pkg.qty, 10) || 1);
+    const wt = Math.max(0.1, Number(pkg.weight) || 1);
+    const l = Math.max(1, Number(pkg.l) || 10);
+    const w = Math.max(1, Number(pkg.w) || 10);
+    const h = Math.max(1, Number(pkg.h) || 10);
+    for (let i = 0; i < q; i++) {
+      packagesArray.push({
+        Packaging: { Code: '02', Description: 'Customer Supplied Package' },
+        Dimensions: {
+          UnitOfMeasurement: { Code: 'CM', Description: 'Centimeters' },
+          Length: String(Math.round(l)),
+          Width: String(Math.round(w)),
+          Height: String(Math.round(h)),
+        },
+        PackageWeight: {
+          UnitOfMeasurement: { Code: 'KGS', Description: 'Kilograms' },
+          Weight: String(wt.toFixed(1)),
+        },
+      });
+    }
+  });
+
+  const shipmentObj = {
+    Description: S(p.description || 'Commercial Goods / International Express').slice(0, 50),
+    Shipper: {
+      Name: 'MOOV Parcel',
+      AttentionName: 'Operations',
+      TaxIdentificationNumber: 'GB446867375',
+      Phone: { Number: '07498991612' },
+      ShipperNumber: acct,
+      Address: {
+        AddressLine: ['1 Mellor Meadows'],
+        City: 'Whittington',
+        PostalCode: 'SY11 4FN',
+        CountryCode: 'GB',
+      },
+    },
+    ShipTo: {
+      Name: S(receiver.company || receiver.name || 'Recipient').slice(0, 35),
+      AttentionName: S(receiver.name || receiver.company || 'Recipient').slice(0, 35),
+      Phone: { Number: S(receiver.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
+      EMailAddress: S(receiver.email || '').slice(0, 50),
+      Address: receiverAddr.Address,
+    },
+    ShipFrom: {
+      Name: S(sender.company || sender.name || 'Sender').slice(0, 35),
+      AttentionName: S(sender.name || sender.company || 'Sender').slice(0, 35),
+      Phone: { Number: S(sender.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
+      EMailAddress: S(sender.email || '').slice(0, 50),
+      Address: senderAddr.Address,
+    },
+    PaymentInformation: {
+      ShipmentCharge: [
+        {
+          Type: '01', // Transportation
+          BillShipper: {
+            AccountNumber: acct,
+          },
+        },
+      ],
+    },
+    Service: {
+      Code: svcCode,
+      Description: svcName(svcCode),
+    },
+    Package: packagesArray,
+    ItemizedChargesRequestedIndicator: '',
+    RatingMethodRequestedIndicator: '',
+  };
+
+  // Attach Paperless Documents (Commercial Invoice / Packing Slip) via Base64 UserCreatedForm
+  const forms = [];
+  if (p.invoiceBase64) {
+    const rawB64 = String(p.invoiceBase64).replace(/^data:[^;]+;base64,/, '');
+    const fmt = (p.invoiceFormat || 'PDF').toUpperCase();
+    forms.push({
+      DocumentType: '002', // Commercial Invoice
+      DocumentFormat: fmt,
+      DocumentContent: rawB64,
+    });
+  }
+  if (p.packingSlipBase64) {
+    const rawB64 = String(p.packingSlipBase64).replace(/^data:[^;]+;base64,/, '');
+    const fmt = (p.packingSlipFormat || 'PDF').toUpperCase();
+    forms.push({
+      DocumentType: '004', // Packing List
+      DocumentFormat: fmt,
+      DocumentContent: rawB64,
+    });
+  }
+
+  if (forms.length > 0) {
+    shipmentObj.InternationalForms = {
+      FormType: ['01'],
+      UserCreatedForm: forms,
+    };
+  }
+
+  return {
+    ShipmentRequest: {
+      Request: {
+        SubVersion: '1801',
+        RequestOption: 'nonvalidate',
+        TransactionReference: {
+          CustomerContext: 'MOOV-Import-' + Date.now(),
+        },
+      },
+      Shipment: shipmentObj,
+      LabelSpecification: {
+        LabelImageFormat: {
+          Code: 'GIF', // Standard GIF/PNG graphic format
+        },
+        LabelStockSize: {
+          Height: '6',
+          Width: '4',
+        },
+      },
+    },
+  };
+}
+
+async function bookShipment(payload) {
+  const tk = await token();
+  if (!tk) return { ok: false, error: 'UPS credentials not configured' };
+
+  const reqBody = buildShipmentRequest(payload);
+  const headers = {
+    'Authorization': 'Bearer ' + tk,
+    'Content-Type': 'application/json',
+    'transId': 'moov_ship_' + Date.now(),
+    'transactionSrc': 'MOOV-InterPricing',
+  };
+  if (process.env.UPS_ACCOUNT_NUMBER) {
+    headers['x-merchant-id'] = process.env.UPS_ACCOUNT_NUMBER;
+  }
+
+  const res = await fetch(base() + '/api/shipments/v1/ship', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(reqBody),
+    signal: AbortSignal.timeout(15000),
+  });
+
+  const text = await res.text();
+  let json = null;
+  try { json = JSON.parse(text); } catch (_) {}
+
+  if (!res.ok) {
+    let errMsg = 'UPS Shipment Booking ' + res.status;
+    if (json && json.response && json.response.errors && json.response.errors.length) {
+      errMsg = json.response.errors.map((e) => e.message || e.code).join('; ');
+    } else if (json && json.Error && json.Error.Description) {
+      errMsg = json.Error.Description;
+    } else if (text) {
+      errMsg += ': ' + text.slice(0, 350);
+    }
+    return { ok: false, status: res.status, error: errMsg, raw: text, request: reqBody };
+  }
+
+  const sResults = (json && json.ShipmentResponse && json.ShipmentResponse.ShipmentResults) || {};
+  const shipmentId = sResults.ShipmentIdentificationNumber || null;
+  const pkgResults = Array.isArray(sResults.PackageResults) ? sResults.PackageResults : (sResults.PackageResults ? [sResults.PackageResults] : []);
+  const packages = pkgResults.map((pkg) => ({
+    trackingNumber: pkg.TrackingNumber,
+    labelGraphic: (pkg.ShippingLabel && pkg.ShippingLabel.GraphicImage) || null,
+    htmlImage: (pkg.ShippingLabel && pkg.ShippingLabel.HTMLImage) || null,
+  }));
+
+  const mainTracking = (packages[0] && packages[0].trackingNumber) || shipmentId;
+  const totalCost = (sResults.ShipmentCharges && sResults.ShipmentCharges.TotalCharges && Number(sResults.ShipmentCharges.TotalCharges.MonetaryValue)) || null;
+
+  return {
+    ok: true,
+    shipmentId,
+    trackingNumber: mainTracking,
+    packages,
+    totalCost,
+    status: res.status,
+    raw: text,
+    json,
+    request: reqBody,
+  };
+}
+
+module.exports = { quoteRates, quoteRatesRaw, createPickup, buildPickupRequest, bookShipment, buildShipmentRequest, svcName, configured };

@@ -111,8 +111,37 @@ async function initDb() {
       created_at timestamptz NOT NULL DEFAULT now()
     );`);
   await pool.query(`CREATE INDEX IF NOT EXISTS collections_created_idx ON collections (created_at DESC);`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shipments (
+      id serial PRIMARY KEY,
+      shipment_id text,
+      tracking_number text NOT NULL,
+      status text NOT NULL DEFAULT 'booked',
+      mode text NOT NULL DEFAULT 'import',
+      carrier text NOT NULL DEFAULT 'UPS',
+      service_code text,
+      service_name text,
+      card_id integer,
+      customer text,
+      token text,
+      sender jsonb,
+      receiver jsonb,
+      packages jsonb,
+      total_weight_kg numeric,
+      goods_value numeric,
+      cost_price numeric,
+      sell_price numeric,
+      prn text,
+      label_base64 text,
+      documents_attached jsonb,
+      response jsonb,
+      created_by integer,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS shipments_created_idx ON shipments (created_at DESC);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS shipments_tracking_idx ON shipments (tracking_number);`);
   await migrateConfig();
-  console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs, collections)');
+  console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs, collections, shipments)');
 }
 
 // ---- quote logging + reporting ----
@@ -360,11 +389,72 @@ async function listCollections({ limit } = {}) {
   return rows;
 }
 
+// ---- shipments (booked shipments with tracking & labels) ----
+async function createShipmentRecord(r) {
+  if (!pool) return { id: Date.now(), ...r };
+  const { rows } = await pool.query(
+    `INSERT INTO shipments (
+      shipment_id, tracking_number, status, mode, carrier,
+      service_code, service_name, card_id, customer, token,
+      sender, receiver, packages, total_weight_kg, goods_value,
+      cost_price, sell_price, prn, label_base64, documents_attached, response, created_by
+    ) VALUES (
+      $1, $2, $3, $4, $5,
+      $6, $7, $8, $9, $10,
+      $11, $12, $13, $14, $15,
+      $16, $17, $18, $19, $20, $21, $22
+    ) RETURNING *`,
+    [
+      r.shipment_id || null,
+      r.tracking_number,
+      r.status || 'booked',
+      r.mode || 'import',
+      r.carrier || 'UPS',
+      r.service_code || null,
+      r.service_name || null,
+      r.card_id || null,
+      r.customer || null,
+      r.token || null,
+      r.sender ? JSON.stringify(r.sender) : null,
+      r.receiver ? JSON.stringify(r.receiver) : null,
+      r.packages ? JSON.stringify(r.packages) : null,
+      Number(r.total_weight_kg) || 1.0,
+      Number(r.goods_value) || 0,
+      r.cost_price != null ? Number(r.cost_price) : null,
+      r.sell_price != null ? Number(r.sell_price) : null,
+      r.prn || null,
+      r.label_base64 || null,
+      r.documents_attached ? JSON.stringify(r.documents_attached) : null,
+      r.response ? JSON.stringify(r.response) : null,
+      r.created_by || null,
+    ]
+  );
+  return rows[0];
+}
+
+async function listShipments({ token, limit } = {}) {
+  if (!pool) return [];
+  const lim = Math.min(100, Math.max(1, Number(limit) || 50));
+  if (token) {
+    const { rows } = await pool.query(`SELECT id, shipment_id, tracking_number, status, mode, carrier, service_code, service_name, total_weight_kg, goods_value, sell_price, prn, created_at FROM shipments WHERE token = $1 ORDER BY created_at DESC LIMIT ${lim}`, [token]);
+    return rows;
+  }
+  const { rows } = await pool.query(`SELECT * FROM shipments ORDER BY created_at DESC LIMIT ${lim}`);
+  return rows;
+}
+
+async function getShipmentById(id) {
+  if (!pool) return null;
+  const { rows } = await pool.query(`SELECT * FROM shipments WHERE id = $1`, [id]);
+  return rows[0] || null;
+}
+
 module.exports = {
   initDb, getConfig, setConfig, getSecret,
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
   createCard, listCards, getCardByToken, getCardById, updateCard, deleteCard,
   createQuoteLog, listQuoteLogs, quoteStats,
   createCollectionRecord, listCollections,
+  createShipmentRecord, listShipments, getShipmentById,
   hasDb: !!pool,
 };

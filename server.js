@@ -679,6 +679,163 @@ app.post('/api/collections', auth.requireAuth, async (req, res) => {
   }
 });
 
+// PUBLIC / CARD-AUTHENTICATED: Book Import Shipment with UPS & Electronic Documents + Schedule Collection
+app.post('/api/book-import', async (req, res) => {
+  try {
+    const {
+      token, sender, receiver, packages, serviceCode, goodsValue,
+      invoiceBase64, invoiceFormat, packingSlipBase64, packingSlipFormat,
+      bookPickup, pickupDate, readyTime, closeTime, instructions
+    } = req.body || {};
+
+    let card = null;
+    if (token) {
+      card = db.hasDb ? await db.getCardByToken(token) : null;
+      if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Rate card not available or disabled' });
+    } else if (!auth.getUserFromReq(req)) {
+      return res.status(401).json({ ok: false, error: 'Authorization required to book shipment.' });
+    }
+
+    if (!sender || !sender.country || (!sender.line1 && !sender.city)) {
+      return res.status(400).json({ ok: false, error: 'Sender / collection address is incomplete.' });
+    }
+    if (!receiver || (!receiver.line1 && !receiver.postcode)) {
+      return res.status(400).json({ ok: false, error: 'Receiver delivery address is incomplete.' });
+    }
+    const pkgs = Array.isArray(packages) && packages.length ? packages : [{ weight: 1, l: 10, w: 10, h: 10 }];
+
+    // 1. Call UPS Shipment Booking API with electronic forms attached
+    const shipResult = await ups.bookShipment({
+      sender,
+      receiver,
+      packages: pkgs,
+      serviceCode: serviceCode || '65',
+      invoiceBase64,
+      invoiceFormat: invoiceFormat || 'PDF',
+      packingSlipBase64,
+      packingSlipFormat: packingSlipFormat || 'PDF',
+    });
+
+    if (!shipResult.ok) {
+      return res.status(400).json({
+        ok: false,
+        error: shipResult.error || 'UPS rejected shipment booking',
+        status: shipResult.status,
+        raw: shipResult.raw,
+        request: shipResult.request,
+      });
+    }
+
+    const trackingNumber = shipResult.trackingNumber;
+    let prn = null;
+    let pickupResult = null;
+
+    // 2. Automatically schedule collection if requested
+    if (bookPickup !== false && trackingNumber) {
+      try {
+        const totalWt = pkgs.reduce((sum, p) => sum + (Math.max(1, parseInt(p.qty, 10) || 1) * (Number(p.weight) || 1)), 0);
+        const totalPieces = pkgs.reduce((sum, p) => sum + Math.max(1, parseInt(p.qty, 10) || 1), 0);
+
+        pickupResult = await ups.createPickup({
+          companyName: sender.company || sender.name || 'Sender',
+          contactName: sender.name || sender.company || 'Sender',
+          phone: sender.phone || '07498991612',
+          email: sender.email || '',
+          addressLine: sender.line1 || '1 Main Street',
+          addressLine2: sender.line2 || '',
+          city: sender.city || '',
+          postcode: sender.postcode || '',
+          country: sender.country,
+          pickupDate: pickupDate,
+          readyTime: readyTime || '10:00',
+          closeTime: closeTime || '17:00',
+          parcels: totalPieces,
+          weight: Math.round(totalWt * 10) / 10,
+          trackingNumber: trackingNumber,
+          specialInstruction: instructions || '',
+          serviceCode: serviceCode || '065',
+        });
+        if (pickupResult && pickupResult.ok) {
+          prn = pickupResult.prn;
+        }
+      } catch (e) {
+        console.error('[book-import pickup error]', e.message);
+      }
+    }
+
+    // 3. Save booking into database
+    const totalWt = pkgs.reduce((sum, p) => sum + (Math.max(1, parseInt(p.qty, 10) || 1) * (Number(p.weight) || 1)), 0);
+    let saved = null;
+    try {
+      saved = await db.createShipmentRecord({
+        shipment_id: shipResult.shipmentId,
+        tracking_number: trackingNumber,
+        status: 'booked',
+        mode: 'import',
+        carrier: 'UPS',
+        service_code: serviceCode || '65',
+        service_name: ups.svcName(serviceCode || '65'),
+        card_id: card ? card.id : null,
+        customer: card ? card.customer : (req.user ? req.user.email : null),
+        token: token || null,
+        sender,
+        receiver,
+        packages: pkgs,
+        total_weight_kg: Math.round(totalWt * 10) / 10,
+        goods_value: Number(goodsValue) || 0,
+        cost_price: shipResult.totalCost,
+        sell_price: null,
+        prn: prn,
+        label_base64: (shipResult.packages && shipResult.packages[0] && shipResult.packages[0].labelGraphic) || null,
+        documents_attached: {
+          invoice: !!invoiceBase64,
+          packingSlip: !!packingSlipBase64,
+        },
+        response: { shipment: shipResult.json, pickup: pickupResult ? pickupResult.json : null },
+        created_by: req.user ? req.user.id : null,
+      });
+    } catch (e) {
+      console.error('[book-import db error]', e.message);
+    }
+
+    res.json({
+      ok: true,
+      shipmentId: shipResult.shipmentId,
+      trackingNumber,
+      prn,
+      packages: shipResult.packages,
+      pickupBooked: !!prn,
+      pickupError: (pickupResult && !pickupResult.ok) ? pickupResult.error : null,
+      savedId: saved ? saved.id : null,
+      createdAt: saved ? saved.created_at : new Date().toISOString(),
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// AUTHENTICATED: List all booked shipments
+app.get('/api/shipments', auth.requireAuth, async (req, res) => {
+  try {
+    const list = await db.listShipments({ limit: req.query.limit });
+    res.json({ shipments: list });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// CARD TOKEN: List shipments for a specific customer card
+app.get('/api/card/:token/shipments', async (req, res) => {
+  try {
+    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available' });
+    const list = await db.listShipments({ token: req.params.token, limit: req.query.limit || 20 });
+    res.json({ shipments: list });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // AUTHENTICATED: List previous collection requests
 app.get('/api/collections', auth.requireAuth, async (req, res) => {
   try {

@@ -887,6 +887,7 @@ a:hover { text-decoration: underline; }
         <div class="mv-rail-group-label">TOOLS &amp; PRICING</div>
         <div class="mv-rail-item active" id="navCalc"><span class="mv-rail-icon">⚡</span>Rate Calculator</div>
         <div class="mv-rail-item" id="navCards"><span class="mv-rail-icon">💳</span>Customer Rate Cards</div>
+        <div class="mv-rail-item" id="navShipments"><span class="mv-rail-icon">🏷️</span>Shipments &amp; Labels</div>
         <div class="mv-rail-item" id="navCollection"><span class="mv-rail-icon">📦</span>Create a Collection</div>
         <div class="mv-rail-item" id="navQuotes"><span class="mv-rail-icon">📋</span>Quote Log</div>
       </div>
@@ -1537,7 +1538,42 @@ a:hover { text-decoration: underline; }
       </div>
     </div>
 
-    <!-- 4. QUOTE LOG (quotes) -->
+    <!-- 4. SHIPMENTS & LABELS (shipments) -->
+    <div id="shipments" style="display:none">
+      <div class="ds-pagehead">
+        <div class="ds-kicker">OPERATIONS &amp; FULFILMENT</div>
+        <h1 class="ds-h1">Shipments &amp; Labels</h1>
+        <p class="ds-blurb">Booked international &amp; import shipments with live tracking numbers, PRN collections, and printable shipping labels.</p>
+      </div>
+
+      <div class="ds-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="ds-section-title" style="margin:0">Booked Shipments History</div>
+          <button class="ds-btn ds-btn-secondary" id="shipRefresh" style="padding:5px 10px;font-size:11px">Refresh</button>
+        </div>
+        <div class="ds-table-wrap">
+          <table class="ds-table">
+            <thead>
+              <tr>
+                <th>Tracking #</th>
+                <th>Service &amp; Mode</th>
+                <th>Customer / Account</th>
+                <th>Origin &amp; Destination</th>
+                <th>Parcels &amp; Weight</th>
+                <th>Collection PRN</th>
+                <th>Paperless Docs</th>
+                <th>Label</th>
+                <th>Booked Date</th>
+              </tr>
+            </thead>
+            <tbody id="shipHistoryBody"></tbody>
+          </table>
+        </div>
+        <div id="shipEmpty" style="font-size:12.5px;color:var(--mv-ink-55);margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- 5. QUOTE LOG (quotes) -->
     <div id="quotes" style="display:none">
       <div class="ds-pagehead">
         <div class="ds-kicker">AUDIT &amp; ACTIVITY</div>
@@ -2187,10 +2223,10 @@ function bootCalc(){
   calc();
 }
 
-const SCREENS=['loading','setup','login','app','cards','settings','quotes','collection'];
+const SCREENS=['loading','setup','login','app','cards','shipments','settings','quotes','collection'];
 function screen(id){
   SCREENS.forEach(s=>$(s).style.display='none');
-  const authed=(id==='app'||id==='cards'||id==='settings'||id==='quotes'||id==='collection');
+  const authed=(id==='app'||id==='cards'||id==='shipments'||id==='settings'||id==='quotes'||id==='collection');
   $(id).style.display='block';
   $('hdr').style.display=authed?'flex':'none';
   if(!authed){
@@ -2201,6 +2237,7 @@ function screen(id){
   document.querySelectorAll('.mv-rail-item').forEach(el=>el.classList.remove('active'));
   if(id==='app')$('navCalc').classList.add('active');
   if(id==='cards')$('navCards').classList.add('active');
+  if(id==='shipments')$('navShipments').classList.add('active');
   if(id==='collection')$('navCollection').classList.add('active');
   if(id==='quotes')$('navQuotes').classList.add('active');
   if(id==='settings')$('navSettings').classList.add('active');
@@ -2238,9 +2275,11 @@ async function init(){
 
 $('navCalc').onclick=()=>{screen('app');calc();};
 $('navCards').onclick=openCards;
+$('navShipments').onclick=openShipments;
 $('navCollection').onclick=openCollection;
 $('navQuotes').onclick=openQuotes;
 $('navSettings').onclick=openSettings;
+if ($('shipRefresh')) $('shipRefresh').onclick = loadShipments;
 
 $('suBtn').onclick=async()=>{$('suErr').textContent='';
   const r=await jpost('/api/setup',{name:$('suName').value,email:$('suEmail').value,password:$('suPass').value});
@@ -2614,6 +2653,61 @@ async function openCollection() {
   $('colResultCard').style.display = 'none';
   $('colMsg').textContent = '';
   await loadCollections();
+}
+
+// ---- Shipments & Labels ----
+async function openShipments() {
+  screen('shipments');
+  await loadShipments();
+}
+
+async function loadShipments() {
+  try {
+    const r = await fetch('/api/shipments');
+    if (!r.ok) { $('shipEmpty').textContent = 'Could not load shipments.'; return; }
+    const d = await r.json();
+    renderShipments(d.shipments || []);
+  } catch (e) {
+    $('shipEmpty').textContent = 'Could not load shipments: ' + e.message;
+  }
+}
+
+function renderShipments(list) {
+  const tb = $('shipHistoryBody');
+  tb.innerHTML = '';
+  list.forEach(x => {
+    const tr = document.createElement('tr');
+    const trackingStr = x.tracking_number
+      ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:13px;font-weight:800;color:var(--mv-purple);text-decoration:none">🔗 ' + qesc(x.tracking_number) + '</a>')
+      : '—';
+    const s = x.sender || {};
+    const r = x.receiver || {};
+    const fromStr = [s.company || s.name, s.city, s.country].filter(Boolean).join(', ') || '—';
+    const toStr = [r.company || r.name, r.city, r.postcode, r.country || 'GB'].filter(Boolean).join(', ') || '—';
+    const prnStr = x.prn ? ('<span style="font-family:monospace;font-weight:800;color:#065f46;background:#d1fae5;padding:2px 6px">' + qesc(x.prn) + '</span>') : '<span class="ds-status--waiting">—</span>';
+    
+    const docs = x.documents_attached || {};
+    const docsStr = (docs.invoice || docs.packingSlip)
+      ? '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>PAPERLESS</span>'
+      : '<span class="ds-status--waiting">Standard</span>';
+
+    const labelBtn = x.label_base64
+      ? ('<a href="data:image/gif;base64,' + x.label_base64 + '" download="UPS_Label_' + (x.tracking_number || x.id) + '.gif" class="ds-btn ds-btn-secondary" style="padding:3px 8px;font-size:11px" target="_blank">Print Label 🖨️</a>')
+      : '<span class="ds-status--waiting">—</span>';
+
+    tr.innerHTML = '<td>' + trackingStr + '</td>' +
+      '<td><b>' + qesc(x.service_name || x.service_code || 'UPS') + '</b><div style="font-size:11px;color:var(--mv-ink-55)">' + qesc((x.mode || 'import').toUpperCase()) + '</div></td>' +
+      '<td>' + qesc(x.customer || 'Direct') + '</td>' +
+      '<td style="font-size:12px">' + qesc(fromStr) + '</td>' +
+      '<td style="font-size:12px">' + qesc(toStr) + '</td>' +
+      '<td>' + (x.total_weight_kg ? (x.total_weight_kg + ' kg') : '—') + '</td>' +
+      '<td>' + prnStr + '</td>' +
+      '<td>' + docsStr + '</td>' +
+      '<td>' + labelBtn + '</td>' +
+      '<td style="white-space:nowrap">' + qDT(x.created_at) + '</td>';
+    tb.appendChild(tr);
+  });
+  $('shipEmpty').textContent = list.length ? '' : 'No booked shipments logged yet.';
 }
 
 async function loadCollections() {
