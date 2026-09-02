@@ -2703,8 +2703,8 @@ async function submitImportBooking() {
     }
 
     const pkgsList = Array.isArray(d.packages) ? d.packages : [];
-    $('ibPrintThermalBtn').onclick = () => printAllShipmentLabels(pkgsList, 'thermal');
-    $('ibPrintA4Btn').onclick = () => printAllShipmentLabels(pkgsList, 'a4');
+    $('ibPrintThermalBtn').onclick = () => printAllShipmentLabels(d, 'thermal');
+    $('ibPrintA4Btn').onclick = () => printAllShipmentLabels(d, 'a4');
 
     $('ibCancelShipmentBtn').onclick = async () => {
       if (!confirm('Are you sure you want to cancel this UPS shipment and collection?')) return;
@@ -2745,9 +2745,72 @@ async function submitImportBooking() {
   }
 }
 
-function printAllShipmentLabels(pkgs, format = 'thermal') {
-  const list = (Array.isArray(pkgs) ? pkgs : []).filter(p => p && (p.labelGraphic || p.graphicImage));
-  if (!list.length) { alert('No label graphics available to print.'); return; }
+function extractAllLabels(input) {
+  const list = [];
+
+  function add(graphic, trk) {
+    if (!graphic || typeof graphic !== 'string') return;
+    const clean = graphic.replace(/^data:[^;]+;base64,/, '').trim();
+    if (!clean || clean.length < 50) return;
+    if (!list.some(item => item.labelGraphic === clean)) {
+      list.push({ trackingNumber: trk || '', labelGraphic: clean });
+    }
+  }
+
+  function scan(obj) {
+    if (!obj || typeof obj !== 'object') return;
+
+    if (obj.labelGraphic) add(obj.labelGraphic, obj.trackingNumber || obj.TrackingNumber);
+    if (obj.graphicImage) add(obj.graphicImage, obj.trackingNumber || obj.TrackingNumber);
+    if (obj.GraphicImage) add(obj.GraphicImage, obj.trackingNumber || obj.TrackingNumber);
+    if (obj.label_base64) add(obj.label_base64, obj.tracking_number || obj.trackingNumber);
+    if (obj.ShippingLabel && (obj.ShippingLabel.GraphicImage || obj.ShippingLabel.graphicImage)) {
+      add(obj.ShippingLabel.GraphicImage || obj.ShippingLabel.graphicImage, obj.TrackingNumber || obj.trackingNumber);
+    }
+
+    let pkgs = obj.packages;
+    if (typeof pkgs === 'string') {
+      try { pkgs = JSON.parse(pkgs); } catch (_) {}
+    }
+    if (Array.isArray(pkgs)) {
+      pkgs.forEach(p => {
+        if (typeof p === 'string') add(p, '');
+        else scan(p);
+      });
+    }
+
+    let resp = obj.response;
+    if (typeof resp === 'string') {
+      try { resp = JSON.parse(resp); } catch (_) {}
+    }
+    const sResults = (resp && resp.shipment && resp.shipment.ShipmentResponse && resp.shipment.ShipmentResponse.ShipmentResults)
+      || (resp && resp.ShipmentResponse && resp.ShipmentResponse.ShipmentResults)
+      || (resp && resp.ShipmentResults);
+    const pkgResults = Array.isArray(sResults && sResults.PackageResults) ? sResults.PackageResults : (sResults && sResults.PackageResults ? [sResults.PackageResults] : []);
+    pkgResults.forEach(pr => {
+      const g = (pr && pr.ShippingLabel && pr.ShippingLabel.GraphicImage) || (pr && pr.GraphicImage);
+      if (g) add(g, pr.TrackingNumber);
+    });
+  }
+
+  if (Array.isArray(input)) {
+    input.forEach(item => {
+      if (typeof item === 'string') add(item, '');
+      else scan(item);
+    });
+  } else if (typeof input === 'object' && input !== null) {
+    scan(input);
+  }
+
+  return list;
+}
+
+function printAllShipmentLabels(target, format = 'thermal') {
+  const list = extractAllLabels(target);
+  if (!list.length) {
+    alert('No label graphics found for this shipment. Please make sure the shipment has completed booking.');
+    return;
+  }
   const w = window.open('', '_blank');
   if (!w) { alert('Please allow popups to open the printable labels.'); return; }
 
@@ -2755,7 +2818,7 @@ function printAllShipmentLabels(pkgs, format = 'thermal') {
   const imgs = list.map((p, i) => `
     <div class="label-page ${isA4 ? 'a4' : 'thermal'}">
       <div class="label-header-info no-print">Piece ${i + 1} of ${list.length} — Tracking: <b>${p.trackingNumber || '—'}</b></div>
-      <img src="data:image/gif;base64,${p.labelGraphic || p.graphicImage}" alt="UPS Label ${i + 1}" />
+      <img src="data:image/gif;base64,${p.labelGraphic}" alt="UPS Label ${i + 1}" />
     </div>
   `).join('');
 
@@ -3084,7 +3147,8 @@ function renderCustomerBookings(shipments) {
       </div>
     `;
 
-    // Store packages array on card element for batch printing
+    // Store full shipment object and packages array on card element for batch printing
+    card._shipment = x;
     card._packages = pkgs;
     box.appendChild(card);
   });
@@ -3115,8 +3179,8 @@ function initCustomerBookingsEvents() {
     if (printThermalBtn) {
       e.preventDefault();
       const card = printThermalBtn.closest('.calc-card');
-      if (card && card._packages) {
-        printAllShipmentLabels(card._packages, 'thermal');
+      if (card) {
+        printAllShipmentLabels(card._shipment || card._packages, 'thermal');
       }
       return;
     }
@@ -3126,8 +3190,8 @@ function initCustomerBookingsEvents() {
     if (printA4Btn) {
       e.preventDefault();
       const card = printA4Btn.closest('.calc-card');
-      if (card && card._packages) {
-        printAllShipmentLabels(card._packages, 'a4');
+      if (card) {
+        printAllShipmentLabels(card._shipment || card._packages, 'a4');
       }
       return;
     }
