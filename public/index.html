@@ -871,6 +871,106 @@ a:hover { text-decoration: underline; }
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===== EXPANDABLE SHIPMENT ROW & TIMELINE ===== */
+.ship-row:hover td {
+  background: rgba(123, 47, 190, 0.03);
+}
+.moov-timeline-wrap {
+  position: relative;
+  padding: 14px 12px 8px;
+  margin: 4px 0 6px;
+  width: 100%;
+}
+.moov-timeline-track {
+  position: absolute;
+  top: 26px;
+  left: 36px;
+  right: 36px;
+  height: 2px;
+  background: var(--mv-divider);
+  z-index: 1;
+}
+.moov-timeline-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--mv-green);
+  transition: width 0.3s ease;
+}
+.moov-timeline-nodes {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  z-index: 2;
+  gap: 6px;
+}
+.moov-timeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+  min-width: 60px;
+}
+.moov-timeline-dot {
+  width: 22px;
+  height: 22px;
+  background: #ffffff;
+  border: 1.5px solid var(--mv-divider);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  color: var(--mv-ink-45);
+  font-weight: 800;
+  margin-bottom: 5px;
+  transition: all 0.2s ease;
+}
+.moov-timeline-node.done .moov-timeline-dot {
+  background: var(--mv-green);
+  border-color: var(--mv-green);
+  color: #ffffff;
+}
+.moov-timeline-node.current .moov-timeline-dot {
+  background: var(--mv-green);
+  border-color: var(--mv-green);
+  color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 200, 83, 0.25);
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+.moov-timeline-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--mv-ink-45);
+  line-height: 1.2;
+}
+.moov-timeline-node.done .moov-timeline-title {
+  color: var(--mv-ink);
+  font-weight: 700;
+}
+.moov-timeline-node.current .moov-timeline-title {
+  color: var(--mv-green-deep);
+  font-weight: 800;
+}
+.moov-timeline-sub {
+  font-size: 9px;
+  color: var(--mv-ink-45);
+  margin-top: 1px;
+}
+.moov-timeline-node.done .moov-timeline-sub {
+  color: var(--mv-ink-55);
+}
+.moov-timeline-node.current .moov-timeline-sub {
+  color: var(--mv-green-deep);
+  font-weight: 600;
+}
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(0, 200, 83, 0.25); }
+  50% { box-shadow: 0 0 0 6px rgba(0, 200, 83, 0.1); }
+}
 </style>
 </head>
 <body>
@@ -1137,6 +1237,23 @@ a:hover { text-decoration: underline; }
         <div class="ds-modal-foot">
           <button class="ds-btn ds-btn-secondary" id="admReschedCancel">Cancel</button>
           <button class="ds-btn ds-btn-primary" id="admReschedSubmit">Confirm Reschedule</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: LIVE UPS TRACKING (ADMIN) -->
+    <div class="ds-modal-scrim" id="adminTrackingModal" style="display:none">
+      <div class="ds-modal" style="width:580px">
+        <div class="ds-modal-head">
+          <div class="ds-kicker">UPS COURIER STATUS</div>
+          <h2 style="margin:4px 0 0;font-size:20px" id="admTrackModalTitle">Tracking Shipment</h2>
+          <p class="ds-blurb" style="font-size:12px;margin-top:4px">Real-time scan telemetry and delivery confirmation from UPS.</p>
+        </div>
+        <div class="ds-modal-body" id="admTrackBody" style="max-height:60vh;overflow-y:auto">
+          <div style="padding:24px;text-align:center;color:var(--mv-ink-55)">Connecting to UPS tracking…</div>
+        </div>
+        <div class="ds-modal-foot">
+          <button class="ds-btn ds-btn-secondary" id="admTrackClose">Close</button>
         </div>
       </div>
     </div>
@@ -1593,18 +1710,19 @@ a:hover { text-decoration: underline; }
           <button class="ds-btn ds-btn-secondary" id="shipRefresh" style="padding:5px 10px;font-size:11px">Refresh</button>
         </div>
         <div class="ds-table-wrap">
-          <table class="ds-table">
+          <table class="ds-table" id="shipHistoryTable">
             <thead>
               <tr>
                 <th>Tracking #</th>
                 <th>Service &amp; Mode</th>
                 <th>Customer / Account</th>
-                <th>Origin &amp; Destination</th>
+                <th>Supplier / Origin</th>
+                <th>UK Destination</th>
                 <th>Parcels &amp; Weight</th>
                 <th>Collection PRN</th>
-                <th>Paperless Docs</th>
-                <th>Label</th>
+                <th>Status / Docs</th>
                 <th>Booked Date</th>
+                <th style="text-align:right">Actions</th>
               </tr>
             </thead>
             <tbody id="shipHistoryBody"></tbody>
@@ -2717,40 +2835,177 @@ function renderShipments(list) {
   const tb = $('shipHistoryBody');
   tb.innerHTML = '';
   list.forEach(x => {
-    const tr = document.createElement('tr');
-    const trackingStr = x.tracking_number
-      ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:13px;font-weight:800;color:var(--mv-purple);text-decoration:none">🔗 ' + qesc(x.tracking_number) + '</a>')
-      : '—';
-    const s = x.sender || {};
-    const r = x.receiver || {};
+    const s = (typeof x.sender === 'object' && x.sender) ? x.sender : {};
+    const r = (typeof x.receiver === 'object' && x.receiver) ? x.receiver : {};
+    const pkgs = (Array.isArray(x.packages) && x.packages.length) ? x.packages : [];
+    const totalParcels = pkgs.reduce((sum, p) => sum + (parseInt(p.qty, 10) || 1), 0) || (x.parcels || pkgs.length || 1);
+    const totalWeight = Number(x.total_weight_kg) || pkgs.reduce((sum, p) => sum + (Number(p.weight) || 0) * (parseInt(p.qty, 10) || 1), 0);
+
     const fromStr = [s.company || s.name, s.city, s.country].filter(Boolean).join(', ') || '—';
     const toStr = [r.company || r.name, r.city, r.postcode, r.country || 'GB'].filter(Boolean).join(', ') || '—';
-    const prnStr = x.prn ? ('<span style="font-family:monospace;font-weight:800;color:#065f46;background:#d1fae5;padding:2px 6px">' + qesc(x.prn) + '</span>') : '<span class="ds-status--waiting">—</span>';
-    
-    const docs = x.documents_attached || {};
-    const docsStr = (docs.invoice || docs.packingSlip)
-      ? '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>PAPERLESS</span>'
-      : '<span class="ds-status--waiting">Standard</span>';
 
-    const labelBtn = x.label_base64
-      ? ('<a href="data:image/gif;base64,' + x.label_base64 + '" download="UPS_Label_' + (x.tracking_number || x.id) + '.gif" class="ds-btn ds-btn-secondary" style="padding:3px 8px;font-size:11px" target="_blank">Print Label 🖨️</a>')
+    const isCancelled = x.status === 'cancelled';
+    const isRescheduled = x.status === 'rescheduled';
+    const statusChip = isCancelled
+      ? '<span class="ds-status ds-status--attention"><span class="ds-mark ds-mark--attention"></span>CANCELLED</span>'
+      : (isRescheduled
+        ? '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>RESCHEDULED</span>'
+        : '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>BOOKED</span>');
+
+    const prnStr = x.prn
+      ? ('<span style="font-family:monospace;font-weight:800;color:var(--mv-purple);background:rgba(123,47,190,0.08);padding:2px 6px;border:1px solid rgba(123,47,190,0.2)">' + qesc(x.prn) + '</span>')
       : '<span class="ds-status--waiting">—</span>';
 
-    const prnAction = x.prn ? ('<div style="margin-top:4px"><button class="ds-btn ds-btn-secondary btn-adm-resched" data-prn="' + qesc(x.prn) + '" style="padding:2px 6px;font-size:10px">Reschedule 🔄</button></div>') : '';
+    const docs = x.documents_attached || {};
+    const docsStr = (docs.invoice || docs.packingSlip)
+      ? '<span style="font-size:10px;font-weight:800;color:#065f46;background:#d1fae5;padding:1px 5px;letter-spacing:.04em">✓ PAPERLESS</span>'
+      : '<span style="font-size:10px;color:var(--mv-ink-55)">STANDARD</span>';
 
-    tr.innerHTML = '<td>' + trackingStr + '</td>' +
-      '<td><b>' + qesc(x.service_name || x.service_code || 'UPS') + '</b><div style="font-size:11px;color:var(--mv-ink-55)">' + qesc((x.mode || 'import').toUpperCase()) + '</div></td>' +
+    const trackingStr = x.tracking_number
+      ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:12.5px;font-weight:800;color:var(--mv-purple);text-decoration:none" onclick="event.stopPropagation()">' + qesc(x.tracking_number) + '</a>')
+      : '—';
+
+    // 7-Stage Progress calculation
+    let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : 0);
+    const progressPercent = currentStageIdx === 0 ? 0 : Math.min(100, Math.round(((currentStageIdx - 1) / 6) * 100));
+
+    const STAGES = [
+      { name: 'Collected', desc: 'Supplier Pickup' },
+      { name: 'In Transit', desc: 'Origin Transit' },
+      { name: 'At Hub', desc: 'Export Hub' },
+      { name: 'In Transit', desc: 'Cross-Border' },
+      { name: 'At Depot', desc: 'UK Depot' },
+      { name: 'Out for Delivery', desc: 'Local Driver' },
+      { name: 'Delivered', desc: 'Signed' },
+    ];
+
+    const stagesHtml = STAGES.map((st, i) => {
+      const isDone = (i + 1) < currentStageIdx;
+      const isCurrent = (i + 1) === currentStageIdx;
+      const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
+      return `
+        <div class="moov-timeline-node ${cls}">
+          <div class="moov-timeline-dot">
+            ${isDone ? '✓' : (i + 1)}
+          </div>
+          <div class="moov-timeline-title">${st.name}</div>
+          <div class="moov-timeline-sub">${st.desc}</div>
+        </div>
+      `;
+    }).join('');
+
+    const pkgRowsHtml = pkgs.map((p, pIdx) => {
+      const q = parseInt(p.qty, 10) || 1;
+      const wt = Number(p.weight) || 0;
+      const l = Number(p.l) || 0, w = Number(p.w) || 0, h = Number(p.h) || 0;
+      const volWt = (l && w && h) ? Math.round((l * w * h / 5000) * 10) / 10 : '—';
+      const trk = p.trackingNumber || x.tracking_number || '—';
+      return '<tr style="border-bottom:1px solid var(--mv-hairline)">'
+        + '<td style="padding:6px 8px;font-weight:700">Piece ' + (pIdx + 1) + '</td>'
+        + '<td style="padding:6px 8px;font-family:monospace;font-size:12px">' + qesc(trk) + '</td>'
+        + '<td style="padding:6px 8px">' + (p.packaging === 'tube' ? 'UPS Tube' : (p.packaging === 'expressbox' ? 'UPS Express Box' : 'Custom Box')) + '</td>'
+        + '<td style="padding:6px 8px">' + (l ? (l + ' × ' + w + ' × ' + h + ' cm') : 'Standard') + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;font-weight:700">' + wt + ' kg</td>'
+        + '<td style="padding:6px 8px;text-align:right;color:var(--mv-ink-55)">' + volWt + (volWt !== '—' ? ' kg' : '') + '</td>'
+        + '</tr>';
+    }).join('');
+
+    const mainTr = document.createElement('tr');
+    mainTr.className = 'ship-row';
+    mainTr.dataset.id = x.id;
+    mainTr.style.cursor = 'pointer';
+
+    mainTr.innerHTML = '<td>' + trackingStr + '</td>' +
+      '<td><b>' + qesc(x.service_name || x.service_code || 'UPS') + '</b><div style="font-size:10px;color:var(--mv-ink-55);font-weight:700">' + qesc((x.mode || 'import').toUpperCase()) + '</div></td>' +
       '<td>' + qesc(x.customer || 'Direct') + '</td>' +
-      '<td style="font-size:12px">' + qesc(fromStr) + '</td>' +
-      '<td style="font-size:12px">' + qesc(toStr) + '</td>' +
-      '<td>' + (x.total_weight_kg ? (x.total_weight_kg + ' kg') : '—') + '</td>' +
-      '<td>' + prnStr + prnAction + '</td>' +
-      '<td>' + docsStr + '</td>' +
-      '<td>' + labelBtn + '</td>' +
-      '<td style="white-space:nowrap">' + qDT(x.created_at) + '</td>';
-    tb.appendChild(tr);
+      '<td style="font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + qesc(fromStr) + '">' + qesc(fromStr) + '</td>' +
+      '<td style="font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + qesc(toStr) + '">' + qesc(toStr) + '</td>' +
+      '<td><b>' + totalParcels + ' pc</b> · ' + totalWeight + ' kg</td>' +
+      '<td>' + prnStr + '</td>' +
+      '<td>' + statusChip + '<div style="margin-top:2px">' + docsStr + '</div></td>' +
+      '<td style="white-space:nowrap;font-size:12px">' + qDT(x.created_at) + '</td>' +
+      '<td style="text-align:right;white-space:nowrap">' +
+        '<button type="button" class="ds-btn ds-btn-secondary btn-inspect-shipment" data-id="' + x.id + '" style="padding:4px 8px;font-size:11px" onclick="event.stopPropagation(); toggleShipmentDrawer(\'' + x.id + '\')">Inspect ▾</button>' +
+      '</td>';
+
+    const drawerTr = document.createElement('tr');
+    drawerTr.id = 'shipDrawer_' + x.id;
+    drawerTr.className = 'ship-drawer-row';
+    drawerTr.style.display = 'none';
+
+    drawerTr.innerHTML = '<td colspan="10" style="padding:0;background:var(--mv-surface);border-top:2px solid var(--mv-divider);border-bottom:2px solid var(--mv-divider)">' +
+      '<div style="padding:16px 20px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">' +
+          '<div style="display:flex;align-items:center;gap:10px">' +
+            '<span class="ds-kicker" style="margin:0">COURIER JOURNEY</span>' +
+            '<span style="font-family:monospace;font-size:12px;font-weight:700">(' + qesc(x.tracking_number || 'No tracking') + ')</span>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            (x.tracking_number ? ('<button type="button" class="ds-btn ds-btn-primary btn-adm-track-live" data-tracking="' + qesc(x.tracking_number) + '" style="padding:5px 12px;font-size:11.5px">Track Shipment</button>') : '') +
+            (x.prn && !isCancelled ? ('<button type="button" class="ds-btn ds-btn-secondary btn-adm-resched" data-prn="' + qesc(x.prn) + '" style="padding:5px 12px;font-size:11.5px">Amend Collection</button>') : '') +
+            (x.label_base64 ? ('<a href="data:image/gif;base64,' + x.label_base64 + '" download="UPS_Label_' + (x.tracking_number || x.id) + '.gif" class="ds-btn ds-btn-secondary" style="padding:5px 12px;font-size:11.5px" target="_blank" onclick="event.stopPropagation()">Print Label</a>') : '') +
+          '</div>' +
+        '</div>' +
+
+        (!isCancelled ? (
+          '<div class="moov-timeline-wrap" style="background:#fff;border:1px solid var(--mv-hairline-2);padding:14px 16px 8px;margin-bottom:16px">' +
+            '<div class="moov-timeline-track"><div class="moov-timeline-progress" style="width: ' + progressPercent + '%"></div></div>' +
+            '<div class="moov-timeline-nodes">' + stagesHtml + '</div>' +
+          '</div>'
+        ) : '') +
+
+        '<div class="ds-grid ds-grid-3" style="gap:14px;margin-bottom:14px">' +
+          '<div style="background:#fff;border:1px solid var(--mv-hairline-2);padding:12px">' +
+            '<div class="ds-label" style="margin-bottom:4px">Supplier / Origin Address</div>' +
+            '<div style="font-weight:800;font-size:13px">' + qesc(s.company || s.name || '—') + '</div>' +
+            '<div style="font-size:12px;color:var(--mv-ink-75);margin-top:4px">' + qesc(s.line1 || '') + (s.line2 ? (', ' + qesc(s.line2)) : '') + '<br>' + qesc(s.city || '') + ' ' + qesc(s.postcode || '') + '<br>' + qesc(s.country || '') + '</div>' +
+            (s.phone ? ('<div style="font-size:11.5px;color:var(--mv-ink-55);margin-top:4px">Tel: ' + qesc(s.phone) + '</div>') : '') +
+            (s.email ? ('<div style="font-size:11.5px;color:var(--mv-ink-55)">Email: ' + qesc(s.email) + '</div>') : '') +
+          '</div>' +
+          '<div style="background:#fff;border:1px solid var(--mv-hairline-2);padding:12px">' +
+            '<div class="ds-label" style="margin-bottom:4px">UK Delivery Address</div>' +
+            '<div style="font-weight:800;font-size:13px">' + qesc(r.company || r.name || '—') + '</div>' +
+            '<div style="font-size:12px;color:var(--mv-ink-75);margin-top:4px">' + qesc(r.line1 || '') + (r.line2 ? (', ' + qesc(r.line2)) : '') + '<br>' + qesc(r.city || '') + ' ' + qesc(r.postcode || '') + '<br>' + qesc(r.country || 'GB') + '</div>' +
+            (r.phone ? ('<div style="font-size:11.5px;color:var(--mv-ink-55);margin-top:4px">Tel: ' + qesc(r.phone) + '</div>') : '') +
+            (r.email ? ('<div style="font-size:11.5px;color:var(--mv-ink-55)">Email: ' + qesc(r.email) + '</div>') : '') +
+          '</div>' +
+          '<div style="background:#fff;border:1px solid var(--mv-hairline-2);padding:12px">' +
+            '<div class="ds-label" style="margin-bottom:4px">Manifest &amp; Customs</div>' +
+            '<div style="font-size:12px;margin-bottom:4px">Declared Value: <b>' + (x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—') + '</b></div>' +
+            '<div style="font-size:12px;margin-bottom:4px">Commercial Invoice: <b>' + (docs.invoice ? '✓ Electronic attached' : 'Paper required') + '</b></div>' +
+            '<div style="font-size:12px">Packing Slip: <b>' + (docs.packingSlip ? '✓ Electronic attached' : 'None') + '</b></div>' +
+          '</div>' +
+        '</div>' +
+
+        (pkgs.length ? (
+          '<div style="background:#fff;border:1px solid var(--mv-hairline-2);padding:12px">' +
+            '<div class="ds-label" style="margin-bottom:8px">Package Pieces (' + pkgs.length + ')</div>' +
+            '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+              '<thead><tr style="border-bottom:1px solid var(--mv-divider);color:var(--mv-ink-55);font-size:10px;text-transform:uppercase">' +
+                '<th style="text-align:left;padding:4px 8px">Piece</th><th style="text-align:left;padding:4px 8px">Tracking</th><th style="text-align:left;padding:4px 8px">Packaging</th><th style="text-align:left;padding:4px 8px">Dimensions</th><th style="text-align:right;padding:4px 8px">Dead Wt</th><th style="text-align:right;padding:4px 8px">Vol Wt</th>' +
+              '</tr></thead>' +
+              '<tbody>' + pkgRowsHtml + '</tbody>' +
+            '</table>' +
+          '</div>'
+        ) : '') +
+      '</div>' +
+    '</td>';
+
+    mainTr.onclick = () => toggleShipmentDrawer(x.id);
+
+    tb.appendChild(mainTr);
+    tb.appendChild(drawerTr);
   });
   $('shipEmpty').textContent = list.length ? '' : 'No booked shipments logged yet.';
+}
+
+function toggleShipmentDrawer(id) {
+  const el = $('shipDrawer_' + id);
+  if (!el) return;
+  const isShown = el.style.display !== 'none';
+  el.style.display = isShown ? 'none' : 'table-row';
+  const btn = document.querySelector('.btn-inspect-shipment[data-id="' + id + '"]');
+  if (btn) btn.textContent = isShown ? 'Inspect ▾' : 'Close ▴';
 }
 
 async function loadCollections() {
@@ -2806,8 +3061,15 @@ function renderCollections(list) {
   $('colEmpty').textContent = list.length ? '' : 'No collections booked yet.';
 }
 
-// Global click handler for Reschedule & Cancel buttons
+// Global click handler for Reschedule, Cancel, and Tracking buttons
 document.addEventListener('click', async e => {
+  const trackBtn = e.target.closest && e.target.closest('.btn-adm-track-live');
+  if (trackBtn) {
+    e.preventDefault();
+    openAdminTrackingModal(trackBtn.dataset.tracking);
+    return;
+  }
+
   const reschedBtn = e.target.closest && e.target.closest('.btn-adm-resched');
   if (reschedBtn) {
     e.preventDefault();
@@ -2844,6 +3106,61 @@ document.addEventListener('click', async e => {
     return;
   }
 });
+
+async function openAdminTrackingModal(trackingNumber) {
+  if (!trackingNumber) return;
+  const m = $('adminTrackingModal');
+  const body = $('admTrackBody');
+  m.style.display = 'flex';
+  $('admTrackModalTitle').textContent = 'Tracking ' + trackingNumber;
+  body.innerHTML = '<div style="padding:28px;text-align:center;color:var(--mv-ink-55)"><div style="font-weight:700;margin-bottom:4px">Connecting to UPS Tracking API…</div><div style="font-size:12px">Querying current location and milestone events</div></div>';
+
+  try {
+    const res = await fetch('/api/shipments/' + encodeURIComponent(trackingNumber) + '/track');
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      body.innerHTML = '<div style="padding:16px;background:rgba(233,30,140,0.08);border:1px solid var(--mv-magenta);color:var(--mv-magenta-deep)">' +
+        '<div style="font-weight:800;font-size:13.5px;margin-bottom:2px">Tracking Update Unavailable</div>' +
+        '<div style="font-size:12px">' + qesc(d.error || 'No scan telemetry recorded for this tracking number yet.') + '</div>' +
+        '</div>';
+      return;
+    }
+
+    const acts = d.activities || [];
+    const del = d.delivery || {};
+    let topBanner = '';
+    if (d.isDelivered) {
+      topBanner = '<div style="background:rgba(0,200,83,0.1);border:1.5px solid var(--mv-green);padding:12px 16px;margin-bottom:14px;color:var(--mv-green-deep)">' +
+        '<div style="font-weight:800;font-size:13.5px">Delivered & Signed</div>' +
+        '<div style="font-size:12px;margin-top:2px">Delivered ' + (del.receivedBy ? ('to <b>' + qesc(del.receivedBy) + '</b>') : '') + ' ' + (del.location ? ('at ' + qesc(del.location)) : '') + '</div>' +
+        '</div>';
+    } else if (d.isCollected) {
+      topBanner = '<div style="background:rgba(0,200,83,0.1);border:1.5px solid var(--mv-green);padding:12px 16px;margin-bottom:14px;color:var(--mv-green-deep)">' +
+        '<div style="font-weight:800;font-size:13.5px">Collected by Courier — In Transit</div>' +
+        '<div style="font-size:12px;margin-top:2px">The consignment has been collected from the origin and is in the courier network.</div>' +
+        '</div>';
+    }
+
+    const actsHtml = acts.length ? acts.map((a, idx) => `
+      <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--mv-hairline);align-items:flex-start">
+        <div style="width:10px;height:10px;background:${idx === 0 ? 'var(--mv-green)' : 'var(--mv-divider)'};margin-top:4px;flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:12.5px;color:var(--mv-ink)">${qesc(a.status || 'Scan Event')}</div>
+          <div style="font-size:11.5px;color:var(--mv-ink-55)">${qesc(a.location || 'UPS Network')}</div>
+        </div>
+        <div style="font-size:11px;font-family:monospace;color:var(--mv-ink-55);text-align:right">${qesc(a.date || '')}</div>
+      </div>
+    `).join('') : '<div style="padding:14px;text-align:center;color:var(--mv-ink-55)">No scan milestones registered yet.</div>';
+
+    body.innerHTML = topBanner + '<div>' + actsHtml + '</div>';
+  } catch (err) {
+    body.innerHTML = '<div style="padding:14px;color:var(--mv-magenta-deep)">Failed to load tracking: ' + qesc(err.message) + '</div>';
+  }
+}
+
+if ($('admTrackClose')) $('admTrackClose').onclick = () => {
+  $('adminTrackingModal').style.display = 'none';
+};
 
 let admActivePrn = null;
 function openAdminReschedModal(prn, date, ready, close, special) {
