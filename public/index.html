@@ -730,11 +730,12 @@ a:hover { text-decoration: underline; }
 .rawcopy {
   border: 1px solid var(--mv-ink);
   background: transparent;
-  padding: 3px 8px;
-  font-size: 10.5px;
+  padding: 4px 10px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
   color: var(--mv-ink);
+  font-family: inherit;
 }
 .rawcopy:hover { background: rgba(32,30,29,.08); }
 
@@ -762,6 +763,7 @@ a:hover { text-decoration: underline; }
       <div class="mv-rail-group">
         <div class="mv-rail-group-label">TOOLS &amp; PRICING</div>
         <div class="mv-rail-item active" id="navCalc"><span class="mv-rail-icon">⚡</span>Rate Calculator</div>
+        <div class="mv-rail-item" id="navCards"><span class="mv-rail-icon">💳</span>Customer Rate Cards</div>
         <div class="mv-rail-item" id="navCollection"><span class="mv-rail-icon">📦</span>Create a Collection</div>
         <div class="mv-rail-item" id="navQuotes"><span class="mv-rail-icon">📋</span>Quote Log</div>
       </div>
@@ -967,7 +969,74 @@ a:hover { text-decoration: underline; }
       </div>
     </div>
 
-    <!-- 2. CREATE A COLLECTION (collection) -->
+    <!-- 2. CUSTOMER RATE CARDS (cards) -->
+    <div id="cards" style="display:none">
+      <div class="ds-pagehead">
+        <div class="ds-kicker">SHAREABLE LINKS</div>
+        <h1 class="ds-h1">Customer Rate Cards</h1>
+        <p class="ds-blurb">Create branded customer rate cards with custom markups and generate one-click shareable public links.</p>
+      </div>
+
+      <!-- Create New Card Panel -->
+      <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:20px 24px">
+        <div class="ds-section-title" style="margin-bottom:8px">Create Customer Rate Card</div>
+        <p class="ds-blurb" style="font-size:12.5px;margin-bottom:16px">Give the rate card a customer or brand name, select the pricing markup scheme, and generate an active link.</p>
+        <div class="ds-grid ds-grid-3" style="align-items:flex-end">
+          <div class="ds-field-wrap">
+            <label class="ds-label">Customer / Account Name *</label>
+            <input id="newCardCustomer" type="text" class="ds-input" placeholder="e.g. Acme Wholesale, Skagen Imports"/>
+          </div>
+          <div class="ds-field-wrap">
+            <label class="ds-label">Markup Scheme</label>
+            <select id="newCardScheme" class="ds-select">
+              <option value="flat10">Flat 10% Markup</option>
+              <option value="flat5">Flat 5% Markup</option>
+              <option value="flat15">Flat 15% Markup</option>
+              <option value="standard">Standard Cost Rate</option>
+            </select>
+          </div>
+          <div class="ds-field-wrap">
+            <label class="ds-label">Volumetric Divisor</label>
+            <select id="newCardDivisor" class="ds-select">
+              <option value="5000">5000 (Standard)</option>
+              <option value="4000">4000</option>
+              <option value="6000">6000</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:18px;display:flex;align-items:center;gap:14px">
+          <button class="ds-btn ds-btn-primary" id="createCardBtn">Create Rate Card &amp; Generate Link</button>
+          <span id="cardCreateMsg" style="font-size:13px;font-weight:700"></span>
+        </div>
+      </div>
+
+      <!-- Existing Rate Cards Table -->
+      <div class="ds-section" style="margin-top:32px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div class="ds-section-title" style="margin:0">Active Customer Rate Cards</div>
+          <button class="ds-btn ds-btn-secondary" id="cardsRefresh" style="padding:5px 10px;font-size:11px">Refresh</button>
+        </div>
+        <div class="ds-table-wrap">
+          <table class="ds-table">
+            <thead>
+              <tr>
+                <th>Customer Name</th>
+                <th>Shareable Link</th>
+                <th>Markup &amp; Settings</th>
+                <th>Created By</th>
+                <th class="r">Views</th>
+                <th>Status</th>
+                <th class="r">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="cardsTableBody"></tbody>
+          </table>
+        </div>
+        <div id="cardsEmpty" style="font-size:12.5px;color:var(--mv-ink-55);margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- 3. CREATE A COLLECTION (collection) -->
     <div id="collection" style="display:none">
       <div class="ds-pagehead">
         <div class="ds-kicker">DISPATCH &amp; COURIER BOOKING</div>
@@ -1074,7 +1143,7 @@ a:hover { text-decoration: underline; }
       </div>
     </div>
 
-    <!-- 3. QUOTE LOG (quotes) -->
+    <!-- 4. QUOTE LOG (quotes) -->
     <div id="quotes" style="display:none">
       <div class="ds-pagehead">
         <div class="ds-kicker">AUDIT &amp; ACTIVITY</div>
@@ -1122,7 +1191,7 @@ a:hover { text-decoration: underline; }
       </div>
     </div>
 
-    <!-- 4. SETTINGS (settings) -->
+    <!-- 5. SETTINGS (settings) -->
     <div id="settings" style="display:none">
       <div class="ds-pagehead">
         <div class="ds-kicker">SYSTEM CONFIGURATION</div>
@@ -1180,20 +1249,6 @@ a:hover { text-decoration: underline; }
       <div style="margin:24px 0;padding-top:16px;border-top:2px solid var(--mv-divider);display:flex;align-items:center;gap:14px">
         <button class="ds-btn ds-btn-primary" id="saveBtn">Save Settings</button>
         <span id="saveMsg" style="font-weight:700;font-size:13px"></span>
-      </div>
-
-      <!-- Customer Rate Cards -->
-      <div class="ds-section" id="customersPanel" style="margin-top:40px">
-        <div class="ds-section-title">Customer Rate Cards</div>
-        <div class="ds-table-wrap">
-          <table class="ds-table">
-            <thead>
-              <tr><th>Customer</th><th>Created By</th><th>Link</th><th>Markup Scheme</th><th class="r">Actions</th></tr>
-            </thead>
-            <tbody id="cardsBody"></tbody>
-          </table>
-        </div>
-        <div id="cardsErr" style="color:var(--mv-magenta-deep);font-size:12px;margin-top:6px"></div>
       </div>
 
       <!-- Team Members -->
@@ -1573,16 +1628,17 @@ function bootCalc(){
   calc();
 }
 
-const SCREENS=['loading','setup','login','app','settings','quotes','collection'];
+const SCREENS=['loading','setup','login','app','cards','settings','quotes','collection'];
 function screen(id){
   SCREENS.forEach(s=>$(s).style.display='none');
-  const authed=(id==='app'||id==='settings'||id==='quotes'||id==='collection');
+  const authed=(id==='app'||id==='cards'||id==='settings'||id==='quotes'||id==='collection');
   $(id).style.display='block';
   $('hdr').style.display=authed?'flex':'none';
   if(!authed)$('pwPanel').style.display='none';
 
   document.querySelectorAll('.mv-rail-item').forEach(el=>el.classList.remove('active'));
   if(id==='app')$('navCalc').classList.add('active');
+  if(id==='cards')$('navCards').classList.add('active');
   if(id==='collection')$('navCollection').classList.add('active');
   if(id==='quotes')$('navQuotes').classList.add('active');
   if(id==='settings')$('navSettings').classList.add('active');
@@ -1619,6 +1675,7 @@ async function init(){
 }
 
 $('navCalc').onclick=()=>{screen('app');calc();};
+$('navCards').onclick=openCards;
 $('navCollection').onclick=openCollection;
 $('navQuotes').onclick=openQuotes;
 $('navSettings').onclick=openSettings;
@@ -1637,6 +1694,121 @@ $('pwSave').onclick=async()=>{$('pwMsg').className='ok';$('pwMsg').textContent='
   const r=await jpost('/api/me/password',{current:$('pwCur').value,next:$('pwNew').value});
   const d=await r.json(); if(!r.ok){$('pwMsg').style.color='var(--mv-magenta-deep)';$('pwMsg').textContent=d.error||'Failed';return;}
   $('pwMsg').style.color='var(--mv-green-deep)';$('pwMsg').textContent='Password updated.';$('pwCur').value='';$('pwNew').value='';};
+
+// ── Rate Cards Screen ──────────────────────────────────────────────────────
+async function openCards() {
+  screen('cards');
+  $('cardCreateMsg').textContent = '';
+  await loadCards();
+}
+
+async function loadCards() {
+  try {
+    const r = await fetch('/api/cards');
+    if (!r.ok) { $('cardsEmpty').textContent = 'Could not load rate cards.'; return; }
+    const d = await r.json();
+    renderCardsTable(d.cards || []);
+  } catch (e) {
+    $('cardsEmpty').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderCardsTable(cards) {
+  const tb = $('cardsTableBody');
+  tb.innerHTML = '';
+  const origin = window.location.origin;
+
+  cards.forEach(c => {
+    const tr = document.createElement('tr');
+    const cardUrl = origin + '/card/' + encodeURIComponent(c.token);
+    let cfg = {};
+    try { cfg = (typeof c.config === 'string') ? JSON.parse(c.config || '{}') : (c.config || {}); } catch (_) {}
+    const mkDesc = cfg.markupScheme === 'flat15' ? 'Flat 15%' : (cfg.markupScheme === 'flat5' ? 'Flat 5%' : (cfg.markupScheme === 'standard' ? 'Standard 0%' : 'Flat 10%'));
+    const divisorDesc = (cfg.divisor ? ('Divisor ' + cfg.divisor) : 'Divisor 5000');
+
+    tr.innerHTML = '<td>' +
+      '<b>' + qesc(c.customer || '(Unnamed Card)') + '</b>' +
+      '<div style="font-size:11px;color:var(--mv-ink-55)">Created ' + qDT(c.created_at) + '</div>' +
+      '</td>' +
+      '<td>' +
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+      '<input type="text" readonly value="' + cardUrl + '" class="ds-input" style="width:230px;font-family:monospace;font-size:11.5px;background:var(--mv-surface);padding:4px 8px"/>' +
+      '<button class="rawcopy copy-card-btn" data-url="' + cardUrl + '">Copy Link</button>' +
+      '<a href="' + cardUrl + '" target="_blank" class="ds-btn ds-btn-secondary" style="padding:4px 8px;font-size:11px">Open ↗</a>' +
+      '</div>' +
+      '</td>' +
+      '<td><b>' + qesc(mkDesc) + '</b><div style="font-size:11px;color:var(--mv-ink-55)">' + qesc(divisorDesc) + '</div></td>' +
+      '<td>' + qesc(c.creator_name || c.creator_email || '—') + '</td>' +
+      '<td class="r mv-num">' + (c.views || 0) + '</td>' +
+      '<td>' +
+      '<span class="ds-status ' + (c.enabled !== false ? 'ds-status--settled' : 'ds-status--waiting') + '">' +
+      '<span class="ds-mark ' + (c.enabled !== false ? 'ds-mark--settled' : 'ds-mark--waiting') + '"></span>' +
+      (c.enabled !== false ? 'ACTIVE' : 'DISABLED') +
+      '</span>' +
+      '</td>' +
+      '<td class="r">' +
+      '<button class="ds-btn ds-btn-danger del-card-btn" data-id="' + c.id + '" style="padding:4px 8px;font-size:11px">Delete</button>' +
+      '</td>';
+    tb.appendChild(tr);
+  });
+
+  tb.querySelectorAll('.copy-card-btn').forEach(btn => {
+    btn.onclick = () => {
+      if (navigator.clipboard) navigator.clipboard.writeText(btn.dataset.url);
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = 'Copy Link'; }, 1500);
+    };
+  });
+
+  tb.querySelectorAll('.del-card-btn').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('Delete this customer rate card?')) return;
+      await jdel('/api/cards/' + btn.dataset.id);
+      await loadCards();
+    };
+  });
+
+  $('cardsEmpty').textContent = cards.length ? '' : 'No customer rate cards created yet.';
+}
+
+$('cardsRefresh').onclick = loadCards;
+
+$('createCardBtn').onclick = async () => {
+  const name = $('newCardCustomer').value.trim();
+  if (!name) { alert('Please enter a customer name'); return; }
+
+  $('createCardBtn').disabled = true;
+  $('cardCreateMsg').style.color = 'var(--mv-purple)';
+  $('cardCreateMsg').textContent = 'Creating rate card…';
+
+  const mkScheme = $('newCardScheme').value;
+  const cfg = {
+    markupScheme: mkScheme,
+    markup: mkScheme === 'flat15' ? { default: 15 } : (mkScheme === 'flat5' ? { default: 5 } : (mkScheme === 'standard' ? { default: 0 } : { default: 10 })),
+    divisor: num('newCardDivisor') || 5000,
+  };
+
+  try {
+    const r = await jpost('/api/cards', { customer: name, config: cfg });
+    const d = await r.json();
+    $('createCardBtn').disabled = false;
+
+    if (!r.ok || !d.card) {
+      $('cardCreateMsg').style.color = 'var(--mv-magenta-deep)';
+      $('cardCreateMsg').textContent = d.error || 'Failed to create rate card';
+      return;
+    }
+
+    $('cardCreateMsg').style.color = 'var(--mv-green-deep)';
+    $('cardCreateMsg').textContent = 'Rate card created for ' + name + '! Link is ready below.';
+    $('newCardCustomer').value = '';
+    await loadCards();
+  } catch (e) {
+    $('createCardBtn').disabled = false;
+    $('cardCreateMsg').style.color = 'var(--mv-magenta-deep)';
+    $('cardCreateMsg').textContent = 'Error: ' + e.message;
+  }
+};
 
 function populateColCountries() {
   const c1 = $('colCountry'), c2 = $('colDestCountry');
@@ -1919,7 +2091,7 @@ async function refreshUsers(){
     const tr=document.createElement('tr');const self=current&&u.id===current.id;
     tr.innerHTML='<td>'+(u.name||'—')+'</td><td>'+u.email+'</td>' +
       '<td><select data-id="'+u.id+'" class="ds-select" style="width:100px"><option value="sales"'+(u.role==='sales'?' selected':'')+'>sales</option><option value="admin"'+(u.role==='admin'?' selected':'')+'>admin</option></select></td>' +
-      '<td><input type="password" class="ds-input pwSet" data-id="'+u.id+'" placeholder="new pw" style="width:110px"/> <button class="ds-btn ds-btn-secondary pwSetBtn" data-id="'+u.id+'" style="padding:4px 8px;font-size:11px">Set</button></td>' +
+      '<td><input type="password" class="ds-input pwSet" data-id="'+u.id+'" placeholder="new pw" style="width:110px"/> <button class="ds-btn ds-btn-secondary pwSetBtn" data-id="' + u.id + '" style="padding:4px 8px;font-size:11px">Set</button></td>' +
       '<td class="r">'+(self?'<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>YOU</span>':'<button class="ds-btn ds-btn-danger delBtn" data-id="'+u.id+'" style="padding:4px 8px;font-size:11px">Delete</button>')+'</td>';
     tb.appendChild(tr);
   });
