@@ -85,8 +85,34 @@ async function initDb() {
     );`);
   await pool.query(`CREATE INDEX IF NOT EXISTS quote_logs_created_idx ON quote_logs (created_at DESC);`);
   await pool.query(`ALTER TABLE quote_logs ADD COLUMN IF NOT EXISTS debug jsonb;`); // raw UPS request/response for diagnostics
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS collections (
+      id serial PRIMARY KEY,
+      prn text,
+      status text NOT NULL DEFAULT 'created',
+      company_name text,
+      contact_name text,
+      phone text,
+      email text,
+      address_line text,
+      city text,
+      postal_code text,
+      country_code text DEFAULT 'GB',
+      pickup_date text,
+      ready_time text,
+      close_time text,
+      parcels integer DEFAULT 1,
+      total_weight_kg numeric,
+      tracking_number text,
+      special_instruction text,
+      service_code text,
+      response jsonb,
+      created_by integer,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS collections_created_idx ON collections (created_at DESC);`);
   await migrateConfig();
-  console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs)');
+  console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs, collections)');
 }
 
 // ---- quote logging + reporting ----
@@ -291,10 +317,54 @@ async function deleteCard(id) {
   return true;
 }
 
+// ---- collections (pickup requests) ----
+async function createCollectionRecord(r) {
+  if (!pool) return null;
+  const { rows } = await pool.query(
+    `INSERT INTO collections (
+      prn, status, company_name, contact_name, phone, email,
+      address_line, city, postal_code, country_code,
+      pickup_date, ready_time, close_time, parcels, total_weight_kg,
+      tracking_number, special_instruction, service_code, response, created_by
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING id, prn, created_at`,
+    [
+      r.prn || null,
+      r.status || (r.prn ? 'booked' : 'failed'),
+      r.company_name || null,
+      r.contact_name || null,
+      r.phone || null,
+      r.email || null,
+      r.address_line || null,
+      r.city || null,
+      r.postal_code || null,
+      r.country_code || 'GB',
+      r.pickup_date || null,
+      r.ready_time || null,
+      r.close_time || null,
+      Math.max(1, Math.floor(Number(r.parcels) || 1)),
+      Number(r.total_weight_kg) || 1.0,
+      r.tracking_number || null,
+      r.special_instruction || null,
+      r.service_code || '011',
+      r.response ? JSON.stringify(r.response) : null,
+      r.created_by || null,
+    ]
+  );
+  return rows[0];
+}
+
+async function listCollections({ limit } = {}) {
+  if (!pool) return [];
+  const lim = Math.min(100, Math.max(1, Number(limit) || 50));
+  const { rows } = await pool.query(`SELECT * FROM collections ORDER BY created_at DESC LIMIT ${lim}`);
+  return rows;
+}
+
 module.exports = {
   initDb, getConfig, setConfig, getSecret,
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
   createCard, listCards, getCardByToken, getCardById, updateCard, deleteCard,
   createQuoteLog, listQuoteLogs, quoteStats,
+  createCollectionRecord, listCollections,
   hasDb: !!pool,
 };

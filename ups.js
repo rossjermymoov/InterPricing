@@ -264,4 +264,129 @@ async function quoteRatesRaw(payload) {
   return out;
 }
 
-module.exports = { quoteRates, quoteRatesRaw, svcName, configured };
+// ---- UPS Pickup / Collection Creation ----
+function buildPickupRequest(p) {
+  const acct = process.env.UPS_ACCOUNT_NUMBER || '';
+  const today = new Date();
+  const defaultDateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+  const dateStr = String(p.pickupDate || defaultDateStr).replace(/[^0-9]/g, '');
+  const readyStr = String(p.readyTime || '09:00').replace(/[^0-9]/g, '').padEnd(4, '0').slice(0, 4);
+  const closeStr = String(p.closeTime || '17:00').replace(/[^0-9]/g, '').padEnd(4, '0').slice(0, 4);
+
+  const addrLines = [p.addressLine1 || p.addressLine || p.address, p.addressLine2].map(S).filter(Boolean);
+  if (!addrLines.length) addrLines.push(S(p.address || 'Address'));
+
+  const phone = String(p.phone || '').replace(/[^0-9+]/g, '');
+  const parcels = Math.max(1, Math.floor(Number(p.parcels) || 1));
+  const weight = Math.max(0.1, Number(p.weight || p.totalWeight) || 1.0);
+  const destCountry = S(p.destinationCountry || p.destCountry || p.country || 'GB').toUpperCase();
+  const originCountry = S(p.country || 'GB').toUpperCase();
+  const serviceCode = S(p.serviceCode || '011');
+  const trackingNumber = p.trackingNumber ? String(p.trackingNumber).trim() : null;
+
+  const req = {
+    PickupCreationRequest: {
+      RatePickupIndicator: 'N',
+      Shipper: {
+        Account: {
+          AccountNumber: acct,
+          AccountCountryCode: originCountry || 'GB',
+        },
+      },
+      PickupDateInfo: {
+        CloseTime: closeStr,
+        ReadyTime: readyStr,
+        PickupDate: dateStr,
+      },
+      PickupAddress: {
+        CompanyName: S(p.companyName || p.company || p.contactName || 'Company'),
+        ContactName: S(p.contactName || p.companyName || 'Contact'),
+        AddressLine: addrLines,
+        City: S(p.city),
+        PostalCode: S(p.postalCode || p.postcode),
+        CountryCode: originCountry || 'GB',
+        ResidentialIndicator: p.residential ? 'Y' : 'N',
+        Phone: {
+          Number: phone || '01234567890',
+        },
+      },
+      AlternateAddressIndicator: 'Y',
+      PickupPiece: [
+        {
+          ServiceCode: serviceCode,
+          Quantity: String(parcels),
+          DestinationCountryCode: destCountry || 'GB',
+          ContainerCode: S(p.containerCode || '01'),
+        },
+      ],
+      TotalWeight: {
+        Weight: weight.toFixed(1),
+        UnitOfMeasurement: 'KGS',
+      },
+      OverweightIndicator: 'N',
+      PaymentMethod: '01',
+    },
+  };
+
+  if (p.email) {
+    req.PickupCreationRequest.PickupAddress.EMailAddress = S(p.email).trim();
+  }
+  if (p.specialInstruction || p.instructions) {
+    req.PickupCreationRequest.SpecialInstruction = S(p.specialInstruction || p.instructions).slice(0, 100);
+  }
+  if (trackingNumber) {
+    req.PickupCreationRequest.TrackingData = [{ TrackingNumber: trackingNumber }];
+  }
+
+  return req;
+}
+
+async function createPickup(payload) {
+  const tk = await token();
+  if (!tk) return { ok: false, error: 'UPS credentials not configured' };
+
+  const reqBody = buildPickupRequest(payload);
+  const res = await fetch(base() + '/api/pickupcreation/v1/pickup', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + tk,
+      'Content-Type': 'application/json',
+      'transId': 'moov_pickup_' + Date.now(),
+      'transactionSrc': 'MOOV-InterPricing',
+    },
+    body: JSON.stringify(reqBody),
+    signal: AbortSignal.timeout(10000),
+  });
+
+  const text = await res.text();
+  let json = null;
+  try { json = JSON.parse(text); } catch (_) {}
+
+  if (!res.ok) {
+    let errMsg = 'UPS Pickup ' + res.status;
+    if (json && json.response && json.response.errors && json.response.errors.length) {
+      errMsg = json.response.errors.map((e) => e.message || e.code).join('; ');
+    } else if (json && json.Error && json.Error.Description) {
+      errMsg = json.Error.Description;
+    } else if (text) {
+      errMsg += ': ' + text.slice(0, 300);
+    }
+    return { ok: false, status: res.status, error: errMsg, raw: text, request: reqBody };
+  }
+
+  const pResp = (json && json.PickupCreationResponse) || {};
+  const prn = pResp.PRN || (pResp.Response && pResp.Response.PRN) || null;
+  const rateStatus = (pResp.RateStatus && pResp.RateStatus.RateStatusText) || null;
+
+  return {
+    ok: true,
+    prn,
+    rateStatus,
+    status: res.status,
+    raw: text,
+    json,
+    request: reqBody,
+  };
+}
+
+module.exports = { quoteRates, quoteRatesRaw, createPickup, buildPickupRequest, svcName, configured };

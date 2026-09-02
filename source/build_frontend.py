@@ -190,6 +190,7 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
   <div class="brand"><img src="/logo.png" alt="MOOV Parcel" onerror="this.outerHTML='&lt;span class=\'fallback\'&gt;moov parcel&lt;/span&gt;'"/><span class="ttl">Rate Calculator</span></div>
   <div class="actions">
     <span class="who" id="who"></span>
+    <button class="btn" id="collectionBtn" style="display:none">Create a Collection</button>
     <button class="btn" id="quotesBtn" style="display:none">Quotes</button>
     <button class="btn" id="settingsBtn" style="display:none">Settings</button>
     <button class="btn" id="pwBtn">Change password</button>
@@ -323,6 +324,114 @@ textarea:focus{outline:2px solid var(--teal);border-color:var(--teal)}
     </div>
     <div style="overflow:auto"><table class="utable"><thead><tr><th></th><th>When</th><th>Customer</th><th>From → To</th><th>Shipment</th><th>Goods</th><th>Cheapest</th></tr></thead><tbody id="qBody"></tbody></table></div>
     <div id="qEmpty" class="chartnote" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- CREATE A COLLECTION -->
+<div id="collection" style="display:none">
+  <div class="settingshead"><button class="btn" id="colBack">← Back to calculator</button><h1>Create a Collection</h1></div>
+
+  <!-- Quick Tracking Number Hero Card -->
+  <div class="panel" style="background:linear-gradient(180deg,#f0fdf4,#fff);border-color:#bbf7d0">
+    <h2 style="color:var(--teal)">⚡ Quick Booking with Tracking Number</h2>
+    <p class="adminnote" style="margin-bottom:12px">If a UPS shipping label / tracking number has already been created, enter it here. UPS will associate the collection directly with the existing parcel.</p>
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <div class="f" style="flex:1;min-width:240px;max-width:400px">
+        <label>UPS Tracking Number (e.g. 1Z9999999999999999)</label>
+        <input id="colTracking" type="text" placeholder="1Z..." style="font-family:monospace;font-size:14px;letter-spacing:0.04em;text-transform:uppercase"/>
+      </div>
+      <div class="f" style="width:200px">
+        <label>Service</label>
+        <select id="colService">
+          <option value="011">UPS Standard (011)</option>
+          <option value="065">UPS Express Saver (065)</option>
+          <option value="007">UPS Express (007)</option>
+          <option value="008">UPS Expedited (008)</option>
+          <option value="001">UPS Next Day Air (001)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Collection details</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px">
+      <!-- Address & Contact -->
+      <div>
+        <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 12px;font-weight:800">Pickup Address &amp; Contact</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="f"><label>Company Name</label><input id="colCompany" type="text" placeholder="Company / Sender name"/></div>
+            <div class="f"><label>Contact Name</label><input id="colContact" type="text" placeholder="Contact person"/></div>
+          </div>
+          <div class="f"><label>Address Line 1 *</label><input id="colAddr1" type="text" placeholder="Street address"/></div>
+          <div class="f"><label>Address Line 2 (optional)</label><input id="colAddr2" type="text" placeholder="Unit, Suite, Building…"/></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="f"><label>Town / City *</label><input id="colCity" type="text" placeholder="City"/></div>
+            <div class="f"><label>Postcode *</label><input id="colPostcode" type="text" placeholder="Postcode / Postal code"/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="f country"><label>Pickup Country</label><select id="colCountry" style="width:100%"></select></div>
+            <div class="f country"><label>Destination Country</label><select id="colDestCountry" style="width:100%"></select></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="f"><label>Phone Number *</label><input id="colPhone" type="tel" placeholder="e.g. 07123456789"/></div>
+            <div class="f"><label>Email Address</label><input id="colEmail" type="email" placeholder="Email for notifications"/></div>
+          </div>
+          <div class="tg" style="margin-top:4px"><input id="colResi" type="checkbox"/><label for="colResi">Residential Address</label></div>
+        </div>
+      </div>
+
+      <!-- Timing & Parcels -->
+      <div>
+        <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 12px;font-weight:800">Pickup Schedule &amp; Parcels</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="f"><label>Pickup Date *</label><input id="colDate" type="date"/></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="f"><label>Ready Time</label><input id="colReady" type="time" value="09:00"/></div>
+            <div class="f"><label>Latest Close Time</label><input id="colClose" type="time" value="17:00"/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="f small"><label>Parcels Count</label><input id="colParcels" type="number" min="1" step="1" value="1" style="width:100%"/></div>
+            <div class="f small"><label>Total Weight (kg)</label><input id="colWeight" type="number" min="0.1" step="0.1" value="5.0" style="width:100%"/></div>
+          </div>
+          <div class="f"><label>Special Instructions for Courier</label><input id="colSpecial" type="text" placeholder="e.g. Goods at reception / ring buzzer" maxlength="100"/></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <button class="btn primary" id="colSubmit" style="padding:10px 24px;font-size:14px;font-weight:700">Book UPS Collection</button>
+      <span id="colMsg" style="font-weight:700;font-size:13.5px"></span>
+    </div>
+
+    <div id="colResultCard" style="display:none;margin-top:16px;border-radius:12px"></div>
+  </div>
+
+  <!-- Previous Collections History -->
+  <div class="panel">
+    <div style="display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0">Recent collections</h2>
+      <button class="btn" id="colRefresh">Refresh</button>
+    </div>
+    <div style="overflow:auto">
+      <table class="utable">
+        <thead>
+          <tr>
+            <th>PRN</th>
+            <th>Booked</th>
+            <th>Pickup Date &amp; Window</th>
+            <th>Contact / Company</th>
+            <th>Address</th>
+            <th>Parcels &amp; Weight</th>
+            <th>Tracking #</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="colHistoryBody"></tbody>
+      </table>
+    </div>
+    <div id="colEmpty" class="chartnote" style="margin-top:8px"></div>
   </div>
 </div>
 
@@ -900,9 +1009,9 @@ function bootCalc(){
   calc();
 }
 
-const SCREENS=['loading','setup','login','app','settings','quotes'];
+const SCREENS=['loading','setup','login','app','settings','quotes','collection'];
 function screen(id){SCREENS.forEach(s=>$(s).style.display='none');
-  const authed=(id==='app'||id==='settings'||id==='quotes');$(id).style.display='block';
+  const authed=(id==='app'||id==='settings'||id==='quotes'||id==='collection');$(id).style.display='block';
   $('hdr').style.display=authed?'flex':'none';if(!authed)$('pwPanel').style.display='none';}
 const jpost=(p,b)=>fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
 const jput =(p,b)=>fetch(p,{method:'PUT', headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
@@ -912,6 +1021,7 @@ function applyChrome(){
   const admin=(current&&current.role==='admin');
   $('settingsBtn').style.display=(!authEnabled||admin)?'':'none';
   $('quotesBtn').style.display=authEnabled?'':'none';
+  $('collectionBtn').style.display=authEnabled?'':'none';
   $('pwBtn').style.display=authEnabled?'':'none';
   $('logoutBtn').style.display=authEnabled?'':'none';
   $('teamPanel').style.display=authEnabled?'block':'none';
@@ -1043,6 +1153,149 @@ $('quotesBtn').onclick=openQuotes;
 $('quotesBack').onclick=()=>{screen('app');calc();};
 $('qRefresh').onclick=()=>{loadQuoteStats();loadQuoteLog($('qSearch').value.trim());};
 $('qSearch').addEventListener('input',()=>{clearTimeout(qTimer);qTimer=setTimeout(()=>loadQuoteLog($('qSearch').value.trim()),250);});
+
+// ---- Create a Collection ----
+function populateColCountries() {
+  const c1 = $('colCountry'), c2 = $('colDestCountry');
+  if (!c1 || c1.options.length) return;
+  const list = (P && P.countries && P.countries.length) ? P.countries : ['United Kingdom', 'USA', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Ireland', 'Canada', 'Australia'];
+  list.forEach(c => {
+    c1.appendChild(new Option(c, c));
+    c2.appendChild(new Option(c, c));
+  });
+  const ukDefault = list.find(c => ['United Kingdom', 'UK', 'GB', 'Great Britain'].includes(c)) || list[0];
+  c1.value = ukDefault;
+  c2.value = ukDefault;
+
+  const today = new Date();
+  if (today.getHours() >= 16) today.setDate(today.getDate() + 1);
+  if ($('colDate') && !$('colDate').value) $('colDate').value = today.toISOString().slice(0, 10);
+}
+
+async function openCollection() {
+  screen('collection');
+  populateColCountries();
+  $('colResultCard').style.display = 'none';
+  $('colMsg').textContent = '';
+  await loadCollections();
+}
+
+async function loadCollections() {
+  try {
+    const r = await fetch('/api/collections');
+    if (!r.ok) { $('colEmpty').textContent = 'Could not load collections.'; return; }
+    const d = await r.json();
+    renderCollections(d.collections || []);
+  } catch (e) {
+    $('colEmpty').textContent = 'Could not load collections: ' + e.message;
+  }
+}
+
+function renderCollections(list) {
+  const tb = $('colHistoryBody');
+  tb.innerHTML = '';
+  list.forEach(x => {
+    const tr = document.createElement('tr');
+    const prnStr = x.prn ? `<b style="color:var(--teal);font-family:monospace;font-size:13.5px">${qesc(x.prn)}</b>` : '<span class="qmuted">—</span>';
+    const statusChip = x.status === 'booked' ? '<span class="cbadge" style="background:var(--teal);padding:2px 6px;border-radius:4px;font-size:10px;color:#fff;font-weight:800">BOOKED</span>' : '<span class="cbadge" style="background:var(--r);padding:2px 6px;border-radius:4px;font-size:10px;color:#fff;font-weight:800">FAILED</span>';
+    const timeWin = `${qesc(x.ready_time || '09:00')} – ${qesc(x.close_time || '17:00')}`;
+    const weightStr = x.total_weight_kg ? `${x.total_weight_kg} kg` : '';
+    const parcelsStr = `${x.parcels || 1} parcel${x.parcels === 1 ? '' : 's'}${weightStr ? (' · ' + weightStr) : ''}`;
+    const trackingStr = x.tracking_number ? `<span style="font-family:monospace;font-size:12px;font-weight:700">${qesc(x.tracking_number)}</span>` : '<span class="qmuted">—</span>';
+
+    tr.innerHTML = `
+      <td>${prnStr}</td>
+      <td style="white-space:nowrap">${qDT(x.created_at)}</td>
+      <td style="white-space:nowrap"><b>${qesc(x.pickup_date || '—')}</b><div class="qmuted" style="font-size:11px">${timeWin}</div></td>
+      <td><b>${qesc(x.company_name || x.contact_name || '—')}</b>${(x.phone ? ('<div class="qmuted" style="font-size:11px">' + qesc(x.phone) + '</div>') : '')}</td>
+      <td>${qesc(x.address_line || '')}, ${qesc(x.city || '')} ${qesc(x.postal_code || '')}</td>
+      <td>${parcelsStr}</td>
+      <td>${trackingStr}</td>
+      <td>${statusChip}</td>
+    `;
+    tb.appendChild(tr);
+  });
+  $('colEmpty').textContent = list.length ? '' : 'No collections booked yet.';
+}
+
+$('collectionBtn').onclick = openCollection;
+$('colBack').onclick = () => { screen('app'); calc(); };
+$('colRefresh').onclick = loadCollections;
+
+$('colSubmit').onclick = async () => {
+  $('colMsg').className = '';
+  $('colMsg').textContent = 'Submitting pickup request to UPS…';
+  $('colSubmit').disabled = true;
+  $('colResultCard').style.display = 'none';
+
+  const body = {
+    companyName: $('colCompany').value.trim(),
+    contactName: $('colContact').value.trim(),
+    addressLine1: $('colAddr1').value.trim(),
+    addressLine2: $('colAddr2').value.trim(),
+    city: $('colCity').value.trim(),
+    postalCode: $('colPostcode').value.trim(),
+    country: $('colCountry').value,
+    destinationCountry: $('colDestCountry').value,
+    phone: $('colPhone').value.trim(),
+    email: $('colEmail').value.trim(),
+    residential: $('colResi').checked,
+    pickupDate: $('colDate').value,
+    readyTime: $('colReady').value,
+    closeTime: $('colClose').value,
+    parcels: num('colParcels') || 1,
+    weight: num('colWeight') || 1.0,
+    serviceCode: $('colService').value,
+    trackingNumber: $('colTracking').value.trim(),
+    specialInstruction: $('colSpecial').value.trim(),
+  };
+
+  try {
+    const r = await jpost('/api/collections', body);
+    const d = await r.json();
+    $('colSubmit').disabled = false;
+    const card = $('colResultCard');
+
+    if (!r.ok || !d.ok) {
+      $('colMsg').textContent = '';
+      card.style.display = 'block';
+      card.innerHTML = `
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-left:4px solid var(--r);padding:14px 18px;border-radius:8px">
+          <div style="font-size:13px;font-weight:800;color:var(--r);text-transform:uppercase;letter-spacing:0.04em">Collection Booking Failed</div>
+          <div style="margin-top:6px;font-size:13.5px;color:#991b1b"><b>UPS error:</b> ${qesc(d.error || 'UPS rejected the pickup request.')}</div>
+          ${d.raw ? ('<details style="margin-top:8px"><summary class="rawmore" style="color:var(--r)">Show raw UPS response</summary><pre class="rawpre" style="margin-top:6px">' + qesc(qpretty(d.raw)) + '</pre></details>') : ''}
+        </div>`;
+      await loadCollections();
+      return;
+    }
+
+    $('colMsg').textContent = '';
+    card.style.display = 'block';
+    card.innerHTML = `
+      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-left:4px solid var(--teal);padding:14px 18px;border-radius:8px">
+        <div style="font-size:13px;font-weight:800;color:var(--teal);text-transform:uppercase;letter-spacing:0.04em">✓ Collection Successfully Booked with UPS</div>
+        <div style="margin-top:8px;font-size:15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span><b>Pickup Request Number (PRN):</b></span>
+          <span style="font-family:monospace;font-size:18px;font-weight:800;color:#065f46;background:#d1fae5;padding:3px 10px;border-radius:6px;letter-spacing:0.03em">${qesc(d.prn || '(Generated)')}</span>
+          ${d.prn ? '<button class="rawcopy" id="colCopyPrn">Copy PRN</button>' : ''}
+        </div>
+        <div style="margin-top:6px;font-size:12.5px;color:#065f46">${d.rateStatus ? ('Rate status: ' + qesc(d.rateStatus)) : 'Pickup scheduled with courier.'}</div>
+      </div>`;
+
+    if ($('colCopyPrn')) {
+      $('colCopyPrn').onclick = () => {
+        if (navigator.clipboard) navigator.clipboard.writeText(d.prn);
+        $('colCopyPrn').textContent = 'Copied';
+        setTimeout(() => { if ($('colCopyPrn')) $('colCopyPrn').textContent = 'Copy PRN'; }, 1200);
+      };
+    }
+
+    await loadCollections();
+  } catch (e) {
+    $('colSubmit').disabled = false;
+    $('colMsg').textContent = 'Failed to submit: ' + e.message;
+  }
+};
 $('saveBtn').onclick=async()=>{$('saveMsg').className='ok';$('saveMsg').textContent='';
   const fbs={};SERVICES.forEach(svc=>{fbs[svc.key]={name:svc.name,cost:num('fc_'+svc.key),sell:num('fs_'+svc.key)};});
   const acc=accList().filter(a=>$('accList_'+a.key)||$('accPct_'+a.key)).map(a=>{const o={key:a.key};if(a.basis==='pctValue'){o.pct=num('accPct_'+a.key);o.min=num('accMin_'+a.key);}else{o.list=num('accList_'+a.key);o.disc=num('accDisc_'+a.key);}return o;});

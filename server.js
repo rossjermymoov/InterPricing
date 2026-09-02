@@ -557,6 +557,75 @@ app.get('/api/quotes/stats', auth.requireAuth, async (req, res) => {
   try { res.json(await db.quoteStats()); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// AUTHENTICATED: Create a collection / pickup with UPS
+app.post('/api/collections', auth.requireAuth, async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const { addressLine1, addressLine, address, city, postalCode, postcode, phone, email } = payload;
+    const addr = addressLine1 || addressLine || address;
+    const pc = postalCode || postcode;
+    if (!addr || !city || !pc) {
+      return res.status(400).json({ ok: false, error: 'Address line, city, and postal code are required.' });
+    }
+    if (!phone) {
+      return res.status(400).json({ ok: false, error: 'Phone number is required for collections.' });
+    }
+
+    const r = await ups.createPickup(payload);
+
+    let saved = null;
+    try {
+      saved = await db.createCollectionRecord({
+        prn: r.prn,
+        status: r.ok ? 'booked' : 'failed',
+        company_name: payload.companyName || payload.company || payload.contactName,
+        contact_name: payload.contactName || payload.companyName,
+        phone: payload.phone,
+        email: payload.email,
+        address_line: addr + (payload.addressLine2 ? ', ' + payload.addressLine2 : ''),
+        city: payload.city,
+        postal_code: pc,
+        country_code: payload.country || 'GB',
+        pickup_date: payload.pickupDate,
+        ready_time: payload.readyTime,
+        close_time: payload.closeTime,
+        parcels: payload.parcels,
+        total_weight_kg: payload.weight || payload.totalWeight,
+        tracking_number: payload.trackingNumber,
+        special_instruction: payload.specialInstruction || payload.instructions,
+        service_code: payload.serviceCode || '011',
+        response: r,
+        created_by: req.user ? req.user.id : null,
+      });
+    } catch (e) { console.error('[collections db]', e.message); }
+
+    if (!r.ok) {
+      return res.status(400).json({ ok: false, error: r.error, status: r.status, raw: r.raw, request: r.request, savedId: saved ? saved.id : null });
+    }
+
+    res.json({
+      ok: true,
+      prn: r.prn,
+      rateStatus: r.rateStatus,
+      savedId: saved ? saved.id : null,
+      createdAt: saved ? saved.created_at : new Date().toISOString(),
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// AUTHENTICATED: List previous collection requests
+app.get('/api/collections', auth.requireAuth, async (req, res) => {
+  try {
+    const list = await db.listCollections({ limit: req.query.limit });
+    res.json({ collections: list });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ADMIN: raw UPS rating test — confirm credentials + response shape against CIE/production.
 app.post('/api/ups-test', auth.requireAdmin, async (req, res) => {
   try { res.json(await ups.quoteRatesRaw(req.body || {})); }
