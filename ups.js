@@ -567,21 +567,66 @@ function buildShipmentRequest(p) {
     }
   });
 
+  const isImport = (p.mode === 'import') || ((senderAddr.Address.CountryCode || '').toUpperCase() !== 'GB');
+
+  // Shipper definition:
+  // In UPS API, Shipper.Address.CountryCode MUST match ShipFrom.Address.CountryCode.
+  // For imports (e.g. NL -> GB), Shipper represents the origin sender in NL.
+  // For exports (GB -> overseas), Shipper represents MOOV Parcel in GB.
+  const shipperObj = isImport
+    ? {
+        Name: S(sender.company || sender.name || 'Supplier').slice(0, 35),
+        AttentionName: S(sender.name || sender.company || 'Contact').slice(0, 35),
+        Phone: { Number: S(sender.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
+        EMailAddress: S(sender.email || '').slice(0, 50),
+        Address: senderAddr.Address,
+      }
+    : {
+        Name: 'MOOV Parcel',
+        AttentionName: 'Operations',
+        TaxIdentificationNumber: 'GB446867375',
+        Phone: { Number: '07498991612' },
+        ShipperNumber: acct,
+        Address: {
+          AddressLine: ['1 Mellor Meadows'],
+          City: 'Whittington',
+          PostalCode: 'SY11 4FN',
+          CountryCode: 'GB',
+        },
+      };
+
+  // PaymentInformation:
+  // For imports (origin outside UK), UK account pays via BillThirdParty
+  // For exports (origin in UK), UK account pays via BillShipper
+  const paymentInfo = isImport
+    ? {
+        ShipmentCharge: [
+          {
+            Type: '01', // Transportation
+            BillThirdParty: {
+              AccountNumber: acct,
+              Address: {
+                PostalCode: 'SY11 4FN',
+                CountryCode: 'GB',
+              },
+            },
+          },
+        ],
+      }
+    : {
+        ShipmentCharge: [
+          {
+            Type: '01', // Transportation
+            BillShipper: {
+              AccountNumber: acct,
+            },
+          },
+        ],
+      };
+
   const shipmentObj = {
     Description: S(p.description || 'Commercial Goods / International Express').slice(0, 50),
-    Shipper: {
-      Name: 'MOOV Parcel',
-      AttentionName: 'Operations',
-      TaxIdentificationNumber: 'GB446867375',
-      Phone: { Number: '07498991612' },
-      ShipperNumber: acct,
-      Address: {
-        AddressLine: ['1 Mellor Meadows'],
-        City: 'Whittington',
-        PostalCode: 'SY11 4FN',
-        CountryCode: 'GB',
-      },
-    },
+    Shipper: shipperObj,
     ShipTo: {
       Name: S(receiver.company || receiver.name || 'Recipient').slice(0, 35),
       AttentionName: S(receiver.name || receiver.company || 'Recipient').slice(0, 35),
@@ -596,16 +641,7 @@ function buildShipmentRequest(p) {
       EMailAddress: S(sender.email || '').slice(0, 50),
       Address: senderAddr.Address,
     },
-    PaymentInformation: {
-      ShipmentCharge: [
-        {
-          Type: '01', // Transportation
-          BillShipper: {
-            AccountNumber: acct,
-          },
-        },
-      ],
-    },
+    PaymentInformation: paymentInfo,
     Service: {
       Code: svcCode,
       Description: svcName(svcCode),
