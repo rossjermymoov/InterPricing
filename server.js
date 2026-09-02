@@ -943,7 +943,7 @@ app.post('/api/book-import', async (req, res) => {
   }
 });
 
-// PUBLIC / AUTH: Void / Cancel a booked UPS shipment
+// PUBLIC / AUTH: Void / Cancel a booked UPS shipment AND its associated collection simultaneously
 app.post('/api/shipments/cancel', async (req, res) => {
   try {
     const { token, shipmentId, trackingNumber, prn } = req.body || {};
@@ -960,25 +960,37 @@ app.post('/api/shipments/cancel', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Tracking number or PRN required to cancel.' });
     }
 
+    // Lookup any associated PRN from the database shipment record if not explicitly provided
+    let targetPrn = prn;
+    if (!targetPrn && db.hasDb && sId) {
+      const existing = await db.getShipmentByTracking(sId) || (shipmentId ? await db.getShipmentById(shipmentId) : null);
+      if (existing && existing.prn) {
+        targetPrn = existing.prn;
+      }
+    }
+
+    // 1. Cancel / Void shipment with UPS
     let voidResult = { ok: true };
     if (sId) {
       voidResult = await ups.voidShipment({ shipmentId: sId, trackingNumber });
     }
 
+    // 2. Simultaneously cancel driver pickup collection with UPS
     let pickupResult = { ok: true };
-    if (prn) {
-      pickupResult = await ups.cancelPickup(prn);
+    if (targetPrn) {
+      pickupResult = await ups.cancelPickup(targetPrn);
     }
 
+    // 3. Mark both cancelled in database
     if (db.hasDb) {
       if (sId) await db.updateShipmentStatus(sId, 'cancelled');
-      if (prn) await db.updateCollectionByPrn(prn, { status: 'cancelled' });
+      if (targetPrn) await db.updateCollectionByPrn(targetPrn, { status: 'cancelled' });
     }
 
     if (!voidResult.ok && !pickupResult.ok) {
       return res.status(400).json({
         ok: false,
-        error: voidResult.error || pickupResult.error || 'Failed to cancel shipment with UPS',
+        error: voidResult.error || pickupResult.error || 'Failed to cancel shipment and collection with UPS',
       });
     }
 
@@ -986,7 +998,8 @@ app.post('/api/shipments/cancel', async (req, res) => {
       ok: true,
       voided: voidResult.ok,
       pickupCancelled: pickupResult.ok,
-      message: 'Shipment and collection successfully cancelled with UPS.',
+      prnCancelled: targetPrn || null,
+      message: 'Shipment ' + (sId || '') + (targetPrn ? (' and collection PRN ' + targetPrn) : '') + ' successfully cancelled with UPS.',
     });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

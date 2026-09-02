@@ -498,12 +498,21 @@ async function updateShipmentStatus(idOrTracking, status) {
   return rows[0] || null;
 }
 
+async function updateShipmentPrn(oldPrn, newPrn) {
+  if (!pool || !oldPrn) return null;
+  const { rows } = await pool.query(
+    `UPDATE shipments SET prn = $2, status = 'rescheduled' WHERE prn = $1 RETURNING *`,
+    [oldPrn, newPrn]
+  );
+  return rows;
+}
+
 module.exports = {
   initDb, getConfig, setConfig, getSecret,
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
   createCard, listCards, getCardByToken, getCardById, updateCard, deleteCard,
   createQuoteLog, listQuoteLogs, quoteStats,
   createCollectionRecord, listCollections, getCollectionByPrn, updateCollectionByPrn,
-  createShipmentRecord, listShipments, getShipmentById, getShipmentByTracking, updateShipmentStatus,
+  createShipmentRecord, listShipments, getShipmentById, getShipmentByTracking, updateShipmentStatus, updateShipmentPrn,
   hasDb: !!pool,
 };
