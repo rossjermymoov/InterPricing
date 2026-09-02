@@ -485,28 +485,34 @@ a:hover { text-decoration: underline; }
 .ds-grid-4 { grid-template-columns: repeat(4, 1fr); }
 .ds-grid-calc {
   display: grid;
-  grid-template-columns: 240px 110px 100px 90px 90px 90px 110px 90px;
-  gap: 14px;
+  grid-template-columns: minmax(180px, 2.2fr) minmax(120px, 1.2fr) minmax(95px, 1fr) minmax(90px, 0.95fr) minmax(90px, 0.95fr) minmax(90px, 0.95fr) minmax(145px, 1.35fr) minmax(90px, 0.95fr);
+  gap: 16px 20px;
   align-items: end;
+  width: 100%;
 }
-@media(max-width: 1080px) {
-  .ds-grid-calc { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+@media(max-width: 1180px) {
+  .ds-grid-calc { grid-template-columns: repeat(4, 1fr); }
 }
 @media(max-width: 680px) {
+  .ds-grid-calc { grid-template-columns: repeat(2, 1fr); }
   .ds-grid-2, .ds-grid-3, .ds-grid-4 { grid-template-columns: 1fr; }
 }
 
 .ds-field-wrap {
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 .ds-label {
+  display: flex;
+  align-items: center;
   font-size: 9.5px;
   text-transform: uppercase;
   letter-spacing: .12em;
   font-weight: 800;
   color: var(--mv-ink-55);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  white-space: nowrap;
 }
 .ds-input, .ds-select, .ds-textarea {
   font-family: var(--font-family);
@@ -1140,7 +1146,7 @@ a:hover { text-decoration: underline; }
               Goods Value (£)
               <span class="ds-tooltip-wrap" tabindex="0">
                 <span class="ds-tooltip-icon">?</span>
-                <span class="ds-tooltip-bubble">This will more accurately affect pricing for European orders and show you how much you would get charged for import duty. The goods value is used to work out duties and taxes fees.</span>
+                <span class="ds-tooltip-bubble">The goods value is used across all international destinations to calculate applicable duties, taxes, customs clearance fees, and disbursement surcharges.</span>
               </span>
             </label>
             <input id="goodsValue" type="number" min="0" step="1" value="0" class="ds-input num"/>
