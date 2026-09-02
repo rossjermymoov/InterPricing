@@ -1364,7 +1364,10 @@ body {
           <h2><span>🏷️</span> My Bookings &amp; Collections</h2>
           <span class="calc-sub">Track booked shipments, inspect package dimensions, download labels, and reschedule UPS courier collections.</span>
         </div>
-        <button type="button" id="refreshCustBookingsBtn" class="btn" style="padding:8px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px">Refresh 🔄</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" id="purgeCancelledBtn" class="btn ghost" style="padding:8px 14px;font-size:12px;font-weight:700;display:none;color:#b91c1c;border-color:#fecaca;background:#fff5f5">Clean Cancelled 🧹</button>
+          <button type="button" id="refreshCustBookingsBtn" class="btn" style="padding:8px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px">Refresh 🔄</button>
+        </div>
       </div>
     </div>
 
@@ -1538,6 +1541,22 @@ body {
           <button type="button" class="btn" id="reschedCancelBtn" style="padding:9px 16px">Cancel</button>
           <button type="button" class="btn primary" id="reschedSubmitBtn" style="padding:9px 20px;font-weight:800">Confirm Collection Amendment</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Tracking & POD Modal -->
+  <div id="trackingModal" class="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(17,24,39,0.7);z-index:220;align-items:center;justify-content:center;padding:16px;overflow-y:auto">
+    <div style="background:#fff;border-radius:14px;width:100%;max-width:680px;max-height:92vh;overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative">
+      <div style="padding:18px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:10">
+        <div>
+          <h2 style="margin:0;font-size:18px;font-weight:800;color:var(--ink)" id="tmModalTitle">Live Parcel Tracking &amp; Delivery Status</h2>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px" id="tmModalSub">UPS Courier Live Telemetry</div>
+        </div>
+        <button type="button" id="closeTrackModal" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1">&times;</button>
+      </div>
+      <div id="tmBody" style="padding:22px">
+        <div style="padding:32px;text-align:center;color:var(--muted)">Fetching live tracking telemetry from UPS…</div>
       </div>
     </div>
   </div>
@@ -3111,6 +3130,11 @@ function renderCustomerBookings(shipments) {
   const box = $('custBookingsList');
   box.innerHTML = '';
 
+  const hasCancelled = shipments.some(x => x.status === 'cancelled');
+  if ($('purgeCancelledBtn')) {
+    $('purgeCancelledBtn').style.display = hasCancelled ? 'inline-block' : 'none';
+  }
+
   if (!shipments.length) {
     box.innerHTML = '<div style="padding:48px 24px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--muted)">'
       + '<div style="font-size:16px;font-weight:800;color:var(--ink);margin-bottom:6px">No Bookings Yet</div>'
@@ -3118,6 +3142,16 @@ function renderCustomerBookings(shipments) {
       + '</div>';
     return;
   }
+
+  const STAGES = [
+    { name: 'Collected', icon: '📦', desc: 'Supplier Pickup' },
+    { name: 'In Transit', icon: '🚚', desc: 'Origin Transit' },
+    { name: 'At Hub', icon: '🏢', desc: 'Export Hub / Customs' },
+    { name: 'In Transit', icon: '✈️', desc: 'Cross-Border UK' },
+    { name: 'At Depot', icon: '📍', desc: 'Receiving Depot' },
+    { name: 'Out for Delivery', icon: '🚐', desc: 'Local Driver' },
+    { name: 'Delivered', icon: '✅', desc: 'Signed & Complete' },
+  ];
 
   shipments.forEach(x => {
     const card = document.createElement('div');
@@ -3148,6 +3182,24 @@ function renderCustomerBookings(shipments) {
     const trackLink = x.tracking_number
       ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:13px;font-weight:800;color:var(--green-dark);text-decoration:none;display:inline-flex;align-items:center;gap:4px">🔗 ' + esc(x.tracking_number) + '</a>')
       : '—';
+
+    let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : 0);
+    const stagesHtml = STAGES.map((st, i) => {
+      const isDone = i < currentStageIdx;
+      const isCurrent = i === currentStageIdx;
+      const color = isDone ? '#059669' : (isCurrent ? '#0E9C63' : '#94a3b8');
+      const bg = isDone ? '#ecfdf5' : (isCurrent ? '#d1fae5' : '#f1f5f9');
+      const border = isDone ? '#10b981' : (isCurrent ? '#059669' : '#cbd5e1');
+      return `
+        <div style="flex:1;min-width:70px;text-align:center;position:relative">
+          <div style="width:28px;height:28px;border-radius:50%;background:${bg};border:2px solid ${border};display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:${color};font-weight:800;margin-bottom:4px;box-shadow:${isCurrent ? '0 0 0 3px rgba(16,185,129,0.2)' : 'none'}">
+            ${isDone ? '✓' : st.icon}
+          </div>
+          <div style="font-size:11px;font-weight:700;color:${isCurrent ? '#065f46' : (isDone ? '#1e293b' : '#64748b')};white-space:nowrap">${st.name}</div>
+          <div style="font-size:9.5px;color:#94a3b8;margin-top:1px">${st.desc}</div>
+        </div>
+      `;
+    }).join('');
 
     const pkgRowsHtml = pkgs.map((p, idx) => {
       const q = parseInt(p.qty, 10) || 1;
@@ -3180,6 +3232,18 @@ function renderCustomerBookings(shipments) {
           Booked: <b>${dateStr}</b>
         </div>
       </div>
+
+      ${!isCancelled ? `
+        <div style="padding:14px 18px;background:#fff;border-bottom:1px solid var(--line)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#64748b">Live Courier Journey</span>
+            <button type="button" class="btn ghost btn-cust-track-live" data-tracking="${esc(x.tracking_number || '')}" style="padding:4px 10px;font-size:11.5px;font-weight:700;color:var(--green-dark)">Track Telemetry &amp; POD 📡</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;overflow-x:auto;padding-bottom:4px">
+            ${stagesHtml}
+          </div>
+        </div>
+      ` : ''}
 
       <div style="padding:18px;display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;background:#fff">
         <div>
@@ -3218,7 +3282,9 @@ function renderCustomerBookings(shipments) {
           ` : ''}
           ${!isCancelled ? `
             <button type="button" class="btn ghost btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}" style="padding:6px 12px;font-size:12px;font-weight:700;color:#b91c1c">Cancel Shipment ❌</button>
-          ` : ''}
+          ` : `
+            <button type="button" class="btn ghost btn-cust-delete-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}" style="padding:6px 12px;font-size:12px;font-weight:700;color:#b91c1c;background:#fee2e2">Remove from History 🗑️</button>
+          `}
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
@@ -3294,16 +3360,139 @@ function renderCustomerBookings(shipments) {
       </div>
     `;
 
-    // Store full shipment object and packages array on card element for batch printing
     card._shipment = x;
     card._packages = pkgs;
     box.appendChild(card);
   });
 }
 
+async function openLiveTrackingModal(trackingNumber) {
+  if (!trackingNumber) return;
+  const m = $('trackingModal');
+  const body = $('tmBody');
+  m.style.display = 'flex';
+  $('tmModalTitle').textContent = 'Tracking ' + trackingNumber;
+  $('tmModalSub').textContent = 'Live courier telemetry & proof of delivery';
+  body.innerHTML = '<div style="padding:36px;text-align:center;color:var(--muted)"><div style="font-size:15px;font-weight:700;margin-bottom:6px">Contacting UPS Tracking API…</div><div style="font-size:12px">Querying current location, milestone scans, and delivery confirmation</div></div>';
+
+  try {
+    const res = await fetch('/api/shipments/' + encodeURIComponent(trackingNumber) + '/track');
+    const d = await res.json();
+
+    if (!res.ok || !d.ok) {
+      body.innerHTML = `
+        <div style="padding:24px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;color:#991b1b">
+          <div style="font-weight:800;font-size:14px;margin-bottom:4px">Tracking Update Unavailable</div>
+          <div style="font-size:12.5px">${esc(d.error || 'UPS has not recorded any physical scan activity for this tracking number yet.')}</div>
+        </div>
+      `;
+      return;
+    }
+
+    const isCollected = d.isCollected;
+    const isDelivered = d.isDelivered;
+    const acts = d.activities || [];
+    const del = d.delivery || {};
+
+    let celebrationBanner = '';
+    if (isCollected && !isDelivered) {
+      celebrationBanner = `
+        <div style="background:linear-gradient(135deg,#ecfdf5 0%,#d1fae5 100%);border:1.5px solid #10b981;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;color:#065f46">
+          <span style="font-size:28px">🎉</span>
+          <div>
+            <div style="font-weight:800;font-size:14px">Parcel Collected by UPS Courier — On Its Way!</div>
+            <div style="font-size:12.5px;opacity:0.9;margin-top:2px">The courier has collected the consignment from the supplier. It is currently in active transit.</div>
+          </div>
+        </div>
+      `;
+    } else if (isDelivered) {
+      celebrationBanner = `
+        <div style="background:linear-gradient(135deg,#ecfdf5 0%,#bbf7d0 100%);border:1.5px solid #059669;border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:14px;color:#065f46">
+          <span style="font-size:28px">✅</span>
+          <div>
+            <div style="font-weight:800;font-size:14px">Successfully Delivered &amp; Signed</div>
+            <div style="font-size:12.5px;opacity:0.9;margin-top:2px">Delivered ${del.receivedBy ? ('to <b>' + esc(del.receivedBy) + '</b>') : ''} ${del.location ? ('at ' + esc(del.location)) : ''}. Proof of Delivery recorded.</div>
+          </div>
+        </div>
+      `;
+    }
+
+    const actsHtml = acts.length ? acts.map((a, idx) => `
+      <div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);position:relative">
+        <div style="width:12px;height:12px;border-radius:50%;background:${idx === 0 ? '#059669' : '#94a3b8'};margin-top:4px;flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:13px;color:var(--ink)">${esc(a.status || 'Scan Event')}</div>
+          <div style="font-size:12px;color:var(--muted)">${esc(a.location || 'UPS Network')}</div>
+        </div>
+        <div style="font-size:11.5px;font-family:monospace;color:#64748b;text-align:right">
+          ${esc(a.date || '')}
+        </div>
+      </div>
+    `).join('') : '<div style="padding:16px;text-align:center;color:var(--muted)">No scan milestones registered yet.</div>';
+
+    let podHtml = '';
+    if (del.hasSignature || del.hasPOD || del.receivedBy) {
+      podHtml = `
+        <div style="background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:16px;margin-top:18px">
+          <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:#475569;margin-bottom:10px">Proof of Delivery (POD)</div>
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:13px;margin-bottom:12px">
+            <div><span style="color:var(--muted)">Signed By:</span> <b>${esc(del.receivedBy || 'Recipient')}</b></div>
+            <div><span style="color:var(--muted)">Location:</span> <b>${esc(del.location || 'Delivery Address')}</b></div>
+          </div>
+          ${del.signatureBase64 ? `
+            <div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Recipient Signature:</div>
+              <img src="data:image/png;base64,${del.signatureBase64}" alt="Delivery Signature" style="max-height:80px;border:1px solid var(--line);border-radius:4px;background:#fff;padding:6px"/>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    body.innerHTML = `
+      ${celebrationBanner}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f9fafb;border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:18px;font-size:13px">
+        <div><span style="color:var(--muted)">Current Status:</span> <b style="color:#059669">${esc(d.statusDescription || 'Active')}</b></div>
+        <div><span style="color:var(--muted)">Status Code:</span> <b style="font-family:monospace">${esc(d.statusCode || '—')}</b></div>
+      </div>
+
+      <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:8px">Activity Timeline</div>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:0 16px">
+        ${actsHtml}
+      </div>
+      ${podHtml}
+    `;
+  } catch (e) {
+    body.innerHTML = `<div style="padding:20px;color:#b91c1c">Failed to connect to tracking server: ${esc(e.message)}</div>`;
+  }
+}
+
 function initCustomerBookingsEvents() {
   if ($('refreshCustBookingsBtn')) {
     $('refreshCustBookingsBtn').addEventListener('click', loadCustomerBookings);
+  }
+
+  if ($('purgeCancelledBtn')) {
+    $('purgeCancelledBtn').addEventListener('click', async () => {
+      if (!confirm('Are you sure you want to remove all cancelled shipments from your history?')) return;
+      try {
+        const res = await fetch('/api/shipments/purge-cancelled', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: curToken }),
+        });
+        const d = await res.json();
+        if (d.ok) {
+          loadCustomerBookings();
+        }
+      } catch (err) {
+        alert('Failed to clean up cancelled bookings: ' + err.message);
+      }
+    });
+  }
+
+  if ($('closeTrackModal')) {
+    $('closeTrackModal').addEventListener('click', () => { $('trackingModal').style.display = 'none'; });
   }
 
   document.addEventListener('click', async e => {
@@ -3317,6 +3506,45 @@ function initCustomerBookingsEvents() {
         const isHidden = el.style.display === 'none';
         el.style.display = isHidden ? 'block' : 'none';
         toggleBtn.textContent = isHidden ? 'Package Specs & Full Details ▴' : 'Package Specs & Full Details ▾';
+      }
+      return;
+    }
+
+    // Live Tracking & POD button
+    const trackLiveBtn = e.target.closest && e.target.closest('.btn-cust-track-live');
+    if (trackLiveBtn) {
+      e.preventDefault();
+      openLiveTrackingModal(trackLiveBtn.dataset.tracking);
+      return;
+    }
+
+    // Single Shipment Permanent Delete
+    const deleteShipmentBtn = e.target.closest && e.target.closest('.btn-cust-delete-shipment');
+    if (deleteShipmentBtn) {
+      e.preventDefault();
+      const id = deleteShipmentBtn.dataset.id;
+      const trk = deleteShipmentBtn.dataset.tracking;
+      if (!confirm('Remove this cancelled shipment (' + (trk || id) + ') from your history permanently?')) return;
+      deleteShipmentBtn.disabled = true;
+      deleteShipmentBtn.textContent = 'Removing…';
+      try {
+        const res = await fetch('/api/shipments/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: curToken, id, trackingNumber: trk }),
+        });
+        const d = await res.json();
+        if (d.ok) {
+          loadCustomerBookings();
+        } else {
+          alert('Delete failed: ' + (d.error || 'Unknown error'));
+          deleteShipmentBtn.disabled = false;
+          deleteShipmentBtn.textContent = 'Remove from History 🗑️';
+        }
+      } catch (err) {
+        alert('Delete failed: ' + err.message);
+        deleteShipmentBtn.disabled = false;
+        deleteShipmentBtn.textContent = 'Remove from History 🗑️';
       }
       return;
     }
@@ -3393,10 +3621,12 @@ function initCustomerBookingsEvents() {
         const d = await res.json();
         if (!res.ok || !d.ok) {
           alert('UPS Cancellation Error: ' + (d.error || 'Failed to cancel shipment.'));
+          cancelShipmentBtn.disabled = false;
+          cancelShipmentBtn.textContent = 'Cancel Shipment ❌';
         } else {
           alert('Shipment ' + (trk || sId) + ' was successfully cancelled with UPS.');
+          loadCustomerBookings();
         }
-        await loadCustomerBookings();
       } catch (err) {
         alert('Network Error: ' + err.message);
       }

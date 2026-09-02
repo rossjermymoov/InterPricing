@@ -799,7 +799,95 @@ async function voidShipment({ shipmentId, trackingNumber } = {}) {
   return { ok: true, status: res.status, raw: text, json };
 }
 
+// Query UPS Tracking API for live shipment status, activity history, POD, and signature
+async function trackShipment(trackingNumber) {
+  const tk = await token();
+  if (!tk) return { ok: false, error: 'UPS credentials not configured' };
+  const trk = String(trackingNumber || '').trim();
+  if (!trk) return { ok: false, error: 'Tracking number required' };
+
+  const headers = {
+    'Authorization': 'Bearer ' + tk,
+    'transId': 'moov_track_' + Date.now(),
+    'transactionSrc': 'MOOV-InterPricing',
+  };
+  if (process.env.UPS_ACCOUNT_NUMBER) {
+    headers['x-merchant-id'] = process.env.UPS_ACCOUNT_NUMBER;
+  }
+
+  const url = base() + '/api/track/v1/details/' + encodeURIComponent(trk) + '?returnSignature=true&returnPOD=true&locale=en_GB';
+
+  const res = await fetch(url, {
+    method: 'GET',
+    headers,
+    signal: AbortSignal.timeout(10000),
+  });
+
+  const text = await res.text();
+  let json = null;
+  try { json = JSON.parse(text); } catch (_) {}
+
+  if (!res.ok) {
+    let errMsg = 'UPS Tracking ' + res.status;
+    if (json && json.response && json.response.errors && json.response.errors.length) {
+      errMsg = json.response.errors.map((e) => e.message || e.code).join('; ');
+    } else if (json && json.Error && json.Error.Description) {
+      errMsg = json.Error.Description;
+    } else if (text) {
+      errMsg += ': ' + text.slice(0, 300);
+    }
+    return { ok: false, status: res.status, error: errMsg, raw: text };
+  }
+
+  // Parse structured tracking events and delivery status
+  const trackResp = (json && json.trackResponse) || {};
+  const shipmentList = Array.isArray(trackResp.shipment) ? trackResp.shipment : (trackResp.shipment ? [trackResp.shipment] : []);
+  const firstShipment = shipmentList[0] || {};
+  const pkgList = Array.isArray(firstShipment.package) ? firstShipment.package : (firstShipment.package ? [firstShipment.package] : []);
+  const firstPkg = pkgList[0] || {};
+
+  const currentStatus = firstPkg.currentStatus || {};
+  const statusCode = currentStatus.code || '';
+  const statusDescription = currentStatus.description || '';
+  const activities = Array.isArray(firstPkg.activity) ? firstPkg.activity : (firstPkg.activity ? [firstPkg.activity] : []);
+  const deliveryInfo = firstPkg.deliveryInformation || {};
+
+  // Check if collected / picked up
+  const isCollected = activities.some((a) => {
+    const desc = ((a.status && a.status.description) || (a.activityScan && a.activityScan.description) || '').toLowerCase();
+    const type = ((a.status && a.status.type) || '').toLowerCase();
+    return desc.includes('pickup') || desc.includes('picked up') || desc.includes('collection') || desc.includes('collected') || desc.includes('origin scan') || desc.includes('drop-off') || type === 'p' || type === 'or';
+  }) || ['P', 'OR', 'DP', 'IT', 'OT', 'DL', 'D'].includes(statusCode);
+
+  const isDelivered = statusCode === 'D' || statusCode === 'DELIVERED' || statusDescription.toLowerCase().includes('delivered') || !!deliveryInfo.receivedBy;
+
+  return {
+    ok: true,
+    trackingNumber: trk,
+    statusCode,
+    statusDescription,
+    isCollected,
+    isDelivered,
+    activities: activities.map((a) => ({
+      date: (a.date || '') + (a.time ? (' ' + a.time) : ''),
+      location: (a.location && a.location.address ? ((a.location.address.city || '') + (a.location.address.countryCode ? (', ' + a.location.address.countryCode) : '')) : ''),
+      status: (a.status && a.status.description) || statusDescription,
+      code: (a.status && a.status.code) || '',
+    })),
+    delivery: {
+      receivedBy: deliveryInfo.receivedBy || null,
+      location: deliveryInfo.location || null,
+      hasSignature: !!(deliveryInfo.signature && deliveryInfo.signature.content),
+      signatureBase64: (deliveryInfo.signature && deliveryInfo.signature.content) || null,
+      hasPOD: !!(deliveryInfo.pod && deliveryInfo.pod.content),
+      podBase64: (deliveryInfo.pod && deliveryInfo.pod.content) || null,
+    },
+    raw: text,
+    json,
+  };
+}
+
 module.exports = {
   quoteRates, quoteRatesRaw, createPickup, cancelPickup, buildPickupRequest,
-  bookShipment, buildShipmentRequest, voidShipment, svcName, configured
+  bookShipment, buildShipmentRequest, voidShipment, trackShipment, svcName, configured
 };

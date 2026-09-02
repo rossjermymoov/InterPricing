@@ -498,13 +498,26 @@ async function updateShipmentStatus(idOrTracking, status) {
   return rows[0] || null;
 }
 
-async function updateShipmentPrn(identifierOrOldPrn, newPrn) {
-  if (!pool || !identifierOrOldPrn) return null;
-  const { rows } = await pool.query(
-    `UPDATE shipments SET prn = $2 WHERE prn = $1 OR id::text = $1 OR tracking_number = $1 OR shipment_id = $1 RETURNING *`,
-    [String(identifierOrOldPrn), newPrn]
+async function deleteShipment(idOrTracking) {
+  if (!pool || !idOrTracking) return false;
+  const { rowCount } = await pool.query(
+    `DELETE FROM shipments WHERE id::text = $1 OR tracking_number = $1 OR shipment_id = $1`,
+    [String(idOrTracking)]
   );
-  return rows[0] || null;
+  return rowCount > 0;
+}
+
+async function deleteCancelledShipments({ token } = {}) {
+  if (!pool) return 0;
+  if (token) {
+    const { rowCount } = await pool.query(
+      `DELETE FROM shipments WHERE token = $1 AND status = 'cancelled'`,
+      [token]
+    );
+    return rowCount;
+  }
+  const { rowCount } = await pool.query(`DELETE FROM shipments WHERE status = 'cancelled'`);
+  return rowCount;
 }
 
 module.exports = {
@@ -514,5 +527,6 @@ module.exports = {
   createQuoteLog, listQuoteLogs, quoteStats,
   createCollectionRecord, listCollections, getCollectionByPrn, updateCollectionByPrn,
   createShipmentRecord, listShipments, getShipmentById, getShipmentByTracking, updateShipmentStatus, updateShipmentPrn,
+  deleteShipment, deleteCancelledShipments,
   hasDb: !!pool,
 };

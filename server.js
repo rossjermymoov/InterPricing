@@ -1140,6 +1140,54 @@ app.post('/api/shipments/cancel', async (req, res) => {
   }
 });
 
+// PUBLIC / AUTH: Live Tracking query with activity timeline, collection milestone, and POD / signature
+app.get('/api/shipments/:tracking/track', async (req, res) => {
+  try {
+    const { tracking } = req.params;
+    if (!tracking) return res.status(400).json({ ok: false, error: 'Tracking number required' });
+
+    const trackData = await ups.trackShipment(tracking);
+    if (!trackData.ok) {
+      return res.status(400).json({ ok: false, error: trackData.error, raw: trackData.raw });
+    }
+
+    res.json(trackData);
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// PUBLIC / AUTH: Delete / Remove a specific shipment record (e.g. failed/cancelled test)
+app.all(['/api/shipments/:id/delete', '/api/shipments/delete'], async (req, res) => {
+  try {
+    const { token, id, trackingNumber, shipmentId } = { ...req.query, ...req.body, ...req.params };
+    const target = id || trackingNumber || shipmentId;
+    if (!target) return res.status(400).json({ ok: false, error: 'Shipment identifier required to delete.' });
+
+    if (db.hasDb) {
+      const deleted = await db.deleteShipment(target);
+      return res.json({ ok: true, deleted, message: 'Shipment removed from history.' });
+    }
+    res.json({ ok: true, message: 'Shipment removed.' });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// PUBLIC / AUTH: Purge all cancelled shipments
+app.post('/api/shipments/purge-cancelled', async (req, res) => {
+  try {
+    const { token } = req.body || {};
+    if (db.hasDb) {
+      const count = await db.deleteCancelledShipments({ token });
+      return res.json({ ok: true, purgedCount: count, message: `Removed ${count} cancelled shipment(s) from history.` });
+    }
+    res.json({ ok: true, purgedCount: 0 });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // AUTHENTICATED: List all booked shipments
 app.get('/api/shipments', auth.requireAuth, async (req, res) => {
   try {
