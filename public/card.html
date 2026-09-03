@@ -2190,10 +2190,12 @@ function renderToggles() {
   if (!box) return;
   box.innerHTML = '';
   const seen = {}, groups = [];
-  accList().filter(a => a.cond === 'toggle').forEach(a => {
-    const g = a.group || a.key;
-    if (!seen[g]) { seen[g] = 1; groups.push({ g, name: a.name }); }
-  });
+  accList()
+    .filter(a => a.cond === 'toggle' && a.key !== 'ddp' && a.group !== 'ddp' && (accAmount(a) > 0 || (a.list > 0 && a.disc < 100)))
+    .forEach(a => {
+      const g = a.group || a.key;
+      if (!seen[g]) { seen[g] = 1; groups.push({ g, name: a.name }); }
+    });
   if (!groups.length) { box.style.display = 'none'; return; }
   box.style.display = 'flex';
   groups.forEach(({ g, name }) => {
@@ -2218,14 +2220,8 @@ const LIVE_CODE_TO_KEY = {
   '573': 'merchantProc',
 };
 
-function activeTogglesKey() {
-  const list = [];
-  document.querySelectorAll('#toggles input[type="checkbox"]').forEach(cb => { if (cb.checked) list.push(cb.id); });
-  return list.sort().join(',');
-}
-
 function upsLaneKey() {
-  return [curCountry, ival('pc'), num('wt'), num('L'), num('W'), num('H'), num('V'), activeTogglesKey()].join('|');
+  return [curCountry, ival('pc'), num('wt'), num('L'), num('W'), num('H'), num('V')].join('|');
 }
 
 function scheduleUpsFetch(key, c) {
