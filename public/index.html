@@ -594,6 +594,41 @@ a:hover { text-decoration: underline; }
   background: #faf5ff;
 }
 
+/* Voice Dictation & Smart Fill */
+.voice-pulse-ring {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--mv-purple);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: all 0.2s ease;
+  position: relative;
+  flex-shrink: 0;
+}
+.voice-pulse-ring.listening {
+  background: #dc2626;
+  animation: pulse-mic 1.4s infinite;
+}
+@keyframes pulse-mic {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); transform: scale(1); }
+  50% { box-shadow: 0 0 0 14px rgba(220, 38, 38, 0); transform: scale(1.05); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); transform: scale(1); }
+}
+.field-autofill-flash {
+  animation: flash-field 1.8s ease;
+}
+@keyframes flash-field {
+  0% { background-color: #f3e8ff !important; border-color: #7b2fbe !important; }
+  50% { background-color: #ede9fe !important; border-color: #7b2fbe !important; }
+  100% { background-color: transparent; }
+}
+
 .ds-grid { display: grid; gap: 16px; }
 .ds-grid-2 { grid-template-columns: 1fr 1fr; }
 .ds-grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -1221,6 +1256,21 @@ a:hover { text-decoration: underline; }
         </div>
         <div class="ds-modal-body">
           <input type="hidden" id="editCardId"/>
+
+          <!-- Voice & Smart Fill Quick Trigger -->
+          <div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-left:3px solid var(--mv-purple);padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:16px">🎙️</span>
+              <div>
+                <div style="font-size:11.5px;font-weight:800;color:var(--mv-ink);letter-spacing:.04em;text-transform:uppercase">Voice &amp; Smart Auto-Fill</div>
+                <div style="font-size:11px;color:var(--mv-ink-55)">Speak details or paste raw text to update form automatically.</div>
+              </div>
+            </div>
+            <button type="button" class="btn-moov-action secondary btn-open-voice-fill" data-mode="edit" style="height:28px;padding:0 10px;font-size:11px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+              <span>Dictate / Paste</span>
+            </button>
+          </div>
           
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin-bottom:8px">1. CUSTOMER &amp; CONTACT DETAILS</div>
           <div class="ds-grid ds-grid-2">
@@ -1452,6 +1502,62 @@ a:hover { text-decoration: underline; }
       </div>
     </div>
 
+    <!-- MODAL: VOICE & SMART FORM FILLER -->
+    <div class="ds-modal-scrim" id="voiceFillModal" style="display:none">
+      <div class="ds-modal" style="width:620px">
+        <div class="ds-modal-head" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="ds-kicker">VOICE &amp; SMART AUTO-FILL</div>
+            <h2 style="margin:4px 0 0;font-size:20px" id="vfModalTitle">Dictate or Paste Customer Details</h2>
+            <p class="ds-blurb" style="font-size:12px;margin-top:4px">Speak naturally or paste raw contact text. The system automatically populates the form.</p>
+          </div>
+          <button type="button" id="vfModalClose" style="font-size:22px;background:none;border:none;cursor:pointer;color:var(--mv-ink-55);line-height:1">&times;</button>
+        </div>
+        <div class="ds-modal-body" style="display:flex;flex-direction:column;gap:16px">
+          <!-- Voice Recorder Section -->
+          <div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-left:3px solid var(--mv-purple);padding:14px 18px;display:flex;align-items:center;gap:16px">
+            <button type="button" class="voice-pulse-ring" id="vfMicBtn" title="Click to start/stop speaking">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="19"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </button>
+            <div style="flex:1">
+              <div style="font-weight:800;font-size:13px;color:var(--mv-ink)" id="vfStatusText">Click mic to start speaking…</div>
+              <div style="font-size:11.5px;color:var(--mv-ink-55);margin-top:2px" id="vfSubText">e.g. "Customer is Acme Ltd, contact John, phone 07498..., address 14 High St Birmingham B1 1AA, markup 15 percent"</div>
+            </div>
+          </div>
+
+          <!-- Transcript & Raw Text Input -->
+          <div class="ds-field-wrap">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <label class="ds-label" style="margin:0">Transcribed Speech / Pasted Text</label>
+              <span style="font-size:11px;color:var(--mv-purple);cursor:pointer;font-weight:700" id="vfClearBtn">Clear Text</span>
+            </div>
+            <textarea id="vfTranscriptInput" class="ds-input" style="height:85px;font-family:inherit;font-size:12.5px;line-height:1.4;padding:8px 10px;border:1px solid var(--mv-hairline-2);background:#fff;resize:vertical" placeholder="Spoken speech will appear here, or you can paste an email/message directly..."></textarea>
+          </div>
+
+          <!-- Extracted Fields Live Preview -->
+          <div>
+            <div class="ds-label" style="margin-bottom:6px">Extracted Field Mapping</div>
+            <div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);padding:10px 14px;font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px 14px" id="vfPreviewGrid">
+              <div><span style="color:var(--mv-ink-55)">Company:</span> <b id="vfpCompany">—</b></div>
+              <div><span style="color:var(--mv-ink-55)">Contact:</span> <b id="vfpContact">—</b></div>
+              <div><span style="color:var(--mv-ink-55)">Phone:</span> <b id="vfpPhone">—</b></div>
+              <div><span style="color:var(--mv-ink-55)">Email:</span> <b id="vfpEmail">—</b></div>
+              <div style="grid-column:1/-1"><span style="color:var(--mv-ink-55)">Address:</span> <b id="vfpAddress">—</b></div>
+              <div><span style="color:var(--mv-ink-55)">Global Markup:</span> <b id="vfpGlobalMarkup">—</b></div>
+              <div><span style="color:var(--mv-ink-55)">Import Markup:</span> <b id="vfpImportMarkup">—</b></div>
+            </div>
+          </div>
+        </div>
+        <div class="ds-modal-foot" style="display:flex;justify-content:space-between">
+          <button class="ds-btn ds-btn-secondary" id="vfModalCancel">Cancel</button>
+          <button class="btn-moov-action primary" id="vfModalApply" style="height:34px;padding:0 18px;font-size:12px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Apply To Form</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 1. RATE CALCULATOR (app) -->
     <div id="app" style="display:none">
       <div class="ds-pagehead">
@@ -1636,11 +1742,19 @@ a:hover { text-decoration: underline; }
 
       <!-- Create New Card Panel -->
       <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:24px 28px">
-        <div class="ds-section-title" style="margin-bottom:6px">Create Customer Rate Card &amp; Link</div>
-        <p class="ds-blurb" style="font-size:12.5px;margin-bottom:18px">Configures customer-specific export &amp; import pricing. The customer will see only their tailored prices—never your cost or base tariffs.</p>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:6px">
+          <div>
+            <div class="ds-section-title" style="margin-bottom:4px">Create Customer Rate Card &amp; Link</div>
+            <p class="ds-blurb" style="font-size:12.5px;margin:0">Configures customer-specific export &amp; import pricing. The customer will see only their tailored prices—never your cost or base tariffs.</p>
+          </div>
+          <button type="button" class="btn-moov-action secondary btn-open-voice-fill" data-mode="create" style="height:32px;padding:0 12px;font-size:11.5px;border-color:var(--mv-purple);color:var(--mv-purple)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="19"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            <span>🎙️ Voice / Smart Auto-Fill</span>
+          </button>
+        </div>
         
         <!-- Section 1: Customer Details & Return Address -->
-        <div class="ds-grid ds-grid-2" style="gap:20px 32px">
+        <div class="ds-grid ds-grid-2" style="gap:20px 32px;margin-top:20px">
           <div>
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin-bottom:8px">1. CUSTOMER &amp; CONTACT DETAILS</div>
             <div class="ds-field-wrap">
@@ -2664,9 +2778,306 @@ $('pwSave').onclick=async()=>{$('pwMsg').className='ok';$('pwMsg').textContent='
 // ── Rate Cards Screen ──────────────────────────────────────────────────────
 let cachedCards = [];
 
+/* ===== VOICE & SMART AUTO-FILL ENGINE ===== */
+let activeVoiceTargetMode = 'create'; // 'create' or 'edit'
+let speechRecognizer = null;
+let isSpeechListening = false;
+let currentExtractedData = {};
+
+function initVoiceSmartFill() {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRec) {
+    try {
+      speechRecognizer = new SpeechRec();
+      speechRecognizer.continuous = true;
+      speechRecognizer.interimResults = true;
+      speechRecognizer.lang = 'en-GB';
+
+      speechRecognizer.onstart = () => {
+        isSpeechListening = true;
+        if ($('vfMicBtn')) $('vfMicBtn').classList.add('listening');
+        if ($('vfStatusText')) {
+          $('vfStatusText').textContent = 'Listening to your voice… (Speak now)';
+          $('vfStatusText').style.color = '#dc2626';
+        }
+      };
+
+      speechRecognizer.onresult = (e) => {
+        let finalTranscript = '';
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          finalTranscript += e.results[i][0].transcript;
+        }
+        if (finalTranscript) {
+          if ($('vfTranscriptInput')) $('vfTranscriptInput').value = finalTranscript;
+          updateExtractedPreview(finalTranscript);
+        }
+      };
+
+      speechRecognizer.onerror = (err) => {
+        console.warn('Speech recognition error:', err);
+        stopVoiceRecording();
+        if ($('vfStatusText')) {
+          $('vfStatusText').textContent = 'Microphone paused. Click mic to retry.';
+          $('vfStatusText').style.color = 'var(--mv-ink)';
+        }
+      };
+
+      speechRecognizer.onend = () => {
+        isSpeechListening = false;
+        if ($('vfMicBtn')) $('vfMicBtn').classList.remove('listening');
+        if ($('vfStatusText') && $('vfStatusText').textContent.includes('Listening')) {
+          $('vfStatusText').textContent = 'Finished listening. Click mic to speak more.';
+          $('vfStatusText').style.color = 'var(--mv-ink)';
+        }
+      };
+    } catch (e) {
+      console.warn('SpeechRec initialization error:', e);
+    }
+  }
+
+  // Mic Button Click
+  if ($('vfMicBtn')) {
+    $('vfMicBtn').addEventListener('click', () => {
+      if (!SpeechRec) {
+        alert('Voice dictation is supported in Google Chrome, Microsoft Edge, and Safari on Mac/iOS. You can also paste unstructured text directly into the box below.');
+        return;
+      }
+      if (isSpeechListening) {
+        stopVoiceRecording();
+      } else {
+        startVoiceRecording();
+      }
+    });
+  }
+
+  // Live input handler on the transcript box
+  if ($('vfTranscriptInput')) {
+    $('vfTranscriptInput').addEventListener('input', () => {
+      updateExtractedPreview($('vfTranscriptInput').value);
+    });
+  }
+
+  // Clear text
+  if ($('vfClearBtn')) {
+    $('vfClearBtn').addEventListener('click', () => {
+      if ($('vfTranscriptInput')) $('vfTranscriptInput').value = '';
+      updateExtractedPreview('');
+    });
+  }
+
+  // Open modal triggers
+  document.querySelectorAll('.btn-open-voice-fill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      openVoiceFillModal(btn.dataset.mode || 'create');
+    });
+  });
+
+  // Close modal
+  if ($('vfModalClose')) $('vfModalClose').addEventListener('click', closeVoiceFillModal);
+  if ($('vfModalCancel')) $('vfModalCancel').addEventListener('click', closeVoiceFillModal);
+  if ($('voiceFillModal')) {
+    $('voiceFillModal').addEventListener('click', e => {
+      if (e.target === $('voiceFillModal')) closeVoiceFillModal();
+    });
+  }
+
+  // Apply to form
+  if ($('vfModalApply')) {
+    $('vfModalApply').addEventListener('click', applyExtractedDataToForm);
+  }
+}
+
+function startVoiceRecording() {
+  if (speechRecognizer) {
+    try {
+      speechRecognizer.start();
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+}
+
+function stopVoiceRecording() {
+  if (speechRecognizer && isSpeechListening) {
+    try {
+      speechRecognizer.stop();
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+  isSpeechListening = false;
+  if ($('vfMicBtn')) $('vfMicBtn').classList.remove('listening');
+}
+
+function openVoiceFillModal(mode) {
+  activeVoiceTargetMode = mode || 'create';
+  if ($('vfModalTitle')) $('vfModalTitle').textContent = mode === 'edit' ? 'Dictate or Paste Details (Edit Card)' : 'Dictate or Paste Details (Create Card)';
+  if ($('voiceFillModal')) $('voiceFillModal').style.display = 'flex';
+  if ($('vfTranscriptInput')) updateExtractedPreview($('vfTranscriptInput').value);
+  if (speechRecognizer) {
+    startVoiceRecording();
+  } else if ($('vfStatusText')) {
+    $('vfStatusText').textContent = 'Paste customer text or email below';
+  }
+}
+
+function closeVoiceFillModal() {
+  stopVoiceRecording();
+  if ($('voiceFillModal')) $('voiceFillModal').style.display = 'none';
+}
+
+function parseCustomerSpeechOrText(input) {
+  if (!input) return {};
+  let txt = String(input).trim();
+
+  const wordNums = {
+    zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+    eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19,
+    twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90
+  };
+
+  let norm = txt
+    .replace(/\bat sign\b/gi, '@')
+    .replace(/\s+at\s+([a-zA-Z0-9-]+\.(?:com|co\.uk|org|net|io|nl|de|fr|eu))/gi, '@$1')
+    .replace(/\bdot com\b/gi, '.com')
+    .replace(/\bdot co dot uk\b/gi, '.co.uk')
+    .replace(/\bdot uk\b/gi, '.uk')
+    .replace(/\bdot io\b/gi, '.io')
+    .replace(/\bdot net\b/gi, '.net')
+    .replace(/\bdot org\b/gi, '.org')
+    .replace(/\bdot nl\b/gi, '.nl')
+    .replace(/\bdot de\b/gi, '.de')
+    .replace(/\bdot fr\b/gi, '.fr');
+
+  const out = {};
+
+  // Email
+  const emailM = norm.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+  if (emailM) out.email = emailM[1].toLowerCase().replace(/\s+/g, '');
+
+  // Phone
+  const phoneM = norm.match(/(?:phone|tel|mobile|telephone|call)?\s*(?:is|:)?\s*(\+?[0-9][0-9\s-]{8,16})/i);
+  if (phoneM) out.phone = phoneM[1].replace(/[^0-9+ ]/g, '').trim();
+
+  // Import Markup %
+  const impM = norm.match(/import\s*(?:markup|quote|rate)?\s*(?:is|to|set to)?\s*(\d+)\s*(?:%|percent)?/i);
+  if (impM) {
+    out.importMarkup = parseInt(impM[1], 10);
+  } else {
+    const impWordM = norm.match(/import\s*(?:markup|quote|rate)?\s*(?:is|to|set to)?\s*(twenty|thirty|forty|fifty|ten|fifteen|twelve|five)\s*(?:%|percent)?/i);
+    if (impWordM && wordNums[impWordM[1].toLowerCase()]) out.importMarkup = wordNums[impWordM[1].toLowerCase()];
+  }
+
+  // Global Markup %
+  const globM = norm.match(/(?:global\s*)?(?:markup|export\s*markup)\s*(?:is|to|set to)?\s*(\d+)\s*(?:%|percent)?/i);
+  if (globM) {
+    out.globalMarkup = parseInt(globM[1], 10);
+  } else {
+    const globWordM = norm.match(/(?:global\s*)?(?:markup|export\s*markup)\s*(?:is|to|set to)?\s*(twenty|thirty|forty|fifty|ten|fifteen|twelve|five)\s*(?:%|percent)?/i);
+    if (globWordM && wordNums[globWordM[1].toLowerCase()]) out.globalMarkup = wordNums[globWordM[1].toLowerCase()];
+  }
+
+  // Postcode
+  const ukPc = norm.match(/\b([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})\b/i);
+  if (ukPc) out.postcode = ukPc[1].toUpperCase();
+  else {
+    const nlPc = norm.match(/\b([0-9]{4}\s?[A-Z]{2})\b/i);
+    if (nlPc) out.postcode = nlPc[1].toUpperCase();
+    else {
+      const usPc = norm.match(/\b([0-9]{5}(?:-[0-9]{4})?)\b/);
+      if (usPc && !out.phone?.includes(usPc[1])) out.postcode = usPc[1];
+    }
+  }
+
+  // Country
+  if (/\b(?:UK|United Kingdom|Britain|Great Britain|England|Scotland|Wales|GB)\b/i.test(norm)) out.country = 'GB';
+  else if (/\b(?:Netherlands|Holland|NL)\b/i.test(norm)) out.country = 'NL';
+  else if (/\b(?:Ireland|IE|Eire)\b/i.test(norm)) out.country = 'IE';
+  else if (/\b(?:USA|United States|America|US)\b/i.test(norm)) out.country = 'US';
+  else if (/\b(?:Germany|Deutschland|DE)\b/i.test(norm)) out.country = 'DE';
+  else if (/\b(?:France|FR)\b/i.test(norm)) out.country = 'FR';
+
+  // Customer / Company Name
+  const custM = norm.match(/(?:customer|company|account|client|business)(?:\s+name)?\s*(?:is|:)?\s*([^,\n.]+?)(?:,|\.|\n|contact|phone|email|address|set|markup|$)/i);
+  if (custM && custM[1].trim()) out.customer = custM[1].trim();
+
+  // Contact Person
+  const contactM = norm.match(/(?:contact|contact\s+person|contact\s+name|attn|attention)\s*(?:is|:)?\s*([^,\n.]+?)(?:,|\.|\n|phone|email|address|customer|company|set|markup|$)/i);
+  if (contactM && contactM[1].trim()) out.contact = contactM[1].trim();
+
+  // Address Line 1 & City
+  const addrM = norm.match(/(?:address\s*(?:is|:)?\s*)?([0-9]+\s+[A-Za-z0-9\s]+?(?:Street|Road|Avenue|Lane|Way|Close|Drive|Park|Walk|Square|Industrial Estate|Boulevard|St|Rd|Ave|Crescent|Way|Row|Hill))/i);
+  if (addrM) out.line1 = addrM[1].trim();
+
+  const cityM = norm.match(/(?:in|city\s*(?:is|:)?)\s*([A-Za-z\s]+?)(?:,|\.|\n|postcode|[A-Z]{1,2}[0-9]|markup|$)/i);
+  if (cityM && cityM[1].trim() && !cityM[1].toLowerCase().includes('street') && !cityM[1].toLowerCase().includes('road')) {
+    out.city = cityM[1].trim();
+  }
+
+  return out;
+}
+
+function updateExtractedPreview(text) {
+  currentExtractedData = parseCustomerSpeechOrText(text);
+  if ($('vfpCompany')) $('vfpCompany').textContent = currentExtractedData.customer || '—';
+  if ($('vfpContact')) $('vfpContact').textContent = currentExtractedData.contact || '—';
+  if ($('vfpPhone')) $('vfpPhone').textContent = currentExtractedData.phone || '—';
+  if ($('vfpEmail')) $('vfpEmail').textContent = currentExtractedData.email || '—';
+  
+  const addrParts = [currentExtractedData.line1, currentExtractedData.city, currentExtractedData.postcode, currentExtractedData.country].filter(Boolean);
+  if ($('vfpAddress')) $('vfpAddress').textContent = addrParts.length ? addrParts.join(', ') : '—';
+  
+  if ($('vfpGlobalMarkup')) $('vfpGlobalMarkup').textContent = (currentExtractedData.globalMarkup != null ? (currentExtractedData.globalMarkup + '%') : '—');
+  if ($('vfpImportMarkup')) $('vfpImportMarkup').textContent = (currentExtractedData.importMarkup != null ? (currentExtractedData.importMarkup + '%') : '—');
+}
+
+function applyExtractedDataToForm() {
+  const d = currentExtractedData;
+  const isEdit = (activeVoiceTargetMode === 'edit');
+  const prefix = isEdit ? 'editCust' : 'cust';
+
+  const flashField = (id, val) => {
+    const el = $(id);
+    if (!el || val == null || val === '') return;
+    el.value = val;
+    el.classList.remove('field-autofill-flash');
+    void el.offsetWidth; // trigger reflow
+    el.classList.add('field-autofill-flash');
+  };
+
+  if (d.customer) flashField(isEdit ? 'editCustName' : 'custName', d.customer);
+  if (d.contact) flashField(prefix + 'Contact', d.contact);
+  if (d.phone) flashField(prefix + 'Phone', d.phone);
+  if (d.email) flashField(prefix + 'Email', d.email);
+  if (d.line1) flashField(prefix + 'Line1', d.line1);
+  if (d.city) flashField(prefix + 'City', d.city);
+  if (d.postcode) flashField(prefix + 'Postcode', d.postcode);
+  if (d.country) flashField(prefix + 'Country', d.country);
+
+  if (d.globalMarkup != null) {
+    flashField(prefix + 'MkGlobal', d.globalMarkup);
+    if (isEdit) {
+      syncEditCustVolTabs();
+      if (typeof editCardMarkupObj === 'function') {
+        renderEditCardMarkup({}, d.globalMarkup);
+      }
+    } else {
+      syncCustVolTabs();
+      if ($('custMkApply')) $('custMkApply').click();
+    }
+  }
+
+  if (d.importMarkup != null) {
+    flashField(prefix + 'ImportMarkup', d.importMarkup);
+  }
+
+  closeVoiceFillModal();
+}
+
 async function openCards() {
   screen('cards');
   $('custMsg').textContent = '';
+  initVoiceSmartFill();
   renderCustCardMarkup();
   renderRcServices();
   await loadCards();
