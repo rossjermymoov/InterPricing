@@ -629,6 +629,49 @@ a:hover { text-decoration: underline; }
   100% { background-color: transparent; }
 }
 
+/* Big Square Vehicle & Transit Box */
+.qeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 10px;
+  padding: 10px 12px;
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-hairline-2);
+}
+.qeta .veh {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.qeta .veh svg {
+  width: 24px;
+  height: 24px;
+}
+.qeta.road .veh {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+.qeta.air .veh {
+  background: #F5F3FF;
+  color: #7B2FBE;
+}
+.qeta .days {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--mv-ink);
+  line-height: 1.2;
+}
+.qeta .dsub {
+  font-size: 11px;
+  color: var(--mv-ink-55);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 .ds-grid { display: grid; gap: 16px; }
 .ds-grid-2 { grid-template-columns: 1fr 1fr; }
 .ds-grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -2597,27 +2640,28 @@ function calc(){
       d.innerHTML='<div class="ds-card-head"><div class="ds-card-car">'+carrierLogo(svc.carrier)+'<span>'+svc.name+'</span></div></div><div class="ds-card-price"><span class="spin"></span></div><div class="ds-card-sub">Fetching live UPS rates…</div>';
       R.appendChild(d); return;
     }
-    const isCheapest=(built.sell===min&&sells.length>1);
+    const isOnly=(sells.length===1);
+    const isCheapest=(built.sell===min);
     const isFastest=(hasTransitDiff&&days!=null&&days===minDays);
 
     let cls='ds-card';
-    if(isCheapest&&isFastest) cls+=' win fast';
+    if(isOnly||(isCheapest&&isFastest)) cls+=' win fast';
     else if(isCheapest) cls+=' win';
     else if(isFastest) cls+=' fast';
 
     let badge='';
-    if(isCheapest&&isFastest) badge='<span class="ds-card-badge best-both">CHEAPEST &amp; FASTEST</span>';
+    if(isOnly||(isCheapest&&isFastest)) badge='<span class="ds-card-badge best-both">BEST &amp; FASTEST</span>';
     else if(isCheapest) badge='<span class="ds-card-badge">CHEAPEST</span>';
-    else if(isFastest) badge='<span class="ds-card-badge fastest">FASTEST</span>';
+    else if(isFastest) badge='<span class="ds-card-badge fastest">FASTEST · '+days+'D</span>';
 
     const cleanSvcName = (svc.name || '').replace(/\s*Live\s*$/i, '').trim();
-    const isAir = (cleanSvcName.toLowerCase().includes('air') || cleanSvcName.toLowerCase().includes('saver') || cleanSvcName.toLowerCase().includes('express') || cleanSvcName.toLowerCase().includes('expedited'));
-    const transitIcon = isAir
-      ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-1px;margin-right:2px"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3.5c-.5-.5-2.5 0-4 1.5L13.5 8.5 5.3 6.7c-.8-.2-1.6.1-2.1.7l-.4.5c-.4.5-.3 1.2.2 1.6l5.6 4.5-3.1 3.1-2.4-.6c-.5-.1-1 .1-1.3.5l-.2.3c-.3.4-.2.9.2 1.2l2.6 2.1 2.1 2.6c.3.4.8.5 1.2.2l.3-.2c.4-.3.6-.8.5-1.3l-.6-2.4 3.1-3.1 4.5 5.6c.4.5 1.1.6 1.6.2l.5-.4c.6-.5.9-1.3.7-2.1z"/></svg>'
-      : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:2px"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>';
-    
-    let transitHtml = '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--mv-ink-75);background:var(--mv-surface);border:1px solid var(--mv-hairline-2);padding:1px 5px;margin-left:6px">'
-      + transitIcon + (isAir ? 'Air' : 'Road') + (days ? (' · ' + days + 'd') : '') + '</span>';
+    const isRoadSvc = (cleanSvcName.toLowerCase().includes('parcel') || cleanSvcName.toLowerCase().includes('expresspak') || cleanSvcName.toLowerCase().includes('standard') || cleanSvcName.toLowerCase().includes('ground'));
+    const roadIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h11v9H2z"/><path d="M13 8.5h3.6l3.4 3.3v2.7H13z"/><circle cx="6" cy="17" r="1.7"/><circle cx="17" cy="17" r="1.7"/></svg>';
+    const airIcon = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-1.7l-7.5-4.6V4.1c0-.9-.7-1.6-1.5-1.6s-1.5.7-1.5 1.6v5.1L3 13.8v1.7l7.5-2.2v4.4l-2 1.4v1.4L12 19.6l3.5.9v-1.4l-2-1.4v-4.4z"/></svg>';
+    const icon = isRoadSvc ? roadIcon : airIcon;
+    const clsType = isRoadSvc ? 'road' : 'air';
+    const transitDaysText = (days != null && days > 0) ? (days + ' business day' + (days === 1 ? '' : 's')) : 'Transit estimate on request';
+    const transitSub = isRoadSvc ? 'Road freight · Standard delivery' : 'Air express · Priority flight';
 
     let breakdownHtml='<div class="ds-card-breakdown">' +
       '<div class="ds-card-row"><span>Base rate</span><span class="mv-num">'+money(built.raw)+'</span></div>' +
@@ -2629,9 +2673,10 @@ function calc(){
 
     d.className=cls;
     d.innerHTML='<div class="ds-card-head">' +
-      '<div class="ds-card-car">'+carrierLogo(svc.carrier)+'<span>'+cleanSvcName+'</span>'+transitHtml+'</div>' +
+      '<div class="ds-card-car">'+carrierLogo(svc.carrier)+'<span>'+cleanSvcName+'</span></div>' +
       badge +
       '</div>' +
+      '<div class="qeta ' + clsType + '"><span class="veh">' + icon + '</span><span><span class="days">' + transitDaysText + '</span><br><span class="dsub">' + transitSub + '</span></span></div>' +
       '<div class="ds-card-price">'+money(built.sell)+'</div>' +
       '<div class="ds-card-sub">'+(live?'Live rate with account discount':'Standard rate card')+'</div>' +
       breakdownHtml;
