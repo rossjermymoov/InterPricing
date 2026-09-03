@@ -24960,13 +24960,15 @@
       {
         "key": "disbursement",
         "name": "Disbursement fee",
+        "basis": "pctValue",
+        "pct": 3.0,
+        "min": 14.35,
         "list": 14.35,
         "disc": 50,
         "sell": 14.35,
         "cond": "always",
         "applyTo": "ups",
-        "fuelable": false,
-        "basis": "flat"
+        "fuelable": false
       },
       {
         "key": "merchantProc",
@@ -30524,5 +30526,5 @@
     "Switzerland": "6",
     "Vatican City": "705"
   },
-  "dataVersion": 14
+  "dataVersion": 15
 }

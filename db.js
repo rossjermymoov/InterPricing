@@ -213,13 +213,13 @@ async function migrateConfig() {
     cfg.settings = deepFill(cfg.settings || {}, seed.settings || {});
     // Duty rules were redefined in v10 — take the DPD duty accessorials straight from seed
     // (the generic sync above preserves edited rate fields, which would keep the old £12.50 / USA bucket).
-    const DUTY_KEYS = ['dpdEu', 'dpdRow', 'dpdUsa'];
+    const RESET_KEYS = ['dpdEu', 'dpdRow', 'dpdUsa', 'disbursement'];
     const seedAcc = (seed.settings && seed.settings.accessorials) || [];
     const seedByKey = {}; seedAcc.forEach((a) => { seedByKey[a.key] = a; });
     if (cfg.settings && Array.isArray(cfg.settings.accessorials)) {
       cfg.settings.accessorials = cfg.settings.accessorials
-        .filter((a) => !DUTY_KEYS.includes(a.key) || seedByKey[a.key])          // drop removed duties (dpdUsa)
-        .map((a) => (DUTY_KEYS.includes(a.key) && seedByKey[a.key]) ? JSON.parse(JSON.stringify(seedByKey[a.key])) : a);
+        .filter((a) => a.key !== 'dpdUsa' && a.key !== 'ddp' && !a.key.endsWith('_dpd'))
+        .map((a) => (RESET_KEYS.includes(a.key) && seedByKey[a.key]) ? JSON.parse(JSON.stringify(seedByKey[a.key])) : a);
     }
     cfg.dataVersion = seed.dataVersion;
     changed = true;

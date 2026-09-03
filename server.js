@@ -358,13 +358,25 @@ app.post('/api/import-quote', async (req, res) => {
     };
     const isUsShipment = isUsLane(sender && sender.country) || isUsLane(receiver && receiver.country);
 
+    const gv = Number(req.body && (req.body.value || req.body.goodsValue) || 0);
     const customSurcharges = [];
     configuredAcc.filter((a) => (a.applyTo || '').toLowerCase() === 'ups').forEach((a) => {
-      const net = Math.round((a.list || 0) * (1 - (a.disc || 0) / 100) * 100) / 100;
+      let charge = 0;
+      if (a.basis === 'pctValue') {
+        const pct = Number(a.pct) || 3.0;
+        const minVal = Number(a.min) || 14.35;
+        const disc = Number(a.disc) || 0;
+        const listAmt = Math.max(pct * gv / 100, minVal);
+        const cost = Math.round(listAmt * (1 - disc / 100) * 100) / 100;
+        charge = a.sell != null && a.sell !== '' ? Number(a.sell) : cost;
+      } else {
+        const cost = Math.round((a.list || 0) * (1 - (a.disc || 0) / 100) * 100) / 100;
+        charge = a.sell != null && a.sell !== '' ? Number(a.sell) : cost;
+      }
       if (a.cond === 'always') {
-        customSurcharges.push({ key: a.key, name: a.name || 'Disbursement fee', amt: net });
+        customSurcharges.push({ key: a.key, name: a.name || 'Disbursement fee', amt: charge });
       } else if (a.cond === 'countryIn' && isUsShipment && (a.countries || []).some((x) => isUsLane(x))) {
-        customSurcharges.push({ key: a.key, name: a.name || 'Merchant processing fee (USA)', amt: net });
+        customSurcharges.push({ key: a.key, name: a.name || 'Merchant processing fee (USA)', amt: charge });
       }
     });
     const customSurTotal = customSurcharges.reduce((sum, x) => sum + x.amt, 0);
