@@ -479,6 +479,121 @@ a:hover { text-decoration: underline; }
   pointer-events: none;
 }
 
+/* ===== MOOV OS UNIFIED ACTION BUTTONS & BADGES ===== */
+.btn-moov-action {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  font-family: var(--font-family);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+  text-decoration: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+  user-select: none;
+}
+.btn-moov-action:active {
+  transform: translateY(1px);
+}
+.btn-moov-action svg {
+  flex-shrink: 0;
+  display: block;
+}
+.btn-moov-action.primary {
+  background: var(--mv-purple);
+  color: #ffffff;
+  border: 1px solid var(--mv-purple);
+}
+.btn-moov-action.primary:hover {
+  background: var(--mv-purple-600, #651aa7);
+  border-color: var(--mv-purple-600, #651aa7);
+  color: #ffffff;
+  text-decoration: none;
+}
+.btn-moov-action.secondary {
+  background: #ffffff;
+  color: var(--mv-ink);
+  border: 1px solid var(--mv-hairline-2);
+}
+.btn-moov-action.secondary:hover {
+  background: var(--mv-surface, #f8fafc);
+  border-color: var(--mv-ink);
+  color: var(--mv-ink);
+  text-decoration: none;
+}
+.btn-moov-action.danger {
+  background: #ffffff;
+  color: var(--mv-magenta-deep);
+  border: 1px solid var(--mv-magenta);
+}
+.btn-moov-action.danger:hover {
+  background: var(--mv-magenta-bg, rgba(233,30,140,0.08));
+  color: var(--mv-magenta-deep);
+  text-decoration: none;
+}
+
+.btn-moov-refresh {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: #ffffff;
+  color: var(--mv-ink);
+  border: 1px solid var(--mv-hairline-2);
+  border-radius: 0;
+  cursor: pointer;
+  transition: all .12s;
+}
+.btn-moov-refresh:hover {
+  background: var(--mv-surface);
+  border-color: var(--mv-purple);
+  color: var(--mv-purple);
+}
+.btn-moov-refresh svg {
+  transition: transform .3s ease;
+}
+.btn-moov-refresh:hover svg {
+  transform: rotate(180deg);
+}
+
+.btn-micro-pill {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 700;
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  color: var(--mv-purple);
+  cursor: pointer;
+  vertical-align: middle;
+  border-radius: 0;
+  transition: all .12s;
+}
+.btn-micro-pill:hover {
+  border-color: var(--mv-purple);
+  background: #faf5ff;
+}
+
 .ds-grid { display: grid; gap: 16px; }
 .ds-grid-2 { grid-template-columns: 1fr 1fr; }
 .ds-grid-3 { grid-template-columns: repeat(3, 1fr); }
@@ -1644,7 +1759,10 @@ a:hover { text-decoration: underline; }
           <div class="ds-section-title" style="margin:0">Active Customer Rate Cards</div>
           <div style="display:flex;gap:10px;align-items:center">
             <input id="custSearch" placeholder="Search customer cards…" class="ds-input" style="width:240px;padding:4px 0"/>
-            <button class="ds-btn ds-btn-secondary" id="cardsRefresh" style="padding:5px 10px;font-size:11px">Refresh</button>
+            <button class="btn-moov-refresh" id="cardsRefresh">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              <span>REFRESH</span>
+            </button>
           </div>
         </div>
         <div class="ds-table-wrap">
@@ -1751,7 +1869,10 @@ a:hover { text-decoration: underline; }
       <div class="ds-section" style="margin-top:36px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div class="ds-section-title" style="margin:0">Recent Collections</div>
-          <button class="ds-btn ds-btn-secondary" id="colRefresh" style="padding:5px 10px;font-size:11px">Refresh</button>
+          <button class="btn-moov-refresh" id="colRefresh">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>REFRESH</span>
+          </button>
         </div>
         <div class="ds-table-wrap">
           <table class="ds-table">
@@ -1786,7 +1907,10 @@ a:hover { text-decoration: underline; }
       <div class="ds-section">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div class="ds-section-title" style="margin:0">Booked Shipments History</div>
-          <button class="ds-btn ds-btn-secondary" id="shipRefresh" style="padding:5px 10px;font-size:11px">Refresh</button>
+          <button class="btn-moov-refresh" id="shipRefresh">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>REFRESH</span>
+          </button>
         </div>
         <div class="ds-table-wrap">
           <table class="ds-table" id="shipHistoryTable">
@@ -1835,7 +1959,10 @@ a:hover { text-decoration: underline; }
           <div class="ds-section-title" style="margin:0">Quote History</div>
           <div style="display:flex;gap:10px;align-items:center">
             <input id="qSearch" placeholder="Search customer, country, postcode…" class="ds-input" style="width:260px;padding:5px 0"/>
-            <button class="ds-btn ds-btn-secondary" id="qRefresh" style="padding:5px 10px;font-size:11px">Refresh</button>
+            <button class="btn-moov-refresh" id="qRefresh">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+              <span>REFRESH</span>
+            </button>
           </div>
         </div>
 
@@ -2587,10 +2714,10 @@ function renderCardsTable(cards) {
       '<div style="font-size:11px;color:var(--mv-ink-55)">Created ' + qDT(c.created_at) + ' · <span style="color:var(--mv-purple);font-weight:700">' + qesc(mkSummary) + '</span></div>' +
       '</td>' +
       '<td>' +
-      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
-      '<input type="text" readonly value="' + cardUrl + '" class="ds-input" style="width:230px;font-family:monospace;font-size:11.5px;background:var(--mv-surface);padding:4px 8px"/>' +
-      '<button class="rawcopy copy-card-btn" data-url="' + cardUrl + '">Copy Link</button>' +
-      '<a href="' + cardUrl + '" target="_blank" class="ds-btn ds-btn-secondary" style="padding:4px 8px;font-size:11px">Open ↗</a>' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+      '<input type="text" readonly value="' + cardUrl + '" class="ds-input" style="width:210px;height:30px;box-sizing:border-box;font-family:monospace;font-size:11px;background:var(--mv-surface);padding:0 8px;border:1px solid var(--mv-hairline-2);border-radius:0"/>' +
+      '<button class="btn-moov-action secondary copy-card-btn" data-url="' + cardUrl + '" style="height:30px;padding:0 9px;font-size:11px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy Link</span></button>' +
+      '<a href="' + cardUrl + '" target="_blank" class="btn-moov-action secondary" style="height:30px;padding:0 9px;font-size:11px">Open ↗</a>' +
       '</div>' +
       '</td>' +
       '<td><b>' + qesc(importMarkupStr) + '</b><div style="font-size:11px;color:var(--mv-ink-55)">' + (cfg.deliveryAddress && cfg.deliveryAddress.city ? qesc(cfg.deliveryAddress.city + ', ' + (cfg.deliveryAddress.country || 'GB')) : 'Standard') + '</div></td>' +
@@ -2604,8 +2731,8 @@ function renderCardsTable(cards) {
       '</td>' +
       '<td class="r">' +
       '<div style="display:flex;gap:6px;justify-content:flex-end">' +
-      '<button class="ds-btn ds-btn-secondary edit-card-btn" data-id="' + c.id + '" style="padding:4px 10px;font-size:11px">Edit Markups</button>' +
-      '<button class="ds-btn ds-btn-danger del-card-btn" data-id="' + c.id + '" style="padding:4px 8px;font-size:11px">Delete</button>' +
+      '<button class="btn-moov-action secondary edit-card-btn" data-id="' + c.id + '" style="height:30px;padding:0 9px;font-size:11px">Edit Markups</button>' +
+      '<button class="btn-moov-action danger del-card-btn" data-id="' + c.id + '" style="height:30px;padding:0 9px;font-size:11px">Delete</button>' +
       '</div>' +
       '</td>';
     tb.appendChild(tr);
@@ -2614,8 +2741,8 @@ function renderCardsTable(cards) {
   tb.querySelectorAll('.copy-card-btn').forEach(btn => {
     btn.onclick = () => {
       if (navigator.clipboard) navigator.clipboard.writeText(btn.dataset.url);
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = 'Copy Link'; }, 1500);
+      btn.querySelector('span').textContent = 'Copied!';
+      setTimeout(() => { if (btn.querySelector('span')) btn.querySelector('span').textContent = 'Copy Link'; }, 1500);
     };
   });
 
@@ -3021,12 +3148,12 @@ function renderShipments(list) {
             '<span class="ds-kicker" style="margin:0">COURIER JOURNEY</span>' +
             '<span style="font-family:monospace;font-size:12px;font-weight:700">(' + qesc(x.tracking_number || 'No tracking') + ')</span>' +
           '</div>' +
-          '<div style="display:flex;align-items:center;gap:8px">' +
-            '<button type="button" class="ds-btn ds-btn-secondary btn-adm-upload-doc" data-id="' + x.id + '" style="padding:5px 12px;font-size:11.5px">📄 Upload Invoice</button>' +
-            '<button type="button" class="ds-btn ds-btn-secondary btn-adm-email-labels" data-id="' + x.id + '" style="padding:5px 12px;font-size:11.5px">✉️ Email Labels</button>' +
-            (x.tracking_number ? ('<button type="button" class="ds-btn ds-btn-primary btn-adm-track-live" data-tracking="' + qesc(x.tracking_number) + '" style="padding:5px 12px;font-size:11.5px">Track Shipment</button>') : '') +
-            (x.prn && !isCancelled ? ('<button type="button" class="ds-btn ds-btn-secondary btn-adm-resched" data-prn="' + qesc(x.prn) + '" style="padding:5px 12px;font-size:11.5px">Amend Collection</button>') : '') +
-            (x.label_base64 ? ('<a href="data:image/gif;base64,' + x.label_base64 + '" download="UPS_Label_' + (x.tracking_number || x.id) + '.gif" class="ds-btn ds-btn-secondary" style="padding:5px 12px;font-size:11.5px" target="_blank" onclick="event.stopPropagation()">Print Label</a>') : '') +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+            '<button type="button" class="btn-moov-action secondary btn-adm-upload-doc" data-id="' + x.id + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg><span>Upload Invoice</span></button>' +
+            '<button type="button" class="btn-moov-action secondary btn-adm-email-labels" data-id="' + x.id + '" style="color:var(--mv-purple);border-color:var(--mv-purple)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg><span>Email Labels</span></button>' +
+            (x.tracking_number ? ('<button type="button" class="btn-moov-action primary btn-adm-track-live" data-tracking="' + qesc(x.tracking_number) + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Track Shipment</span></button>') : '') +
+            (x.prn && !isCancelled ? ('<button type="button" class="btn-moov-action secondary btn-adm-resched" data-prn="' + qesc(x.prn) + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg><span>Amend Collection</span></button>') : '') +
+            (x.label_base64 ? ('<a href="data:image/gif;base64,' + x.label_base64 + '" download="UPS_Label_' + (x.tracking_number || x.id) + '.gif" class="btn-moov-action secondary" target="_blank" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg><span>Print Label</span></a>') : '') +
           '</div>' +
         '</div>' +
 

@@ -683,6 +683,151 @@ a:hover { text-decoration: underline; }
   background: var(--mv-magenta-bg);
 }
 
+/* ===== MOOV OS UNIFIED ACTION BUTTONS & BADGES ===== */
+.btn-moov-action {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  font-family: var(--font-family);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  border-radius: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1;
+  text-decoration: none;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+  user-select: none;
+}
+.btn-moov-action:active {
+  transform: translateY(1px);
+}
+.btn-moov-action svg {
+  flex-shrink: 0;
+  display: block;
+}
+.btn-moov-action.primary {
+  background: var(--mv-purple);
+  color: #ffffff;
+  border: 1px solid var(--mv-purple);
+}
+.btn-moov-action.primary:hover {
+  background: var(--mv-purple-600, #651aa7);
+  border-color: var(--mv-purple-600, #651aa7);
+  color: #ffffff;
+  text-decoration: none;
+}
+.btn-moov-action.secondary {
+  background: #ffffff;
+  color: var(--mv-ink);
+  border: 1px solid var(--mv-hairline-2);
+}
+.btn-moov-action.secondary:hover {
+  background: var(--mv-surface, #f8fafc);
+  border-color: var(--mv-ink);
+  color: var(--mv-ink);
+  text-decoration: none;
+}
+.btn-moov-action.danger {
+  background: #ffffff;
+  color: var(--mv-magenta-deep);
+  border: 1px solid var(--mv-magenta);
+}
+.btn-moov-action.danger:hover {
+  background: var(--mv-magenta-bg, rgba(233,30,140,0.08));
+  color: var(--mv-magenta-deep);
+  text-decoration: none;
+}
+
+.btn-moov-refresh {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  font-family: var(--font-family);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  background: #ffffff;
+  color: var(--mv-ink);
+  border: 1px solid var(--mv-hairline-2);
+  border-radius: 0;
+  cursor: pointer;
+  transition: all .12s;
+}
+.btn-moov-refresh:hover {
+  background: var(--mv-surface);
+  border-color: var(--mv-purple);
+  color: var(--mv-purple);
+}
+.btn-moov-refresh svg {
+  transition: transform .3s ease;
+}
+.btn-moov-refresh:hover svg {
+  transform: rotate(180deg);
+}
+
+.prn-moov-badge {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  border-left: 3px solid var(--mv-green);
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--mv-ink);
+  letter-spacing: .02em;
+}
+.prn-moov-badge .prn-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mv-green);
+}
+.prn-moov-none {
+  font-size: 12px;
+  color: var(--mv-ink-55);
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+}
+
+.btn-micro-pill {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px;
+  font-family: var(--font-family);
+  font-size: 11px;
+  font-weight: 700;
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  color: var(--mv-purple);
+  cursor: pointer;
+  vertical-align: middle;
+  border-radius: 0;
+  transition: all .12s;
+}
+.btn-micro-pill:hover {
+  border-color: var(--mv-purple);
+  background: #faf5ff;
+}
+
 /* ===== MOOV OS CONNECTED TIMELINE COMPONENT ===== */
 .moov-timeline-wrap {
   position: relative;
@@ -1333,12 +1478,19 @@ a:hover { text-decoration: underline; }
     <div class="calc-card" style="margin-bottom:16px">
       <div class="calc-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
         <div>
-          <h2><span>🏷️</span> My Bookings &amp; Collections</h2>
-          <span class="calc-sub">Track booked shipments, inspect package dimensions, download labels, and reschedule UPS courier collections.</span>
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-purple);margin-bottom:3px">CONSIGNMENT LEDGER</div>
+          <h2 style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0;color:var(--mv-ink)">My Bookings &amp; Collections</h2>
+          <span class="calc-sub" style="margin-top:3px">Track booked shipments, inspect package dimensions, download labels, and reschedule UPS collections.</span>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <button type="button" id="purgeCancelledBtn" class="btn ghost" style="padding:8px 14px;font-size:12px;font-weight:700;display:none;color:#b91c1c;border-color:#fecaca;background:#fff5f5">Clean Cancelled 🧹</button>
-          <button type="button" id="refreshCustBookingsBtn" class="btn" style="padding:8px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px">Refresh 🔄</button>
+          <button type="button" id="purgeCancelledBtn" class="btn-moov-action danger" style="height:32px;display:none">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <span>PURGE CANCELLED</span>
+          </button>
+          <button type="button" id="refreshCustBookingsBtn" class="btn-moov-refresh">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>REFRESH</span>
+          </button>
         </div>
       </div>
     </div>
@@ -3475,8 +3627,8 @@ function renderCustomerBookings(shipments) {
         : '<span style="font-size:10.5px;font-weight:900;background:#d1fae5;color:#065f46;padding:3px 8px;letter-spacing:.04em;border:1px solid #a7f3d0">BOOKED</span>');
 
     const prnBadge = x.prn
-      ? ('<span style="font-family:monospace;font-size:12px;font-weight:800;background:#f8fafc;color:var(--ink);padding:4px 9px;border:1px solid var(--line-strong)">PRN: <b>' + esc(x.prn) + '</b></span>')
-      : '<span style="font-size:12px;color:var(--muted)">No pickup scheduled</span>';
+      ? ('<div class="prn-moov-badge"><span class="prn-dot"></span><span>PRN: <b>' + esc(x.prn) + '</b></span></div>')
+      : '<span class="prn-moov-none">No collection PRN</span>';
 
     const trackLink = x.tracking_number
       ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:13px;font-weight:800;color:var(--brand);text-decoration:none;display:inline-flex;align-items:center;gap:4px">' + esc(x.tracking_number) + '</a>')
@@ -3516,7 +3668,7 @@ function renderCustomerBookings(shipments) {
         + '<td style="padding:9px 12px;text-align:right;font-weight:700">' + wt + ' kg</td>'
         + '<td style="padding:9px 12px;text-align:right;color:var(--muted)">' + volWt + (volWt !== '—' ? ' kg' : '') + '</td>'
         + '<td style="padding:9px 12px;text-align:right">'
-        + (p.labelGraphic ? ('<button type="button" class="btn ghost btn-print-single" data-img="' + p.labelGraphic + '" style="padding:4px 10px;font-size:11.5px;font-weight:700">Print Label</button>') : '—')
+        + (p.labelGraphic ? ('<button type="button" class="btn-micro-pill btn-print-single" data-img="' + p.labelGraphic + '" style="font-weight:700">Print Label</button>') : '—')
         + '</td>'
         + '</tr>';
     }).join('');
@@ -3539,7 +3691,10 @@ function renderCustomerBookings(shipments) {
         <div style="padding:16px 20px 14px;background:#ffffff;border-bottom:1px solid var(--line)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Courier Journey</span>
-            <button type="button" class="btn ghost btn-cust-track-live" data-tracking="${esc(x.tracking_number || '')}" style="padding:5px 14px;font-size:12px;font-weight:700;color:var(--brand);border:1px solid var(--line-strong)">Track Shipment</button>
+            <button type="button" class="btn-moov-action secondary btn-cust-track-live" data-tracking="${esc(x.tracking_number || '')}" style="height:28px;padding:0 10px;font-size:11.5px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span>Track Live</span>
+            </button>
           </div>
 
           <div class="moov-timeline-wrap">
@@ -3570,7 +3725,15 @@ function renderCustomerBookings(shipments) {
         <div>
           <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Shipment Details</div>
           <div style="font-weight:700;font-size:13px;color:var(--ink)">${trackLink}</div>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Value: <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b> · ${hasDocs ? '<b style="color:#059669">✓ Electronic Docs</b>' : '<span style="color:#b45309">No docs uploaded</span>'} <button type="button" class="btn ghost btn-upload-doc" data-id="${x.id}" style="padding:1px 6px;font-size:11px;font-weight:700;margin-left:4px">${hasDocs ? 'Update 📄' : 'Upload 📄'}</button></div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span>Value: <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b></span>
+            <span>·</span>
+            ${hasDocs ? '<b style="color:#059669">✓ Electronic Docs</b>' : '<span style="color:#b45309">No docs uploaded</span>'}
+            <button type="button" class="btn-micro-pill btn-upload-doc" data-id="${x.id}" title="${hasDocs ? 'Update Customs Invoice' : 'Attach Commercial Invoice'}">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              <span>${hasDocs ? 'Update' : 'Attach'}</span>
+            </button>
+          </div>
         </div>
 
         <div>
@@ -3581,28 +3744,55 @@ function renderCustomerBookings(shipments) {
       </div>
 
       <!-- Action Footer -->
-      <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="padding:12px 20px;background:#f8fafc;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           ${prnBadge}
           ${(!x.prn && !isCancelled) ? `
-            <button type="button" class="btn ghost btn-cust-book-pickup" style="padding:7px 14px;font-size:12px;font-weight:700;color:var(--green-dark);border-color:var(--green-dark)">Book Collection</button>
+            <button type="button" class="btn-moov-action secondary btn-cust-book-pickup">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+              <span>Book Collection</span>
+            </button>
           ` : ''}
           ${(x.prn && !isCancelled) ? `
-            <button type="button" class="btn ghost btn-cust-resched" data-prn="${esc(x.prn)}" style="padding:7px 14px;font-size:12px;font-weight:700">Amend Collection</button>
+            <button type="button" class="btn-moov-action secondary btn-cust-resched" data-prn="${esc(x.prn)}">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <span>Amend Collection</span>
+            </button>
           ` : ''}
           ${!isCancelled ? `
-            <button type="button" class="btn ghost btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}" style="padding:7px 14px;font-size:12px;font-weight:700;color:#b91c1c;border-color:#fecaca">Cancel Shipment</button>
+            <button type="button" class="btn-moov-action danger btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              <span>Cancel Shipment</span>
+            </button>
           ` : `
-            <button type="button" class="btn ghost btn-cust-delete-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}" style="padding:7px 14px;font-size:12px;font-weight:700;color:#b91c1c;background:#fee2e2;border-color:#fca5a5">Remove from History</button>
+            <button type="button" class="btn-moov-action danger btn-cust-delete-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <span>Remove</span>
+            </button>
           `}
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
-          <button type="button" class="btn ghost btn-upload-doc" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">📄 ${hasDocs ? 'Attach Customs Doc' : 'Upload Invoice'}</button>
-          <button type="button" class="btn ghost btn-email-labels" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple)">✉️ Email Labels</button>
-          <button type="button" class="btn primary btn-print-batch-thermal" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print Labels (Thermal 4"×6")</button>
-          <button type="button" class="btn btn-print-batch-a4" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print Labels (A4)</button>
-          <button type="button" class="btn btn-toggle-explode" data-id="${x.id}" style="padding:7px 16px;font-size:12px;font-weight:700">Specs &amp; Details ▾</button>
+          <button type="button" class="btn-moov-action secondary btn-upload-doc" data-id="${x.id}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+            <span>${hasDocs ? 'Attach Customs Doc' : 'Upload Invoice'}</span>
+          </button>
+          <button type="button" class="btn-moov-action secondary btn-email-labels" data-id="${x.id}" style="color:var(--mv-purple);border-color:var(--mv-purple)">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <span>Email Labels</span>
+          </button>
+          <button type="button" class="btn-moov-action primary btn-print-batch-thermal" data-id="${x.id}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <span>Print Labels (Thermal 4"×6")</span>
+          </button>
+          <button type="button" class="btn-moov-action secondary btn-print-batch-a4" data-id="${x.id}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <span>Print Labels (A4)</span>
+          </button>
+          <button type="button" class="btn-moov-action secondary btn-toggle-explode" data-id="${x.id}">
+            <span>Specs &amp; Details</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
         </div>
       </div>
 
