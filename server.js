@@ -386,7 +386,7 @@ app.post('/api/import-quote', async (req, res) => {
       const bd = s.breakdown || {};
       const factor = 1 + markup / 100;
       const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
-      const fuelAmount = Math.round((bd.fuel || 0) * 100) / 100;
+      const fuelAmount = Math.round((bd.fuel || 0) * factor * 100) / 100;
       const liveAcc = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
@@ -498,7 +498,7 @@ app.post('/api/card-rate', async (req, res) => {
       const factor = 1 + mk / 100;
       const bd = s.breakdown || {};
       const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
-      const fuelAmount = Math.round((bd.fuel || 0) * 100) / 100;
+      const fuelAmount = Math.round((bd.fuel || 0) * factor * 100) / 100;
       const accessorials = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
@@ -521,10 +521,10 @@ app.post('/api/card-rate', async (req, res) => {
 // PUBLIC/ADMIN: live quote endpoint for the main calculator (returns UPS Standard & Express Saver).
 app.post('/api/calc-rate', async (req, res) => {
   try {
-    const { country, postcode, weight, l, w, h, residential, value, markup } = req.body || {};
-    if (!country) return res.json({ enabled: false, services: [] });
+    const { country, postcode, weight, l, w, h, residential, markup, value } = req.body || {};
+    if (!country) return res.status(400).json({ error: 'Country is required' });
     const iso = nameToIso(country);
-    if (!iso) return res.json({ enabled: false, services: [] });
+    if (!iso) return res.status(400).json({ error: 'Could not map country name to ISO code' });
 
     const numWeight = Number(weight) || 0;
     const sides = [l, w, h].map(Number).filter(x => x > 0).sort((a, b) => b - a);
@@ -575,7 +575,7 @@ app.post('/api/calc-rate', async (req, res) => {
       const costBase = Math.round((bd.base || 0) * 100) / 100;
       const costFuel = Math.round((bd.fuel || 0) * 100) / 100;
       const sellBase = Math.round(costBase * factor * 100) / 100;
-      const sellFuel = costFuel;
+      const sellFuel = Math.round(costFuel * factor * 100) / 100;
 
       const accessorials = (bd.accessorials || []).map((a) => ({
         code: a.code,
@@ -595,7 +595,7 @@ app.post('/api/calc-rate', async (req, res) => {
         sellBase,
         sellFuel,
         markupPct: mk,
-        markupAmt: Math.round((sellBase - costBase) * 100) / 100,
+        markupAmt: Math.round(((sellBase + sellFuel) - (costBase + costFuel)) * 100) / 100,
         accessorials,
         remote: accessorials.some((a) => a.remote),
       });
