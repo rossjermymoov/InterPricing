@@ -57,6 +57,11 @@ async function sendShipmentLabelsEmail({ to, cc, shipment, customMessage, pdfBas
   const subject = 'Shipping Labels & Collection Confirmed: ' + supplierName + ' → ' + recipientName + ' (Tracking: ' + tracking + ' · PRN: ' + prn + ')';
 
   const senderAddressStr = [s.line1, s.line2, s.city, s.postcode, s.country].filter(Boolean).join(', ');
+  const receiverAddressStr = [r.line1, r.line2, r.city, r.postcode, r.country || 'GB'].filter(Boolean).join(', ');
+
+  const docs = shipment.documents_attached || shipment.documentsAttached || {};
+  const hasElectronicDocs = !!(docs.invoice || docs.packingSlip || shipment.invoiceBase64);
+
   const textBody = [
     'Hi ' + recipientName + ',\n',
     'Your UPS import collection has been scheduled and the shipping labels are ready.\n',
@@ -68,6 +73,7 @@ async function sendShipmentLabelsEmail({ to, cc, shipment, customMessage, pdfBas
     '• Pickup Request No (PRN):  ' + prn,
     '• Scheduled Collection:     ' + pickupDate,
     '• Ready / Close Window:     ' + timeWindow,
+    '• Customs Invoices:         ' + (hasElectronicDocs ? '✓ Electronic (Paperless Trade)' : '⚠️ Hardcopy required (3 signed copies at collection)'),
     '• Consignment Details:      ' + totalParcels + ' parcel' + (totalParcels === 1 ? '' : 's') + ' · ' + totalWeight + ' kg total\n',
     '======================================================================',
     'ADDRESS DETAILS',
@@ -95,7 +101,9 @@ async function sendShipmentLabelsEmail({ to, cc, shipment, customMessage, pdfBas
     '======================================================================',
     '1. Print the attached shipping label(s) for each parcel.',
     '2. Securely attach one label flat to the top surface of each carton (avoid placing tape over barcodes).',
-    '3. Hand the packages to the UPS courier driver during the collection window. Quote PRN #' + prn + ' if requested.\n',
+    hasElectronicDocs
+      ? ('3. Hand the packages to the UPS courier driver during the collection window. Quote PRN #' + prn + ' if requested (customs documentation is uploaded electronically).\n')
+      : ('3. Hand the packages to the UPS courier driver during the collection window along with 3 signed copies of the Commercial Invoice (required for customs clearance). Quote PRN #' + prn + ' if requested.\n'),
     customMessage ? ('Note from sender:\n' + customMessage + '\n') : '',
     'If you have any questions or need to amend the collection details, reply directly to this email.\n',
     'Kind regards,',
@@ -140,6 +148,7 @@ async function sendShipmentLabelsEmail({ to, cc, shipment, customMessage, pdfBas
     '<tr><td class="label">Pickup Request No (PRN):</td><td class="val"><span class="prn-highlight">' + esc(prn) + '</span></td></tr>' +
     '<tr><td class="label">Collection Date:</td><td class="val">' + esc(pickupDate) + '</td></tr>' +
     '<tr><td class="label">Driver Ready Window:</td><td class="val">' + esc(timeWindow) + '</td></tr>' +
+    '<tr><td class="label">Customs Documentation:</td><td class="val">' + (hasElectronicDocs ? '<span style="color:#059669;font-weight:700">✓ Electronic Paperless Upload</span>' : '<span style="color:#b45309;font-weight:700">⚠️ 3x Hardcopy Invoices at Pickup</span>') + '</td></tr>' +
     '<tr><td class="label">Parcels &amp; Weight:</td><td class="val">' + totalParcels + ' parcel' + (totalParcels === 1 ? '' : 's') + ' · ' + totalWeight + ' kg total</td></tr>' +
     '</table></div>' +
     '<table class="address-grid"><tr>' +
@@ -149,7 +158,9 @@ async function sendShipmentLabelsEmail({ to, cc, shipment, customMessage, pdfBas
     '<div class="instructions-box"><h3>Supplier Instructions for Collection</h3><ol>' +
     '<li><b>Print</b> the attached shipping label(s) for each parcel.</li>' +
     '<li><b>Attach</b> one label flat onto the top surface of each carton (avoid placing tape over barcodes).</li>' +
-    '<li><b>Handover</b> the packages to the UPS courier driver during the collection window. Quote PRN <b>#' + esc(prn) + '</b> if requested.</li>' +
+    (hasElectronicDocs
+      ? '<li><b>Handover</b> the packages to the UPS courier driver during the collection window (customs invoice is uploaded electronically). Quote PRN <b>#' + esc(prn) + '</b> if requested.</li>'
+      : '<li><b>Handover</b> the packages to the UPS courier driver during the collection window along with <b>3 signed copies of the Commercial Invoice</b> for UK customs clearance. Quote PRN <b>#' + esc(prn) + '</b> if requested.</li>') +
     '</ol></div>' +
     (customMessage ? ('<div class="custom-note"><b>Note:</b> ' + esc(customMessage) + '</div>') : '') +
     '<div style="text-align:center;margin:24px 0 12px"><a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(tracking) + '" class="btn-track" target="_blank">Track Live Courier Journey →</a></div>' +

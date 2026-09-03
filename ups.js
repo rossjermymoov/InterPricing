@@ -430,8 +430,14 @@ function buildPickupRequest(p) {
   if (p.email) {
     req.PickupCreationRequest.PickupAddress.EMailAddress = S(p.email).trim();
   }
-  if (p.specialInstruction || p.instructions) {
-    req.PickupCreationRequest.SpecialInstruction = S(p.specialInstruction || p.instructions).slice(0, 100);
+  let instructions = S(p.specialInstruction || p.instructions || '').slice(0, 100);
+  const isCrossBorder = originCountry && destCountry && originCountry.toUpperCase() !== destCountry.toUpperCase();
+  if (isCrossBorder && !instructions.toLowerCase().includes('invoice')) {
+    const invNote = p.hasElectronicDocs ? 'Electronic Invoice uploaded.' : 'Commercial Invoices (x3) with packages.';
+    instructions = instructions ? (invNote + ' ' + instructions).slice(0, 100) : invNote;
+  }
+  if (instructions) {
+    req.PickupCreationRequest.SpecialInstruction = instructions;
   }
   if (trackingNumber) {
     req.PickupCreationRequest.TrackingData = [{ TrackingNumber: trackingNumber }];
@@ -661,6 +667,24 @@ function buildShipmentRequest(p) {
     shipmentObj.InternationalForms = {
       FormType: ['01'],
       UserCreatedForm: forms,
+      ReasonForExport: 'SALE',
+      TermsOfSale: 'DAP',
+      InvoiceNumber: S(p.invoiceNumber || ('INV-' + Date.now().toString().slice(-6))),
+      InvoiceDate: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
+      PurchaseOrderNumber: S(p.reference || ('MOOV-' + Date.now().toString().slice(-6))),
+      CurrencyCode: p.currency || 'GBP',
+    };
+  } else if (isImport || ((senderAddr.Address.CountryCode || '').toUpperCase() !== (receiverAddr.Address.CountryCode || '').toUpperCase())) {
+    // Cross-border shipment: explicitly declare commercial invoice handed over as hardcopy at pickup
+    shipmentObj.InternationalForms = {
+      FormType: ['01'],
+      ReasonForExport: 'SALE',
+      TermsOfSale: 'DAP',
+      InvoiceNumber: S(p.invoiceNumber || ('INV-' + Date.now().toString().slice(-6))),
+      InvoiceDate: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
+      PurchaseOrderNumber: S(p.reference || ('MOOV-' + Date.now().toString().slice(-6))),
+      CurrencyCode: p.currency || 'GBP',
+      Comments: 'Commercial Invoices (3 copies) provided by Shipper at pickup',
     };
   }
 
