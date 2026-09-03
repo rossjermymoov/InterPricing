@@ -25051,13 +25051,13 @@
       },
       {
         "key": "dpdRow",
-        "name": "DPD duty & disbursement (Rest of world)",
+        "name": "DPD customs clearance & disbursement",
         "applyTo": "dpd",
         "cond": "region",
         "region": "row",
-        "basis": "pctValue",
-        "pct": 2.5,
-        "min": 5,
+        "basis": "flat",
+        "list": 5.0,
+        "disc": 0,
         "fuelable": false
       }
     ],
@@ -30578,5 +30578,5 @@
     "Switzerland": "6",
     "Vatican City": "705"
   },
-  "dataVersion": 11
+  "dataVersion": 12
 }
