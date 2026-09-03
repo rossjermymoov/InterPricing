@@ -24973,20 +24973,6 @@
         "fuelable": false
       },
       {
-        "key": "merchantProc",
-        "name": "Merchant processing fee (USA)",
-        "list": 2.0,
-        "disc": 0,
-        "sell": 2.0,
-        "cond": "countryIn",
-        "countries": [
-          "USA"
-        ],
-        "applyTo": "ups",
-        "fuelable": false,
-        "basis": "flat"
-      },
-      {
         "key": "dpdEu",
         "name": "DPD EU disbursement fee",
         "applyTo": "dpd",
@@ -30528,5 +30514,5 @@
     "Switzerland": "6",
     "Vatican City": "705"
   },
-  "dataVersion": 17
+  "dataVersion": 18
 }

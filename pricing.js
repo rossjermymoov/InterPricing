@@ -84,8 +84,19 @@ function buildCardPayload(cfg, card) {
     .map((a) => {
       const o = { key: a.key, name: a.name, group: a.group || a.key, cond: a.cond, basis: a.basis,
         carrier: (a.applyTo || '').toUpperCase(), fuelable: !!a.fuelable };
-      if (a.basis === 'pctValue') { o.pct = a.pct || 0; o.min = a.min || 0; }
-      else { o.amount = Math.round((a.list || 0) * (1 - (a.disc || 0) / 100) * 100) / 100; }
+      if (a.basis === 'pctValue') {
+        const customerMin = a.sellMin != null && a.sellMin !== '' ? Number(a.sellMin) : (a.sell != null && a.sell !== '' ? Number(a.sell) : (Number(a.min) || 14.35));
+        const customerPct = a.sellPct != null && a.sellPct !== '' ? Number(a.sellPct) : (Number(a.pct) || 3.0);
+        o.pct = customerPct;
+        o.min = customerMin;
+        o.sellMin = customerMin;
+        o.sellPct = customerPct;
+        o.amount = customerMin;
+      } else {
+        const customerFlat = a.sell != null && a.sell !== '' ? Number(a.sell) : Math.round((a.list || 0) * (1 - (a.disc || 0) / 100) * 100) / 100;
+        o.amount = customerFlat;
+        o.sell = customerFlat;
+      }
       if (a.region) o.region = a.region;
       if (a.countries) o.countries = a.countries;
       return o;

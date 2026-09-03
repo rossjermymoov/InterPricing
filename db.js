@@ -218,7 +218,7 @@ async function migrateConfig() {
     const seedByKey = {}; seedAcc.forEach((a) => { seedByKey[a.key] = a; });
     if (cfg.settings && Array.isArray(cfg.settings.accessorials)) {
       cfg.settings.accessorials = cfg.settings.accessorials
-        .filter((a) => a.key !== 'dpdUsa' && a.key !== 'ddp' && !a.key.endsWith('_dpd'))
+        .filter((a) => a.key !== 'dpdUsa' && a.key !== 'ddp' && a.key !== 'merchantProc' && !a.key.endsWith('_dpd'))
         .map((a) => (RESET_KEYS.includes(a.key) && seedByKey[a.key]) ? JSON.parse(JSON.stringify(seedByKey[a.key])) : a);
     }
     cfg.dataVersion = seed.dataVersion;

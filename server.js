@@ -375,9 +375,7 @@ app.post('/api/import-quote', async (req, res) => {
         charge = a.sell != null && a.sell !== '' ? Number(a.sell) : cost;
       }
       if (a.cond === 'always') {
-        customSurcharges.push({ key: a.key, name: a.name || 'Disbursement fee (min £14.35 or 3% of duties & taxes)', amt: charge });
-      } else if (a.cond === 'countryIn' && isUsShipment && (a.countries || []).some((x) => isUsLane(x))) {
-        customSurcharges.push({ key: a.key, name: a.name || 'Merchant processing fee (USA)', amt: charge });
+        customSurcharges.push({ key: a.key, name: a.name || 'Disbursement fee', amt: charge });
       }
     });
     const customSurTotal = customSurcharges.reduce((sum, x) => sum + x.amt, 0);
