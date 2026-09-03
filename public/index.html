@@ -2345,25 +2345,19 @@ function markupPct(svc){return svc&&$('mk_'+svc.key) ? num('mk_'+svc.key) : num(
 const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
 const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];return eu.includes(c)?'eu':'row';};
 function accCost(a){
-  const gv = num('goodsValue') || 0;
   if(a.basis==='pctValue'){
-    const pct = $('accPct_'+a.key) ? num('accPct_'+a.key) : (Number(a.pct) || 3.0);
     const mn = $('accMin_'+a.key) ? num('accMin_'+a.key) : (Number(a.min) || 14.35);
     const disc = $('accDisc_'+a.key) ? num('accDisc_'+a.key) : (Number(a.disc) || 0);
-    const netPct = pct * (1 - disc / 100);
-    const netMin = mn * (1 - disc / 100);
-    return Math.round(Math.max(netPct * gv / 100, netMin) * 100) / 100;
+    return Math.round(mn * (1 - disc / 100) * 100) / 100;
   }
   const l = $('accList_'+a.key) ? num('accList_'+a.key) : (a.list || 0);
   const d = $('accDisc_'+a.key) ? num('accDisc_'+a.key) : (a.disc || 0);
   return Math.round(l * (1 - d / 100) * 100) / 100;
 }
 function accVal(a){
-  const gv = num('goodsValue') || 0;
   if(a.basis==='pctValue'){
-    const p = $('accSellPct_'+a.key) ? num('accSellPct_'+a.key) : (a.sellPct != null ? Number(a.sellPct) : (Number(a.pct) || 3.0));
     const m = $('accSellMin_'+a.key) ? num('accSellMin_'+a.key) : (a.sellMin != null ? Number(a.sellMin) : (Number(a.min) || 14.35));
-    return Math.round(Math.max(p * gv / 100, m) * 100) / 100;
+    return m;
   }
   const sellEl=$('accSell_'+a.key);
   if(sellEl && sellEl.value!=='') return num('accSell_'+a.key);
