@@ -2345,10 +2345,26 @@ function markupPct(svc){return svc&&$('mk_'+svc.key) ? num('mk_'+svc.key) : num(
 const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
 const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];return eu.includes(c)?'eu':'row';};
 function accCost(a){
-  if(a.basis==='pctValue'){const pct=$('accPct_'+a.key)?num('accPct_'+a.key):(a.pct||0);const mn=$('accMin_'+a.key)?num('accMin_'+a.key):(a.min||0);return Math.max(pct*num('goodsValue')/100, mn);}
-  const l=$('accList_'+a.key)?num('accList_'+a.key):(a.list||0);const d=$('accDisc_'+a.key)?num('accDisc_'+a.key):(a.disc||0);return l*(1-d/100);
+  const gv = num('goodsValue') || 0;
+  if(a.basis==='pctValue'){
+    const pct = $('accPct_'+a.key) ? num('accPct_'+a.key) : (Number(a.pct) || 3.0);
+    const mn = $('accMin_'+a.key) ? num('accMin_'+a.key) : (Number(a.min) || 14.35);
+    const disc = $('accDisc_'+a.key) ? num('accDisc_'+a.key) : (Number(a.disc) || 0);
+    const netPct = pct * (1 - disc / 100);
+    const netMin = mn * (1 - disc / 100);
+    return Math.round(Math.max(netPct * gv / 100, netMin) * 100) / 100;
+  }
+  const l = $('accList_'+a.key) ? num('accList_'+a.key) : (a.list || 0);
+  const d = $('accDisc_'+a.key) ? num('accDisc_'+a.key) : (a.disc || 0);
+  return Math.round(l * (1 - d / 100) * 100) / 100;
 }
 function accVal(a){
+  const gv = num('goodsValue') || 0;
+  if(a.basis==='pctValue'){
+    const p = $('accSellPct_'+a.key) ? num('accSellPct_'+a.key) : (a.sellPct != null ? Number(a.sellPct) : (Number(a.pct) || 3.0));
+    const m = $('accSellMin_'+a.key) ? num('accSellMin_'+a.key) : (a.sellMin != null ? Number(a.sellMin) : (Number(a.min) || 14.35));
+    return Math.round(Math.max(p * gv / 100, m) * 100) / 100;
+  }
   const sellEl=$('accSell_'+a.key);
   if(sellEl && sellEl.value!=='') return num('accSell_'+a.key);
   if(a.sell!=null && a.sell!=='') return Number(a.sell)||0;
@@ -4322,7 +4338,7 @@ function buildAccTable(filter = 'all') {
     const carr = carrierOf(a).toUpperCase();
     const condText = a.cond || a.type || 'auto';
     const isPct = a.basis === 'pctValue';
-    const sellVal = (a.sell != null && a.sell !== '') ? a.sell : (isPct ? (a.pct || 0) : (a.list != null ? a.list : buyCost));
+    const sellVal = (a.sell != null && a.sell !== '') ? a.sell : (a.list != null ? a.list : buyCost);
 
     let costDisplay = '£' + buyCost.toFixed(2);
     if (isPct) {
@@ -4331,8 +4347,12 @@ function buildAccTable(filter = 'all') {
       const d = $('accDisc_' + a.key) ? num('accDisc_' + a.key) : (Number(a.disc) || 0);
       const netPct = p * (1 - d / 100);
       const netMin = m * (1 - d / 100);
-      costDisplay = netPct.toFixed(1) + '% (min £' + netMin.toFixed(2) + ')';
+      costDisplay = 'min £' + netMin.toFixed(2) + ' + ' + netPct.toFixed(1) + '%';
     }
+
+    const customerCell = isPct
+      ? ('<div style="display:flex;align-items:center;gap:4px">min £<input id="accSellMin_' + a.key + '" type="number" step="0.01" value="' + (a.sellMin != null ? a.sellMin : (a.min || 14.35)) + '" class="ds-input num" style="width:65px;font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple)" title="Customer Minimum £"/> + <input id="accSellPct_' + a.key + '" type="number" step="0.1" value="' + (a.sellPct != null ? a.sellPct : (a.pct || 3.0)) + '" class="ds-input num" style="width:55px;font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple)" title="Customer %"/> %</div>')
+      : ('<input id="accSell_' + a.key + '" type="number" step="0.01" value="' + sellVal + '" class="ds-input num" style="width:80px;font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple)"/> £');
 
     tr.innerHTML = '<td><b>' + a.name + '</b></td>' +
       '<td><span class="ds-card-badge' + (carr === 'DPD' ? '' : ' fastest') + '" style="position:static;display:inline-block;padding:2px 7px;font-size:9.5px">' + carr + '</span></td>' +
@@ -4340,7 +4360,7 @@ function buildAccTable(filter = 'all') {
       '<td>' + (isPct ? ('<input id="accPct_' + a.key + '" type="number" step="0.1" value="' + (a.pct || 3.0) + '" class="ds-input num acc-calc" data-key="' + a.key + '" style="width:65px"/> %') : ('<input id="accList_' + a.key + '" type="number" step="0.01" value="' + (a.list != null ? a.list : 0) + '" class="ds-input num acc-calc" data-key="' + a.key + '" style="width:75px"/> £')) + '</td>' +
       '<td>' + (isPct ? ('<div style="display:flex;align-items:center;gap:4px"><input id="accDisc_' + a.key + '" type="number" step="0.1" value="' + (a.disc != null ? a.disc : 0) + '" class="ds-input num acc-calc" data-key="' + a.key + '" style="width:50px"/> % &middot; <input id="accMin_' + a.key + '" type="number" step="0.01" value="' + (a.min || 14.35) + '" class="ds-input num acc-calc" data-key="' + a.key + '" style="width:65px" title="Min £"/> min £</div>') : ('<input id="accDisc_' + a.key + '" type="number" step="0.1" value="' + (a.disc != null ? a.disc : 0) + '" class="ds-input num acc-calc" data-key="' + a.key + '" style="width:70px"/> %')) + '</td>' +
       '<td class="r" style="font-weight:700;color:var(--mv-ink-55);white-space:nowrap" id="accCostLab_' + a.key + '">' + costDisplay + '</td>' +
-      '<td><input id="accSell_' + a.key + '" type="number" step="0.01" value="' + sellVal + '" class="ds-input num" style="width:80px;font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple)"/> ' + (isPct ? '%' : '£') + '</td>';
+      '<td>' + customerCell + '</td>';
     tb.appendChild(tr);
   });
 
@@ -4357,7 +4377,7 @@ function buildAccTable(filter = 'all') {
             const d = num('accDisc_' + k) || 0;
             const netPct = p * (1 - d / 100);
             const netMin = m * (1 - d / 100);
-            lab.textContent = netPct.toFixed(1) + '% (min £' + netMin.toFixed(2) + ')';
+            lab.textContent = 'min £' + netMin.toFixed(2) + ' + ' + netPct.toFixed(1) + '%';
           } else {
             const cost = accCost(a);
             lab.textContent = '£' + cost.toFixed(2);
@@ -4377,7 +4397,9 @@ $('saveBtn').onclick=async()=>{
     disc: num('accDisc_' + a.key),
     pct: num('accPct_' + a.key),
     min: num('accMin_' + a.key),
-    sell: num('accSell_' + a.key)
+    sell: num('accSell_' + a.key),
+    sellMin: num('accSellMin_' + a.key),
+    sellPct: num('accSellPct_' + a.key)
   }));
   const euCustomsDuty={enabled:$('euEnabled').checked,eurPerGbp:num('euRate'),perSku:num('euPerSku'),thresholdEur:num('euThresh')};
   const body={

@@ -137,6 +137,8 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
           pct: inc.pct != null ? Number(inc.pct) : a.pct,
           min: inc.min != null ? Number(inc.min) : a.min,
           sell: inc.sell != null && inc.sell !== '' ? Number(inc.sell) : (a.sell != null ? a.sell : null),
+          sellMin: inc.sellMin != null && inc.sellMin !== '' ? Number(inc.sellMin) : (a.sellMin != null ? a.sellMin : null),
+          sellPct: inc.sellPct != null && inc.sellPct !== '' ? Number(inc.sellPct) : (a.sellPct != null ? a.sellPct : null),
         };
       });
     }
@@ -368,7 +370,10 @@ app.post('/api/import-quote', async (req, res) => {
         const disc = Number(a.disc) || 0;
         const listAmt = Math.max(pct * gv / 100, minVal);
         const cost = Math.round(listAmt * (1 - disc / 100) * 100) / 100;
-        charge = a.sell != null && a.sell !== '' ? Number(a.sell) : cost;
+        
+        const customerPct = a.sellPct != null && a.sellPct !== '' ? Number(a.sellPct) : pct;
+        const customerMin = a.sellMin != null && a.sellMin !== '' ? Number(a.sellMin) : (a.sell != null && a.sell !== '' ? Number(a.sell) : minVal);
+        charge = Math.round(Math.max(customerPct * gv / 100, customerMin) * 100) / 100;
       } else {
         const cost = Math.round((a.list || 0) * (1 - (a.disc || 0) / 100) * 100) / 100;
         charge = a.sell != null && a.sell !== '' ? Number(a.sell) : cost;
