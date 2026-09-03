@@ -2691,9 +2691,13 @@ function calc(){
     let breakdownHtml='<div class="ds-card-breakdown">' +
       '<div class="ds-card-row"><span>Base rate</span><span class="mv-num">'+money(built.raw)+'</span></div>' +
       '<div class="ds-card-row"><span>Fuel surcharge ('+built.fs.toFixed(1)+'%)</span><span class="mv-num">'+money(built.sellFuel)+'</span></div>' +
-      '<div class="ds-card-row"><span>Markup</span><span class="mv-num">'+money(built.markupAmt)+'</span></div>' +
-      built.flatExtras.map(([n,v])=>'<div class="ds-card-row"><span>'+n+'</span><span class="mv-num">'+money(v)+'</span></div>').join('') +
-      '<div class="ds-card-row tot"><span>Total sell price</span><span class="mv-num">'+money(built.sell)+'</span></div>' +
+      built.flatExtras.map(([n, v]) => {
+        let displayName = n;
+        if (String(n || '').toLowerCase().includes('disbursement')) {
+          displayName = 'Disbursement fee <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">Calculated as a minimum of £8.00 or 3% of forwarded customs duties and taxes prepaid upon import.</span></span>';
+        }
+        return '<div class="ds-card-row"><span>' + displayName + '</span><span class="mv-num">' + money(v) + '</span></div>';
+      }).join('') +
       '</div>';
 
     d.className=cls;

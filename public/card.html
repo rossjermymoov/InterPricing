@@ -895,6 +895,70 @@ a:hover { text-decoration: underline; }
   color: var(--mv-purple);
 }
 
+/* Tooltips */
+.ds-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  margin-left: 5px;
+  cursor: help;
+}
+.ds-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--mv-hairline-2, #e2e8f0);
+  color: var(--mv-ink, #0f172a);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+.ds-tooltip-bubble {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--mv-ink, #0f172a);
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  text-transform: none;
+  letter-spacing: normal;
+  width: max-content;
+  max-width: 250px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  border-top: 2px solid var(--mv-purple, #7b2fbe);
+  z-index: 120;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+  white-space: normal;
+}
+.ds-tooltip-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--mv-ink, #0f172a) transparent transparent transparent;
+}
+.ds-tooltip-wrap:hover .ds-tooltip-bubble,
+.ds-tooltip-wrap:focus .ds-tooltip-bubble,
+.ds-tooltip-wrap:focus-within .ds-tooltip-bubble {
+  visibility: visible;
+  opacity: 1;
+}
+
 /* ===== MOOV OS CONNECTED TIMELINE COMPONENT ===== */
 .moov-timeline-wrap {
   position: relative;
@@ -2437,7 +2501,13 @@ function calc() {
     d.className = cls;
 
     const bt = live ? null : (typeof (r && r.band) === 'number' ? r.band + ' kg band' : (r && r.band));
-    const surLines = (sur || []).map(x => '<div class="row' + (x.remote ? ' remote' : '') + '"><span>' + x.name + '</span><span>' + money(x.amt) + '</span></div>').join('');
+    const surLines = (sur || []).map(x => {
+      let displayName = x.name;
+      if (String(x.name || '').toLowerCase().includes('disbursement')) {
+        displayName = 'Disbursement fee <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">Calculated as a minimum of £8.00 or 3% of forwarded customs duties and taxes prepaid upon import.</span></span>';
+      }
+      return '<div class="row' + (x.remote ? ' remote' : '') + '"><span>' + displayName + '</span><span>' + money(x.amt) + '</span></div>';
+    }).join('');
 
     const dropBtnActive = (activeDropCarrier === carr) ? ' active' : '';
     const dropBtnText = (activeDropCarrier === carr) ? '✓ Showing nearest drop shops' : ('📍 Find ' + carr + ' drop shops');
@@ -2940,9 +3010,13 @@ function irender(services) {
     const road = isRoadService(q.code, cleanName);
     const icon = road ? ICON_LORRY : ICON_PLANE;
     const cls = road ? 'road' : 'air';
-    const d = document.createElement('div');
-    d.className = 'card' + ((i === 0 || isOnly) ? ' win fast' : '');
-    const surLines = (q.surcharges || []).map(x => '<div class="row' + (x.remote ? ' remote' : '') + '"><span>' + x.name + '</span><span>' + imoney(x.amt) + '</span></div>').join('');
+    const surLines = (q.surcharges || []).map(x => {
+      let displayName = x.name;
+      if (String(x.name || '').toLowerCase().includes('disbursement')) {
+        displayName = 'Disbursement fee <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">Calculated as a minimum of £8.00 or 3% of forwarded customs duties and taxes prepaid upon import.</span></span>';
+      }
+      return '<div class="row' + (x.remote ? ' remote' : '') + '"><span>' + displayName + '</span><span>' + imoney(x.amt) + '</span></div>';
+    }).join('');
     const brkHTML = (q.base != null || (q.surcharges && q.surcharges.length)) ? (
       '<div class="brk">'
       + (q.base != null ? '<div class="row"><span>UPS rate</span><span>' + imoney(q.base) + '</span></div>' : '')

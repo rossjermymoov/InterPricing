@@ -24965,8 +24965,9 @@
         "min": 14.35,
         "list": 14.35,
         "disc": 50,
-        "sellMin": 14.35,
+        "sellMin": 8.0,
         "sellPct": 3.0,
+        "sell": 8.0,
         "cond": "always",
         "applyTo": "ups",
         "fuelable": false
@@ -30527,5 +30528,5 @@
     "Switzerland": "6",
     "Vatican City": "705"
   },
-  "dataVersion": 16
+  "dataVersion": 17
 }
