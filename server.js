@@ -385,12 +385,12 @@ app.post('/api/import-quote', async (req, res) => {
       .map((s) => {
       const bd = s.breakdown || {};
       const factor = 1 + markup / 100;
-      const np = bd.negotiated ? 1 : ((bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1);
-      const scale = (v) => (v == null ? null : Math.round(v * np * factor * 100) / 100);
+      const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
+      const fuelAmount = Math.round((bd.fuel || 0) * 100) / 100;
       const liveAcc = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
-        amt: scale(a.amt),
+        amt: Math.round((a.amt || 0) * 100) / 100,
         remote: !!a.remote,
       })).filter((a) => a.amt > 0);
 
@@ -398,7 +398,8 @@ app.post('/api/import-quote', async (req, res) => {
       if (hsCharge > 0) {
         allSurcharges.push({ key: 'hs', name: 'HS customs entry (' + hsExtra + ' extra line' + (hsExtra === 1 ? '' : 's') + ')', amt: hsCharge });
       }
-      const finalPrice = Math.round((s.cost * factor + customSurTotal + hsCharge) * 100) / 100;
+      const surchargesTotal = allSurcharges.reduce((t, x) => t + x.amt, 0);
+      const finalPrice = Math.round((baseMarkedUp + fuelAmount + surchargesTotal) * 100) / 100;
 
       return {
         code: s.code,
@@ -406,8 +407,8 @@ app.post('/api/import-quote', async (req, res) => {
         days: s.days,
         currency: s.currency,
         price: finalPrice,
-        base: scale(bd.base),
-        fuel: scale(bd.fuel),
+        base: baseMarkedUp,
+        fuel: fuelAmount,
         surcharges: allSurcharges,
         customSurcharges,
       };
@@ -496,19 +497,20 @@ app.post('/api/card-rate', async (req, res) => {
       const mk = markupOf(key, s.code);
       const factor = 1 + mk / 100;
       const bd = s.breakdown || {};
-      const np = bd.negotiated ? 1 : ((bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1);
-      const scale = (v) => (v == null ? null : Math.round(v * np * factor * 100) / 100);
+      const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
+      const fuelAmount = Math.round((bd.fuel || 0) * 100) / 100;
       const accessorials = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
-        amt: scale(a.amt),
+        amt: Math.round((a.amt || 0) * 100) / 100,
         remote: !!a.remote,
       })).filter((a) => a.amt > 0);
+      const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
 
       services.push({
         key, code: s.code, name: s.name, days: s.days,
-        price: Math.round(s.cost * factor * 100) / 100,
-        base: scale(bd.base), fuel: scale(bd.fuel), accessorials,
+        price: Math.round((baseMarkedUp + fuelAmount + surTotal) * 100) / 100,
+        base: baseMarkedUp, fuel: fuelAmount, accessorials,
         remote: accessorials.some((a) => a.remote),
       });
     });
@@ -570,28 +572,30 @@ app.post('/api/calc-rate', async (req, res) => {
       const mk = markupOf(key, s.code);
       const factor = 1 + mk / 100;
       const bd = s.breakdown || {};
-      const np = bd.negotiated ? 1 : ((bd.pubTotal && bd.negTotal) ? (bd.negTotal / bd.pubTotal) : 1);
-      const scale = (v) => (v == null ? null : Math.round(v * np * factor * 100) / 100);
-      const scaleCost = (v) => (v == null ? null : Math.round(v * np * 100) / 100);
+      const costBase = Math.round((bd.base || 0) * 100) / 100;
+      const costFuel = Math.round((bd.fuel || 0) * 100) / 100;
+      const sellBase = Math.round(costBase * factor * 100) / 100;
+      const sellFuel = costFuel;
 
       const accessorials = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
-        costAmt: scaleCost(a.amt),
-        amt: scale(a.amt),
+        costAmt: Math.round((a.amt || 0) * 100) / 100,
+        amt: Math.round((a.amt || 0) * 100) / 100,
         remote: !!a.remote,
       })).filter((a) => a.amt > 0);
+      const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
 
       services.push({
         key, code: s.code, name: s.name, days: s.days,
-        costPrice: Math.round(s.cost * np * 100) / 100,
-        costBase: scaleCost(bd.base),
-        costFuel: scaleCost(bd.fuel),
-        sellPrice: Math.round(s.cost * factor * 100) / 100,
-        sellBase: scale(bd.base),
-        sellFuel: scale(bd.fuel),
+        costPrice: Math.round((costBase + costFuel + surTotal) * 100) / 100,
+        costBase,
+        costFuel,
+        sellPrice: Math.round((sellBase + sellFuel + surTotal) * 100) / 100,
+        sellBase,
+        sellFuel,
         markupPct: mk,
-        markupAmt: Math.round(((s.cost * factor) - (s.cost * np)) * 100) / 100,
+        markupAmt: Math.round((sellBase - costBase) * 100) / 100,
         accessorials,
         remote: accessorials.some((a) => a.remote),
       });
