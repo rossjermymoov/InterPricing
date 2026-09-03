@@ -1059,18 +1059,220 @@ a:hover { text-decoration: underline; }
   gap: 12px;
   background: var(--mv-bg);
 }
+/* ===== DROP SHOPS SIDEBAR & CARDS (POLISHED MOOV OS DESIGN) ===== */
 .drop {
   border: 1px solid var(--mv-hairline-2);
-  padding: 14px;
-  background: #fff;
+  padding: 14px 16px;
+  background: #ffffff;
   border-left: 4px solid var(--mv-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.12s ease;
+}
+.drop:hover {
+  border-color: var(--mv-ink-45);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 .drop.dpd { border-left-color: var(--dpd); }
 .drop.ups { border-left-color: var(--mv-purple); }
 .drop.dhl { border-left-color: var(--dhl); }
-.drop .nm { font-weight: 800; font-size: 13.5px; color: var(--mv-ink); }
-.drop .addr { font-size: 12px; color: var(--mv-ink-75); margin-top: 4px; }
-.drop .dist { font-size: 12px; font-weight: 800; color: var(--mv-purple); }
+
+.drop-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.drop-head-left {
+  flex: 1;
+  min-width: 0;
+}
+.drop .nm {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--mv-ink);
+  line-height: 1.25;
+}
+.drop-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+.drop-type-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--mv-ink-55);
+}
+.drop .dist {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--mv-purple);
+  background: #f5f3ff;
+  border: 1px solid #ede9fe;
+  padding: 1px 6px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Map Button in Top Right */
+.drop-map-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-family);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mv-purple);
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  padding: 5px 9px;
+  cursor: pointer;
+  border-radius: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 0.12s ease;
+}
+.drop-map-btn:hover {
+  background: #f5f3ff;
+  border-color: var(--mv-purple);
+  color: var(--mv-purple-600);
+}
+
+.drop .addr {
+  font-size: 12px;
+  color: var(--mv-ink-75);
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* Live Open / Closed Status Pill */
+.dstatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 4px 8px;
+  width: fit-content;
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-hairline-2);
+}
+.dstatus.open {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+.dstatus.closed {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  background: currentColor;
+  display: inline-block;
+}
+.dstatus.open .status-dot {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+.dstatus.closed .status-dot {
+  background: #f43f5e;
+}
+
+/* Feature Badges / Chips */
+.drop-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.drop-feat-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-hairline-2);
+  color: var(--mv-ink-75);
+}
+.drop-feat-chip.good {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+  font-weight: 700;
+}
+
+/* Hours & Deadlines Collapsible */
+.dropmore {
+  margin-top: 4px;
+  border-top: 1px dashed var(--mv-hairline-2);
+  padding-top: 6px;
+}
+.dropmore summary {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--mv-purple);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+  list-style: none;
+  padding: 4px 0;
+}
+.dropmore summary::-webkit-details-marker { display: none; }
+.dropmore[open] .dropmore-chev {
+  transform: rotate(180deg);
+}
+.dropmore-chev {
+  transition: transform 0.15s ease;
+  font-size: 12px;
+}
+.drTray {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--mv-surface);
+  border: 1px solid var(--mv-hairline-2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hblock .lab, .dl .lab {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--mv-ink-55);
+  margin-bottom: 4px;
+}
+.hrow, .dlrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  padding: 2px 0;
+  color: var(--mv-ink);
+}
+.hrow.now {
+  font-weight: 800;
+  color: var(--mv-purple);
+}
+.hrow.cl .t {
+  color: #9f1239;
+}
+.dlrow .svc {
+  font-weight: 700;
+}
+.dlrow .wk, .dlrow .st {
+  color: var(--mv-ink-75);
+}
 
 /* ===== IMPORT QUOTE TAB VIEW ===== */
 .imp {
@@ -2333,9 +2535,9 @@ function hoursBlockHTML(p) {
   if (!hrs.length) return p.hoursText ? ('<div class="hblock"><div class="lab">Opening hours</div><div class="htext">' + esc(p.hoursText) + '</div></div>') : '';
   const td = todayD();
   const rows = groupHours(hrs).map(g => {
-    const label = g.days.length > 1 ? (dayLabel(g.days[0]) + '–'+ dayLabel(g.days[g.days.length - 1])) : dayLabel(g.days[0]);
+    const label = g.days.length > 1 ? (dayLabel(g.days[0]) + '–' + dayLabel(g.days[g.days.length - 1])) : dayLabel(g.days[0]);
     const cls = [g.days.includes(td) ? 'now' : '', g.closed ? 'cl' : ''].filter(Boolean).join(' ');
-    return '<div class="hrow' + (cls ? ' ' + cls : '') + '"><span class="d">' + label + '</span><span class="t">' + (g.closed ? 'Closed' : esc(g.open) + '–' + esc(g.close)) + '</span></div>';
+    return '<div class="hrow' + (cls ? ' ' + cls : '') + '"><span class="d">' + label + ':</span><span class="t">' + (g.closed ? 'Closed' : esc(g.open) + ' – ' + esc(g.close)) + '</span></div>';
   }).join('');
   return '<div class="hblock"><div class="lab">Opening hours</div><div class="hours">' + rows + '</div></div>';
 }
@@ -2351,8 +2553,8 @@ function deadlinesHTML(p) {
   });
   const rows = order.map(k => {
     const g = byKey[k];
-    const satTxt = g.sat ? ('Sat ' + esc(g.sat)) : 'Sat: none';
-    return '<div class="dlrow"><span class="svc">' + esc(g.svcs.join(' · ')) + '</span><span class="wk">Mon–Fri ' + esc(g.mf) + '</span><span class="st">' + satTxt + '</span></div>';
+    const satTxt = g.sat ? ('Sat: ' + esc(g.sat)) : 'Sat: none';
+    return '<div class="dlrow"><span class="svc">' + esc(g.svcs.join(' · ')) + '</span><span class="wk">Mon–Fri: ' + esc(g.mf) + '</span><span class="st">' + satTxt + '</span></div>';
   }).join('');
   return '<div class="dl"><div class="lab">Drop-off deadlines</div>' + rows + '</div>';
 }
@@ -2395,19 +2597,32 @@ function closeDropModal() { $('dropModal').style.display = 'none'; }
 
 function dropCardHTML(p, i) {
   const k = (p.carrier || '').toLowerCase(), st = statusOf(p);
-  const chips = featChips(p).map(c => '<span class="chip' + (c.good ? ' good' : '') + '">' + c.t + '</span>').join('');
+  const chips = featChips(p).map(c => '<span class="drop-feat-chip' + (c.good ? ' good' : '') + '">' + c.t + '</span>').join('');
   const more = hoursBlockHTML(p) + deadlinesHTML(p);
   const hasDl = p.deadlines && p.deadlines.length;
-  const moreBlock = more ? ('<details class="dropmore"><summary>Opening hours' + (hasDl ? ' &amp; drop-off deadlines' : '') + '</summary><div class="drTray">' + more + '</div></details>') : '';
+  const moreBlock = more ? ('<details class="dropmore"><summary><span>🕒 Opening hours' + (hasDl ? ' &amp; drop deadlines' : '') + '</span><span class="dropmore-chev">▾</span></summary><div class="drTray">' + more + '</div></details>') : '';
   const nm = p.name || ('Drop-off ' + (i + 1));
-  const pin = '<button type="button" class="mapbtn" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-name="' + esc(nm) + '" data-addr="' + esc(p.address || '') + '" aria-label="Show ' + esc(nm) + ' on map" title="Show on map">' + PIN_SVG + '</button>';
+  const mapBtn = '<button type="button" class="drop-map-btn mapbtn" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-name="' + esc(nm) + '" data-addr="' + esc(p.address || '') + '" aria-label="Show ' + esc(nm) + ' on map" title="Show on map">'
+    + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>'
+    + '<span>Map</span>'
+    + '</button>';
+
   return '<div class="drop ' + k + '">'
-    + '<div class="dh"><div><div class="nm">' + esc(nm) + '</div>'
-    + (p.type ? '<div class="ty">' + esc(p.type) + '</div>' : '') + '</div>'
-    + '<div class="dhr">' + (p.distance ? '<span class="dist">' + esc(p.distance) + '</span>' : '') + pin + '</div></div>'
-    + (p.address ? '<div class="addr">' + esc(p.address) + '</div>' : '')
-    + (st ? '<div class="dstatus ' + st.cls + '"><span class="dot"></span>' + esc(st.txt) + '</div>' : '')
-    + (chips ? '<div class="chips">' + chips + '</div>' : '')
+    + '<div class="drop-head">'
+    +   '<div class="drop-head-left">'
+    +     '<div class="nm">' + esc(nm) + '</div>'
+    +     '<div class="drop-meta-row">'
+    +       (p.type ? '<span class="drop-type-tag">' + esc(p.type) + '</span>' : '')
+    +       (p.distance ? '<span class="dist"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px;margin-right:3px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>' + esc(p.distance) + '</span>' : '')
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="drop-head-right">'
+    +     mapBtn
+    +   '</div>'
+    + '</div>'
+    + (p.address ? '<div class="addr"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:2px;color:var(--mv-ink-45)"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>' + esc(p.address) + '</span></div>' : '')
+    + (st ? '<div class="dstatus ' + st.cls + '"><span class="status-dot"></span><span>' + esc(st.txt) + '</span></div>' : '')
+    + (chips ? '<div class="drop-chips">' + chips + '</div>' : '')
     + moreBlock + '</div>';
 }
 
