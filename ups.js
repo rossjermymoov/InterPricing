@@ -664,7 +664,7 @@ function buildShipmentRequest(p) {
   }
 
   if (forms.length > 0) {
-    shipmentObj.InternationalForms = {
+    const intlForms = {
       FormType: ['01'],
       UserCreatedForm: forms,
       ReasonForExport: 'SALE',
@@ -674,8 +674,12 @@ function buildShipmentRequest(p) {
       PurchaseOrderNumber: S(p.reference || ('MOOV-' + Date.now().toString().slice(-6))),
       CurrencyCode: p.currency || 'GBP',
     };
+    shipmentObj.InternationalForms = intlForms;
+    shipmentObj.ShipmentServiceOptions = {
+      InternationalForms: intlForms,
+    };
   } else if (isImport || ((senderAddr.Address.CountryCode || '').toUpperCase() !== (receiverAddr.Address.CountryCode || '').toUpperCase())) {
-    // Cross-border shipment: explicitly declare commercial invoice handed over as hardcopy at pickup
+    // Cross-border shipment without digital upload: declare hardcopy commercial invoice for pickup -> generates "INV" label indicator
     shipmentObj.InternationalForms = {
       FormType: ['01'],
       ReasonForExport: 'SALE',
