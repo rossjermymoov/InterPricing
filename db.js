@@ -529,13 +529,22 @@ async function deleteCancelledShipments({ token } = {}) {
   return rowCount;
 }
 
+async function updateShipmentDocuments(idOrTracking, docs) {
+  if (!pool || !idOrTracking) return null;
+  const { rows } = await pool.query(
+    `UPDATE shipments SET documents_attached = $2 WHERE id::text = $1 OR tracking_number = $1 OR shipment_id = $1 RETURNING *`,
+    [String(idOrTracking), docs ? JSON.stringify(docs) : null]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   initDb, getConfig, setConfig, getSecret,
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
   createCard, listCards, getCardByToken, getCardById, updateCard, deleteCard,
   createQuoteLog, listQuoteLogs, quoteStats,
   createCollectionRecord, listCollections, getCollectionByPrn, updateCollectionByPrn,
-  createShipmentRecord, listShipments, getShipmentById, getShipmentByTracking, updateShipmentStatus, updateShipmentPrn,
+  createShipmentRecord, listShipments, getShipmentById, getShipmentByTracking, updateShipmentStatus, updateShipmentPrn, updateShipmentDocuments,
   deleteShipment, deleteCancelledShipments,
   hasDb: !!pool,
 };

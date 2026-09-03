@@ -909,7 +909,63 @@ async function trackShipment(trackingNumber) {
   };
 }
 
+// Upload customs document (Commercial Invoice / Packing Slip) post-shipment
+async function uploadPaperlessDocument({ trackingNumber, documentType, base64Content, format }) {
+  const tk = await token();
+  if (!tk) return { ok: false, error: 'UPS credentials not configured' };
+  const acct = process.env.UPS_ACCOUNT_NUMBER || '';
+  const rawB64 = String(base64Content || '').replace(/^data:[^;]+;base64,/, '');
+  const fmt = String(format || 'PDF').toUpperCase();
+  const docType = String(documentType || '002'); // 002 = Commercial Invoice, 004 = Packing List
+
+  const reqBody = {
+    UploadRequest: {
+      Request: {
+        TransactionReference: { CustomerContext: 'MOOV-DocUpload-' + Date.now() },
+      },
+      ShipperNumber: acct,
+      UserCreatedForm: [
+        {
+          DocumentType: docType,
+          DocumentFormat: fmt,
+          DocumentContent: rawB64,
+        },
+      ],
+      TrackingNumber: String(trackingNumber || '').trim(),
+    },
+  };
+
+  const headers = {
+    'Authorization': 'Bearer ' + tk,
+    'Content-Type': 'application/json',
+    'transId': 'moov_doc_' + Date.now(),
+    'transactionSrc': 'testing',
+  };
+
+  try {
+    const res = await fetch(base() + '/api/paperlessdocuments/v1/upload', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(reqBody),
+      signal: AbortSignal.timeout(15000),
+    });
+    const text = await res.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch (_) {}
+    if (!res.ok) {
+      let errMsg = 'UPS Document Upload ' + res.status;
+      if (json && json.response && json.response.errors && json.response.errors.length) {
+        errMsg = json.response.errors.map((e) => e.message || e.code).join('; ');
+      }
+      return { ok: false, status: res.status, error: errMsg, raw: text };
+    }
+    return { ok: true, status: res.status, json, raw: text };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
 module.exports = {
   quoteRates, quoteRatesRaw, createPickup, cancelPickup, buildPickupRequest,
-  bookShipment, buildShipmentRequest, voidShipment, trackShipment, svcName, configured
+  bookShipment, buildShipmentRequest, voidShipment, trackShipment, uploadPaperlessDocument, svcName, configured
 };

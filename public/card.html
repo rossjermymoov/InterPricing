@@ -1518,6 +1518,50 @@ a:hover { text-decoration: underline; }
     </div>
   </div>
 
+  <!-- Upload Customs Documents Modal -->
+  <div id="uploadDocModal" class="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(17,24,39,0.7);z-index:240;align-items:center;justify-content:center;padding:16px;overflow-y:auto">
+    <div style="background:#fff;border-radius:12px;width:100%;max-width:560px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h2 style="margin:0;font-size:17px;font-weight:800;color:var(--ink)">📄 Upload Customs Document</h2>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Attach Commercial Invoice or Packing List for paperless clearance</div>
+        </div>
+        <button type="button" id="closeUploadDocModal" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1">&times;</button>
+      </div>
+      <div style="padding:22px">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid var(--mv-purple);padding:12px 14px;margin-bottom:16px;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+          <span>Consignment: <b id="udmTracking">—</b></span>
+          <span style="font-size:12px;color:var(--muted)" id="udmStatus">—</span>
+        </div>
+
+        <div class="f" style="margin-bottom:14px">
+          <label style="font-size:11px">Document Type *</label>
+          <select id="udmDocType" style="padding:8px;border:1px solid var(--line-strong);font-size:13.5px;border-radius:4px">
+            <option value="002">Commercial Invoice (Form 002)</option>
+            <option value="004">Packing List / Manifest (Form 004)</option>
+          </select>
+        </div>
+
+        <div class="f" style="margin-bottom:16px">
+          <label style="font-size:11px">Select Document File (PDF, PNG, JPG - Max 5MB) *</label>
+          <div style="border:2px dashed var(--line-strong);border-radius:8px;padding:22px 16px;text-align:center;background:#fafafa;cursor:pointer;transition:border-color .15s" id="udmDropZone">
+            <input type="file" id="udmFileInput" accept=".pdf,.png,.jpg,.jpeg" style="display:none"/>
+            <div style="font-size:26px;margin-bottom:6px">📁</div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink)" id="udmFileLabel">Click to select file or drag &amp; drop here</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:4px">PDF is recommended for customs clearance</div>
+          </div>
+        </div>
+
+        <div id="udmMsg" style="display:none;padding:10px 12px;border-radius:6px;font-size:12.5px;margin-bottom:14px"></div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button type="button" class="btn" id="udmCancelBtn" style="padding:9px 16px">Cancel</button>
+          <button type="button" class="btn primary" id="udmSubmitBtn" style="padding:9px 20px;font-weight:800;background:var(--mv-purple);color:#fff">Upload &amp; Attach Document 📤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Amend / Reschedule Collection Modal -->
   <div id="rescheduleModal" class="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(17,24,39,0.7);z-index:210;align-items:center;justify-content:center;padding:16px;overflow-y:auto">
     <div style="background:#fff;border-radius:12px;width:100%;max-width:520px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative">
@@ -2681,6 +2725,29 @@ function initImportBooking() {
   $('elmCancelBtn').addEventListener('click', closeEmailLabelsModal);
   $('emailLabelsModal').addEventListener('click', e => { if (e.target === $('emailLabelsModal')) closeEmailLabelsModal(); });
   $('elmSendBtn').addEventListener('click', sendEmailLabelsSubmit);
+
+  $('closeUploadDocModal').addEventListener('click', closeUploadDocModal);
+  $('udmCancelBtn').addEventListener('click', closeUploadDocModal);
+  $('uploadDocModal').addEventListener('click', e => { if (e.target === $('uploadDocModal')) closeUploadDocModal(); });
+  $('udmSubmitBtn').addEventListener('click', submitUploadDoc);
+
+  const udmDrop = $('udmDropZone');
+  if (udmDrop) {
+    udmDrop.addEventListener('click', () => $('udmFileInput').click());
+    $('udmFileInput').addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleDocFileSelection(file);
+    });
+    udmDrop.addEventListener('dragover', e => { e.preventDefault(); udmDrop.style.borderColor = 'var(--mv-purple)'; udmDrop.style.background = '#f5f3ff'; });
+    udmDrop.addEventListener('dragleave', e => { e.preventDefault(); udmDrop.style.borderColor = 'var(--line-strong)'; udmDrop.style.background = '#fafafa'; });
+    udmDrop.addEventListener('drop', e => {
+      e.preventDefault();
+      udmDrop.style.borderColor = 'var(--line-strong)';
+      udmDrop.style.background = '#fafafa';
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) handleDocFileSelection(file);
+    });
+  }
 }
 
 async function submitImportBooking() {
@@ -3104,6 +3171,122 @@ async function sendEmailLabelsSubmit() {
   }
 }
 
+let activeUploadDocShipment = null;
+let activeUploadDocFile = null;
+
+function openUploadDocModal(sh) {
+  activeUploadDocShipment = sh || {};
+  activeUploadDocFile = null;
+  const tracking = sh.trackingNumber || sh.tracking_number || '—';
+  const docs = sh.documentsAttached || sh.documents_attached || {};
+  const hasInv = !!(docs.invoice || docs.packingSlip);
+
+  $('udmTracking').textContent = tracking;
+  $('udmStatus').innerHTML = hasInv ? '<span style="color:#059669;font-weight:700">✓ Invoices Attached</span>' : '<span style="color:#b45309;font-weight:700">No Invoices Attached</span>';
+  $('udmFileLabel').innerHTML = 'Click to select file or drag &amp; drop here';
+  $('udmFileInput').value = '';
+  $('udmMsg').style.display = 'none';
+  $('udmSubmitBtn').disabled = false;
+  $('udmSubmitBtn').textContent = 'Upload & Attach Document 📤';
+
+  $('uploadDocModal').style.display = 'flex';
+}
+
+function closeUploadDocModal() {
+  $('uploadDocModal').style.display = 'none';
+}
+
+function handleDocFileSelection(file) {
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    $('udmMsg').textContent = 'File size exceeds 5MB limit. Please choose a smaller PDF or image.';
+    $('udmMsg').style.background = '#fef2f2';
+    $('udmMsg').style.color = '#991b1b';
+    $('udmMsg').style.border = '1px solid #fecaca';
+    $('udmMsg').style.display = 'block';
+    return;
+  }
+
+  const ext = file.name.split('.').pop().toLowerCase();
+  const fmt = ext === 'pdf' ? 'PDF' : (ext === 'png' ? 'PNG' : (ext === 'jpg' || ext === 'jpeg' ? 'JPEG' : 'PDF'));
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    activeUploadDocFile = {
+      name: file.name,
+      size: file.size,
+      format: fmt,
+      base64: reader.result,
+    };
+    $('udmFileLabel').innerHTML = '<b>' + esc(file.name) + '</b> (' + Math.round(file.size / 1024) + ' KB) ✓ Ready';
+    $('udmMsg').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitUploadDoc() {
+  if (!activeUploadDocShipment) return;
+  if (!activeUploadDocFile || !activeUploadDocFile.base64) {
+    $('udmMsg').textContent = 'Please choose a document file (PDF, PNG, or JPG) to upload.';
+    $('udmMsg').style.background = '#fef2f2';
+    $('udmMsg').style.color = '#991b1b';
+    $('udmMsg').style.border = '1px solid #fecaca';
+    $('udmMsg').style.display = 'block';
+    return;
+  }
+
+  const sId = activeUploadDocShipment.shipmentId || activeUploadDocShipment.id || activeUploadDocShipment.trackingNumber || activeUploadDocShipment.tracking_number;
+  const btn = $('udmSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Transmitting to UPS Paperless Trade…';
+  $('udmMsg').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/shipments/' + encodeURIComponent(sId) + '/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: curToken,
+        documentType: $('udmDocType').value,
+        fileName: activeUploadDocFile.name,
+        base64: activeUploadDocFile.base64,
+        format: activeUploadDocFile.format,
+      }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      $('udmMsg').textContent = d.error || 'Failed to upload document.';
+      $('udmMsg').style.background = '#fef2f2';
+      $('udmMsg').style.color = '#991b1b';
+      $('udmMsg').style.border = '1px solid #fecaca';
+      $('udmMsg').style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Upload & Attach Document 📤';
+      return;
+    }
+
+    $('udmMsg').innerHTML = '<b>✓ Success!</b> Document registered with UPS Paperless Trade and attached to shipment.';
+    $('udmMsg').style.background = '#f0fdf4';
+    $('udmMsg').style.color = '#166534';
+    $('udmMsg').style.border = '1px solid #bbf7d0';
+    $('udmMsg').style.display = 'block';
+    btn.textContent = '✓ Document Uploaded';
+
+    setTimeout(() => {
+      closeUploadDocModal();
+      loadCustomerBookings();
+    }, 1800);
+  } catch (err) {
+    $('udmMsg').textContent = 'Network Error: ' + err.message;
+    $('udmMsg').style.background = '#fef2f2';
+    $('udmMsg').style.color = '#991b1b';
+    $('udmMsg').style.border = '1px solid #fecaca';
+    $('udmMsg').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Upload & Attach Document 📤';
+  }
+}
+
 let activeReschedPrn = null;
 let activeBookingShipment = null;
 
@@ -3386,7 +3569,7 @@ function renderCustomerBookings(shipments) {
         <div>
           <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Shipment Details</div>
           <div style="font-weight:700;font-size:13px;color:var(--ink)">${trackLink}</div>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Value: <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b> · ${hasDocs ? '<b style="color:#059669">✓ Electronic Docs</b>' : '<span style="color:#b45309">No docs uploaded</span>'}</div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Value: <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b> · ${hasDocs ? '<b style="color:#059669">✓ Electronic Docs</b>' : '<span style="color:#b45309">No docs uploaded</span>'} <button type="button" class="btn ghost btn-upload-doc" data-id="${x.id}" style="padding:1px 6px;font-size:11px;font-weight:700;margin-left:4px">${hasDocs ? 'Update 📄' : 'Upload 📄'}</button></div>
         </div>
 
         <div>
@@ -3414,6 +3597,7 @@ function renderCustomerBookings(shipments) {
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
+          <button type="button" class="btn ghost btn-upload-doc" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">📄 ${hasDocs ? 'Attach Customs Doc' : 'Upload Invoice'}</button>
           <button type="button" class="btn ghost btn-email-labels" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple)">✉️ Email Labels</button>
           <button type="button" class="btn primary btn-print-batch-thermal" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print Labels (Thermal 4"×6")</button>
           <button type="button" class="btn btn-print-batch-a4" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print Labels (A4)</button>
@@ -3701,6 +3885,16 @@ function initCustomerBookingsEvents() {
       if (imgB64) {
         printAllShipmentLabels([{ labelGraphic: imgB64 }], 'thermal');
       }
+      return;
+    }
+
+    // Customer Upload Document button
+    const uploadDocBtn = e.target.closest && e.target.closest('.btn-upload-doc');
+    if (uploadDocBtn) {
+      e.preventDefault();
+      const card = uploadDocBtn.closest('.calc-card');
+      const sh = card && card._shipment;
+      if (sh) openUploadDocModal(sh);
       return;
     }
 

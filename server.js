@@ -1249,6 +1249,75 @@ app.post('/api/shipments/:id/email-labels', async (req, res) => {
   }
 });
 
+// PUBLIC (with card token) / AUTH: Upload / Attach post-shipment customs documents (Commercial Invoice / Packing List)
+app.post('/api/shipments/:id/documents', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { token, documentType, fileName, base64, format } = req.body || {};
+
+    let card = null;
+    if (token) {
+      card = db.hasDb ? await db.getCardByToken(token) : null;
+      if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Rate card not available' });
+    } else if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Authentication required' });
+    }
+
+    if (!base64) {
+      return res.status(400).json({ ok: false, error: 'Document file content (Base64) is required.' });
+    }
+
+    let shipment = null;
+    if (db.hasDb) {
+      shipment = await db.getShipmentById(id) || await db.getShipmentByTracking(id);
+    }
+    if (!shipment) {
+      return res.status(404).json({ ok: false, error: 'Shipment record not found' });
+    }
+
+    const docType = documentType || '002'; // 002 = Commercial Invoice, 004 = Packing List
+    const docFmt = (format || 'PDF').toUpperCase();
+
+    // 1. Transmit to UPS Paperless Document API if tracking number exists
+    let upsDocResult = { ok: true };
+    if (shipment.tracking_number) {
+      upsDocResult = await ups.uploadPaperlessDocument({
+        trackingNumber: shipment.tracking_number,
+        documentType: docType,
+        base64Content: base64,
+        format: docFmt,
+      });
+    }
+
+    // 2. Update local database record
+    let updatedShipment = null;
+    if (db.hasDb) {
+      const existingDocs = (typeof shipment.documents_attached === 'object' && shipment.documents_attached) ? shipment.documents_attached : {};
+      const updatedDocs = {
+        ...existingDocs,
+        invoice: docType === '002' ? true : existingDocs.invoice,
+        packingSlip: docType === '004' ? true : existingDocs.packingSlip,
+        invoiceFileName: docType === '002' ? (fileName || 'Commercial_Invoice.pdf') : existingDocs.invoiceFileName,
+        packingSlipFileName: docType === '004' ? (fileName || 'Packing_Slip.pdf') : existingDocs.packingSlipFileName,
+        uploadedAt: new Date().toISOString(),
+      };
+      updatedShipment = await db.updateShipmentDocuments(shipment.id || id, updatedDocs);
+    }
+
+    res.json({
+      ok: true,
+      upsPaperless: upsDocResult.ok,
+      upsNotice: upsDocResult.ok ? null : upsDocResult.error,
+      shipment: updatedShipment || shipment,
+      message: docType === '002'
+        ? 'Commercial Invoice uploaded & attached to shipment successfully.'
+        : 'Packing List uploaded & attached to shipment successfully.',
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // AUTHENTICATED: List all booked shipments
 app.get('/api/shipments', auth.requireAuth, async (req, res) => {
   try {
