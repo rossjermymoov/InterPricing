@@ -6,6 +6,7 @@ const auth = require('./auth');
 const pricing = require('./pricing');
 const { fetchPickups, fetchPickupsRaw } = require('./pickups');
 const ups = require('./ups');
+const emailService = require('./email');
 const { nameToIso } = require('./countries');
 
 const app = express();
@@ -1180,6 +1181,69 @@ app.post('/api/shipments/purge-cancelled', async (req, res) => {
       return res.json({ ok: true, purgedCount: count, message: `Removed ${count} cancelled shipment(s) from history.` });
     }
     res.json({ ok: true, purgedCount: 0 });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Email configuration status
+app.get('/api/email/status', (req, res) => {
+  res.json({
+    ok: true,
+    configured: emailService.isConfigured(),
+    sender: process.env.EMAIL_FROM || '"MOOV Parcel Team" <service@moovparcel.co.uk>',
+    replyTo: process.env.EMAIL_REPLY_TO || 'service@moovparcel.co.uk',
+  });
+});
+
+// PUBLIC (with card token) / AUTH: Email shipping labels and collection details
+app.post('/api/shipments/:id/email-labels', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { token, to, cc, customMessage, pdfBase64, pdfFilename } = req.body || {};
+
+    let card = null;
+    if (token) {
+      card = db.hasDb ? await db.getCardByToken(token) : null;
+      if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Rate card not available' });
+    } else if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Authentication required' });
+    }
+
+    let shipment = null;
+    if (db.hasDb) {
+      shipment = await db.getShipmentById(id) || await db.getShipmentByTracking(id);
+    }
+    if (!shipment) {
+      return res.status(404).json({ ok: false, error: 'Shipment record not found' });
+    }
+
+    const toEmail = (to || '').trim() || (shipment.sender && shipment.sender.email) || (shipment.receiver && shipment.receiver.email);
+    if (!toEmail) {
+      return res.status(400).json({ ok: false, error: 'Recipient email address is required.' });
+    }
+
+    if (!emailService.isConfigured()) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Google Workspace email is not active yet. Please configure GMAIL_APP_PASSWORD in environment variables.',
+      });
+    }
+
+    await emailService.sendShipmentLabelsEmail({
+      to: toEmail,
+      cc: (cc || '').trim(),
+      shipment,
+      customMessage,
+      pdfBase64,
+      pdfFilename,
+    });
+
+    res.json({
+      ok: true,
+      sentTo: toEmail,
+      message: `Labels and collection details successfully sent to ${toEmail}`,
+    });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

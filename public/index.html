@@ -1258,6 +1258,44 @@ a:hover { text-decoration: underline; }
       </div>
     </div>
 
+    <!-- MODAL: EMAIL LABELS (ADMIN) -->
+    <div class="ds-modal-scrim" id="adminEmailModal" style="display:none">
+      <div class="ds-modal" style="width:560px">
+        <div class="ds-modal-head">
+          <div class="ds-kicker">EMAIL DISPATCH</div>
+          <h2 style="margin:4px 0 0;font-size:20px" id="admEmailModalTitle">Email Shipping Labels &amp; Details</h2>
+          <p class="ds-blurb" style="font-size:12px;margin-top:4px">Send official barcode labels and collection details directly to supplier or client.</p>
+        </div>
+        <div class="ds-modal-body" style="display:flex;flex-direction:column;gap:14px">
+          <div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-left:3px solid var(--mv-purple);padding:10px 12px;font-size:12.5px">
+            <div>Consignment: <b id="admEmTracking">—</b> · PRN: <b style="color:var(--mv-green-deep)" id="admEmPrn">—</b></div>
+            <div style="font-size:11.5px;color:var(--mv-ink-55);margin-top:2px">From: <b>MOOV Parcel Team &lt;service@moovparcel.co.uk&gt;</b></div>
+          </div>
+
+          <div class="ds-field">
+            <label class="ds-label">Recipient Email (Supplier or Client) *</label>
+            <input type="email" class="ds-input" id="admEmTo" placeholder="supplier@example.com" required/>
+          </div>
+
+          <div class="ds-field">
+            <label class="ds-label">CC Email (Optional)</label>
+            <input type="email" class="ds-input" id="admEmCc" placeholder="client@example.com"/>
+          </div>
+
+          <div class="ds-field">
+            <label class="ds-label">Custom Note</label>
+            <input type="text" class="ds-input" id="admEmNote" placeholder="e.g. Please print the attached labels for today's collection"/>
+          </div>
+
+          <div id="admEmMsg" style="display:none;padding:10px 12px;font-size:12px"></div>
+        </div>
+        <div class="ds-modal-foot">
+          <button class="ds-btn ds-btn-secondary" id="admEmCancel">Cancel</button>
+          <button class="ds-btn ds-btn-primary" id="admEmSend">Send Email Now →</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 1. RATE CALCULATOR (app) -->
     <div id="app" style="display:none">
       <div class="ds-pagehead">
@@ -2831,7 +2869,9 @@ async function loadShipments() {
   }
 }
 
+let cachedAdminShipments = [];
 function renderShipments(list) {
+  cachedAdminShipments = list || [];
   const tb = $('shipHistoryBody');
   tb.innerHTML = '';
   list.forEach(x => {
@@ -2941,6 +2981,7 @@ function renderShipments(list) {
             '<span style="font-family:monospace;font-size:12px;font-weight:700">(' + qesc(x.tracking_number || 'No tracking') + ')</span>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px">' +
+            '<button type="button" class="ds-btn ds-btn-secondary btn-adm-email-labels" data-id="' + x.id + '" style="padding:5px 12px;font-size:11.5px">✉️ Email Labels</button>' +
             (x.tracking_number ? ('<button type="button" class="ds-btn ds-btn-primary btn-adm-track-live" data-tracking="' + qesc(x.tracking_number) + '" style="padding:5px 12px;font-size:11.5px">Track Shipment</button>') : '') +
             (x.prn && !isCancelled ? ('<button type="button" class="ds-btn ds-btn-secondary btn-adm-resched" data-prn="' + qesc(x.prn) + '" style="padding:5px 12px;font-size:11.5px">Amend Collection</button>') : '') +
             (x.label_base64 ? ('<a href="data:image/gif;base64,' + x.label_base64 + '" download="UPS_Label_' + (x.tracking_number || x.id) + '.gif" class="ds-btn ds-btn-secondary" style="padding:5px 12px;font-size:11.5px" target="_blank" onclick="event.stopPropagation()">Print Label</a>') : '') +
@@ -3063,6 +3104,15 @@ function renderCollections(list) {
 
 // Global click handler for Reschedule, Cancel, and Tracking buttons
 document.addEventListener('click', async e => {
+  const emailBtn = e.target.closest && e.target.closest('.btn-adm-email-labels');
+  if (emailBtn) {
+    e.preventDefault();
+    const sId = emailBtn.dataset.id;
+    const sh = cachedAdminShipments.find(x => String(x.id) === String(sId));
+    if (sh) openAdminEmailModal(sh);
+    return;
+  }
+
   const trackBtn = e.target.closest && e.target.closest('.btn-adm-track-live');
   if (trackBtn) {
     e.preventDefault();
@@ -3160,6 +3210,83 @@ async function openAdminTrackingModal(trackingNumber) {
 
 if ($('admTrackClose')) $('admTrackClose').onclick = () => {
   $('adminTrackingModal').style.display = 'none';
+};
+
+let activeAdmEmailShipment = null;
+function openAdminEmailModal(sh) {
+  activeAdmEmailShipment = sh || {};
+  $('adminEmailModal').style.display = 'flex';
+  $('admEmTracking').textContent = sh.tracking_number || '—';
+  $('admEmPrn').textContent = sh.prn || 'Pending driver booking';
+
+  const sender = (typeof sh.sender === 'object' && sh.sender) ? sh.sender : {};
+  const receiver = (typeof sh.receiver === 'object' && sh.receiver) ? sh.receiver : {};
+
+  $('admEmTo').value = sender.email || receiver.email || '';
+  $('admEmCc').value = (sender.email && receiver.email && sender.email !== receiver.email) ? receiver.email : '';
+  $('admEmNote').value = '';
+  $('admEmMsg').style.display = 'none';
+  $('admEmSend').disabled = false;
+  $('admEmSend').textContent = 'Send Email Now →';
+}
+
+function closeAdminEmailModal() {
+  $('adminEmailModal').style.display = 'none';
+}
+
+if ($('admEmCancel')) $('admEmCancel').onclick = closeAdminEmailModal;
+
+if ($('admEmSend')) $('admEmSend').onclick = async () => {
+  if (!activeAdmEmailShipment) return;
+  const to = $('admEmTo').value.trim();
+  if (!to) {
+    $('admEmMsg').textContent = 'Please enter a recipient email.';
+    $('admEmMsg').style.background = 'rgba(233,30,140,0.1)';
+    $('admEmMsg').style.color = 'var(--mv-magenta-deep)';
+    $('admEmMsg').style.border = '1px solid var(--mv-magenta)';
+    $('admEmMsg').style.display = 'block';
+    return;
+  }
+
+  const btn = $('admEmSend');
+  btn.disabled = true;
+  btn.textContent = 'Sending via Google Workspace…';
+  $('admEmMsg').style.display = 'none';
+
+  try {
+    const res = await jpost('/api/shipments/' + encodeURIComponent(activeAdmEmailShipment.id) + '/email-labels', {
+      to,
+      cc: $('admEmCc').value.trim(),
+      customMessage: $('admEmNote').value.trim(),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      $('admEmMsg').textContent = d.error || 'Failed to send email.';
+      $('admEmMsg').style.background = 'rgba(233,30,140,0.1)';
+      $('admEmMsg').style.color = 'var(--mv-magenta-deep)';
+      $('admEmMsg').style.border = '1px solid var(--mv-magenta)';
+      $('admEmMsg').style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send Email Now →';
+      return;
+    }
+
+    $('admEmMsg').innerHTML = '<b>✓ Success!</b> Shipping labels emailed to <b>' + qesc(to) + '</b>.';
+    $('admEmMsg').style.background = 'rgba(0,200,83,0.1)';
+    $('admEmMsg').style.color = 'var(--mv-green-deep)';
+    $('admEmMsg').style.border = '1.5px solid var(--mv-green)';
+    $('admEmMsg').style.display = 'block';
+    btn.textContent = '✓ Sent';
+    setTimeout(closeAdminEmailModal, 2000);
+  } catch (err) {
+    $('admEmMsg').textContent = 'Network Error: ' + err.message;
+    $('admEmMsg').style.background = 'rgba(233,30,140,0.1)';
+    $('admEmMsg').style.color = 'var(--mv-magenta-deep)';
+    $('admEmMsg').style.border = '1px solid var(--mv-magenta)';
+    $('admEmMsg').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Send Email Now →';
+  }
 };
 
 let admActivePrn = null;

@@ -1458,7 +1458,8 @@ a:hover { text-decoration: underline; }
         </div>
 
         <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-          <button type="button" class="btn primary" id="ibPrintThermalBtn" style="padding:10px 18px;font-weight:700">Print All Labels (Thermal 4"×6") 🖨️</button>
+          <button type="button" class="btn primary" id="ibEmailLabelsBtn" style="padding:10px 18px;font-weight:700;background:var(--mv-purple);color:#fff">Email Labels &amp; Details ✉️</button>
+          <button type="button" class="btn" id="ibPrintThermalBtn" style="padding:10px 18px;font-weight:700">Print All Labels (Thermal 4"×6") 🖨️</button>
           <button type="button" class="btn" id="ibPrintA4Btn" style="padding:10px 18px;font-weight:700">Print All Labels (A4 Paper) 📄</button>
         </div>
 
@@ -1466,6 +1467,52 @@ a:hover { text-decoration: underline; }
           <button type="button" class="btn" id="ibRescheduleBtn" style="padding:8px 16px;font-weight:700">Amend Collection 🔄</button>
           <button type="button" class="btn" id="ibCancelShipmentBtn" style="padding:8px 16px;font-weight:700;color:#b91c1c">Cancel Shipment ❌</button>
           <button type="button" class="btn" id="ibDoneBtn" style="padding:8px 20px">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email Labels & Collection Confirmation Modal -->
+  <div id="emailLabelsModal" class="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(17,24,39,0.7);z-index:230;align-items:center;justify-content:center;padding:16px;overflow-y:auto">
+    <div style="background:#fff;border-radius:12px;width:100%;max-width:560px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h2 style="margin:0;font-size:17px;font-weight:800;color:var(--ink)">✉️ Email Shipping Labels &amp; Collection Details</h2>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">Send official barcode labels and driver instructions to supplier or client</div>
+        </div>
+        <button type="button" id="closeEmailLabelsModal" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1">&times;</button>
+      </div>
+      <div style="padding:22px">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid var(--mv-purple);padding:12px 14px;margin-bottom:16px;font-size:13px;display:flex;flex-direction:column;gap:4px">
+          <div><span style="color:var(--muted)">Consignment:</span> <b id="elmTracking">—</b> · PRN: <b style="color:#059669" id="elmPrn">—</b></div>
+          <div style="font-size:12px;color:var(--muted)">Sender: <span>MOOV Parcel Team &lt;service@moovparcel.co.uk&gt;</span></div>
+        </div>
+
+        <div class="f" style="margin-bottom:14px">
+          <label style="font-size:11px">Recipient Email (Supplier or Client) *</label>
+          <input type="email" id="elmToEmail" placeholder="supplier@company.com" required/>
+        </div>
+
+        <div class="f" style="margin-bottom:14px">
+          <label style="font-size:11px">CC Email (Optional)</label>
+          <input type="email" id="elmCcEmail" placeholder="client@company.com"/>
+        </div>
+
+        <div class="f" style="margin-bottom:14px">
+          <label style="font-size:11px">Optional Note to Recipient</label>
+          <input type="text" id="elmCustomNote" placeholder="e.g. Please print and attach to the cartons for today's collection"/>
+        </div>
+
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:10px 12px;margin-bottom:16px;font-size:12px;color:#166534;display:flex;align-items:center;gap:8px">
+          <span>📎</span>
+          <span><b>Attached:</b> Official UPS Shipping Barcode Labels (Ready to print)</span>
+        </div>
+
+        <div id="elmMsg" style="display:none;padding:10px 12px;border-radius:6px;font-size:12.5px;margin-bottom:14px"></div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px">
+          <button type="button" class="btn" id="elmCancelBtn" style="padding:9px 16px">Cancel</button>
+          <button type="button" class="btn primary" id="elmSendBtn" style="padding:9px 20px;font-weight:800;background:var(--mv-purple);color:#fff">Send Email Now →</button>
         </div>
       </div>
     </div>
@@ -2629,6 +2676,11 @@ function initImportBooking() {
   $('reschedCancelBtn').addEventListener('click', closeRescheduleModal);
   $('rescheduleModal').addEventListener('click', e => { if (e.target === $('rescheduleModal')) closeRescheduleModal(); });
   $('reschedSubmitBtn').addEventListener('click', submitReschedule);
+
+  $('closeEmailLabelsModal').addEventListener('click', closeEmailLabelsModal);
+  $('elmCancelBtn').addEventListener('click', closeEmailLabelsModal);
+  $('emailLabelsModal').addEventListener('click', e => { if (e.target === $('emailLabelsModal')) closeEmailLabelsModal(); });
+  $('elmSendBtn').addEventListener('click', sendEmailLabelsSubmit);
 }
 
 async function submitImportBooking() {
@@ -2695,6 +2747,7 @@ async function submitImportBooking() {
     }
 
     const pkgsList = Array.isArray(d.packages) ? d.packages : [];
+    $('ibEmailLabelsBtn').onclick = () => openEmailLabelsModal(d);
     $('ibPrintThermalBtn').onclick = () => printAllShipmentLabels(d, 'thermal');
     $('ibPrintA4Btn').onclick = () => printAllShipmentLabels(d, 'a4');
 
@@ -2959,6 +3012,94 @@ async function printAllShipmentLabels(target, format = 'thermal') {
     </html>
   `);
   w.document.close();
+}
+
+let activeEmailShipment = null;
+function openEmailLabelsModal(sh) {
+  activeEmailShipment = sh || {};
+  const tracking = sh.trackingNumber || sh.tracking_number || '—';
+  const prn = sh.prn || 'Pending driver booking';
+  $('elmTracking').textContent = tracking;
+  $('elmPrn').textContent = prn;
+
+  const sender = (typeof sh.sender === 'object' && sh.sender) ? sh.sender : {};
+  const receiver = (typeof sh.receiver === 'object' && sh.receiver) ? sh.receiver : {};
+
+  $('elmToEmail').value = sender.email || receiver.email || '';
+  $('elmCcEmail').value = (sender.email && receiver.email && sender.email !== receiver.email) ? receiver.email : '';
+  $('elmCustomNote').value = '';
+  $('elmMsg').style.display = 'none';
+
+  $('elmSendBtn').disabled = false;
+  $('elmSendBtn').textContent = 'Send Email Now →';
+
+  $('emailLabelsModal').style.display = 'flex';
+}
+
+function closeEmailLabelsModal() {
+  $('emailLabelsModal').style.display = 'none';
+}
+
+async function sendEmailLabelsSubmit() {
+  if (!activeEmailShipment) return;
+  const to = $('elmToEmail').value.trim();
+  if (!to) {
+    $('elmMsg').textContent = 'Please provide a recipient email address.';
+    $('elmMsg').style.background = '#fef2f2';
+    $('elmMsg').style.color = '#991b1b';
+    $('elmMsg').style.border = '1px solid #fecaca';
+    $('elmMsg').style.display = 'block';
+    return;
+  }
+
+  const sId = activeEmailShipment.shipmentId || activeEmailShipment.id || activeEmailShipment.trackingNumber || activeEmailShipment.tracking_number;
+  const btn = $('elmSendBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending via Google Workspace…';
+  $('elmMsg').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/shipments/' + encodeURIComponent(sId) + '/email-labels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: curToken,
+        to,
+        cc: $('elmCcEmail').value.trim(),
+        customMessage: $('elmCustomNote').value.trim(),
+      }),
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) {
+      $('elmMsg').textContent = d.error || 'Failed to send email.';
+      $('elmMsg').style.background = '#fef2f2';
+      $('elmMsg').style.color = '#991b1b';
+      $('elmMsg').style.border = '1px solid #fecaca';
+      $('elmMsg').style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send Email Now →';
+      return;
+    }
+
+    $('elmMsg').innerHTML = '<b>✓ Success!</b> Shipping labels and collection confirmation have been emailed to <b>' + esc(to) + '</b>.';
+    $('elmMsg').style.background = '#f0fdf4';
+    $('elmMsg').style.color = '#166534';
+    $('elmMsg').style.border = '1px solid #bbf7d0';
+    $('elmMsg').style.display = 'block';
+    btn.textContent = '✓ Sent';
+
+    setTimeout(() => {
+      closeEmailLabelsModal();
+    }, 2200);
+  } catch (err) {
+    $('elmMsg').textContent = 'Network Error: ' + err.message;
+    $('elmMsg').style.background = '#fef2f2';
+    $('elmMsg').style.color = '#991b1b';
+    $('elmMsg').style.border = '1px solid #fecaca';
+    $('elmMsg').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Send Email Now →';
+  }
 }
 
 let activeReschedPrn = null;
@@ -3271,6 +3412,7 @@ function renderCustomerBookings(shipments) {
         </div>
 
         <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
+          <button type="button" class="btn ghost btn-email-labels" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple)">✉️ Email Labels</button>
           <button type="button" class="btn primary btn-print-batch-thermal" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print Labels (Thermal 4"×6")</button>
           <button type="button" class="btn btn-print-batch-a4" data-id="${x.id}" style="padding:7px 14px;font-size:12px;font-weight:700">Print Labels (A4)</button>
           <button type="button" class="btn btn-toggle-explode" data-id="${x.id}" style="padding:7px 16px;font-size:12px;font-weight:700">Specs &amp; Details ▾</button>
@@ -3557,6 +3699,16 @@ function initCustomerBookingsEvents() {
       if (imgB64) {
         printAllShipmentLabels([{ labelGraphic: imgB64 }], 'thermal');
       }
+      return;
+    }
+
+    // Customer Email Labels button
+    const emailLabelsBtn = e.target.closest && e.target.closest('.btn-email-labels');
+    if (emailLabelsBtn) {
+      e.preventDefault();
+      const card = emailLabelsBtn.closest('.calc-card');
+      const sh = card && card._shipment;
+      if (sh) openEmailLabelsModal(sh);
       return;
     }
 
