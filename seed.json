@@ -24960,9 +24960,9 @@
       {
         "key": "disbursement",
         "name": "Disbursement fee",
-        "list": 5.2,
+        "list": 14.35,
         "disc": 50,
-        "sell": 5.2,
+        "sell": 14.35,
         "cond": "always",
         "applyTo": "ups",
         "fuelable": false,
@@ -30524,5 +30524,5 @@
     "Switzerland": "6",
     "Vatican City": "705"
   },
-  "dataVersion": 13
+  "dataVersion": 14
 }
