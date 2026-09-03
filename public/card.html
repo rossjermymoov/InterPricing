@@ -2153,8 +2153,16 @@ function accApplies(a, c, actual) {
 }
 
 function accAmount(a) {
-  if (a.basis === 'pctValue') return Math.max((a.pct || 0) * num('V') / 100, a.min || 0);
-  return a.amount || 0;
+  if (a.basis === 'pctValue') {
+    const pct = a.sell != null && a.sell !== '' ? Number(a.sell) : (a.pct || 0);
+    const min = a.min || 0;
+    return Math.max(pct * num('V') / 100, min);
+  }
+  if (a.sell != null && a.sell !== '') return Number(a.sell) || 0;
+  if (a.amount != null) return a.amount;
+  const l = a.list != null ? Number(a.list) : 0;
+  const d = a.disc != null ? Number(a.disc) : 0;
+  return l * (1 - d / 100);
 }
 
 function priceOf(s, c, chg) {

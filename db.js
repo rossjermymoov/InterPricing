@@ -199,7 +199,7 @@ async function migrateConfig() {
       const merged = seed.settings.accessorials.map((sa) => {
         const old = byKey[sa.key] || {};
         const keep = {};
-        for (const fld of ['list', 'disc', 'pct', 'min']) if (old[fld] != null) keep[fld] = old[fld];
+        for (const fld of ['list', 'disc', 'pct', 'min', 'sell']) if (old[fld] != null) keep[fld] = old[fld];
         return { ...sa, ...keep };
       });
       if (JSON.stringify(merged) !== JSON.stringify(prev)) { cfg.settings.accessorials = merged; changed = true; }

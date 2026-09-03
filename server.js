@@ -136,6 +136,7 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
           disc: inc.disc != null ? Number(inc.disc) : a.disc,
           pct: inc.pct != null ? Number(inc.pct) : a.pct,
           min: inc.min != null ? Number(inc.min) : a.min,
+          sell: inc.sell != null && inc.sell !== '' ? Number(inc.sell) : (a.sell != null ? a.sell : null),
         };
       });
     }
