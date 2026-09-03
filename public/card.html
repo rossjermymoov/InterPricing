@@ -828,6 +828,47 @@ a:hover { text-decoration: underline; }
   background: #faf5ff;
 }
 
+/* Print Format Dropdown Popover */
+.moov-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.moov-dropdown-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  border-top: 2px solid var(--mv-purple);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  min-width: 220px;
+  z-index: 100;
+}
+.moov-menu-item {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  font-family: var(--font-family);
+  font-size: 12px;
+  color: var(--mv-ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--mv-hairline);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.12s, color 0.12s;
+}
+.moov-menu-item:last-child {
+  border-bottom: 0;
+}
+.moov-menu-item:hover {
+  background: var(--mv-surface, #f8fafc);
+  color: var(--mv-purple);
+}
+
 /* ===== MOOV OS CONNECTED TIMELINE COMPONENT ===== */
 .moov-timeline-wrap {
   position: relative;
@@ -3744,54 +3785,72 @@ function renderCustomerBookings(shipments) {
       </div>
 
       <!-- Action Footer -->
-      <div style="padding:12px 20px;background:#f8fafc;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="padding:10px 18px;background:#f8fafc;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           ${prnBadge}
           ${(!x.prn && !isCancelled) ? `
-            <button type="button" class="btn-moov-action secondary btn-cust-book-pickup">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-              <span>Book Collection</span>
+            <button type="button" class="btn-moov-action secondary btn-cust-book-pickup" style="padding:0 10px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+              <span>Book Pickup</span>
             </button>
           ` : ''}
           ${(x.prn && !isCancelled) ? `
-            <button type="button" class="btn-moov-action secondary btn-cust-resched" data-prn="${esc(x.prn)}">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-              <span>Amend Collection</span>
+            <button type="button" class="btn-moov-action secondary btn-cust-resched" data-prn="${esc(x.prn)}" style="padding:0 10px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+              <span>Amend</span>
             </button>
           ` : ''}
           ${!isCancelled ? `
-            <button type="button" class="btn-moov-action danger btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              <span>Cancel Shipment</span>
+            <button type="button" class="btn-moov-action danger btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}" style="padding:0 10px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              <span>Cancel</span>
             </button>
           ` : `
-            <button type="button" class="btn-moov-action danger btn-cust-delete-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <button type="button" class="btn-moov-action danger btn-cust-delete-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}" style="padding:0 10px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
               <span>Remove</span>
             </button>
           `}
         </div>
 
-        <div style="display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap">
-          <button type="button" class="btn-moov-action secondary btn-upload-doc" data-id="${x.id}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-            <span>${hasDocs ? 'Attach Customs Doc' : 'Upload Invoice'}</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap">
+          <button type="button" class="btn-moov-action secondary btn-upload-doc" data-id="${x.id}" style="padding:0 11px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+            <span>${hasDocs ? 'Customs Docs' : 'Attach Invoice'}</span>
           </button>
-          <button type="button" class="btn-moov-action secondary btn-email-labels" data-id="${x.id}" style="color:var(--mv-purple);border-color:var(--mv-purple)">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          <button type="button" class="btn-moov-action secondary btn-email-labels" data-id="${x.id}" style="padding:0 11px;color:var(--mv-purple);border-color:var(--mv-purple)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
             <span>Email Labels</span>
           </button>
-          <button type="button" class="btn-moov-action primary btn-print-batch-thermal" data-id="${x.id}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-            <span>Print Labels (Thermal 4"×6")</span>
-          </button>
-          <button type="button" class="btn-moov-action secondary btn-print-batch-a4" data-id="${x.id}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            <span>Print Labels (A4)</span>
-          </button>
-          <button type="button" class="btn-moov-action secondary btn-toggle-explode" data-id="${x.id}">
-            <span>Specs &amp; Details</span>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+
+          <!-- Consolidated Print Labels Dropdown -->
+          <div class="moov-dropdown-wrap">
+            <button type="button" class="btn-moov-action primary btn-print-format-toggle" data-id="${x.id}" style="padding:0 12px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              <span>Print Labels</span>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:2px"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="moov-dropdown-menu" id="printMenu_${x.id}" style="display:none">
+              <button type="button" class="moov-menu-item btn-print-batch-thermal" data-id="${x.id}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                <div>
+                  <div style="font-weight:700">Thermal (4" × 6")</div>
+                  <div style="font-size:10px;color:var(--mv-ink-55)">Direct label roll printer</div>
+                </div>
+              </button>
+              <button type="button" class="moov-menu-item btn-print-batch-a4" data-id="${x.id}">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                <div>
+                  <div style="font-weight:700">Standard Paper (A4)</div>
+                  <div style="font-size:10px;color:var(--mv-ink-55)">Standard desktop printer sheet</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <button type="button" class="btn-moov-action secondary btn-toggle-explode" data-id="${x.id}" style="padding:0 10px">
+            <span>Details</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
         </div>
       </div>
@@ -4046,10 +4105,29 @@ function initCustomerBookingsEvents() {
       return;
     }
 
+    // Toggle Print Dropdown
+    const printToggleBtn = e.target.closest && e.target.closest('.btn-print-format-toggle');
+    if (printToggleBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const id = printToggleBtn.dataset.id;
+      const menu = $('printMenu_' + id);
+      const isVisible = menu && menu.style.display !== 'none';
+      document.querySelectorAll('.moov-dropdown-menu').forEach(m => { m.style.display = 'none'; });
+      if (menu) menu.style.display = isVisible ? 'none' : 'block';
+      return;
+    }
+
+    // Close dropdowns on outside click
+    if (!e.target.closest || !e.target.closest('.moov-dropdown-wrap')) {
+      document.querySelectorAll('.moov-dropdown-menu').forEach(m => { m.style.display = 'none'; });
+    }
+
     // Batch Print Thermal
     const printThermalBtn = e.target.closest && e.target.closest('.btn-print-batch-thermal');
     if (printThermalBtn) {
       e.preventDefault();
+      document.querySelectorAll('.moov-dropdown-menu').forEach(m => { m.style.display = 'none'; });
       const card = printThermalBtn.closest('.calc-card');
       if (card) {
         printAllShipmentLabels(card._shipment || card._packages, 'thermal');
@@ -4061,6 +4139,7 @@ function initCustomerBookingsEvents() {
     const printA4Btn = e.target.closest && e.target.closest('.btn-print-batch-a4');
     if (printA4Btn) {
       e.preventDefault();
+      document.querySelectorAll('.moov-dropdown-menu').forEach(m => { m.style.display = 'none'; });
       const card = printA4Btn.closest('.calc-card');
       if (card) {
         printAllShipmentLabels(card._shipment || card._packages, 'a4');
