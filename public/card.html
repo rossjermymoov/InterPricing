@@ -2328,9 +2328,11 @@ function doUpsFetch(key, c) {
 function staticRow(s, c, chg, applicable) {
   const r = priceOf(s, c, chg);
   if (!r.avail || r.p == null) return { s, r, total: null };
-  const base = r.p, fuel = Math.round(base * (s.fuel || 0) / 100 * 100) / 100, carr = s.carrier.toLowerCase();
+  const base = r.p, carr = s.carrier.toLowerCase();
   const sur = applicable.filter(a => a.carrier.toLowerCase() === carr).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
   const surTotal = sur.reduce((t, x) => t + x.amt, 0);
+  const fuelRate = (s.fuel || 0) / 100;
+  const fuel = Math.round((base + surTotal) * fuelRate * 100) / 100;
   return { s, r, base, fuel, sur, total: Math.round((base + fuel + surTotal) * 100) / 100, days: s.days };
 }
 
@@ -2418,12 +2420,14 @@ function calc() {
         }).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
         const mergedSur = [...liveSur, ...upsCustom];
         const surTotal = mergedSur.reduce((t, x) => t + x.amt, 0);
-        const total = Math.round((live.base + live.fuel + surTotal) * 100) / 100;
+        const fuelRate = (live.base > 0 && live.fuel > 0) ? (live.fuel / live.base) : 0;
+        const fuel = Math.round((live.base + surTotal) * fuelRate * 100) / 100;
+        const total = Math.round((live.base + fuel + surTotal) * 100) / 100;
         rows.push({
           s: { key: live.key, name: live.name, carrier: 'UPS' },
           live: true,
           base: live.base,
-          fuel: live.fuel,
+          fuel,
           sur: mergedSur,
           total,
           days: live.days,

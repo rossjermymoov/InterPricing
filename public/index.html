@@ -2412,32 +2412,35 @@ function build(raw, svc){
   const fbs=(P.settings&&P.settings.fuelByService&&P.settings.fuelByService[svc.key])||{cost:0,sell:0};
   const fc=fbs.cost||0, fs=fbs.sell||0;
   const mk=markupPct(svc);
-  const costFuel=raw*fc/100, sellFuel=raw*fs/100;
-  const markupAmt=raw*mk/100;
-  const fuelExtras=[]; const flatExtras=[];
-  let sumCostFuelExtra=0, sumSellFuelExtra=0, sumFlatExtra=0;
+  const markupAmt=Math.round(raw*mk/100*100)/100;
+  const flatExtras=[];
+  let sumCostExtra=0, sumSellExtra=0;
   const c=$('country').value, val=num('goodsValue'), skus=Math.max(1,Math.floor(num('SK'))||1);
   const isEu=(region(c)==='eu');
   const euCfg=(P.settings&&P.settings.euCustomsDuty)||{};
 
   ACTIVE.forEach(a=>{
     const v=accVal(a);
+    const cv=accCost(a);
     if(a.taxType==='euSkuDuty'){
       if(!euCfg.enabled)return;
       const rate=Number(euCfg.eurPerGbp)||0, perSku=Number(euCfg.perSku)||0, threshEur=Number(euCfg.thresholdEur)||150;
       if(rate<=0||perSku<=0)return;
       const valEur=val*rate;
-      if(valEur<=threshEur&&isEu){const dutyGbp=(skus*perSku)/rate;flatExtras.push([a.name+' ('+skus+' SKU'+(skus>1?'s':'')+')',dutyGbp]);sumFlatExtra+=dutyGbp;}
+      if(valEur<=threshEur&&isEu){const dutyGbp=(skus*perSku)/rate;flatExtras.push([a.name+' ('+skus+' SKU'+(skus>1?'s':'')+')',dutyGbp]);sumSellExtra+=dutyGbp;sumCostExtra+=dutyGbp;}
       return;
     }
     if(a.carrier&&a.carrier!==svc.carrier)return;
-    if(a.fuelSurcharge){fuelExtras.push([a.name,v]);sumCostFuelExtra+=v;sumSellFuelExtra+=v;}
-    else{flatExtras.push([a.name,v]);sumFlatExtra+=v;}
+    flatExtras.push([a.name,v]);
+    sumSellExtra+=v;
+    sumCostExtra+=cv;
   });
 
-  const cost=(raw+costFuel)+sumCostFuelExtra*(1+fc/100)+sumFlatExtra;
-  const sell=(raw+markupAmt+sellFuel)+sumSellFuelExtra*(1+fs/100)+sumFlatExtra;
-  return{raw,fc,fs,costFuel,sellFuel,totalCost:cost,mk,markupAmt,sell,cost,fuelExtras,flatExtras};
+  const costFuel=Math.round((raw+sumCostExtra)*fc/100*100)/100;
+  const sellFuel=Math.round((raw+markupAmt+sumSellExtra)*fs/100*100)/100;
+  const cost=Math.round((raw+costFuel+sumCostExtra)*100)/100;
+  const sell=Math.round((raw+markupAmt+sellFuel+sumSellExtra)*100)/100;
+  return{raw,fc,fs,costFuel,sellFuel,totalCost:cost,mk,markupAmt,sell,cost,fuelExtras:[],flatExtras};
 }
 
 function renderMarkup(){

@@ -387,9 +387,7 @@ app.post('/api/import-quote', async (req, res) => {
       .map((s) => {
       const bd = s.breakdown || {};
       const factor = 1 + markup / 100;
-      const fuelFactor = factor * (1 + upsFuelMarkup / 100);
       const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
-      const fuelAmount = Math.round((bd.fuel || 0) * fuelFactor * 100) / 100;
       const liveAcc = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
@@ -402,6 +400,8 @@ app.post('/api/import-quote', async (req, res) => {
         allSurcharges.push({ key: 'hs', name: 'HS customs entry (' + hsExtra + ' extra line' + (hsExtra === 1 ? '' : 's') + ')', amt: hsCharge });
       }
       const surchargesTotal = allSurcharges.reduce((t, x) => t + x.amt, 0);
+      const fuelRate = (bd.base > 0 && bd.fuel > 0) ? ((bd.fuel / bd.base) * (1 + upsFuelMarkup / 100)) : 0;
+      const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
       const finalPrice = Math.round((baseMarkedUp + fuelAmount + surchargesTotal) * 100) / 100;
 
       return {
@@ -500,10 +500,8 @@ app.post('/api/card-rate', async (req, res) => {
       const key = CODE2KEY[s.code] || ('ups_' + s.code);
       const mk = markupOf(key, s.code);
       const factor = 1 + mk / 100;
-      const fuelFactor = factor * (1 + upsFuelMarkup / 100);
       const bd = s.breakdown || {};
       const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
-      const fuelAmount = Math.round((bd.fuel || 0) * fuelFactor * 100) / 100;
       const accessorials = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
@@ -511,6 +509,8 @@ app.post('/api/card-rate', async (req, res) => {
         remote: !!a.remote,
       })).filter((a) => a.amt > 0);
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
+      const fuelRate = (bd.base > 0 && bd.fuel > 0) ? ((bd.fuel / bd.base) * (1 + upsFuelMarkup / 100)) : 0;
+      const fuelAmount = Math.round((baseMarkedUp + surTotal) * fuelRate * 100) / 100;
 
       services.push({
         key, code: s.code, name: s.name, days: s.days,
@@ -577,12 +577,10 @@ app.post('/api/calc-rate', async (req, res) => {
       const key = CODE2KEY[s.code] || ('ups_' + s.code);
       const mk = markupOf(key, s.code);
       const factor = 1 + mk / 100;
-      const fuelFactor = factor * (1 + upsFuelMarkup / 100);
       const bd = s.breakdown || {};
       const costBase = Math.round((bd.base || 0) * 100) / 100;
       const costFuel = Math.round((bd.fuel || 0) * 100) / 100;
       const sellBase = Math.round(costBase * factor * 100) / 100;
-      const sellFuel = Math.round(costFuel * fuelFactor * 100) / 100;
 
       const accessorials = (bd.accessorials || []).map((a) => ({
         code: a.code,
@@ -592,6 +590,8 @@ app.post('/api/calc-rate', async (req, res) => {
         remote: !!a.remote,
       })).filter((a) => a.amt > 0);
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
+      const fuelRate = (costBase > 0 && costFuel > 0) ? ((costFuel / costBase) * (1 + upsFuelMarkup / 100)) : 0;
+      const sellFuel = Math.round((sellBase + surTotal) * fuelRate * 100) / 100;
 
       services.push({
         key, code: s.code, name: s.name, days: s.days,
