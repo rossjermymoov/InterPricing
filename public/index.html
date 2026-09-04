@@ -915,16 +915,50 @@ a:hover { text-decoration: underline; }
 .ds-card-clogo[data-k="dpd"] { height: 26px; }
 
 .ds-card-badge {
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: .12em;
+  letter-spacing: .06em;
   font-weight: 800;
-  padding: 2px 6px;
-  background: var(--mv-green);
+  padding: 4px 10px;
+  background: #059669;
   color: #fff;
+  border-radius: 4px;
+  line-height: 1.1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
-.ds-card-badge.fastest { background: var(--mv-purple); }
-.ds-card-badge.best-both { background: var(--mv-green); color: #fff; }
+.ds-card-badge.fastest { background: #0f766e; }
+.ds-card-badge.best-both { background: #7c3aed; color: #fff; }
+
+.ds-card.ds-card-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 280px;
+  background: var(--mv-surface);
+  border: 1px dashed var(--mv-hairline);
+}
+.ups-loader-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 40px 20px;
+}
+.ups-loading-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 12px;
+  filter: grayscale(100%) opacity(0.3);
+  animation: upsSpinPulse 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes upsSpinPulse {
+  0% { transform: scale(0.92) rotate(0deg); opacity: 0.2; }
+  50% { transform: scale(1.05) rotate(180deg); opacity: 0.4; }
+  100% { transform: scale(0.92) rotate(360deg); opacity: 0.2; }
+}
 
 .ds-card-price {
   font-size: 32px;
@@ -2762,6 +2796,7 @@ function calc(){
   const minDays=daysList.length?Math.min(...daysList):null;
   const maxDays=daysList.length?Math.max(...daysList):null;
   const hasTransitDiff=(daysList.length>=2 && minDays!=null && maxDays!=null && minDays<maxDays);
+  const hasBestAndFastest=rows.some(x=>!x.loading&&x.built&&x.built.sell!=null&&((sells.length===1)||(x.built.sell===min&&hasTransitDiff&&x.days===minDays)));
 
   const sn=$('staticNotice');
   if(sn){
@@ -2776,8 +2811,8 @@ function calc(){
   rows.forEach(({svc,b,built,loading,live,days})=>{
     const d=document.createElement('div');
     if(loading){
-      d.className='ds-card';
-      d.innerHTML='<div class="ds-card-head"><div class="ds-card-car">'+carrierLogo(svc.carrier)+'<span>'+svc.name+'</span></div></div><div class="ds-card-price"><span class="spin"></span></div><div class="ds-card-sub">Fetching live UPS rates…</div>';
+      d.className='ds-card ds-card-loading';
+      d.innerHTML='<div class="ups-loader-wrap"><img class="ups-loading-logo" src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS" /></div>';
       R.appendChild(d); return;
     }
     const isOnly=(sells.length===1);
@@ -2792,7 +2827,7 @@ function calc(){
     let badge='';
     if(isOnly||(isCheapest&&isFastest)) badge='<span class="ds-card-badge best-both">BEST &amp; FASTEST</span>';
     else if(isCheapest) badge='<span class="ds-card-badge">CHEAPEST</span>';
-    else if(isFastest) badge='<span class="ds-card-badge fastest">FASTEST · '+days+'D</span>';
+    else if(isFastest && !hasBestAndFastest) badge='<span class="ds-card-badge fastest">FASTEST</span>';
 
     const cleanSvcName = (svc.name || '').replace(/\s*Live\s*$/i, '').trim();
     const isRoadSvc = (cleanSvcName.toLowerCase().includes('parcel') || cleanSvcName.toLowerCase().includes('expresspak') || cleanSvcName.toLowerCase().includes('standard') || cleanSvcName.toLowerCase().includes('ground'));
@@ -2801,7 +2836,7 @@ function calc(){
     const icon = isRoadSvc ? roadIcon : airIcon;
     const clsType = isRoadSvc ? 'road' : 'air';
     const transitDaysText = (days != null && days > 0) ? (days + ' business day' + (days === 1 ? '' : 's')) : 'Transit estimate on request';
-    const transitSub = isRoadSvc ? 'Road freight · Standard delivery' : 'Air express · Priority flight';
+    const transitSub = isRoadSvc ? 'Road freight' : 'Air express';
 
     let breakdownHtml='<div class="ds-card-breakdown">' +
       '<div class="ds-card-row"><span>Base rate</span><span class="mv-num">'+money(built.raw)+'</span></div>' +
