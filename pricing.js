@@ -10,6 +10,8 @@ const SERVICES = [
   { key: 'cp', name: 'DPD Classic Parcel',     carrier: 'DPD', type: 'flat', src: 'dpd_parcel',     cap: 'cp', days: 3 },
   { key: 'ux', name: 'UPS Express Saver',      carrier: 'UPS', type: 'zone', src: 'ups_express',  zmap: 'c2zone_express', days: 2 },
   { key: 'us', name: 'UPS Standard',           carrier: 'UPS', type: 'zone', src: 'ups_standard', zmap: 'c2zone_standard', days: 4 },
+  { key: 'edp', name: 'UPS Worldwide Economy DDP', carrier: 'UPS', type: 'zone', src: 'ups_economy_ddp', zmap: 'c2zone_economy_ddp', days: 7, isEconomy: true },
+  { key: 'edu', name: 'UPS Worldwide Economy DDU', carrier: 'UPS', type: 'zone', src: 'ups_economy_ddu', zmap: 'c2zone_economy_ddu', days: 9, isEconomy: true },
 ];
 
 const r2 = (v) => (v == null ? null : Math.round(v * 100) / 100);
@@ -30,7 +32,7 @@ function markupFor(card, key, country, euList) {
   const m = (card && card.config && card.config.markup);
   if (m == null) return 0;
   if (typeof m === 'number') return m;
-  if (country && (key === 'us' || key === 'ux' || key.startsWith('ups'))) {
+  if (country && (key === 'us' || key === 'ux' || key === 'edp' || key === 'edu' || key.startsWith('ups'))) {
     const isEu = Array.isArray(euList) && euList.includes(country);
     const regKey = isEu ? key + '_eu' : key + '_row';
     if (m[regKey] != null && isFinite(Number(m[regKey]))) return Number(m[regKey]);

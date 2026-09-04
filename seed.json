@@ -24847,6 +24847,16 @@
         "name": "DPD Classic Parcel",
         "cost": 12,
         "sell": 18
+      },
+      "edp": {
+        "name": "UPS Worldwide Economy DDP",
+        "cost": 5,
+        "sell": 5
+      },
+      "edu": {
+        "name": "UPS Worldwide Economy DDU",
+        "cost": 0,
+        "sell": 0
       }
     },
     "upsFuelMarkup": 0.0,

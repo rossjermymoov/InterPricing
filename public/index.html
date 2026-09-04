@@ -2285,6 +2285,10 @@ const MARKUP_ITEMS = [
   { key: 'us_row', name: 'UPS Standard (Rest of World)', color: '#351C15', carrier: 'ups', fallbackKey: 'us' },
   { key: 'ux_eu', name: 'UPS Express Saver (Europe)', color: '#351C15', carrier: 'ups', fallbackKey: 'ux' },
   { key: 'ux_row', name: 'UPS Express Saver (Rest of World)', color: '#351C15', carrier: 'ups', fallbackKey: 'ux' },
+  { key: 'edp_eu', name: 'UPS Economy DDP (Europe)', color: '#7B2FBE', carrier: 'ups', fallbackKey: 'edp' },
+  { key: 'edp_row', name: 'UPS Economy DDP (Rest of World)', color: '#7B2FBE', carrier: 'ups', fallbackKey: 'edp' },
+  { key: 'edu_eu', name: 'UPS Economy DDU (Europe)', color: '#7B2FBE', carrier: 'ups', fallbackKey: 'edu' },
+  { key: 'edu_row', name: 'UPS Economy DDU (Rest of World)', color: '#7B2FBE', carrier: 'ups', fallbackKey: 'edu' },
 ];
 
 function activeMarkupObj() {
@@ -2416,6 +2420,8 @@ const SERVICES=[
  {key:'cp',name:'DPD Classic Parcel',    carrier:'dpd',type:'flat',src:'dpd_parcel',     days:3, cap:'cp', color:DPD_COLOR, dash:[9,4,2,4]},
  {key:'ux',name:'UPS Express Saver',     carrier:'ups',type:'zone',src:'ups_express', zmap:'c2zone_express', days:2, color:UPS_COLOR, dash:[]},
  {key:'us',name:'UPS Standard',          carrier:'ups',type:'zone',src:'ups_standard',zmap:'c2zone_standard', days:4, color:UPS_COLOR, dash:[7,4]},
+ {key:'edp',name:'UPS Worldwide Economy DDP', carrier:'ups',type:'zone',src:'ups_economy_ddp',zmap:'c2zone_economy_ddp', days:7, isEconomy:true, color:UPS_COLOR, dash:[4,2]},
+ {key:'edu',name:'UPS Worldwide Economy DDU', carrier:'ups',type:'zone',src:'ups_economy_ddu',zmap:'c2zone_economy_ddu', days:9, isEconomy:true, color:UPS_COLOR, dash:[2,4]},
 ];
 
 function baseRate(svc, c, w){
@@ -2656,35 +2662,57 @@ function calc(){
   }
 
   if(!upsLimit.exceeded){
-    if(upsLoading){
-      rows.push({svc:{key:'ups',name:'UPS',carrier:'ups',color:UPS_COLOR},loading:true,built:{sell:null}});
-    }else if(upsReady&&upsReady.enabled){
-      const ALLOWED_UPS=new Set(['ux','us','ue','ups_65','ups_11','ups_07','65','11','07','7','065','011','007']);
-      (upsReady.services||[]).filter(live=>ALLOWED_UPS.has(live.key)||ALLOWED_UPS.has(String(live.code))).forEach(live=>{
-        const built={
-          live:true, days:live.days, raw:live.costBase,
-          fc:(live.costBase?(live.costFuel/live.costBase*100):0),
-          fs:(live.sellBase?(live.sellFuel/live.sellBase*100):0),
-          costFuel:live.costFuel, sellFuel:live.sellFuel,
-          totalCost:live.costPrice, mk:live.markupPct, markupAmt:live.markupAmt,
-          sell:live.sellPrice, cost:live.costPrice,
-          fuelExtras:[], flatExtras:(live.accessorials||[]).map(a=>[a.name,a.amt])
-        };
-        rows.push({
-          svc:{key:live.key,name:live.name,carrier:'ups',color:UPS_COLOR},
-          b:{price:live.costPrice,avail:true,live:true},
-          built, live:true, days:live.days,
+    const smallPkgUps = SERVICES.filter(svc=>svc.carrier==='ups'&&!svc.isEconomy&&svc.key!=='edp'&&svc.key!=='edu');
+    const economyUps = SERVICES.filter(svc=>svc.carrier==='ups'&&(svc.isEconomy||svc.key==='edp'||svc.key==='edu'));
+
+    if(smallPkgUps.length > 0){
+      if(upsLoading){
+        rows.push({svc:{key:'ups',name:'UPS Small Package',carrier:'ups',color:UPS_COLOR},loading:true,built:{sell:null}});
+      }else if(upsReady&&upsReady.enabled){
+        const ALLOWED_UPS=new Set(['ux','us','ue','ups_65','ups_11','ups_07','65','11','07','7','065','011','007']);
+        (upsReady.services||[]).filter(live=>ALLOWED_UPS.has(live.key)||ALLOWED_UPS.has(String(live.code))).forEach(live=>{
+          const built={
+            live:true, days:live.days, raw:live.costBase,
+            fc:(live.costBase?(live.costFuel/live.costBase*100):0),
+            fs:(live.sellBase?(live.sellFuel/live.sellBase*100):0),
+            costFuel:live.costFuel, sellFuel:live.sellFuel,
+            totalCost:live.costPrice, mk:live.markupPct, markupAmt:live.markupAmt,
+            sell:live.sellPrice, cost:live.costPrice,
+            fuelExtras:[], flatExtras:(live.accessorials||[]).map(a=>[a.name,a.amt])
+          };
+          rows.push({
+            svc:{key:live.key,name:live.name,carrier:'ups',color:UPS_COLOR},
+            b:{price:live.costPrice,avail:true,live:true},
+            built, live:true, days:live.days,
+          });
         });
-      });
-    }else{
-      SERVICES.filter(svc=>svc.carrier==='ups').forEach(svc=>{
-        const b=baseRate(svc,c,chg);
+      }else{
+        smallPkgUps.forEach(svc=>{
+          const b=baseRate(svc,c,chg);
+          if(b.avail&&b.price!=null){
+            const built=build(b.price,svc);
+            if(built&&built.sell!=null) rows.push({svc,b,built,days:svc.days});
+          }
+        });
+      }
+    }
+
+    // Economy DDP / DDU (Postal / Non-API static matrices)
+    economyUps.forEach(svc=>{
+      let econChg = chg;
+      if(svc.key === 'edu'){
+        const volCm3 = (L && W && H) ? (L * W * H) : 0;
+        econChg = (volCm3 > 28316.85) ? Math.max(actual, vol) : actual;
+      }
+      const maxCap = (svc.key === 'edu') ? 20.0 : 30.0;
+      if(econChg <= maxCap){
+        const b=baseRate(svc,c,econChg);
         if(b.avail&&b.price!=null){
           const built=build(b.price,svc);
           if(built&&built.sell!=null) rows.push({svc,b,built,days:svc.days});
         }
-      });
-    }
+      }
+    });
   }
 
   rows=rows.filter(x=>x.loading||(x.built&&x.built.sell!=null&&x.built.sell>0));
@@ -3615,8 +3643,8 @@ function renderShipments(list) {
       : '—';
 
     // 7-Stage Progress calculation
-    let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : 0);
-    const progressPercent = currentStageIdx === 0 ? 0 : Math.min(100, Math.round(((currentStageIdx - 1) / 6) * 100));
+    let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : (x.status === 'collected' ? 1 : 0));
+    let progressPercent = currentStageIdx === 0 ? 0 : Math.min(100, Math.round(((currentStageIdx - 1) / 6) * 100));
 
     const STAGES = [
       { name: 'Collected', desc: 'Supplier Pickup' },
@@ -3628,20 +3656,22 @@ function renderShipments(list) {
       { name: 'Delivered', desc: 'Signed' },
     ];
 
-    const stagesHtml = STAGES.map((st, i) => {
-      const isDone = (i + 1) < currentStageIdx;
-      const isCurrent = (i + 1) === currentStageIdx;
-      const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
-      return `
-        <div class="moov-timeline-node ${cls}">
-          <div class="moov-timeline-dot">
-            ${isDone ? '✓' : (i + 1)}
-          </div>
-          <div class="moov-timeline-title">${st.name}</div>
-          <div class="moov-timeline-sub">${st.desc}</div>
-        </div>
-      `;
-    }).join('');
+    const renderAdmStages = (stageIdx) => {
+      const pPct = stageIdx === 0 ? 0 : Math.min(100, Math.round(((stageIdx - 1) / 6) * 100));
+      return '<div class="moov-timeline-track"><div class="moov-timeline-progress" style="width: ' + pPct + '%"></div></div>' +
+        '<div class="moov-timeline-nodes">' +
+        STAGES.map((st, i) => {
+          const isDone = (i + 1) < stageIdx;
+          const isCurrent = (i + 1) === stageIdx;
+          const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
+          return '<div class="moov-timeline-node ' + cls + '">' +
+            '<div class="moov-timeline-dot">' + (isDone ? '✓' : (i + 1)) + '</div>' +
+            '<div class="moov-timeline-title">' + st.name + '</div>' +
+            '<div class="moov-timeline-sub">' + st.desc + '</div>' +
+            '</div>';
+        }).join('') +
+        '</div>';
+    };
 
     const pkgRowsHtml = pkgs.map((p, pIdx) => {
       const q = parseInt(p.qty, 10) || 1;
@@ -3675,7 +3705,7 @@ function renderShipments(list) {
       '<td style="font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + qesc(toStr) + '">' + qesc(toStr) + '</td>' +
       '<td><b>' + totalParcels + ' pc</b> · ' + totalWeight + ' kg</td>' +
       '<td>' + prnStr + '</td>' +
-      '<td>' + statusChip + '<div style="margin-top:2px">' + docsStr + '</div></td>' +
+      '<td><span id="admStatusChip_' + x.id + '">' + statusChip + '</span><div style="margin-top:2px">' + docsStr + '</div></td>' +
       '<td style="white-space:nowrap;font-size:12px">' + qDT(x.created_at) + '</td>' +
       '<td style="text-align:right;white-space:nowrap">' +
         '<button type="button" class="ds-btn ds-btn-secondary btn-inspect-shipment" data-id="' + x.id + '" style="padding:4px 8px;font-size:11px" onclick="event.stopPropagation(); toggleShipmentDrawer(\'' + x.id + '\')">Inspect ▾</button>' +
@@ -3703,9 +3733,8 @@ function renderShipments(list) {
         '</div>' +
 
         (!isCancelled ? (
-          '<div class="moov-timeline-wrap" style="background:#fff;border:1px solid var(--mv-hairline-2);padding:14px 16px 8px;margin-bottom:16px">' +
-            '<div class="moov-timeline-track"><div class="moov-timeline-progress" style="width: ' + progressPercent + '%"></div></div>' +
-            '<div class="moov-timeline-nodes">' + stagesHtml + '</div>' +
+          '<div class="moov-timeline-wrap" id="admTimelineWrap_' + x.id + '" style="background:#fff;border:1px solid var(--mv-hairline-2);padding:14px 16px 8px;margin-bottom:16px">' +
+            renderAdmStages(currentStageIdx) +
           '</div>'
         ) : '') +
 
@@ -3750,6 +3779,35 @@ function renderShipments(list) {
 
     tb.appendChild(mainTr);
     tb.appendChild(drawerTr);
+
+    // If active shipment, query live tracking in background to refresh milestone progress in admin view
+    if (x.tracking_number && !isCancelled && x.status !== 'delivered') {
+      setTimeout(async () => {
+        try {
+          const tRes = await fetch('/api/shipments/' + encodeURIComponent(x.tracking_number) + '/track');
+          const tData = await tRes.json();
+          if (tData && tData.ok) {
+            let stage = 0;
+            if (tData.isDelivered) stage = 7;
+            else if (tData.isCollected) stage = 3;
+            else stage = 0;
+
+            const wrapEl = $('admTimelineWrap_' + x.id);
+            if (wrapEl && stage > 0) {
+              wrapEl.innerHTML = renderAdmStages(stage);
+            }
+            const chipEl = $('admStatusChip_' + x.id);
+            if (chipEl && stage > 0) {
+              if (tData.isDelivered) {
+                chipEl.innerHTML = '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>DELIVERED</span>';
+              } else if (tData.isCollected) {
+                chipEl.innerHTML = '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>IN TRANSIT</span>';
+              }
+            }
+          }
+        } catch (_) {}
+      }, 200);
+    }
   });
   $('shipEmpty').textContent = list.length ? '' : 'No booked shipments logged yet.';
 }

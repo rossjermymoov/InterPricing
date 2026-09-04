@@ -2417,39 +2417,58 @@ function calc() {
   }
 
   if (hasUps && !upsLimit.exceeded) {
-    if (upsLoading) {
-      rows.push({ s: { key: 'ups', name: 'UPS', carrier: 'UPS' }, loading: true, total: null });
-    } else if (upsReady && upsReady.enabled) {
-      const ALLOWED_UPS = new Set(['ux', 'us', 'ups_65', 'ups_11']);
-      (upsReady.services || []).filter(live => ALLOWED_UPS.has(live.key) || ['65', '11'].includes(String(live.code))).forEach(live => {
-        const liveSur = (live.accessorials || []).map(a => ({ name: a.name, code: a.code, amt: a.amt, remote: a.remote }));
-        const coveredKeys = new Set(liveSur.map(a => LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
-        const upsCustom = applicable.filter(a => a.carrier.toLowerCase() === 'ups').filter(a => {
-          const k = a.key || a.group;
-          return !coveredKeys.has(k);
-        }).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
-        const mergedSur = [...liveSur, ...upsCustom];
-        const surTotal = mergedSur.reduce((t, x) => t + x.amt, 0);
-        const fuelRate = (live.base > 0 && live.fuel > 0) ? (live.fuel / live.base) : 0;
-        const fuel = Math.round((live.base + surTotal) * fuelRate * 100) / 100;
-        const total = Math.round((live.base + fuel + surTotal) * 100) / 100;
-        rows.push({
-          s: { key: live.key, name: live.name, carrier: 'UPS' },
-          live: true,
-          base: live.base,
-          fuel,
-          sur: mergedSur,
-          total,
-          days: live.days,
+    const smallPkgUps = svcList.filter(s => s.carrier.toLowerCase() === 'ups' && !s.isEconomy && s.key !== 'edp' && s.key !== 'edu');
+    const economyUps = svcList.filter(s => s.carrier.toLowerCase() === 'ups' && (s.isEconomy || s.key === 'edp' || s.key === 'edu'));
+
+    if (smallPkgUps.length > 0) {
+      if (upsLoading) {
+        rows.push({ s: { key: 'ups', name: 'UPS Small Package', carrier: 'UPS' }, loading: true, total: null });
+      } else if (upsReady && upsReady.enabled) {
+        const ALLOWED_UPS = new Set(['ux', 'us', 'ups_65', 'ups_11']);
+        (upsReady.services || []).filter(live => ALLOWED_UPS.has(live.key) || ['65', '11'].includes(String(live.code))).forEach(live => {
+          const liveSur = (live.accessorials || []).map(a => ({ name: a.name, code: a.code, amt: a.amt, remote: a.remote }));
+          const coveredKeys = new Set(liveSur.map(a => LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
+          const upsCustom = applicable.filter(a => a.carrier.toLowerCase() === 'ups').filter(a => {
+            const k = a.key || a.group;
+            return !coveredKeys.has(k);
+          }).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
+          const mergedSur = [...liveSur, ...upsCustom];
+          const surTotal = mergedSur.reduce((t, x) => t + x.amt, 0);
+          const fuelRate = (live.base > 0 && live.fuel > 0) ? (live.fuel / live.base) : 0;
+          const fuel = Math.round((live.base + surTotal) * fuelRate * 100) / 100;
+          const total = Math.round((live.base + fuel + surTotal) * 100) / 100;
+          rows.push({
+            s: { key: live.key, name: live.name, carrier: 'UPS' },
+            live: true,
+            base: live.base,
+            fuel,
+            sur: mergedSur,
+            total,
+            days: live.days,
+          });
         });
-      });
-    } else {
-      const staticUps = svcList.filter(s => s.carrier.toLowerCase() === 'ups');
-      staticUps.forEach(s => {
-        const r = staticRow(s, c, chg, applicable);
-        if (r && r.total != null) rows.push(r);
-      });
+      } else {
+        smallPkgUps.forEach(s => {
+          const r = staticRow(s, c, chg, applicable);
+          if (r && r.total != null) rows.push(r);
+        });
+      }
     }
+
+    // Economy DDP / DDU (Postal / Non-API static matrices)
+    economyUps.forEach(s => {
+      // DDU volumetric check: Volumetric only applies if package volume > 1 cu ft (28,316 cm3)
+      let econChg = chg;
+      if (s.key === 'edu') {
+        const volCm3 = (L && W && H) ? (L * W * H) : 0;
+        econChg = (volCm3 > 28316.85) ? Math.max(actual, vol) : actual;
+      }
+      const maxCap = (s.key === 'edu') ? 20.0 : 30.0;
+      if (econChg <= maxCap) {
+        const r = staticRow(s, c, econChg, applicable.filter(a => a.group !== 'residential'));
+        if (r && r.total != null) rows.push(r);
+      }
+    });
   }
 
   rows = rows.filter(x => x.loading || (x.total != null && x.total > 0));
@@ -4047,23 +4066,33 @@ function renderCustomerBookings(shipments) {
       : '—';
 
     // 7-Stage Progress calculation
-    let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : 0);
-    const progressPercent = currentStageIdx === 0 ? 0 : Math.min(100, Math.round(((currentStageIdx - 1) / 6) * 100));
+    let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : (x.status === 'collected' ? 1 : 0));
+    let progressPercent = currentStageIdx === 0 ? 0 : Math.min(100, Math.round(((currentStageIdx - 1) / 6) * 100));
 
-    const stagesHtml = STAGES.map((st, i) => {
-      const isDone = (i + 1) < currentStageIdx;
-      const isCurrent = (i + 1) === currentStageIdx;
-      const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
+    const renderStages = (stageIdx) => {
+      const pPct = stageIdx === 0 ? 0 : Math.min(100, Math.round(((stageIdx - 1) / 6) * 100));
       return `
-        <div class="moov-timeline-node ${cls}">
-          <div class="moov-timeline-dot">
-            ${isDone ? '✓' : (i + 1)}
-          </div>
-          <div class="moov-timeline-title">${st.name}</div>
-          <div class="moov-timeline-sub">${st.desc}</div>
+        <div class="moov-timeline-track">
+          <div class="moov-timeline-progress" style="width: ${pPct}%"></div>
+        </div>
+        <div class="moov-timeline-nodes">
+          ${STAGES.map((st, i) => {
+            const isDone = (i + 1) < stageIdx;
+            const isCurrent = (i + 1) === stageIdx;
+            const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
+            return `
+              <div class="moov-timeline-node ${cls}">
+                <div class="moov-timeline-dot">
+                  ${isDone ? '✓' : (i + 1)}
+                </div>
+                <div class="moov-timeline-title">${st.name}</div>
+                <div class="moov-timeline-sub">${st.desc}</div>
+              </div>
+            `;
+          }).join('')}
         </div>
       `;
-    }).join('');
+    };
 
     const pkgRowsHtml = pkgs.map((p, idx) => {
       const q = parseInt(p.qty, 10) || 1;
@@ -4092,7 +4121,7 @@ function renderCustomerBookings(shipments) {
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <img src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS" style="height:22px;width:auto;object-fit:contain;vertical-align:middle"/>
           <span style="font-weight:800;font-size:15px;color:var(--ink)">${esc(x.service_name || 'UPS Service')}</span>
-          ${statusBadge}
+          <span id="custShipBadge_${x.id}">${statusBadge}</span>
         </div>
         <div style="display:flex;align-items:center;gap:12px">
           <span style="font-size:12px;color:var(--muted)">Booked: <b>${dateStr}</b></span>
@@ -4110,13 +4139,8 @@ function renderCustomerBookings(shipments) {
             </button>
           </div>
 
-          <div class="moov-timeline-wrap">
-            <div class="moov-timeline-track">
-              <div class="moov-timeline-progress" style="width: ${progressPercent}%"></div>
-            </div>
-            <div class="moov-timeline-nodes">
-              ${stagesHtml}
-            </div>
+          <div class="moov-timeline-wrap" id="custTimelineWrap_${x.id}">
+            ${renderStages(currentStageIdx)}
           </div>
         </div>
       ` : ''}
@@ -4126,7 +4150,7 @@ function renderCustomerBookings(shipments) {
         <div>
           <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">1. Supplier Collection</div>
           <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.company || s.name || 'Supplier')}</div>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(s.city || 'Origin')}, ${esc(s.country || '')}</div>
+          <div style="font-size:12.5px;color:var(--muted),margin-top:2px">${esc(s.city || 'Origin')}, ${esc(s.country || '')}</div>
         </div>
 
         <div>
@@ -4311,6 +4335,35 @@ function renderCustomerBookings(shipments) {
     card._shipment = x;
     card._packages = pkgs;
     box.appendChild(card);
+
+    // If active shipment, query live tracking in background to refresh milestone progress
+    if (x.tracking_number && !isCancelled && x.status !== 'delivered') {
+      setTimeout(async () => {
+        try {
+          const tRes = await fetch('/api/shipments/' + encodeURIComponent(x.tracking_number) + '/track');
+          const tData = await tRes.json();
+          if (tData && tData.ok) {
+            let stage = 0;
+            if (tData.isDelivered) stage = 7;
+            else if (tData.isCollected) stage = 3;
+            else stage = 0;
+
+            const wrapEl = $('custTimelineWrap_' + x.id);
+            if (wrapEl && stage > 0) {
+              wrapEl.innerHTML = renderStages(stage);
+            }
+            const badgeEl = $('custShipBadge_' + x.id);
+            if (badgeEl && stage > 0) {
+              const bg = tData.isDelivered ? '#d1fae5' : '#eff6ff';
+              const col = tData.isDelivered ? '#065f46' : '#1d4ed8';
+              const bdr = tData.isDelivered ? '#a7f3d0' : '#bfdbfe';
+              const txt = tData.isDelivered ? 'DELIVERED' : 'IN TRANSIT';
+              badgeEl.innerHTML = `<span style="font-size:10.5px;font-weight:900;background:${bg};color:${col};padding:3px 8px;letter-spacing:.04em;border:1px solid ${bdr}">${txt}</span>`;
+            }
+          }
+        } catch (_) {}
+      }, 200);
+    }
   });
 }
 

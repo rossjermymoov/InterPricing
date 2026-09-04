@@ -4,7 +4,23 @@ const path = require('path');
 const crypto = require('crypto');
 
 const seedPath = path.join(__dirname, 'seed.json');
-const readSeed = () => JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+const economyRatesPath = '/Users/rossjermy/.gemini/antigravity/brain/02660440-f478-43cc-ae1e-43d4f47eb078/scratch/economy_rates.json';
+const readSeed = () => {
+  const s = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+  if (fs.existsSync(economyRatesPath)) {
+    try {
+      const econ = JSON.parse(fs.readFileSync(economyRatesPath, 'utf8'));
+      if (econ.ups_economy_ddp) s.ups_economy_ddp = econ.ups_economy_ddp;
+      if (econ.c2zone_economy_ddp) s.c2zone_economy_ddp = econ.c2zone_economy_ddp;
+      if (econ.ups_economy_ddu) s.ups_economy_ddu = econ.ups_economy_ddu;
+      if (econ.c2zone_economy_ddu) s.c2zone_economy_ddu = econ.c2zone_economy_ddu;
+    } catch (e) {
+      console.error('[db] Error loading economy rates:', e.message);
+    }
+  }
+  s.dataVersion = 20;
+  return s;
+};
 
 // Fill missing keys in target from defaults (deep), without overwriting existing values.
 const deepFill = (target, defaults) => {
@@ -207,7 +223,7 @@ async function migrateConfig() {
   }
   // Rate-data refresh: when seed.dataVersion changes, replace rate tables but preserve admin settings.
   if ((cfg.dataVersion || 0) !== (seed.dataVersion || 0)) {
-    const RATE_KEYS = ['bands','countries','divisor','dpd_classic','dpd_express','dpd_parcel','dpd_expresspak','ups_express','ups_standard','c2zone_express','c2zone_standard'];
+    const RATE_KEYS = ['bands','countries','divisor','dpd_classic','dpd_express','dpd_parcel','dpd_expresspak','ups_express','ups_standard','c2zone_express','c2zone_standard','ups_economy_ddp','c2zone_economy_ddp','ups_economy_ddu','c2zone_economy_ddu'];
     for (const k of RATE_KEYS) cfg[k] = seed[k];
     delete cfg.ups; delete cfg.c2zone;
     cfg.settings = deepFill(cfg.settings || {}, seed.settings || {});

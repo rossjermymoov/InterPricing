@@ -1231,6 +1231,15 @@ app.get('/api/shipments/:tracking/track', async (req, res) => {
     const allDelivered = parcelResults.length > 0 && parcelResults.every(p => p.isDelivered);
     const anyDelivered = parcelResults.some(p => p.isDelivered);
 
+    const calculatedDbStatus = allDelivered ? 'delivered' : (anyCollected ? 'in_transit' : (shipment && shipment.status ? shipment.status : 'booked'));
+    if (shipment && db.hasDb && shipment.status !== 'cancelled' && shipment.status !== calculatedDbStatus) {
+      try {
+        await db.updateShipmentStatus(shipment.id, calculatedDbStatus);
+      } catch (err) {
+        console.error('[track] status update error:', err.message);
+      }
+    }
+
     res.json({
       ok: parcelResults.some(p => p.ok),
       shipmentId: (shipment && (shipment.shipment_id || shipment.id)) || null,
