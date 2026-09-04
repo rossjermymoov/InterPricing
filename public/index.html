@@ -2273,20 +2273,32 @@ function exceedsLimits(carrier, w, l, w2, h) {
   return { exceeded: false };
 }
 
+const MARKUP_ITEMS = [
+  { key: 'ca', name: 'DPD Classic Air', color: '#DC2626', carrier: 'dpd' },
+  { key: 'ae', name: 'DPD Air Express', color: '#DC2626', carrier: 'dpd' },
+  { key: 'ep', name: 'DPD Classic ExpressPak', color: '#DC2626', carrier: 'dpd' },
+  { key: 'cp', name: 'DPD Classic Parcel', color: '#DC2626', carrier: 'dpd' },
+  { key: 'us_eu', name: 'UPS Standard (Europe)', color: '#351C15', carrier: 'ups', fallbackKey: 'us' },
+  { key: 'us_row', name: 'UPS Standard (Rest of World)', color: '#351C15', carrier: 'ups', fallbackKey: 'us' },
+  { key: 'ux_eu', name: 'UPS Express Saver (Europe)', color: '#351C15', carrier: 'ups', fallbackKey: 'ux' },
+  { key: 'ux_row', name: 'UPS Express Saver (Rest of World)', color: '#351C15', carrier: 'ups', fallbackKey: 'ux' },
+];
+
 function activeMarkupObj() {
   const obj = {};
-  SERVICES.forEach(s => {
+  const g = num('mkGlobal') || 10;
+  MARKUP_ITEMS.forEach(s => {
     const el = $('mk_' + s.key);
-    obj[s.key] = el ? (parseFloat(el.value) || 0) : num('mkGlobal');
+    obj[s.key] = el ? (parseFloat(el.value) || 0) : g;
   });
-  obj.default = num('mkGlobal');
+  obj.default = g;
   return obj;
 }
 
 function custCardMarkupObj() {
   const obj = {};
   const g = num('custMkGlobal') || 10;
-  SERVICES.forEach(s => {
+  MARKUP_ITEMS.forEach(s => {
     const el = $('cust_mk_' + s.key);
     obj[s.key] = el ? (parseFloat(el.value) || 0) : g;
   });
@@ -2297,7 +2309,7 @@ function custCardMarkupObj() {
 function editCardMarkupObj() {
   const obj = {};
   const g = num('editCustMkGlobal') || 10;
-  SERVICES.forEach(s => {
+  MARKUP_ITEMS.forEach(s => {
     const el = $('edit_cust_mk_' + s.key);
     obj[s.key] = el ? (parseFloat(el.value) || 0) : g;
   });
@@ -2359,8 +2371,17 @@ const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2
 const CARRIER_LOGOS={dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
 function carrierLogo(carrier){const k=(carrier||'').toLowerCase();const src=CARRIER_LOGOS[k]||('/carrier-'+k+'.svg');
   return '<img class="ds-card-clogo" src="'+src+'" data-k="'+k+'" data-c="'+k.toUpperCase()+'" alt="'+k+'"/>';}
-const num=id=>{const el=$(id);const v=el?parseFloat(el.value):NaN;return isNaN(v)?0:v;};
-function markupPct(svc){return svc&&$('mk_'+svc.key) ? num('mk_'+svc.key) : num('mkGlobal');}
+function markupPct(svc, country){
+  const c = country || ($('country') ? $('country').value : '');
+  const isEu = region(c) === 'eu';
+  if (svc && (svc.carrier || '').toLowerCase() === 'ups') {
+    const regKey = isEu ? '_eu' : '_row';
+    const specificEl = $('mk_' + svc.key + regKey);
+    if (specificEl) return num('mk_' + svc.key + regKey);
+  }
+  if (svc && $('mk_' + svc.key)) return num('mk_' + svc.key);
+  return num('mkGlobal') || 10;
+}
 const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
 const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];return eu.includes(c)?'eu':'row';};
 function accCost(a){
@@ -2447,7 +2468,7 @@ function renderMarkup(){
   const wrap=$('mkList'); if(!wrap) return;
   wrap.innerHTML='';
   const g=num('mkGlobal') || 10;
-  SERVICES.forEach(svc=>{
+  MARKUP_ITEMS.forEach(svc=>{
     const row=document.createElement('div');
     row.className='ds-mkrow';
     row.innerHTML='<div class="nm"><span class="sw" style="background:'+svc.color+'"></span><span>'+svc.name+'</span></div>' +
@@ -2457,7 +2478,7 @@ function renderMarkup(){
       '</div>';
     wrap.appendChild(row);
   });
-  SERVICES.forEach(svc=>{
+  MARKUP_ITEMS.forEach(svc=>{
     const el=$('mk_'+svc.key);
     if(el) el.addEventListener('input',calc);
   });
@@ -2467,7 +2488,7 @@ function renderCustCardMarkup(){
   const wrap=$('rcMkList'); if(!wrap) return;
   wrap.innerHTML='';
   const g=num('custMkGlobal') || 10;
-  SERVICES.forEach(svc=>{
+  MARKUP_ITEMS.forEach(svc=>{
     const row=document.createElement('div');
     row.className='ds-mkrow';
     row.innerHTML='<div class="nm"><span class="sw" style="background:'+svc.color+'"></span><span>'+svc.name+'</span></div>' +
@@ -2483,8 +2504,12 @@ function renderEditCardMarkup(markupObj, defaultVal){
   const wrap=$('editRcMkList'); if(!wrap) return;
   wrap.innerHTML='';
   const g = defaultVal != null ? defaultVal : (num('editCustMkGlobal') || 10);
-  SERVICES.forEach(svc=>{
-    const val = (markupObj && markupObj[svc.key] != null) ? markupObj[svc.key] : g;
+  MARKUP_ITEMS.forEach(svc=>{
+    let val = g;
+    if (markupObj) {
+      if (markupObj[svc.key] != null) val = markupObj[svc.key];
+      else if (svc.fallbackKey && markupObj[svc.fallbackKey] != null) val = markupObj[svc.fallbackKey];
+    }
     const row=document.createElement('div');
     row.className='ds-mkrow';
     row.innerHTML='<div class="nm"><span class="sw" style="background:'+svc.color+'"></span><span>'+svc.name+'</span></div>' +
@@ -2498,7 +2523,7 @@ function renderEditCardMarkup(markupObj, defaultVal){
 
 function applyGlobalMarkup(){
   const g=num('mkGlobal');
-  SERVICES.forEach(svc=>{
+  MARKUP_ITEMS.forEach(svc=>{
     const el=$('mk_'+svc.key);
     if(el) el.value=g;
   });
@@ -2508,7 +2533,7 @@ function applyGlobalMarkup(){
 
 function applyCustGlobalMarkup(){
   const g=num('custMkGlobal');
-  SERVICES.forEach(svc=>{
+  MARKUP_ITEMS.forEach(svc=>{
     const el=$('cust_mk_'+svc.key);
     if(el) el.value=g;
   });
@@ -2517,7 +2542,7 @@ function applyCustGlobalMarkup(){
 
 function applyEditCustGlobalMarkup(){
   const g=num('editCustMkGlobal');
-  SERVICES.forEach(svc=>{
+  MARKUP_ITEMS.forEach(svc=>{
     const el=$('edit_cust_mk_'+svc.key);
     if(el) el.value=g;
   });

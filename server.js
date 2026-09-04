@@ -473,17 +473,28 @@ app.post('/api/card-rate', async (req, res) => {
       return res.json({ enabled: true, services: [], maxExceeded: true });
     }
 
-    const mkObj = (card.config && card.config.markup) || {};
     const cfg = await db.getConfig();
+    const st = cfg.settings || {};
+    const euCountries = (st.regions && st.regions.eu) || [];
+    const isEu = euCountries.includes(country) || euCountries.includes(iso);
+    const mkObj = (card.config && card.config.markup) || {};
     const markupOf = (key, code) => {
       if (typeof mkObj === 'number') return mkObj;
-      if (mkObj[key] != null && isFinite(Number(mkObj[key]))) return Number(mkObj[key]);
+      const regKey = isEu ? key + '_eu' : key + '_row';
+      if (mkObj[regKey] != null && isFinite(Number(mkObj[regKey]))) return Number(mkObj[regKey]);
       if (['07', '08', '54', '65', 'ue', 'ud', 'up', 'ux'].includes(key) || ['07', '08', '54', '65'].includes(code)) {
+        const uxReg = isEu ? 'ux_eu' : 'ux_row';
+        if (mkObj[uxReg] != null && isFinite(Number(mkObj[uxReg]))) return Number(mkObj[uxReg]);
         if (mkObj['ux'] != null && isFinite(Number(mkObj['ux']))) return Number(mkObj['ux']);
       }
-      if (mkObj['us'] != null && isFinite(Number(mkObj['us']))) return Number(mkObj['us']);
+      if (key === 'us' || ['11', '011', '03'].includes(code)) {
+        const usReg = isEu ? 'us_eu' : 'us_row';
+        if (mkObj[usReg] != null && isFinite(Number(mkObj[usReg]))) return Number(mkObj[usReg]);
+        if (mkObj['us'] != null && isFinite(Number(mkObj['us']))) return Number(mkObj['us']);
+      }
+      if (mkObj[key] != null && isFinite(Number(mkObj[key]))) return Number(mkObj[key]);
       if (mkObj.default != null && isFinite(Number(mkObj.default))) return Number(mkObj.default);
-      return Number((cfg.settings || {}).importMarkupPct) || 0;
+      return Number(st.importMarkupPct) || 0;
     };
 
     const goodsVal = Number(value) || 100;
@@ -543,14 +554,24 @@ app.post('/api/calc-rate', async (req, res) => {
     const st = cfg.settings || {};
     const globalMarkup = Number(st.importMarkupPct) || 0;
     const upsFuelMarkup = Number(st.upsFuelMarkup) || 0;
+    const euCountries = (st.regions && st.regions.eu) || [];
+    const isEu = euCountries.includes(country) || euCountries.includes(iso);
     const mkObj = (markup && typeof markup === 'object') ? markup : (typeof markup === 'number' ? markup : {});
     const markupOf = (key, code) => {
       if (typeof mkObj === 'number') return mkObj;
-      if (mkObj[key] != null && isFinite(Number(mkObj[key]))) return Number(mkObj[key]);
+      const regKey = isEu ? key + '_eu' : key + '_row';
+      if (mkObj[regKey] != null && isFinite(Number(mkObj[regKey]))) return Number(mkObj[regKey]);
       if (['07', '08', '54', '65', 'ue', 'ud', 'up', 'ux'].includes(key) || ['07', '08', '54', '65'].includes(code)) {
+        const uxReg = isEu ? 'ux_eu' : 'ux_row';
+        if (mkObj[uxReg] != null && isFinite(Number(mkObj[uxReg]))) return Number(mkObj[uxReg]);
         if (mkObj['ux'] != null && isFinite(Number(mkObj['ux']))) return Number(mkObj['ux']);
       }
-      if (mkObj['us'] != null && isFinite(Number(mkObj['us']))) return Number(mkObj['us']);
+      if (key === 'us' || ['11', '011', '03'].includes(code)) {
+        const usReg = isEu ? 'us_eu' : 'us_row';
+        if (mkObj[usReg] != null && isFinite(Number(mkObj[usReg]))) return Number(mkObj[usReg]);
+        if (mkObj['us'] != null && isFinite(Number(mkObj['us']))) return Number(mkObj['us']);
+      }
+      if (mkObj[key] != null && isFinite(Number(mkObj[key]))) return Number(mkObj[key]);
       if (mkObj.default != null && isFinite(Number(mkObj.default))) return Number(mkObj.default);
       return globalMarkup;
     };

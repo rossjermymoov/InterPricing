@@ -2245,7 +2245,17 @@ function priceOf(s, c, chg) {
     if (chg > s.cap + 1e-9) return { p: null, avail: true, note: 'over ' + s.cap + ' kg' };
     return { p: p, avail: true, band: '≤' + s.cap + 'kg' };
   }
-  const z = s.zmap[c], zd = z && s.zones[z];
+  if (s.prices && s.prices[c]) {
+    const zd = s.prices[c];
+    const mB = zd[zd.length - 1][0];
+    if (chg <= mB + 1e-9) {
+      for (const [w, pr] of zd) {
+        if (w >= chg - 1e-9) return { p: pr, avail: true, band: w };
+      }
+    }
+    return { p: zd[zd.length - 1][1], avail: true, band: '>' + mB + 'kg' };
+  }
+  const z = s.zmap && s.zmap[c], zd = z && s.zones && s.zones[z];
   if (!z || !zd) return { p: null, avail: false };
   const mB = zd[zd.length - 1][0];
   if (chg <= mB + 1e-9) {

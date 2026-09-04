@@ -26,11 +26,18 @@ function euDutyPayload(e) {
   };
 }
 
-function markupFor(card, key) {
+function markupFor(card, key, country, euList) {
   const m = (card && card.config && card.config.markup);
   if (m == null) return 0;
   if (typeof m === 'number') return m;
-  return Number(m[key] || 0);
+  if (country && (key === 'us' || key === 'ux' || key.startsWith('ups'))) {
+    const isEu = Array.isArray(euList) && euList.includes(country);
+    const regKey = isEu ? key + '_eu' : key + '_row';
+    if (m[regKey] != null && isFinite(Number(m[regKey]))) return Number(m[regKey]);
+  }
+  if (m[key] != null && isFinite(Number(m[key]))) return Number(m[key]);
+  if (m.default != null && isFinite(Number(m.default))) return Number(m.default);
+  return 0;
 }
 
 // Build the customer-facing payload for one card against the current config.
@@ -40,9 +47,10 @@ function buildCardPayload(cfg, card) {
   const CAPS = (S.caps || cfg.caps || { cp: 31.5, ep: 3 });
   const conf = (card && card.config) || {};
   const include = Array.isArray(conf.services) && conf.services.length ? conf.services : SERVICES.map((s) => s.key);
+  const euList = (S.regions && S.regions.eu) || [];
 
   // Base delivery price with the customer markup folded in (fuel NOT applied — card adds it).
-  const base = (key, raw) => (raw == null ? null : r2(raw * (1 + markupFor(card, key) / 100)));
+  const base = (key, raw, country) => (raw == null ? null : r2(raw * (1 + markupFor(card, key, country, euList) / 100)));
 
   const countries = new Set();
   const services = [];
@@ -53,18 +61,25 @@ function buildCardPayload(cfg, card) {
     if (s.type === 'band') {
       const src = cfg[s.src] || {};
       o.prices = {};
-      for (const c of Object.keys(src)) { o.prices[c] = src[c].map((p) => base(s.key, p)); countries.add(c); }
+      for (const c of Object.keys(src)) { o.prices[c] = src[c].map((p) => base(s.key, p, c)); countries.add(c); }
     } else if (s.type === 'flat') {
       const src = cfg[s.src] || {};
       o.cap = CAPS[s.cap];
       o.prices = {};
-      for (const c of Object.keys(src)) { if (src[c] != null) { o.prices[c] = base(s.key, src[c]); countries.add(c); } }
+      for (const c of Object.keys(src)) { if (src[c] != null) { o.prices[c] = base(s.key, src[c], c); countries.add(c); } }
     } else {
       const src = cfg[s.src] || {}, zmap = cfg[s.zmap] || {};
       o.zones = {};
       for (const z of Object.keys(src)) o.zones[z] = (src[z].bands || []).map(([w, p]) => [w, base(s.key, p)]);
+      o.prices = {};
       o.zmap = zmap;
-      for (const c of Object.keys(zmap)) if (src[zmap[c]]) countries.add(c);
+      for (const c of Object.keys(zmap)) {
+        const z = zmap[c];
+        if (src[z]) {
+          countries.add(c);
+          o.prices[c] = (src[z].bands || []).map(([w, p]) => [w, base(s.key, p, c)]);
+        }
+      }
     }
     services.push(o);
   }
