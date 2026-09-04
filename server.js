@@ -8,6 +8,7 @@ const { fetchPickups, fetchPickupsRaw } = require('./pickups');
 const ups = require('./ups');
 const emailService = require('./email');
 const { nameToIso } = require('./countries');
+const surcharges = require('./surcharges');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -395,6 +396,12 @@ app.post('/api/import-quote', async (req, res) => {
         remote: !!a.remote,
       })).filter((a) => a.amt > 0);
 
+      const hasRemoteInLive = liveAcc.some((a) => a.remote || ['190', '195', '197', '199', '400', '401', '376'].includes(String(a.code)));
+      if (!hasRemoteInLive && receiver && receiver.postcode) {
+        const eas = surcharges.lookupSurcharge({ country: receiver.country || receiverCountry, postcode: receiver.postcode, city: receiver.city, weight, qty: parcels });
+        if (eas) liveAcc.push(eas);
+      }
+
       const allSurcharges = [...liveAcc, ...customSurcharges];
       if (hsCharge > 0) {
         allSurcharges.push({ key: 'hs', name: 'HS customs entry (' + hsExtra + ' extra line' + (hsExtra === 1 ? '' : 's') + ')', amt: hsCharge });
@@ -519,6 +526,13 @@ app.post('/api/card-rate', async (req, res) => {
         amt: Math.round((a.amt || 0) * 100) / 100,
         remote: !!a.remote,
       })).filter((a) => a.amt > 0);
+
+      const hasRemoteInLive = accessorials.some((a) => a.remote || ['190', '195', '197', '199', '400', '401', '376'].includes(String(a.code)));
+      if (!hasRemoteInLive && postcode) {
+        const eas = surcharges.lookupSurcharge({ country: iso || country, postcode, city: req.body && req.body.city, weight: numWeight || 1, qty: 1 });
+        if (eas) accessorials.push(eas);
+      }
+
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
       const fuelRate = (bd.base > 0 && bd.fuel > 0) ? ((bd.fuel / bd.base) * (1 + upsFuelMarkup / 100)) : 0;
       const fuelAmount = Math.round((baseMarkedUp + surTotal) * fuelRate * 100) / 100;
@@ -610,6 +624,20 @@ app.post('/api/calc-rate', async (req, res) => {
         amt: Math.round((a.amt || 0) * 100) / 100,
         remote: !!a.remote,
       })).filter((a) => a.amt > 0);
+
+      const hasRemoteInLive = accessorials.some((a) => a.remote || ['190', '195', '197', '199', '400', '401', '376'].includes(String(a.code)));
+      if (!hasRemoteInLive && postcode) {
+        const eas = surcharges.lookupSurcharge({ country: iso || country, postcode, city: req.body && req.body.city, weight: numWeight || 1, qty: 1 });
+        if (eas) {
+          accessorials.push({
+            code: eas.code,
+            name: eas.name,
+            costAmt: eas.amt,
+            amt: eas.amt,
+            remote: true,
+          });
+        }
+      }
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
       const fuelRate = (costBase > 0 && costFuel > 0) ? ((costFuel / costBase) * (1 + upsFuelMarkup / 100)) : 0;
       const sellFuel = Math.round((sellBase + surTotal) * fuelRate * 100) / 100;
