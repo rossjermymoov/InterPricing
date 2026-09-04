@@ -99,6 +99,7 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
       return r;
     };
     const { fuelByService, caps, accessorials, euCustomsDuty } = req.body || {};
+    if (req.body && req.body.upsFuelMarkup != null) cfg.settings.upsFuelMarkup = Number(req.body.upsFuelMarkup) || 0;
     if (req.body && req.body.importMarkupPct != null) cfg.settings.importMarkupPct = Number(req.body.importMarkupPct) || 0;
     if (req.body && req.body.debugRaw != null) cfg.settings.debugRaw = !!req.body.debugRaw;
     if (req.body && req.body.hsFreeLines != null) cfg.settings.hsFreeLines = Math.max(0, Math.floor(Number(req.body.hsFreeLines) || 0));
@@ -380,13 +381,15 @@ app.post('/api/import-quote', async (req, res) => {
     });
     const customSurTotal = customSurcharges.reduce((sum, x) => sum + x.amt, 0);
 
+    const upsFuelMarkup = Number((cfg.settings || {}).upsFuelMarkup) || 0;
     const services = (r.services || [])
       .filter((s) => ALLOWED_UPS_CODES.has(String(s.code)))
       .map((s) => {
       const bd = s.breakdown || {};
       const factor = 1 + markup / 100;
+      const fuelFactor = factor * (1 + upsFuelMarkup / 100);
       const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
-      const fuelAmount = Math.round((bd.fuel || 0) * factor * 100) / 100;
+      const fuelAmount = Math.round((bd.fuel || 0) * fuelFactor * 100) / 100;
       const liveAcc = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
@@ -491,14 +494,16 @@ app.post('/api/card-rate', async (req, res) => {
     });
     if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
 
+    const upsFuelMarkup = Number((cfg.settings || {}).upsFuelMarkup) || 0;
     const services = [];
     (r.services || []).filter((s) => ALLOWED_UPS_CODES.has(String(s.code))).forEach((s) => {
       const key = CODE2KEY[s.code] || ('ups_' + s.code);
       const mk = markupOf(key, s.code);
       const factor = 1 + mk / 100;
+      const fuelFactor = factor * (1 + upsFuelMarkup / 100);
       const bd = s.breakdown || {};
       const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
-      const fuelAmount = Math.round((bd.fuel || 0) * factor * 100) / 100;
+      const fuelAmount = Math.round((bd.fuel || 0) * fuelFactor * 100) / 100;
       const accessorials = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
@@ -537,6 +542,7 @@ app.post('/api/calc-rate', async (req, res) => {
     const cfg = await db.getConfig();
     const st = cfg.settings || {};
     const globalMarkup = Number(st.importMarkupPct) || 0;
+    const upsFuelMarkup = Number(st.upsFuelMarkup) || 0;
     const mkObj = (markup && typeof markup === 'object') ? markup : (typeof markup === 'number' ? markup : {});
     const markupOf = (key, code) => {
       if (typeof mkObj === 'number') return mkObj;
@@ -571,11 +577,12 @@ app.post('/api/calc-rate', async (req, res) => {
       const key = CODE2KEY[s.code] || ('ups_' + s.code);
       const mk = markupOf(key, s.code);
       const factor = 1 + mk / 100;
+      const fuelFactor = factor * (1 + upsFuelMarkup / 100);
       const bd = s.breakdown || {};
       const costBase = Math.round((bd.base || 0) * 100) / 100;
       const costFuel = Math.round((bd.fuel || 0) * 100) / 100;
       const sellBase = Math.round(costBase * factor * 100) / 100;
-      const sellFuel = Math.round(costFuel * factor * 100) / 100;
+      const sellFuel = Math.round(costFuel * fuelFactor * 100) / 100;
 
       const accessorials = (bd.accessorials || []).map((a) => ({
         code: a.code,

@@ -24847,18 +24847,9 @@
         "name": "DPD Classic Parcel",
         "cost": 12,
         "sell": 18
-      },
-      "ux": {
-        "name": "UPS Express Saver",
-        "cost": 34.6875,
-        "sell": 34.6875
-      },
-      "us": {
-        "name": "UPS Standard",
-        "cost": 21.75,
-        "sell": 21.75
       }
     },
+    "upsFuelMarkup": 0.0,
     "caps": {
       "cp": 31.5,
       "ep": 3
@@ -30514,5 +30505,5 @@
     "Switzerland": "6",
     "Vatican City": "705"
   },
-  "dataVersion": 18
+  "dataVersion": 19
 }

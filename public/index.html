@@ -2152,15 +2152,34 @@ a:hover { text-decoration: underline; }
       </div>
 
       <div class="ds-section">
-        <div class="ds-section-title">Fuel By Service</div>
-        <p class="ds-blurb" style="font-size:12px;margin-bottom:12px">Fuel percentage applied to the base rate. Cost % is what you pay; Sell % is what you charge.</p>
-        <div class="ds-table-wrap">
-          <table class="ds-table">
-            <thead>
-              <tr><th>Service</th><th>Fuel Cost %</th><th>Fuel Sell %</th></tr>
-            </thead>
-            <tbody id="fuelBody"></tbody>
-          </table>
+        <div class="ds-section-title">Fuel Surcharges &amp; Markup</div>
+        <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:24px;align-items:start">
+          <div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:var(--mv-ink)">DPD Fuel By Service</div>
+            <p class="ds-blurb" style="font-size:12px;margin-bottom:10px">Fuel percentage applied to DPD baseline matrix rates. Cost % is what you pay; Sell % is what you charge.</p>
+            <div class="ds-table-wrap">
+              <table class="ds-table">
+                <thead>
+                  <tr><th>DPD Service</th><th>Fuel Cost %</th><th>Fuel Sell %</th></tr>
+                </thead>
+                <tbody id="fuelBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-radius:8px;padding:16px 18px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:var(--mv-ink);display:flex;align-items:center;gap:6px">
+              <span class="ds-card-badge fastest" style="position:static;padding:2px 6px">UPS</span>
+              <span>UPS Fuel Markup</span>
+            </div>
+            <p class="ds-blurb" style="font-size:12px;margin-bottom:12px">Your live UPS account rates already include your 25% contract fuel incentive. Enter an optional extra fuel markup % to add margin back onto the customer's fuel surcharge.</p>
+            <div class="ds-field-wrap">
+              <label class="ds-label">UPS Fuel Markup (%)</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input id="upsFuelMarkup" type="number" step="0.1" value="0" class="ds-input num" style="width:110px;font-weight:700"/>
+                <span style="font-size:13px;font-weight:700;color:var(--mv-ink)">%</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -4287,6 +4306,7 @@ function renderSettingsData(){
   fillFuelTable();
   renderAccChips();
   buildAccTable();
+  if($('upsFuelMarkup')) $('upsFuelMarkup').value = (s.upsFuelMarkup != null ? s.upsFuelMarkup : 0);
   if($('euEnabled')) $('euEnabled').checked = !!(s.euCustomsDuty&&s.euCustomsDuty.enabled);
   if($('euRate')) $('euRate').value = (s.euCustomsDuty&&s.euCustomsDuty.eurPerGbp)||1.18;
   if($('euPerSku')) $('euPerSku').value = (s.euCustomsDuty&&s.euCustomsDuty.perSku)||3;
@@ -4300,7 +4320,8 @@ function renderSettingsData(){
 function fillFuelTable(){
   const tb=$('fuelBody'); tb.innerHTML='';
   const fbs=(P.settings&&P.settings.fuelByService)||{};
-  SERVICES.forEach(svc=>{
+  const dpdServices = SERVICES.filter(s => (s.carrier || '').toLowerCase() === 'dpd');
+  dpdServices.forEach(svc=>{
     const f=fbs[svc.key]||{cost:0,sell:0};
     const tr=document.createElement('tr');
     tr.innerHTML='<td><b>'+svc.name+'</b></td>' +
@@ -4402,8 +4423,8 @@ $('saveBtn').onclick=async()=>{
   const euCustomsDuty={enabled:$('euEnabled').checked,eurPerGbp:num('euRate'),perSku:num('euPerSku'),thresholdEur:num('euThresh')};
   const body={
     fuelByService:fbs, accessorials:acc, euCustomsDuty,
-    importMarkupPct:num('upsMarkup'), hsFreeLines:num('hsFreeLines'),
-    hsLineCharge:num('hsLineCharge'), debugRaw:$('debugRaw').checked
+    upsFuelMarkup:num('upsFuelMarkup'), importMarkupPct:num('upsMarkup'),
+    hsFreeLines:num('hsFreeLines'), hsLineCharge:num('hsLineCharge'), debugRaw:$('debugRaw').checked
   };
   const r=await jput('/api/settings',body); const d=await r.json();
   if(!r.ok){$('saveMsg').style.color='var(--mv-magenta-deep)';$('saveMsg').textContent=d.error||'Failed to save';return;}
