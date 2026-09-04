@@ -2425,26 +2425,62 @@ const SERVICES=[
 ];
 
 function baseRate(svc, c, w){
-  if(svc.type==='flat'){const flat=P[svc.src][c];if(flat==null)return{avail:false};const cap=CAPS[svc.cap];return{avail:w<=cap,price:flat,cap};}
+  if(!P) return {avail:false};
+  if(svc.type==='flat'){
+    const src = P[svc.src];
+    if(!src || src[c]==null) return {avail:false};
+    const cap = (CAPS && CAPS[svc.cap]) || 30;
+    return {avail:w<=cap, price:src[c], cap};
+  }
   let tbl=null;
-  if(svc.type==='zone'){const z=P[svc.zmap][c];if(z==null)return{avail:false};tbl=(P[svc.src]||{})['Zone '+z];}
-  else tbl=P[svc.src][c];
-  if(!tbl)return{avail:false};
-  if(w<=bands[bands.length-1]){let b=bands.find(x=>w<=x);return{avail:tbl[b]!=null,price:tbl[b]};}
-  const maxB=bands[bands.length-1],base=tbl[maxB],per=(tbl['per_kg']!=null?tbl['per_kg']:tbl['perKg']);
-  if(base==null||per==null)return{avail:false};
-  return{avail:true,price:base+(w-maxB)*per};
+  if(svc.type==='zone'){
+    const zmap = P[svc.zmap];
+    if(!zmap || zmap[c]==null) return {avail:false};
+    const z = zmap[c];
+    const src = P[svc.src] || {};
+    tbl = src['Zone '+z] || src[z] || src['Zone '+String(parseInt(z,10))];
+  } else {
+    const src = P[svc.src];
+    if(!src || src[c]==null) return {avail:false};
+    tbl = src[c];
+  }
+  if(!tbl) return {avail:false};
+
+  // Support matrix tables structured as { bands: [[weight, price], ...] }
+  if(Array.isArray(tbl.bands)){
+    const bArr = tbl.bands;
+    if(!bArr.length) return {avail:false};
+    const maxB = bArr[bArr.length - 1][0];
+    if(w <= maxB + 1e-9){
+      for(const [wt, pr] of bArr){
+        if(wt >= w - 1e-9) return {avail:true, price:pr};
+      }
+    }
+    return {avail:true, price:bArr[bArr.length - 1][1]};
+  }
+
+  const bList = bands || (P && P.bands) || [];
+  if(!bList.length) return {avail:false};
+  const maxB = bList[bList.length-1];
+  if(w<=maxB){
+    let b=bList.find(x=>w<=x);
+    return {avail:tbl[b]!=null, price:tbl[b]};
+  }
+  const base=tbl[maxB], per=(tbl['per_kg']!=null?tbl['per_kg']:tbl['perKg']);
+  if(base==null||per==null) return {avail:false};
+  return {avail:true, price:base+(w-maxB)*per};
 }
 
-function build(raw, svc){
+function build(raw, svc, countryOverride){
   if(raw==null)return null;
   const fbs=(P.settings&&P.settings.fuelByService&&P.settings.fuelByService[svc.key])||{cost:0,sell:0};
   const fc=fbs.cost||0, fs=fbs.sell||0;
-  const mk=markupPct(svc);
+  const c = countryOverride || ($('country') ? $('country').value : 'USA');
+  const mk=markupPct(svc, c);
   const markupAmt=Math.round(raw*mk/100*100)/100;
   const flatExtras=[];
   let sumCostExtra=0, sumSellExtra=0;
-  const c=$('country').value, val=num('goodsValue'), skus=Math.max(1,Math.floor(num('SK'))||1);
+  const val=num('goodsValue'), skus=Math.max(1,Math.floor(num('SK'))||1);
   const isEu=(region(c)==='eu');
   const euCfg=(P.settings&&P.settings.euCustomsDuty)||{};
 
@@ -2803,7 +2839,7 @@ function drawChart(){
     wts.forEach(w=>{
       const b=baseRate(svc,c,w);
       if(!b.avail||b.price==null){data.push(null);return;}
-      const built=build(b.price,svc);
+      const built=build(b.price,svc,c);
       data.push(built?(metric==='sell'?built.sell:built.cost):null);
     });
     if(data.some(v=>v!=null)){
@@ -2907,7 +2943,10 @@ async function init(){
     if(ns.needsSetup){screen('setup');return;}
     const me=await fetch('/api/me');
     if(me.ok){current=(await me.json()).user;await loadConfigAndApp();}else screen('login');
-  }catch(e){$('loading').textContent='Failed to start: '+e.message;}
+  }catch(e){
+    console.error('Init error:', e);
+    $('loading').innerHTML='<div style="color:var(--mv-red);font-weight:700">Failed to start: '+e.message+'</div><pre style="font-size:11px;margin-top:8px;white-space:pre-wrap">'+(e.stack||'')+'</pre>';
+  }
 }
 
 $('navCalc').onclick=()=>{screen('app');calc();};
