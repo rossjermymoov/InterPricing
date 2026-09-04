@@ -1245,6 +1245,10 @@ app.get('/api/shipments/:tracking/track', async (req, res) => {
           statusDescription: resObj.statusDescription || (resObj.ok ? 'Active' : (resObj.error || 'Pending Scans')),
           isCollected: !!resObj.isCollected,
           isDelivered: !!resObj.isDelivered,
+          stage: resObj.stage || (resObj.isDelivered ? 7 : (resObj.isCollected ? 1 : 0)),
+          stageName: resObj.stageName || (resObj.isDelivered ? 'Delivered' : (resObj.isCollected ? 'Collected' : 'Booked')),
+          stageDesc: resObj.stageDesc || '',
+          lastLocation: resObj.lastLocation || '',
           activities: resObj.activities || [],
           delivery: resObj.delivery || {},
           error: resObj.error || null,
@@ -1260,6 +1264,7 @@ app.get('/api/shipments/:tracking/track', async (req, res) => {
     const anyCollected = parcelResults.some(p => p.isCollected);
     const allDelivered = parcelResults.length > 0 && parcelResults.every(p => p.isDelivered);
     const anyDelivered = parcelResults.some(p => p.isDelivered);
+    const maxStage = parcelResults.reduce((max, p) => Math.max(max, p.stage || 0), (allDelivered ? 7 : (anyCollected ? 1 : 0)));
 
     const calculatedDbStatus = allDelivered ? 'delivered' : (anyCollected ? 'in_transit' : (shipment && shipment.status ? shipment.status : 'booked'));
     if (shipment && db.hasDb && shipment.status !== 'cancelled' && shipment.status !== calculatedDbStatus) {
@@ -1276,10 +1281,14 @@ app.get('/api/shipments/:tracking/track', async (req, res) => {
       trackingNumber: tracking,
       masterTracking: (shipment && shipment.tracking_number) || tracking,
       statusCode: primary.statusCode || (allDelivered ? 'D' : (anyCollected ? 'IT' : 'M')),
-      statusDescription: allDelivered ? 'Delivered' : (anyDelivered ? 'Partially Delivered' : (anyCollected ? 'In Transit / Collected' : (primary.statusDescription || 'Manifest Registered'))),
+      statusDescription: allDelivered ? 'Delivered' : (anyDelivered ? 'Partially Delivered' : (anyCollected ? (primary.statusDescription || 'In Transit') : 'Manifest Registered')),
       isCollected: anyCollected,
       isDelivered: allDelivered,
       anyDelivered: anyDelivered,
+      stage: maxStage,
+      stageName: primary.stageName || (allDelivered ? 'Delivered' : 'In Transit'),
+      stageDesc: primary.stageDesc || '',
+      lastLocation: primary.lastLocation || '',
       activities: primary.activities || [],
       delivery: primary.delivery || {},
       parcels: parcelResults,

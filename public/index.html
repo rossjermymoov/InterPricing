@@ -3695,7 +3695,7 @@ function renderShipments(list) {
       { name: 'Delivered', desc: 'Signed' },
     ];
 
-    const renderAdmStages = (stageIdx) => {
+    const renderAdmStages = (stageIdx, stageInfo) => {
       const pPct = stageIdx === 0 ? 0 : Math.min(100, Math.round(((stageIdx - 1) / 6) * 100));
       return '<div class="moov-timeline-track"><div class="moov-timeline-progress" style="width: ' + pPct + '%"></div></div>' +
         '<div class="moov-timeline-nodes">' +
@@ -3703,10 +3703,11 @@ function renderShipments(list) {
           const isDone = (i + 1) < stageIdx;
           const isCurrent = (i + 1) === stageIdx;
           const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
+          const subText = (isCurrent && stageInfo && stageInfo.lastLocation) ? qesc(stageInfo.lastLocation) : st.desc;
           return '<div class="moov-timeline-node ' + cls + '">' +
             '<div class="moov-timeline-dot">' + (isDone ? '✓' : (i + 1)) + '</div>' +
             '<div class="moov-timeline-title">' + st.name + '</div>' +
-            '<div class="moov-timeline-sub">' + st.desc + '</div>' +
+            '<div class="moov-timeline-sub">' + subText + '</div>' +
             '</div>';
         }).join('') +
         '</div>';
@@ -3762,6 +3763,7 @@ function renderShipments(list) {
           '<div style="display:flex;align-items:center;gap:10px">' +
             '<span class="ds-kicker" style="margin:0">COURIER JOURNEY</span>' +
             '<span style="font-family:monospace;font-size:12px;font-weight:700">(' + qesc(x.tracking_number || 'No tracking') + ')</span>' +
+            '<span id="admJourneySub_' + x.id + '" style="font-size:12px;color:var(--mv-ink-55)"></span>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
             '<button type="button" class="btn-moov-action secondary btn-adm-upload-doc" data-id="' + x.id + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg><span>Upload Invoice</span></button>' +
@@ -3829,21 +3831,24 @@ function renderShipments(list) {
           const tRes = await fetch('/api/shipments/' + encodeURIComponent(x.tracking_number) + '/track');
           const tData = await tRes.json();
           if (tData && tData.ok) {
-            let stage = 0;
-            if (tData.isDelivered) stage = 7;
-            else if (tData.isCollected) stage = 3;
-            else stage = 0;
+            const stage = Number(tData.stage) || (tData.isDelivered ? 7 : (tData.isCollected ? 1 : 0));
 
             const wrapEl = $('admTimelineWrap_' + x.id);
             if (wrapEl && stage > 0) {
-              wrapEl.innerHTML = renderAdmStages(stage);
+              wrapEl.innerHTML = renderAdmStages(stage, tData);
+            }
+            const subEl = $('admJourneySub_' + x.id);
+            if (subEl) {
+              subEl.innerHTML = `· <b style="color:var(--mv-ink)">${qesc(tData.stageName || tData.statusDescription || '')}</b>` + (tData.lastLocation ? ` (${qesc(tData.lastLocation)})` : '');
             }
             const chipEl = $('admStatusChip_' + x.id);
             if (chipEl && stage > 0) {
               if (tData.isDelivered) {
                 chipEl.innerHTML = '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>DELIVERED</span>';
+              } else if (stage >= 3) {
+                chipEl.innerHTML = '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>' + qesc(tData.stageName ? tData.stageName.toUpperCase() : 'IN TRANSIT') + '</span>';
               } else if (tData.isCollected) {
-                chipEl.innerHTML = '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>IN TRANSIT</span>';
+                chipEl.innerHTML = '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>COLLECTED</span>';
               }
             }
 
@@ -3852,10 +3857,10 @@ function renderShipments(list) {
               tData.parcels.forEach((p, pIdx) => {
                 const pEl = $('admPieceStatus_' + x.id + '_' + pIdx);
                 if (pEl) {
-                  const pCol = p.isDelivered ? 'var(--mv-green)' : (p.isCollected ? 'var(--mv-purple)' : 'var(--mv-ink)');
-                  const pBg = p.isDelivered ? 'rgba(0,200,83,0.1)' : (p.isCollected ? 'rgba(123,47,190,0.08)' : 'var(--mv-surface)');
-                  const pTxt = p.isDelivered ? 'Delivered' : (p.isCollected ? 'In Transit' : (p.statusDescription || 'Active'));
-                  pEl.innerHTML = '<span style="font-size:10px;font-weight:700;color:' + pCol + ';background:' + pBg + ';padding:2px 6px;border-radius:3px">' + qesc(pTxt) + '</span>';
+                  const pCol = p.isDelivered ? 'var(--mv-green)' : (p.stage >= 3 ? 'var(--mv-purple)' : 'var(--mv-ink)');
+                  const pBg = p.isDelivered ? 'rgba(0,200,83,0.1)' : (p.stage >= 3 ? 'rgba(123,47,190,0.08)' : 'var(--mv-surface)');
+                  const pTxt = p.stageName || (p.isDelivered ? 'Delivered' : (p.isCollected ? 'In Transit' : (p.statusDescription || 'Active')));
+                  pEl.innerHTML = '<span style="font-size:10px;font-weight:700;color:' + pCol + ';background:' + pBg + ';padding:2px 6px;border-radius:3px" title="' + qesc(p.lastLocation || '') + '">' + qesc(pTxt) + '</span>';
                 }
               });
             }

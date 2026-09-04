@@ -887,19 +887,31 @@ async function trackShipment(trackingNumber) {
 
   const isDelivered = statusCode === 'D' || statusCode === 'DELIVERED' || statusDescription.toLowerCase().includes('delivered') || !!deliveryInfo.receivedBy;
 
+  // Normalise raw UPS activity stream into standard 7-stage courier journey
+  const stageInfo = normalizeTrackingStages({ statusCode, statusDescription, isCollected, isDelivered, activities, deliveryInfo });
+
   return {
     ok: true,
     trackingNumber: trk,
     statusCode,
-    statusDescription,
+    statusDescription: stageInfo.latestStatusText || statusDescription || 'Active',
     isCollected,
     isDelivered,
-    activities: activities.map((a) => ({
-      date: (a.date || '') + (a.time ? (' ' + a.time) : ''),
-      location: (a.location && a.location.address ? ((a.location.address.city || '') + (a.location.address.countryCode ? (', ' + a.location.address.countryCode) : '')) : ''),
-      status: (a.status && a.status.description) || statusDescription,
-      code: (a.status && a.status.code) || '',
-    })),
+    stage: stageInfo.stage,
+    stageName: stageInfo.stageName,
+    stageDesc: stageInfo.stageDesc,
+    lastLocation: stageInfo.lastLocation,
+    activities: activities.map((a) => {
+      const loc = (a.location && a.location.address ? ((a.location.address.city || '') + (a.location.address.countryCode ? (', ' + a.location.address.countryCode) : '')) : '');
+      const stat = (a.status && a.status.description) || (a.activityScan && a.activityScan.description) || statusDescription;
+      const code = (a.status && a.status.code) || (a.activityScan && a.activityScan.type) || '';
+      return {
+        date: (a.date || '') + (a.time ? (' ' + a.time) : ''),
+        location: loc,
+        status: stat,
+        code: code,
+      };
+    }),
     delivery: {
       receivedBy: deliveryInfo.receivedBy || null,
       location: deliveryInfo.location || null,
@@ -910,6 +922,94 @@ async function trackShipment(trackingNumber) {
     },
     raw: text,
     json,
+  };
+}
+
+// Deterministic normalization engine for UPS tracking milestones into 7 operational stages
+function normalizeTrackingStages({ statusCode, statusDescription, isCollected, isDelivered, activities, deliveryInfo }) {
+  const STAGES = [
+    { stage: 1, name: 'Collected', desc: 'Supplier Pickup' },
+    { stage: 2, name: 'In Transit', desc: 'Origin Transit' },
+    { stage: 3, name: 'At Hub', desc: 'Export Hub' },
+    { stage: 4, name: 'In Transit', desc: 'Cross-Border' },
+    { stage: 5, name: 'At Depot', desc: 'UK Depot' },
+    { stage: 6, name: 'Out for Delivery', desc: 'Local Driver' },
+    { stage: 7, name: 'Delivered', desc: 'Signed & Complete' },
+  ];
+
+  if (isDelivered || statusCode === 'D' || (deliveryInfo && deliveryInfo.receivedBy)) {
+    return {
+      stage: 7,
+      stageName: 'Delivered',
+      stageDesc: 'Signed & Complete',
+      lastLocation: (deliveryInfo && deliveryInfo.location) || 'Destination',
+      latestStatusText: 'Delivered' + ((deliveryInfo && deliveryInfo.receivedBy) ? (' to ' + deliveryInfo.receivedBy) : ''),
+    };
+  }
+
+  let highestStage = isCollected ? 1 : 0;
+  let lastLoc = '';
+  let latestDesc = statusDescription || '';
+
+  // Reverse chronological or chronological pass over all scan activities
+  if (Array.isArray(activities) && activities.length > 0) {
+    // Process all scans to determine highest milestone reached
+    activities.forEach((act, idx) => {
+      const desc = ((act.status && act.status.description) || (act.activityScan && act.activityScan.description) || '').toLowerCase();
+      const code = ((act.status && act.status.code) || (act.activityScan && act.activityScan.type) || '').toUpperCase();
+      const loc = (act.location && act.location.address)
+        ? [act.location.address.city, act.location.address.countryCode].filter(Boolean).join(', ')
+        : '';
+      const cCode = (act.location && act.location.address && act.location.address.countryCode || '').toUpperCase();
+
+      if (idx === 0 && loc) lastLoc = loc;
+      if (idx === 0 && desc) latestDesc = (act.status && act.status.description) || desc;
+
+      // Stage 6: Out for delivery
+      if (code === 'OF' || code === 'OD' || desc.includes('out for delivery') || desc.includes('loaded on delivery') || desc.includes('on vehicle for delivery')) {
+        if (highestStage < 6) highestStage = 6;
+      }
+      // Stage 5: At destination UK Depot / Hub
+      else if (
+        (cCode === 'GB' || desc.includes('uk') || desc.includes('castle donington') || desc.includes('stanford') || desc.includes('tamworth') || desc.includes('destination scan') || desc.includes('import scan') || desc.includes('customs cleared')) &&
+        (desc.includes('arrival scan') || desc.includes('warehouse scan') || desc.includes('hub scan') || desc.includes('processing at facility') || desc.includes('destination'))
+      ) {
+        if (highestStage < 5) highestStage = 5;
+      }
+      // Stage 4: Cross-border transit / export customs released / international transit
+      else if (desc.includes('customs') || desc.includes('international') || desc.includes('cross-border') || desc.includes('in transit') || desc.includes('transit') || desc.includes('cleared customs') || desc.includes('carrier processing')) {
+        if (highestStage < 4) highestStage = 4;
+      }
+      // Stage 3: At Export Gateway / Hub (e.g. Cologne, Roissy, Milan, Origin Hub)
+      else if (desc.includes('export scan') || desc.includes('hub') || desc.includes('gateway') || desc.includes('arrival scan') || desc.includes('origin hub') || desc.includes('facility') || code === 'AR' || code === 'HS') {
+        if (highestStage < 3) highestStage = 3;
+      }
+      // Stage 2: Departure from origin facility / moving in origin transit
+      else if (desc.includes('departure scan') || desc.includes('departed from facility') || desc.includes('origin departure') || code === 'DP') {
+        if (highestStage < 2) highestStage = 2;
+      }
+      // Stage 1: Collected / Picked up / Origin scan
+      else if (desc.includes('pickup') || desc.includes('picked up') || desc.includes('collection') || desc.includes('collected') || desc.includes('origin scan') || desc.includes('drop-off') || code === 'P' || code === 'OR') {
+        if (highestStage < 1) highestStage = 1;
+      }
+    });
+  }
+
+  // Fallback if status code or description indicates progress
+  const sDescLow = (statusDescription || '').toLowerCase();
+  if (highestStage === 0) {
+    if (sDescLow.includes('out for delivery')) highestStage = 6;
+    else if (sDescLow.includes('hub') || sDescLow.includes('transit')) highestStage = 3;
+    else if (isCollected) highestStage = 1;
+  }
+
+  const stageObj = STAGES.find((s) => s.stage === highestStage) || STAGES[0];
+  return {
+    stage: highestStage,
+    stageName: stageObj.name,
+    stageDesc: stageObj.desc,
+    lastLocation: lastLoc,
+    latestStatusText: latestDesc || stageObj.name,
   };
 }
 

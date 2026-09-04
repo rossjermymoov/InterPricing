@@ -4069,8 +4069,9 @@ function renderCustomerBookings(shipments) {
     let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : (x.status === 'collected' ? 1 : 0));
     let progressPercent = currentStageIdx === 0 ? 0 : Math.min(100, Math.round(((currentStageIdx - 1) / 6) * 100));
 
-    const renderStages = (stageIdx) => {
+    const renderStages = (stageIdx, stageInfo) => {
       const pPct = stageIdx === 0 ? 0 : Math.min(100, Math.round(((stageIdx - 1) / 6) * 100));
+      const locSubtitle = stageInfo && stageInfo.lastLocation ? ` · <span style="color:var(--brand);font-weight:700">📍 ${esc(stageInfo.lastLocation)}</span>` : '';
       return `
         <div class="moov-timeline-track">
           <div class="moov-timeline-progress" style="width: ${pPct}%"></div>
@@ -4086,7 +4087,7 @@ function renderCustomerBookings(shipments) {
                   ${isDone ? '✓' : (i + 1)}
                 </div>
                 <div class="moov-timeline-title">${st.name}</div>
-                <div class="moov-timeline-sub">${st.desc}</div>
+                <div class="moov-timeline-sub">${isCurrent && stageInfo && stageInfo.lastLocation ? esc(stageInfo.lastLocation) : st.desc}</div>
               </div>
             `;
           }).join('')}
@@ -4133,7 +4134,10 @@ function renderCustomerBookings(shipments) {
         <!-- Connected Courier Timeline -->
         <div style="padding:16px 20px 14px;background:#ffffff;border-bottom:1px solid var(--line)">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Courier Journey</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Courier Journey</span>
+              <span id="custJourneySub_${x.id}" style="font-size:11.5px;color:var(--muted)"></span>
+            </div>
             <button type="button" class="btn-moov-action secondary btn-cust-track-live" data-tracking="${esc(x.tracking_number || '')}" style="height:28px;padding:0 10px;font-size:11.5px">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               <span>Track Live</span>
@@ -4168,7 +4172,7 @@ function renderCustomerBookings(shipments) {
             <span>·</span>
             ${hasDocs ? '<b style="color:#059669">✓ Electronic Docs</b>' : '<span style="color:#b45309">No docs uploaded</span>'}
             <button type="button" class="btn-micro-pill btn-upload-doc" data-id="${x.id}" title="${hasDocs ? 'Update Customs Invoice' : 'Attach Commercial Invoice'}">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line></svg>
               <span>${hasDocs ? 'Update' : 'Attach'}</span>
             </button>
           </div>
@@ -4354,21 +4358,22 @@ function renderCustomerBookings(shipments) {
           const tRes = await fetch('/api/shipments/' + encodeURIComponent(x.tracking_number) + '/track');
           const tData = await tRes.json();
           if (tData && tData.ok) {
-            let stage = 0;
-            if (tData.isDelivered) stage = 7;
-            else if (tData.isCollected) stage = 3;
-            else stage = 0;
+            const stage = Number(tData.stage) || (tData.isDelivered ? 7 : (tData.isCollected ? 1 : 0));
 
             const wrapEl = $('custTimelineWrap_' + x.id);
             if (wrapEl && stage > 0) {
-              wrapEl.innerHTML = renderStages(stage);
+              wrapEl.innerHTML = renderStages(stage, tData);
+            }
+            const subEl = $('custJourneySub_' + x.id);
+            if (subEl) {
+              subEl.innerHTML = `· <b style="color:var(--ink)">${esc(tData.stageName || tData.statusDescription || '')}</b>` + (tData.lastLocation ? ` (${esc(tData.lastLocation)})` : '');
             }
             const badgeEl = $('custShipBadge_' + x.id);
             if (badgeEl && stage > 0) {
-              const bg = tData.isDelivered ? '#d1fae5' : '#eff6ff';
-              const col = tData.isDelivered ? '#065f46' : '#1d4ed8';
-              const bdr = tData.isDelivered ? '#a7f3d0' : '#bfdbfe';
-              const txt = tData.isDelivered ? 'DELIVERED' : 'IN TRANSIT';
+              const bg = tData.isDelivered ? '#d1fae5' : (stage >= 3 ? '#f5f3ff' : '#eff6ff');
+              const col = tData.isDelivered ? '#065f46' : (stage >= 3 ? '#6b21a8' : '#1d4ed8');
+              const bdr = tData.isDelivered ? '#a7f3d0' : (stage >= 3 ? '#ddd6fe' : '#bfdbfe');
+              const txt = (tData.stageName || (tData.isDelivered ? 'DELIVERED' : 'IN TRANSIT')).toUpperCase();
               badgeEl.innerHTML = `<span style="font-size:10.5px;font-weight:900;background:${bg};color:${col};padding:3px 8px;letter-spacing:.04em;border:1px solid ${bdr}">${txt}</span>`;
             }
 
@@ -4377,11 +4382,11 @@ function renderCustomerBookings(shipments) {
               tData.parcels.forEach((p, pIdx) => {
                 const el = $('pieceStatus_' + x.id + '_' + pIdx);
                 if (el) {
-                  const pCol = p.isDelivered ? '#059669' : (p.isCollected ? '#0284c7' : '#475569');
-                  const pBg = p.isDelivered ? '#ecfdf5' : (p.isCollected ? '#f0f9ff' : '#f1f5f9');
-                  const pBdr = p.isDelivered ? '#a7f3d0' : (p.isCollected ? '#bae6fd' : '#e2e8f0');
-                  const pTxt = p.isDelivered ? 'Delivered' : (p.isCollected ? 'In Transit' : (p.statusDescription || 'Active'));
-                  el.innerHTML = `<span style="font-size:10.5px;font-weight:800;background:${pBg};color:${pCol};border:1px solid ${pBdr};padding:2px 7px;border-radius:4px">${esc(pTxt)}</span>`;
+                  const pCol = p.isDelivered ? '#059669' : (p.stage >= 3 ? '#7c3aed' : (p.isCollected ? '#0284c7' : '#475569'));
+                  const pBg = p.isDelivered ? '#ecfdf5' : (p.stage >= 3 ? '#faf5ff' : (p.isCollected ? '#f0f9ff' : '#f1f5f9'));
+                  const pBdr = p.isDelivered ? '#a7f3d0' : (p.stage >= 3 ? '#e9d5ff' : (p.isCollected ? '#bae6fd' : '#e2e8f0'));
+                  const pTxt = p.stageName || (p.isDelivered ? 'Delivered' : (p.isCollected ? 'In Transit' : (p.statusDescription || 'Active')));
+                  el.innerHTML = `<span style="font-size:10.5px;font-weight:800;background:${pBg};color:${pCol};border:1px solid ${pBdr};padding:2px 7px;border-radius:4px" title="${esc(p.lastLocation || '')}">${esc(pTxt)}</span>`;
                 }
               });
             }
