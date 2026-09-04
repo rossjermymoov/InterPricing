@@ -3734,15 +3734,23 @@ function renderShipments(list) {
 
     const renderAdmStages = (stageIdx, stageInfo) => {
       const pPct = stageIdx === 0 ? 0 : Math.min(100, Math.round(((stageIdx - 1) / 6) * 100));
+      const sTimestamps = (stageInfo && stageInfo.stageTimestamps) || {};
       return '<div class="moov-timeline-track"><div class="moov-timeline-progress" style="width: ' + pPct + '%"></div></div>' +
         '<div class="moov-timeline-nodes">' +
         STAGES.map((st, i) => {
-          const isDone = (i + 1) < stageIdx;
-          const isCurrent = (i + 1) === stageIdx;
+          const stNum = i + 1;
+          const isDone = stNum < stageIdx;
+          const isCurrent = stNum === stageIdx;
           const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
-          const subText = (isCurrent && stageInfo && stageInfo.lastLocation) ? qesc(stageInfo.lastLocation) : st.desc;
+          const stData = sTimestamps[stNum] || null;
+          let subText = st.desc;
+          if (stData && (stData.timestamp || stData.location)) {
+            subText = '<div style="font-weight:800;color:var(--mv-ink);font-size:10.5px">' + qesc(stData.shortTimestamp || stData.timestamp || '') + '</div><div style="font-size:10px;color:var(--mv-ink-55)">📍 ' + qesc(stData.location || st.desc) + '</div>';
+          } else if (isCurrent && stageInfo && stageInfo.lastLocation) {
+            subText = '<div style="font-weight:800;color:var(--mv-purple);font-size:10.5px">In Progress</div><div style="font-size:10px;color:var(--mv-ink-55)">📍 ' + qesc(stageInfo.lastLocation) + '</div>';
+          }
           return '<div class="moov-timeline-node ' + cls + '">' +
-            '<div class="moov-timeline-dot">' + (isDone ? '✓' : (i + 1)) + '</div>' +
+            '<div class="moov-timeline-dot">' + (isDone ? '✓' : stNum) + '</div>' +
             '<div class="moov-timeline-title">' + st.name + '</div>' +
             '<div class="moov-timeline-sub">' + subText + '</div>' +
             '</div>';
@@ -3763,6 +3771,7 @@ function renderShipments(list) {
         + '<td style="padding:6px 8px">' + (l ? (l + ' × ' + w + ' × ' + h + ' cm') : 'Standard') + '</td>'
         + '<td style="padding:6px 8px;text-align:right;font-weight:700">' + wt + ' kg</td>'
         + '<td style="padding:6px 8px;text-align:right;color:var(--mv-ink-55)">' + volWt + (volWt !== '—' ? ' kg' : '') + '</td>'
+        + '<td style="padding:6px 8px;text-align:left" id="admPieceScan_' + x.id + '_' + pIdx + '"><span style="font-size:11px;color:var(--mv-ink-55)">' + (isCancelled ? '—' : 'Awaiting scan…') + '</span></td>'
         + '<td style="padding:6px 8px;text-align:center" id="admPieceStatus_' + x.id + '_' + pIdx + '"><span style="font-size:10px;color:var(--mv-ink-55)">' + (isCancelled ? 'Cancelled' : 'Ready') + '</span></td>'
         + '<td style="padding:6px 8px;text-align:right;white-space:nowrap">'
         + (trk ? ('<button type="button" class="btn-micro-pill btn-adm-track-live" data-tracking="' + qesc(trk) + '" style="font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple);background:#fdf4ff;margin-right:4px">Track Piece</button>') : '')
@@ -3847,7 +3856,7 @@ function renderShipments(list) {
             '<div class="ds-label" style="margin-bottom:8px">Package Pieces (' + pkgs.length + ')</div>' +
             '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
               '<thead><tr style="border-bottom:1px solid var(--mv-divider);color:var(--mv-ink-55);font-size:10px;text-transform:uppercase">' +
-                '<th style="text-align:left;padding:4px 8px">Piece</th><th style="text-align:left;padding:4px 8px">Tracking</th><th style="text-align:left;padding:4px 8px">Packaging</th><th style="text-align:left;padding:4px 8px">Dimensions</th><th style="text-align:right;padding:4px 8px">Dead Wt</th><th style="text-align:right;padding:4px 8px">Vol Wt</th><th style="text-align:center;padding:4px 8px">Status</th><th style="text-align:right;padding:4px 8px">Actions</th>' +
+                '<th style="text-align:left;padding:4px 8px">Piece</th><th style="text-align:left;padding:4px 8px">Tracking</th><th style="text-align:left;padding:4px 8px">Packaging</th><th style="text-align:left;padding:4px 8px">Dimensions</th><th style="text-align:right;padding:4px 8px">Dead Wt</th><th style="text-align:right;padding:4px 8px">Vol Wt</th><th style="text-align:left;padding:4px 8px">Latest Scan &amp; Time</th><th style="text-align:center;padding:4px 8px">Status</th><th style="text-align:right;padding:4px 8px">Actions</th>' +
               '</tr></thead>' +
               '<tbody>' + pkgRowsHtml + '</tbody>' +
             '</table>' +
@@ -3889,7 +3898,7 @@ function renderShipments(list) {
               }
             }
 
-            // Update piece statuses
+            // Update piece statuses & scan timestamps
             if (Array.isArray(tData.parcels)) {
               tData.parcels.forEach((p, pIdx) => {
                 const pEl = $('admPieceStatus_' + x.id + '_' + pIdx);
@@ -3898,6 +3907,17 @@ function renderShipments(list) {
                   const pBg = p.isDelivered ? 'rgba(0,200,83,0.1)' : (p.stage >= 3 ? 'rgba(123,47,190,0.08)' : 'var(--mv-surface)');
                   const pTxt = p.stageName || (p.isDelivered ? 'Delivered' : (p.isCollected ? 'In Transit' : (p.statusDescription || 'Active')));
                   pEl.innerHTML = '<span style="font-size:10px;font-weight:700;color:' + pCol + ';background:' + pBg + ';padding:2px 6px;border-radius:3px" title="' + qesc(p.lastLocation || '') + '">' + qesc(pTxt) + '</span>';
+                }
+                const scanEl = $('admPieceScan_' + x.id + '_' + pIdx);
+                if (scanEl) {
+                  if (p.lastScan && p.lastScan.timestamp) {
+                    scanEl.innerHTML = '<div><b style="color:var(--mv-ink);font-size:11px">' + qesc(p.lastScan.shortTimestamp || p.lastScan.timestamp) + '</b></div><div style="font-size:10px;color:var(--mv-ink-55)">📍 ' + qesc(p.lastScan.location || p.lastScan.status || 'In Transit') + '</div>';
+                  } else if (p.activities && p.activities[0]) {
+                    const act = p.activities[0];
+                    scanEl.innerHTML = '<div><b style="color:var(--mv-ink);font-size:11px">' + qesc(act.shortTimestamp || act.timestamp || act.date) + '</b></div><div style="font-size:10px;color:var(--mv-ink-55)">📍 ' + qesc(act.location || act.status || '') + '</div>';
+                  } else {
+                    scanEl.innerHTML = '<span style="font-size:11px;color:var(--mv-ink-55)">Awaiting first scan</span>';
+                  }
                 }
               });
             }
@@ -4127,6 +4147,13 @@ async function openAdminTrackingModal(trackingNumber) {
         '</div>';
     }
 
+    const modalTimelineHtml = '<div style="padding:14px 16px;background:#fff;border:1px solid var(--mv-hairline-2);margin-bottom:16px">' +
+      '<div style="font-size:10.5px;font-weight:800;text-transform:uppercase;color:var(--mv-ink-55);letter-spacing:.05em;margin-bottom:8px">Courier Journey Milestones</div>' +
+      '<div class="moov-timeline-wrap">' +
+        renderAdmStages(Number(d.stage) || (d.isDelivered ? 7 : (d.isCollected ? 1 : 0)), d) +
+      '</div>' +
+    '</div>';
+
     const renderAdmParcelDetail = (p) => {
       const acts = p.activities || [];
       const del = p.delivery || {};
@@ -4135,9 +4162,11 @@ async function openAdminTrackingModal(trackingNumber) {
           <div style="width:10px;height:10px;background:${idx === 0 ? 'var(--mv-green)' : 'var(--mv-divider)'};margin-top:4px;flex-shrink:0"></div>
           <div style="flex:1">
             <div style="font-weight:800;font-size:12.5px;color:var(--mv-ink)">${qesc(a.status || 'Scan Event')}</div>
-            <div style="font-size:11.5px;color:var(--mv-ink-55)">${qesc(a.location || 'UPS Network')}</div>
+            <div style="font-size:11.5px;color:var(--mv-ink-55)">📍 ${qesc(a.location || 'UPS Network')}</div>
           </div>
-          <div style="font-size:11px;font-family:monospace;color:var(--mv-ink-55);text-align:right">${qesc(a.date || '')}</div>
+          <div style="font-size:11.5px;font-family:monospace;font-weight:700;color:var(--mv-ink);text-align:right;white-space:nowrap">
+            <div>${qesc(a.timestamp || a.dateFormatted || a.date || '')}</div>
+          </div>
         </div>
       `).join('') : '<div style="padding:14px;text-align:center;color:var(--mv-ink-55)">No scan milestones registered yet for this piece.</div>';
 
@@ -4148,11 +4177,12 @@ async function openAdminTrackingModal(trackingNumber) {
           '</div>';
       }
 
-      return '<div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px">' +
+      return '<div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;flex-wrap:gap;gap:8px;font-size:12px">' +
         '<div>Tracking: <b style="font-family:monospace;color:var(--mv-purple)">' + qesc(p.trackingNumber) + '</b></div>' +
         '<div>Status: <b style="color:' + (p.isDelivered ? 'var(--mv-green-deep)' : (p.isCollected ? 'var(--mv-purple)' : 'var(--mv-ink)')) + '">' + qesc(p.statusDescription || 'Active') + '</b></div>' +
         (p.weight ? ('<div>Weight: <b>' + qesc(p.weight) + ' kg</b></div>') : '') +
         (p.dimensions ? ('<div>Dims: <b>' + qesc(p.dimensions) + '</b></div>') : '') +
+        (p.lastScan && p.lastScan.timestamp ? ('<div>Last Scan: <b>' + qesc(p.lastScan.timestamp) + '</b></div>') : '') +
         '</div>' +
         '<div>' + actsHtml + '</div>' + podSnippet;
     };
@@ -4173,7 +4203,7 @@ async function openAdminTrackingModal(trackingNumber) {
         container += '<div id="admParcelTrackView_' + idx + '" class="adm-parcel-track-view" style="' + (idx === 0 ? '' : 'display:none') + '">' + renderAdmParcelDetail(p) + '</div>';
       });
 
-      body.innerHTML = topBanner +
+      body.innerHTML = topBanner + modalTimelineHtml +
         '<div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--mv-ink-55);letter-spacing:0.06em;margin-bottom:8px">Multi-Piece Consignment (' + parcels.length + ' Parcels)</div>' +
         tabs + container;
 
@@ -4193,7 +4223,7 @@ async function openAdminTrackingModal(trackingNumber) {
         };
       });
     } else {
-      body.innerHTML = topBanner + '<div>' + renderAdmParcelDetail(parcels[0]) + '</div>';
+      body.innerHTML = topBanner + modalTimelineHtml + '<div>' + renderAdmParcelDetail(parcels[0]) + '</div>';
     }
   } catch (err) {
     body.innerHTML = '<div style="padding:14px;color:var(--mv-magenta-deep)">Failed to load tracking: ' + qesc(err.message) + '</div>';

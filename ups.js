@@ -971,6 +971,52 @@ async function voidShipment({ shipmentId, trackingNumber } = {}) {
   return { ok: true, status: res.status, raw: text, json };
 }
 
+function formatUpsDateTime(d, t) {
+  if (!d) return { rawDate: '', rawTime: '', dateFormatted: '', timeFormatted: '', timestamp: '', shortTimestamp: '' };
+  let y = '', m = '', day = '';
+  const dStr = String(d).replace(/[^\d]/g, '');
+  if (dStr.length === 8) {
+    y = dStr.slice(0, 4);
+    m = dStr.slice(4, 6);
+    day = dStr.slice(6, 8);
+  } else if (String(d).includes('-')) {
+    const parts = String(d).split('-');
+    if (parts.length === 3) {
+      y = parts[0]; m = parts[1]; day = parts[2];
+    }
+  }
+
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const mIdx = parseInt(m, 10) - 1;
+  const monthName = (mIdx >= 0 && mIdx < 12) ? MONTHS[mIdx] : m;
+
+  let timeStr = '';
+  if (t) {
+    const tClean = String(t).replace(/[^\d]/g, '');
+    if (tClean.length >= 4) {
+      const hh = tClean.slice(0, 2);
+      const mm = tClean.slice(2, 4);
+      timeStr = hh + ':' + mm;
+    } else if (String(t).includes(':')) {
+      const parts = String(t).split(':');
+      timeStr = parts[0].padStart(2, '0') + ':' + parts[1].padStart(2, '0');
+    }
+  }
+
+  const dateFormatted = (day && monthName && y) ? `${parseInt(day, 10)} ${monthName} ${y}` : String(d);
+  const fullTimestamp = timeStr ? `${dateFormatted}, ${timeStr}` : dateFormatted;
+  const shortTimestamp = timeStr ? `${parseInt(day, 10) || ''} ${monthName || ''}, ${timeStr}` : dateFormatted;
+
+  return {
+    rawDate: d,
+    rawTime: t,
+    dateFormatted,
+    timeFormatted: timeStr,
+    timestamp: fullTimestamp,
+    shortTimestamp,
+  };
+}
+
 // Query UPS Tracking API for live shipment status, activity history, POD, and signature
 async function trackShipment(trackingNumber) {
   const tk = await token();
@@ -1040,6 +1086,74 @@ async function trackShipment(trackingNumber) {
   // Normalise raw UPS activity stream into standard 7-stage courier journey
   const stageInfo = normalizeTrackingStages({ statusCode, statusDescription, isCollected, isDelivered, activities, deliveryInfo });
 
+  // Map activities with structured date and time formatting
+  const mapActivities = (acts) => {
+    return (acts || []).map((a) => {
+      const loc = (a.location && a.location.address ? ([a.location.address.city, a.location.address.countryCode].filter(Boolean).join(', ')) : '');
+      const stat = (a.status && a.status.description) || (a.activityScan && a.activityScan.description) || statusDescription || 'Scan Event';
+      const code = (a.status && a.status.code) || (a.activityScan && a.activityScan.type) || '';
+      const dt = formatUpsDateTime(a.date, a.time);
+      return {
+        date: a.date,
+        time: a.time,
+        dateFormatted: dt.dateFormatted,
+        timeFormatted: dt.timeFormatted,
+        timestamp: dt.timestamp,
+        shortTimestamp: dt.shortTimestamp,
+        location: loc,
+        status: stat,
+        code: code,
+      };
+    });
+  };
+
+  const formattedActivities = mapActivities(activities);
+
+  // Map all parcels piece-by-piece
+  const parcels = pkgList.map((pkg, idx) => {
+    const pStatus = pkg.currentStatus || {};
+    const pCode = pStatus.code || statusCode;
+    const pDesc = pStatus.description || statusDescription;
+    const pActs = Array.isArray(pkg.activity) ? pkg.activity : (pkg.activity ? [pkg.activity] : []);
+    const pDel = pkg.deliveryInformation || deliveryInfo;
+    const pActsFormatted = mapActivities(pActs.length ? pActs : activities);
+    const pIsDelivered = pCode === 'D' || pCode === 'DELIVERED' || pDesc.toLowerCase().includes('delivered') || !!(pDel && pDel.receivedBy);
+    const pIsCollected = isCollected || pActsFormatted.some((a) => a.status.toLowerCase().includes('pickup') || a.status.toLowerCase().includes('collected'));
+    const pStageInfo = normalizeTrackingStages({ statusCode: pCode, statusDescription: pDesc, isCollected: pIsCollected, isDelivered: pIsDelivered, activities: pActs.length ? pActs : activities, deliveryInfo: pDel });
+    const latestScan = pActsFormatted[0] || null;
+
+    return {
+      parcelIndex: idx + 1,
+      totalParcels: pkgList.length,
+      trackingNumber: pkg.trackingNumber || trk,
+      weight: pkg.weight && pkg.weight.weight ? Number(pkg.weight.weight) : null,
+      statusCode: pCode,
+      statusDescription: pStageInfo.latestStatusText || pDesc || 'Active',
+      isCollected: pIsCollected,
+      isDelivered: pIsDelivered,
+      stage: pStageInfo.stage,
+      stageName: pStageInfo.stageName,
+      stageDesc: pStageInfo.stageDesc,
+      stageTimestamps: pStageInfo.stageTimestamps,
+      lastLocation: pStageInfo.lastLocation,
+      lastScan: latestScan ? {
+        timestamp: latestScan.timestamp,
+        shortTimestamp: latestScan.shortTimestamp,
+        location: latestScan.location,
+        status: latestScan.status,
+      } : null,
+      activities: pActsFormatted,
+      delivery: {
+        receivedBy: (pDel && pDel.receivedBy) || (deliveryInfo && deliveryInfo.receivedBy) || null,
+        location: (pDel && pDel.location) || (deliveryInfo && deliveryInfo.location) || null,
+        hasSignature: !!((pDel && pDel.signature && pDel.signature.content) || (deliveryInfo && deliveryInfo.signature && deliveryInfo.signature.content)),
+        signatureBase64: (pDel && pDel.signature && pDel.signature.content) || (deliveryInfo && deliveryInfo.signature && deliveryInfo.signature.content) || null,
+        hasPOD: !!((pDel && pDel.pod && pDel.pod.content) || (deliveryInfo && deliveryInfo.pod && deliveryInfo.pod.content)),
+        podBase64: (pDel && pDel.pod && pDel.pod.content) || (deliveryInfo && deliveryInfo.pod && deliveryInfo.pod.content) || null,
+      },
+    };
+  });
+
   return {
     ok: true,
     trackingNumber: trk,
@@ -1050,18 +1164,16 @@ async function trackShipment(trackingNumber) {
     stage: stageInfo.stage,
     stageName: stageInfo.stageName,
     stageDesc: stageInfo.stageDesc,
+    stageTimestamps: stageInfo.stageTimestamps,
     lastLocation: stageInfo.lastLocation,
-    activities: activities.map((a) => {
-      const loc = (a.location && a.location.address ? ((a.location.address.city || '') + (a.location.address.countryCode ? (', ' + a.location.address.countryCode) : '')) : '');
-      const stat = (a.status && a.status.description) || (a.activityScan && a.activityScan.description) || statusDescription;
-      const code = (a.status && a.status.code) || (a.activityScan && a.activityScan.type) || '';
-      return {
-        date: (a.date || '') + (a.time ? (' ' + a.time) : ''),
-        location: loc,
-        status: stat,
-        code: code,
-      };
-    }),
+    latestScan: formattedActivities[0] ? {
+      timestamp: formattedActivities[0].timestamp,
+      shortTimestamp: formattedActivities[0].shortTimestamp,
+      location: formattedActivities[0].location,
+      status: formattedActivities[0].status,
+    } : null,
+    activities: formattedActivities,
+    parcels,
     delivery: {
       receivedBy: deliveryInfo.receivedBy || null,
       location: deliveryInfo.location || null,
@@ -1075,7 +1187,7 @@ async function trackShipment(trackingNumber) {
   };
 }
 
-// Deterministic normalization engine for UPS tracking milestones into 7 operational stages
+// Deterministic normalization engine for UPS tracking milestones into 7 operational stages with scan timestamps
 function normalizeTrackingStages({ statusCode, statusDescription, isCollected, isDelivered, activities, deliveryInfo }) {
   const STAGES = [
     { stage: 1, name: 'Collected', desc: 'Supplier Pickup' },
@@ -1087,11 +1199,21 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
     { stage: 7, name: 'Delivered', desc: 'Signed & Complete' },
   ];
 
+  const stageTimestamps = {};
+
   if (isDelivered || statusCode === 'D' || (deliveryInfo && deliveryInfo.receivedBy)) {
+    const delTime = deliveryInfo && (deliveryInfo.date || deliveryInfo.deliveryDate) ? formatUpsDateTime(deliveryInfo.date || deliveryInfo.deliveryDate, deliveryInfo.time || deliveryInfo.deliveryTime) : null;
+    stageTimestamps[7] = {
+      timestamp: delTime ? delTime.timestamp : '',
+      shortTimestamp: delTime ? delTime.shortTimestamp : '',
+      location: (deliveryInfo && deliveryInfo.location) || 'Destination',
+      statusText: 'Signed by ' + ((deliveryInfo && deliveryInfo.receivedBy) || 'Recipient'),
+    };
     return {
       stage: 7,
       stageName: 'Delivered',
       stageDesc: 'Signed & Complete',
+      stageTimestamps,
       lastLocation: (deliveryInfo && deliveryInfo.location) || 'Destination',
       latestStatusText: 'Delivered' + ((deliveryInfo && deliveryInfo.receivedBy) ? (' to ' + deliveryInfo.receivedBy) : ''),
     };
@@ -1103,7 +1225,6 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
 
   // Reverse chronological or chronological pass over all scan activities
   if (Array.isArray(activities) && activities.length > 0) {
-    // Process all scans to determine highest milestone reached
     activities.forEach((act, idx) => {
       const desc = ((act.status && act.status.description) || (act.activityScan && act.activityScan.description) || '').toLowerCase();
       const code = ((act.status && act.status.code) || (act.activityScan && act.activityScan.type) || '').toUpperCase();
@@ -1111,13 +1232,26 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
         ? [act.location.address.city, act.location.address.countryCode].filter(Boolean).join(', ')
         : '';
       const cCode = (act.location && act.location.address && act.location.address.countryCode || '').toUpperCase();
+      const dt = formatUpsDateTime(act.date, act.time);
 
       if (idx === 0 && loc) lastLoc = loc;
       if (idx === 0 && desc) latestDesc = (act.status && act.status.description) || desc;
 
+      const recordStageScan = (stNum) => {
+        if (!stageTimestamps[stNum]) {
+          stageTimestamps[stNum] = {
+            timestamp: dt.timestamp,
+            shortTimestamp: dt.shortTimestamp,
+            location: loc,
+            statusText: (act.status && act.status.description) || (act.activityScan && act.activityScan.description) || desc,
+          };
+        }
+      };
+
       // Stage 6: Out for delivery
       if (code === 'OF' || code === 'OD' || desc.includes('out for delivery') || desc.includes('loaded on delivery') || desc.includes('on vehicle for delivery')) {
         if (highestStage < 6) highestStage = 6;
+        recordStageScan(6);
       }
       // Stage 5: At destination UK Depot / Hub
       else if (
@@ -1125,22 +1259,27 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
         (desc.includes('arrival scan') || desc.includes('warehouse scan') || desc.includes('hub scan') || desc.includes('processing at facility') || desc.includes('destination'))
       ) {
         if (highestStage < 5) highestStage = 5;
+        recordStageScan(5);
       }
       // Stage 4: Cross-border transit / export customs released / international transit
       else if (desc.includes('customs') || desc.includes('international') || desc.includes('cross-border') || desc.includes('in transit') || desc.includes('transit') || desc.includes('cleared customs') || desc.includes('carrier processing')) {
         if (highestStage < 4) highestStage = 4;
+        recordStageScan(4);
       }
       // Stage 3: At Export Gateway / Hub (e.g. Cologne, Roissy, Milan, Origin Hub)
       else if (desc.includes('export scan') || desc.includes('hub') || desc.includes('gateway') || desc.includes('arrival scan') || desc.includes('origin hub') || desc.includes('facility') || code === 'AR' || code === 'HS') {
         if (highestStage < 3) highestStage = 3;
+        recordStageScan(3);
       }
       // Stage 2: Departure from origin facility / moving in origin transit
       else if (desc.includes('departure scan') || desc.includes('departed from facility') || desc.includes('origin departure') || code === 'DP') {
         if (highestStage < 2) highestStage = 2;
+        recordStageScan(2);
       }
       // Stage 1: Collected / Picked up / Origin scan
       else if (desc.includes('pickup') || desc.includes('picked up') || desc.includes('collection') || desc.includes('collected') || desc.includes('origin scan') || desc.includes('drop-off') || code === 'P' || code === 'OR') {
         if (highestStage < 1) highestStage = 1;
+        recordStageScan(1);
       }
     });
   }
@@ -1158,6 +1297,7 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
     stage: highestStage,
     stageName: stageObj.name,
     stageDesc: stageObj.desc,
+    stageTimestamps,
     lastLocation: lastLoc,
     latestStatusText: latestDesc || stageObj.name,
   };

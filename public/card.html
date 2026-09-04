@@ -4107,23 +4107,31 @@ function renderCustomerBookings(shipments) {
 
     const renderStages = (stageIdx, stageInfo) => {
       const pPct = stageIdx === 0 ? 0 : Math.min(100, Math.round(((stageIdx - 1) / 6) * 100));
-      const locSubtitle = stageInfo && stageInfo.lastLocation ? ` · <span style="color:var(--brand);font-weight:700">📍 ${esc(stageInfo.lastLocation)}</span>` : '';
+      const sTimestamps = (stageInfo && stageInfo.stageTimestamps) || {};
       return `
         <div class="moov-timeline-track">
           <div class="moov-timeline-progress" style="width: ${pPct}%"></div>
         </div>
         <div class="moov-timeline-nodes">
           ${STAGES.map((st, i) => {
-            const isDone = (i + 1) < stageIdx;
-            const isCurrent = (i + 1) === stageIdx;
+            const stNum = i + 1;
+            const isDone = stNum < stageIdx;
+            const isCurrent = stNum === stageIdx;
             const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
+            const stData = sTimestamps[stNum] || null;
+            let subText = st.desc;
+            if (stData && (stData.timestamp || stData.location)) {
+              subText = `<div style="font-weight:800;color:var(--ink);font-size:11px">${esc(stData.shortTimestamp || stData.timestamp || '')}</div><div style="font-size:10.5px;color:var(--muted)">📍 ${esc(stData.location || st.desc)}</div>`;
+            } else if (isCurrent && stageInfo && stageInfo.lastLocation) {
+              subText = `<div style="font-weight:800;color:var(--brand);font-size:11px">In Progress</div><div style="font-size:10.5px;color:var(--muted)">📍 ${esc(stageInfo.lastLocation)}</div>`;
+            }
             return `
               <div class="moov-timeline-node ${cls}">
                 <div class="moov-timeline-dot">
-                  ${isDone ? '✓' : (i + 1)}
+                  ${isDone ? '✓' : stNum}
                 </div>
                 <div class="moov-timeline-title">${st.name}</div>
-                <div class="moov-timeline-sub">${isCurrent && stageInfo && stageInfo.lastLocation ? esc(stageInfo.lastLocation) : st.desc}</div>
+                <div class="moov-timeline-sub">${subText}</div>
               </div>
             `;
           }).join('')}
@@ -4141,10 +4149,9 @@ function renderCustomerBookings(shipments) {
       return '<tr style="border-bottom:1px solid var(--line)">'
         + '<td style="padding:9px 12px;font-weight:700">Piece ' + (idx + 1) + '</td>'
         + '<td style="padding:9px 12px;font-family:monospace;font-size:12px">' + (trk ? esc(trk) : '—') + '</td>'
-        + '<td style="padding:9px 12px">' + typeStr + '</td>'
-        + '<td style="padding:9px 12px">' + (l ? (l + ' × ' + w + ' × ' + h + ' cm') : 'Standard') + '</td>'
+        + '<td style="padding:9px 12px">' + typeStr + (l ? (' (' + l + '×' + w + '×' + h + ' cm)') : '') + '</td>'
         + '<td style="padding:9px 12px;text-align:right;font-weight:700">' + wt + ' kg</td>'
-        + '<td style="padding:9px 12px;text-align:right;color:var(--muted)">' + volWt + (volWt !== '—' ? ' kg' : '') + '</td>'
+        + '<td style="padding:9px 12px;text-align:left" id="pieceScan_' + x.id + '_' + idx + '"><span style="font-size:11.5px;color:var(--muted)">' + (isCancelled ? '—' : 'Awaiting scan…') + '</span></td>'
         + '<td style="padding:9px 12px;text-align:center" id="pieceStatus_' + x.id + '_' + idx + '"><span style="font-size:11px;color:var(--muted)">' + (isCancelled ? 'Cancelled' : 'Ready') + '</span></td>'
         + '<td style="padding:9px 12px;text-align:right;white-space:nowrap;display:flex;gap:6px;justify-content:flex-end">'
         + (trk ? ('<button type="button" class="btn-micro-pill btn-cust-track-live" data-tracking="' + esc(trk) + '" style="font-weight:700;color:var(--brand);border-color:var(--brand);background:#eff6ff">Track Piece</button>') : '')
@@ -4346,22 +4353,21 @@ function renderCustomerBookings(shipments) {
         </div>
 
         <div style="background:#fff;border:1px solid var(--line);padding:16px;margin-bottom:16px">
-          <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Package Specifications &amp; Labels (${pkgs.length} Pieces)</div>
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Package Specifications &amp; Live Tracking (${pkgs.length} Pieces)</div>
           <table style="width:100%;border-collapse:collapse;font-size:13px">
             <thead>
               <tr style="background:#f8fafc;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;color:var(--muted)">
                 <th style="padding:9px 12px;text-align:left">Package</th>
                 <th style="padding:9px 12px;text-align:left">Tracking #</th>
-                <th style="padding:9px 12px;text-align:left">Type</th>
-                <th style="padding:9px 12px;text-align:left">Dimensions</th>
-                <th style="padding:9px 12px;text-align:right">Dead Wt</th>
-                <th style="padding:9px 12px;text-align:right">Vol Wt</th>
+                <th style="padding:9px 12px;text-align:left">Type &amp; Dimensions</th>
+                <th style="padding:9px 12px;text-align:right">Weight</th>
+                <th style="padding:9px 12px;text-align:left">Latest Scan &amp; Time</th>
                 <th style="padding:9px 12px;text-align:center">Status</th>
                 <th style="padding:9px 12px;text-align:right">Action</th>
               </tr>
             </thead>
             <tbody>
-              ${pkgRowsHtml || '<tr><td colspan="8" style="padding:12px;text-align:center;color:var(--muted)">1 package</td></tr>'}
+              ${pkgRowsHtml || '<tr><td colspan="7" style="padding:12px;text-align:center;color:var(--muted)">1 package</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -4413,7 +4419,7 @@ function renderCustomerBookings(shipments) {
               badgeEl.innerHTML = `<span style="font-size:10.5px;font-weight:900;background:${bg};color:${col};padding:3px 8px;letter-spacing:.04em;border:1px solid ${bdr}">${txt}</span>`;
             }
 
-            // Update per-piece statuses
+            // Update per-piece statuses and scan timestamps
             if (Array.isArray(tData.parcels)) {
               tData.parcels.forEach((p, pIdx) => {
                 const el = $('pieceStatus_' + x.id + '_' + pIdx);
@@ -4423,6 +4429,17 @@ function renderCustomerBookings(shipments) {
                   const pBdr = p.isDelivered ? '#a7f3d0' : (p.stage >= 3 ? '#e9d5ff' : (p.isCollected ? '#bae6fd' : '#e2e8f0'));
                   const pTxt = p.stageName || (p.isDelivered ? 'Delivered' : (p.isCollected ? 'In Transit' : (p.statusDescription || 'Active')));
                   el.innerHTML = `<span style="font-size:10.5px;font-weight:800;background:${pBg};color:${pCol};border:1px solid ${pBdr};padding:2px 7px;border-radius:4px" title="${esc(p.lastLocation || '')}">${esc(pTxt)}</span>`;
+                }
+                const scanEl = $('pieceScan_' + x.id + '_' + pIdx);
+                if (scanEl) {
+                  if (p.lastScan && p.lastScan.timestamp) {
+                    scanEl.innerHTML = `<div><b style="color:var(--ink);font-size:12px">${esc(p.lastScan.shortTimestamp || p.lastScan.timestamp)}</b></div><div style="font-size:11px;color:var(--muted)">📍 ${esc(p.lastScan.location || p.lastScan.status || 'In Transit')}</div>`;
+                  } else if (p.activities && p.activities[0]) {
+                    const act = p.activities[0];
+                    scanEl.innerHTML = `<div><b style="color:var(--ink);font-size:12px">${esc(act.shortTimestamp || act.timestamp || act.date)}</b></div><div style="font-size:11px;color:var(--muted)">📍 ${esc(act.location || act.status || '')}</div>`;
+                  } else {
+                    scanEl.innerHTML = `<span style="font-size:11.5px;color:var(--muted)">Awaiting first scan</span>`;
+                  }
                 }
               });
             }
@@ -4495,14 +4512,14 @@ async function openLiveTrackingModal(trackingNumber) {
       const pDelivered = p.isDelivered;
 
       const actsHtml = acts.length ? acts.map((a, idx) => `
-        <div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);position:relative">
+        <div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);position:relative;align-items:flex-start">
           <div style="width:12px;height:12px;border-radius:50%;background:${idx === 0 ? '#059669' : '#94a3b8'};margin-top:4px;flex-shrink:0"></div>
           <div style="flex:1">
             <div style="font-weight:800;font-size:13px;color:var(--ink)">${esc(a.status || 'Scan Event')}</div>
-            <div style="font-size:12px;color:var(--muted)">${esc(a.location || 'UPS Network')}</div>
+            <div style="font-size:12px;color:var(--muted)">📍 ${esc(a.location || 'UPS Network')}</div>
           </div>
-          <div style="font-size:11.5px;font-family:monospace;color:#64748b;text-align:right">
-            ${esc(a.date || '')}
+          <div style="font-size:12px;font-family:monospace;font-weight:700;color:var(--ink);text-align:right;white-space:nowrap">
+            <div>${esc(a.timestamp || a.dateFormatted || a.date || '')}</div>
           </div>
         </div>
       `).join('') : '<div style="padding:16px;text-align:center;color:var(--muted)">No scan milestones registered yet for this piece.</div>';
@@ -4531,7 +4548,7 @@ async function openLiveTrackingModal(trackingNumber) {
           <div><span style="color:var(--muted)">Tracking #:</span> <b style="font-family:monospace;color:var(--brand)">${esc(p.trackingNumber)}</b></div>
           <div><span style="color:var(--muted)">Status:</span> <b style="color:${pDelivered ? '#059669' : (pCollected ? '#0284c7' : '#d97706')}">${esc(p.statusDescription || 'Active')}</b></div>
           ${p.weight ? `<div><span style="color:var(--muted)">Weight:</span> <b>${esc(p.weight)} kg</b></div>` : ''}
-          ${p.dimensions ? `<div><span style="color:var(--muted)">Dimensions:</span> <b>${esc(p.dimensions)}</b></div>` : ''}
+          ${p.lastScan && p.lastScan.timestamp ? `<div><span style="color:var(--muted)">Last Scan:</span> <b>${esc(p.lastScan.timestamp)}</b></div>` : ''}
         </div>
         <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:8px">Activity Timeline</div>
         <div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:0 16px">
@@ -4540,6 +4557,15 @@ async function openLiveTrackingModal(trackingNumber) {
         ${podHtml}
       `;
     };
+
+    const modalTimelineHtml = `
+      <div style="padding:16px 20px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;margin-bottom:20px">
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Courier Journey Milestones</div>
+        <div class="moov-timeline-wrap">
+          ${renderStages(Number(d.stage) || (isDelivered ? 7 : (isCollected ? 1 : 0)), d)}
+        </div>
+      </div>
+    `;
 
     if (parcels.length > 1) {
       let tabsHtml = `<div style="display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto;padding-bottom:4px">`;
@@ -4561,6 +4587,7 @@ async function openLiveTrackingModal(trackingNumber) {
 
       body.innerHTML = `
         ${celebrationBanner}
+        ${modalTimelineHtml}
         <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Multi-Piece Consignment (${parcels.length} Packages)</div>
         ${tabsHtml}
         ${parcelContainersHtml}
@@ -4584,6 +4611,7 @@ async function openLiveTrackingModal(trackingNumber) {
     } else {
       body.innerHTML = `
         ${celebrationBanner}
+        ${modalTimelineHtml}
         ${renderParcelDetail(parcels[0])}
       `;
     }
