@@ -70,13 +70,96 @@ const COUNTRY_DEFAULTS = {
   'SA': { city: 'Riyadh', postcode: '11564' },
 };
 
+function usZipToState(zip) {
+  const clean = String(zip || '').trim().replace(/[^\d]/g, '');
+  if (clean.length < 3) return '';
+  const p = parseInt(clean.slice(0, 3), 10);
+  if (isNaN(p)) return '';
+  if (p >= 5 && p <= 9) return 'PR';
+  if (p >= 10 && p <= 27) return 'MA';
+  if (p >= 28 && p <= 29) return 'RI';
+  if (p >= 30 && p <= 38) return 'NH';
+  if (p >= 39 && p <= 49) return 'ME';
+  if (p >= 50 && p <= 59) return 'VT';
+  if (p >= 60 && p <= 69) return 'CT';
+  if (p >= 70 && p <= 89) return 'NJ';
+  if (p >= 90 && p <= 99) return 'APO';
+  if (p >= 100 && p <= 149) return 'NY';
+  if (p >= 150 && p <= 196) return 'PA';
+  if (p >= 197 && p <= 199) return 'DE';
+  if (p >= 200 && p <= 205) return 'DC';
+  if (p >= 206 && p <= 219) return 'MD';
+  if (p >= 220 && p <= 246) return 'VA';
+  if (p >= 247 && p <= 268) return 'WV';
+  if (p >= 270 && p <= 289) return 'NC';
+  if (p >= 290 && p <= 299) return 'SC';
+  if (p >= 300 && p <= 319) return 'GA';
+  if (p >= 320 && p <= 349) return 'FL';
+  if (p >= 350 && p <= 369) return 'AL';
+  if (p >= 370 && p <= 385) return 'TN';
+  if (p >= 386 && p <= 397) return 'MS';
+  if (p >= 400 && p <= 427) return 'KY';
+  if (p >= 430 && p <= 459) return 'OH';
+  if (p >= 460 && p <= 479) return 'IN';
+  if (p >= 480 && p <= 499) return 'MI';
+  if (p >= 500 && p <= 528) return 'IA';
+  if (p >= 530 && p <= 549) return 'WI';
+  if (p >= 550 && p <= 567) return 'MN';
+  if (p >= 570 && p <= 577) return 'SD';
+  if (p >= 580 && p <= 588) return 'ND';
+  if (p >= 590 && p <= 599) return 'MT';
+  if (p >= 600 && p <= 629) return 'IL';
+  if (p >= 630 && p <= 658) return 'MO';
+  if (p >= 660 && p <= 679) return 'KS';
+  if (p >= 680 && p <= 693) return 'NE';
+  if (p >= 700 && p <= 714) return 'LA';
+  if (p >= 716 && p <= 729) return 'AR';
+  if (p >= 730 && p <= 749) return 'OK';
+  if (p >= 750 && p <= 799) return 'TX';
+  if (p >= 800 && p <= 816) return 'CO';
+  if (p >= 820 && p <= 831) return 'WY';
+  if (p >= 832 && p <= 838) return 'ID';
+  if (p >= 840 && p <= 847) return 'UT';
+  if (p >= 850 && p <= 865) return 'AZ';
+  if (p >= 870 && p <= 884) return 'NM';
+  if (p >= 889 && p <= 898) return 'NV';
+  if (p >= 900 && p <= 961) return 'CA';
+  if (p >= 967 && p <= 968) return 'HI';
+  if (p >= 970 && p <= 979) return 'OR';
+  if (p >= 980 && p <= 994) return 'WA';
+  if (p >= 995 && p <= 999) return 'AK';
+  return '';
+}
+
+function caPostcodeToProvince(pc) {
+  const clean = String(pc || '').trim().toUpperCase();
+  if (!clean) return '';
+  const first = clean.charAt(0);
+  const map = {
+    'A': 'NL', 'B': 'NS', 'C': 'PE', 'E': 'NB', 'G': 'QC', 'H': 'QC', 'J': 'QC',
+    'K': 'ON', 'L': 'ON', 'M': 'ON', 'N': 'ON', 'P': 'ON', 'R': 'MB', 'S': 'SK',
+    'T': 'AB', 'V': 'BC', 'X': 'NT', 'Y': 'YT',
+  };
+  return map[first] || '';
+}
+
 function addressOf(a, fallbackCountry) {
   a = a || {};
   const c = toIso(a.country || fallbackCountry) || 'GB';
   const lines = [a.line1, a.line2].map(S).filter(Boolean);
   const def = COUNTRY_DEFAULTS[c] || {};
-  const city = (a.city && String(a.city).trim()) || def.city || '';
-  const postcode = (a.postcode && String(a.postcode).trim()) || def.postcode || '';
+  
+  const hasCustomPostcode = !!(a.postcode && String(a.postcode).trim());
+  const hasCustomCity = !!(a.city && String(a.city).trim());
+
+  let city = hasCustomCity ? String(a.city).trim() : '';
+  let postcode = hasCustomPostcode ? String(a.postcode).trim() : '';
+
+  // Only apply default fallback city & postcode if NEITHER was provided
+  if (!hasCustomCity && !hasCustomPostcode) {
+    city = def.city || '';
+    postcode = def.postcode || '';
+  }
 
   const addr = {
     AddressLine: lines.length ? lines : ['1 Main Street'],
@@ -84,6 +167,15 @@ function addressOf(a, fallbackCountry) {
   };
   if (city) addr.City = city;
   if (postcode) addr.PostalCode = postcode;
+
+  let state = a.state || a.stateProvinceCode || '';
+  if (!state && c.toUpperCase() === 'US' && postcode) {
+    state = usZipToState(postcode);
+  } else if (!state && c.toUpperCase() === 'CA' && postcode) {
+    state = caPostcodeToProvince(postcode);
+  }
+  if (state) addr.StateProvinceCode = String(state).trim().toUpperCase();
+
   if (a.residential) {
     addr.ResidentialAddressIndicator = 'Y';
   }

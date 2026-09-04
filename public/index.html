@@ -2707,8 +2707,10 @@ function calc(){
       }else if(upsReady&&upsReady.enabled){
         const ALLOWED_UPS=new Set(['ux','us','ue','ups_65','ups_11','ups_07','65','11','07','7','065','011','007']);
         (upsReady.services||[]).filter(live=>ALLOWED_UPS.has(live.key)||ALLOWED_UPS.has(String(live.code))).forEach(live=>{
+          const isSell = (typeof metric !== 'undefined' ? metric === 'sell' : true);
+          const raw = isSell ? (live.sellBase != null ? live.sellBase : live.costBase) : live.costBase;
           const built={
-            live:true, days:live.days, raw:live.costBase,
+            live:true, days:live.days, raw,
             fc:(live.costBase?(live.costFuel/live.costBase*100):0),
             fs:(live.sellBase?(live.sellFuel/live.sellBase*100):0),
             costFuel:live.costFuel, sellFuel:live.sellFuel,
