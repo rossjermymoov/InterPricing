@@ -3682,6 +3682,42 @@ async function loadShipments() {
   }
 }
 
+const STAGES = [
+  { name: 'Collected', desc: 'Supplier Pickup' },
+  { name: 'In Transit', desc: 'Origin Transit' },
+  { name: 'At Hub', desc: 'Export Hub' },
+  { name: 'In Transit', desc: 'Cross-Border' },
+  { name: 'At Depot', desc: 'UK Depot' },
+  { name: 'Out for Delivery', desc: 'Local Driver' },
+  { name: 'Delivered', desc: 'Signed' },
+];
+
+const renderAdmStages = (stageIdx, stageInfo) => {
+  const pPct = stageIdx === 0 ? 0 : Math.min(100, Math.round(((stageIdx - 1) / 6) * 100));
+  const sTimestamps = (stageInfo && stageInfo.stageTimestamps) || {};
+  return '<div class="moov-timeline-track"><div class="moov-timeline-progress" style="width: ' + pPct + '%"></div></div>' +
+    '<div class="moov-timeline-nodes">' +
+    STAGES.map((st, i) => {
+      const stNum = i + 1;
+      const isDone = stNum < stageIdx;
+      const isCurrent = stNum === stageIdx;
+      const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
+      const stData = sTimestamps[stNum] || null;
+      let subText = st.desc;
+      if (stData && (stData.timestamp || stData.location)) {
+        subText = '<div style="font-weight:800;color:var(--mv-ink);font-size:10.5px">' + qesc(stData.shortTimestamp || stData.timestamp || '') + '</div><div style="font-size:10px;color:var(--mv-ink-55)">📍 ' + qesc(stData.location || st.desc) + '</div>';
+      } else if (isCurrent && stageInfo && stageInfo.lastLocation) {
+        subText = '<div style="font-weight:800;color:var(--mv-purple);font-size:10.5px">In Progress</div><div style="font-size:10px;color:var(--mv-ink-55)">📍 ' + qesc(stageInfo.lastLocation) + '</div>';
+      }
+      return '<div class="moov-timeline-node ' + cls + '">' +
+        '<div class="moov-timeline-dot">' + (isDone ? '✓' : stNum) + '</div>' +
+        '<div class="moov-timeline-title">' + st.name + '</div>' +
+        '<div class="moov-timeline-sub">' + subText + '</div>' +
+        '</div>';
+    }).join('') +
+    '</div>';
+};
+
 let cachedAdminShipments = [];
 function renderShipments(list) {
   cachedAdminShipments = list || [];
@@ -3721,42 +3757,6 @@ function renderShipments(list) {
     // 7-Stage Progress calculation
     let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : (x.status === 'collected' ? 1 : 0));
     let progressPercent = currentStageIdx === 0 ? 0 : Math.min(100, Math.round(((currentStageIdx - 1) / 6) * 100));
-
-    const STAGES = [
-      { name: 'Collected', desc: 'Supplier Pickup' },
-      { name: 'In Transit', desc: 'Origin Transit' },
-      { name: 'At Hub', desc: 'Export Hub' },
-      { name: 'In Transit', desc: 'Cross-Border' },
-      { name: 'At Depot', desc: 'UK Depot' },
-      { name: 'Out for Delivery', desc: 'Local Driver' },
-      { name: 'Delivered', desc: 'Signed' },
-    ];
-
-    const renderAdmStages = (stageIdx, stageInfo) => {
-      const pPct = stageIdx === 0 ? 0 : Math.min(100, Math.round(((stageIdx - 1) / 6) * 100));
-      const sTimestamps = (stageInfo && stageInfo.stageTimestamps) || {};
-      return '<div class="moov-timeline-track"><div class="moov-timeline-progress" style="width: ' + pPct + '%"></div></div>' +
-        '<div class="moov-timeline-nodes">' +
-        STAGES.map((st, i) => {
-          const stNum = i + 1;
-          const isDone = stNum < stageIdx;
-          const isCurrent = stNum === stageIdx;
-          const cls = isDone ? 'done' : (isCurrent ? 'current' : 'pending');
-          const stData = sTimestamps[stNum] || null;
-          let subText = st.desc;
-          if (stData && (stData.timestamp || stData.location)) {
-            subText = '<div style="font-weight:800;color:var(--mv-ink);font-size:10.5px">' + qesc(stData.shortTimestamp || stData.timestamp || '') + '</div><div style="font-size:10px;color:var(--mv-ink-55)">📍 ' + qesc(stData.location || st.desc) + '</div>';
-          } else if (isCurrent && stageInfo && stageInfo.lastLocation) {
-            subText = '<div style="font-weight:800;color:var(--mv-purple);font-size:10.5px">In Progress</div><div style="font-size:10px;color:var(--mv-ink-55)">📍 ' + qesc(stageInfo.lastLocation) + '</div>';
-          }
-          return '<div class="moov-timeline-node ' + cls + '">' +
-            '<div class="moov-timeline-dot">' + (isDone ? '✓' : stNum) + '</div>' +
-            '<div class="moov-timeline-title">' + st.name + '</div>' +
-            '<div class="moov-timeline-sub">' + subText + '</div>' +
-            '</div>';
-        }).join('') +
-        '</div>';
-    };
 
     const pkgRowsHtml = pkgs.map((p, pIdx) => {
       const q = parseInt(p.qty, 10) || 1;
