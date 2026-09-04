@@ -2259,6 +2259,9 @@ a:hover { text-decoration: underline; }
 </div>
 
 <script>
+const $ = id => document.getElementById(id);
+const num = id => { const el = $(id); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? 0 : v; };
+const money = v => v == null ? '—' : '£' + Number(v).toFixed(2);
 const LIVE_CODE_TO_KEY = {'375':'fc','270':'resi','100':'ah','110':'lps','120':'oml','190':'das','195':'eas','197':'ras','199':'ras','400':'ras','401':'eas','376':'das','377':'lps','430':'peak'};
 function exceedsLimits(carrier, w, l, w2, h) {
   const numW = Number(w) || 0;
@@ -2367,7 +2370,6 @@ function fetchUpsQuote(key, c){
 }
 
 let P, bands, CAPS, current=null, authEnabled=false, ACTIVE=[];
-const $=id=>document.getElementById(id), money=v=>v==null?'—':'£'+v.toFixed(2);
 const CARRIER_LOGOS={dpd:'https://app.heyvoila.io/courier-service-logos/dpd.jpg',ups:'https://app.heyvoila.io/courier-service-logos/ups.jpg'};
 function carrierLogo(carrier){const k=(carrier||'').toLowerCase();const src=CARRIER_LOGOS[k]||('/carrier-'+k+'.svg');
   return '<img class="ds-card-clogo" src="'+src+'" data-k="'+k+'" data-c="'+k.toUpperCase()+'" alt="'+k+'"/>';}
