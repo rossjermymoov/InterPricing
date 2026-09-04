@@ -218,33 +218,91 @@ const CHG = {
   '573': 'International Processing Fee (US)',
 };
 const chgName = (c) => CHG[String(c)] || ('Accessorial ' + c);
-const REMOTE = ['190', '195', '197', '199', '400', '401'];
+const REMOTE = ['190', '195', '197', '199', '400', '401', '376'];
 const isRemote = (c) => REMOTE.indexOf(String(c)) >= 0;
 
-// Per-service charge breakdown: base, fuel (code 375), other accessorials, and totals.
-// Prefer the NEGOTIATED (discounted) itemised charges when UPS provides them — that gives
-// your true account surcharge (e.g. the real remote-area figure) rather than the published one.
 function breakdownOf(rs) {
   const neg = rs.NegotiatedRateCharges || null;
-  const hasNegItems = !!(neg && neg.ItemizedCharges);
-  const src = hasNegItems ? neg : rs;
-  let items = src.ItemizedCharges || [];
-  if (!Array.isArray(items)) items = items ? [items] : [];
-  let fuel = 0; const acc = [];
-  items.forEach((it) => {
-    const code = String(it.Code || ''); const amt = num(it.MonetaryValue) || 0;
-    if (code === '375') fuel += amt;
-    else if (amt > 0) acc.push({ code, name: chgName(code), amt, remote: isRemote(code) });
+  const hasNeg = !!(neg && (neg.ItemizedCharges || neg.TotalCharge || neg.BaseServiceCharge || neg.TransportationCharges));
+  
+  // Extract shipment-level items
+  const toArr = (x) => Array.isArray(x) ? x : (x ? [x] : []);
+  const shpItems = toArr(hasNeg && neg.ItemizedCharges ? neg.ItemizedCharges : rs.ItemizedCharges);
+  
+  // Extract package-level items across all RatedPackage entries
+  const pkgs = toArr(rs.RatedPackage);
+  const pkgItems = [];
+  pkgs.forEach((p) => {
+    const pNeg = p.NegotiatedCharges || p.NegotiatedRateCharges || null;
+    const pSrc = (hasNeg && pNeg && pNeg.ItemizedCharges) ? pNeg.ItemizedCharges : p.ItemizedCharges;
+    pkgItems.push(...toArr(pSrc));
   });
-  const negBase = neg && neg.BaseServiceCharge ? num(neg.BaseServiceCharge.MonetaryValue) : null;
-  const pubBase = rs.BaseServiceCharge ? num(rs.BaseServiceCharge.MonetaryValue) : null;
+
+  // Combine items: if a code is present at shipment level, use it; otherwise sum package-level items for that code
+  const codeMap = new Map();
+  shpItems.forEach((it) => {
+    const code = String(it.Code || it.code || '');
+    const amt = num(it.MonetaryValue || it.amt) || 0;
+    if (code && amt > 0) {
+      codeMap.set(code, (codeMap.get(code) || 0) + amt);
+    }
+  });
+
+  pkgItems.forEach((it) => {
+    const code = String(it.Code || it.code || '');
+    const amt = num(it.MonetaryValue || it.amt) || 0;
+    if (code && amt > 0 && !codeMap.has(code)) {
+      // If not present at shipment level, accumulate from package level
+      codeMap.set(code, (codeMap.get(code) || 0) + amt);
+    }
+  });
+
+  let fuel = codeMap.get('375') || 0;
+  const acc = [];
+  codeMap.forEach((amt, code) => {
+    if (code !== '375' && amt > 0) {
+      acc.push({ code, name: chgName(code), amt: Math.round(amt * 100) / 100, remote: isRemote(code) });
+    }
+  });
+
+  const getBase = (obj) => {
+    if (!obj) return null;
+    if (obj.BaseServiceCharge && obj.BaseServiceCharge.MonetaryValue != null) return num(obj.BaseServiceCharge.MonetaryValue);
+    if (obj.TransportationCharges && obj.TransportationCharges.MonetaryValue != null) return num(obj.TransportationCharges.MonetaryValue);
+    return null;
+  };
+
+  let negBase = getBase(neg);
+  let pubBase = getBase(rs);
+
+  // If base not on shipment, try summing packages
+  if (negBase == null && hasNeg) {
+    const sumPkgNegBase = pkgs.reduce((sum, p) => {
+      const pNeg = p.NegotiatedCharges || p.NegotiatedRateCharges || null;
+      const b = getBase(pNeg) || getBase(p);
+      return b != null ? sum + b : sum;
+    }, 0);
+    if (sumPkgNegBase > 0) negBase = sumPkgNegBase;
+  }
+  if (pubBase == null) {
+    const sumPkgPubBase = pkgs.reduce((sum, p) => {
+      const b = getBase(p);
+      return b != null ? sum + b : sum;
+    }, 0);
+    if (sumPkgPubBase > 0) pubBase = sumPkgPubBase;
+  }
+
+  const pubTotal = rs.TotalCharges ? num(rs.TotalCharges.MonetaryValue) : null;
+  const negTotal = (neg && (neg.TotalCharge || neg.TotalCharges)) ? num((neg.TotalCharge || neg.TotalCharges).MonetaryValue) : null;
+  const baseVal = hasNeg ? (negBase != null ? negBase : pubBase) : pubBase;
+
   return {
-    base: hasNegItems ? (negBase != null ? negBase : pubBase) : pubBase,
-    fuel,
+    base: baseVal != null ? Math.round(baseVal * 100) / 100 : null,
+    fuel: Math.round(fuel * 100) / 100,
     accessorials: acc,
-    pubTotal: rs.TotalCharges ? num(rs.TotalCharges.MonetaryValue) : null,
-    negTotal: (neg && neg.TotalCharge) ? num(neg.TotalCharge.MonetaryValue) : null,
-    negotiated: hasNegItems, // true → components are already discounted (no scaling needed downstream)
+    pubTotal,
+    negTotal,
+    negotiated: hasNeg,
   };
 }
 
