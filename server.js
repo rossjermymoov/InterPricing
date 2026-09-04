@@ -1182,6 +1182,36 @@ app.post('/api/shipments/cancel', async (req, res) => {
   }
 });
 
+// PUBLIC / AUTH: Un-cancel / Restore a cancelled shipment back to booked / in-transit
+app.post('/api/shipments/uncancel', async (req, res) => {
+  try {
+    const { token, id, trackingNumber, status } = req.body || {};
+    let card = null;
+    if (token) {
+      card = db.hasDb ? await db.getCardByToken(token) : null;
+      if (!card) return res.status(404).json({ ok: false, error: 'Invalid card token' });
+    } else if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'Authorization required.' });
+    }
+
+    const sId = id || trackingNumber;
+    if (!sId) return res.status(400).json({ ok: false, error: 'Shipment ID or tracking number required.' });
+
+    let updated = null;
+    if (db.hasDb) {
+      updated = await db.updateShipmentStatus(sId, status || 'booked');
+    }
+
+    res.json({
+      ok: true,
+      shipment: updated,
+      message: 'Shipment ' + sId + ' has been marked as ' + (status || 'booked') + '.',
+    });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // PUBLIC / AUTH: Live Tracking query with activity timeline, collection milestone, and POD / signature (supports single & multi-piece shipments)
 app.get('/api/shipments/:tracking/track', async (req, res) => {
   try {

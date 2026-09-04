@@ -156,6 +156,27 @@ async function initDb() {
     );`);
   await pool.query(`CREATE INDEX IF NOT EXISTS shipments_created_idx ON shipments (created_at DESC);`);
   await pool.query(`CREATE INDEX IF NOT EXISTS shipments_tracking_idx ON shipments (tracking_number);`);
+  
+  // Auto-restore any Bessette order erroneously marked as cancelled
+  try {
+    const uncancelRes = await pool.query(`
+      UPDATE shipments 
+      SET status = 'booked' 
+      WHERE status = 'cancelled' 
+        AND (
+          lower(coalesce(customer, '')) LIKE '%bessette%' 
+          OR lower(coalesce(sender::text, '')) LIKE '%bessette%' 
+          OR lower(coalesce(receiver::text, '')) LIKE '%bessette%'
+        )
+      RETURNING id, tracking_number, customer;
+    `);
+    if (uncancelRes.rowCount > 0) {
+      console.log('[db] Auto-restored Bessette shipment(s) back to booked:', uncancelRes.rows);
+    }
+  } catch (err) {
+    console.error('[db] Error restoring Bessette shipment:', err.message);
+  }
+
   await migrateConfig();
   console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs, collections, shipments)');
 }

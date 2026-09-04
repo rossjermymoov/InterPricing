@@ -3725,6 +3725,7 @@ function renderShipments(list) {
         + '<td style="padding:6px 8px">' + (l ? (l + ' × ' + w + ' × ' + h + ' cm') : 'Standard') + '</td>'
         + '<td style="padding:6px 8px;text-align:right;font-weight:700">' + wt + ' kg</td>'
         + '<td style="padding:6px 8px;text-align:right;color:var(--mv-ink-55)">' + volWt + (volWt !== '—' ? ' kg' : '') + '</td>'
+        + '<td style="padding:6px 8px;text-align:center" id="admPieceStatus_' + x.id + '_' + pIdx + '"><span style="font-size:10px;color:var(--mv-ink-55)">' + (isCancelled ? 'Cancelled' : 'Ready') + '</span></td>'
         + '<td style="padding:6px 8px;text-align:right;white-space:nowrap">'
         + (trk ? ('<button type="button" class="btn-micro-pill btn-adm-track-live" data-tracking="' + qesc(trk) + '" style="font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple);background:#fdf4ff;margin-right:4px">Track Piece</button>') : '')
         + (p.labelGraphic ? ('<a href="data:image/gif;base64,' + p.labelGraphic + '" download="UPS_Label_' + (trk || (pIdx + 1)) + '.gif" class="btn-micro-pill" target="_blank" onclick="event.stopPropagation()" style="font-weight:700">Label</a>') : '')
@@ -3767,7 +3768,9 @@ function renderShipments(list) {
             '<button type="button" class="btn-moov-action secondary btn-adm-email-labels" data-id="' + x.id + '" style="color:var(--mv-purple);border-color:var(--mv-purple)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg><span>Email Labels</span></button>' +
             (x.tracking_number ? ('<button type="button" class="btn-moov-action primary btn-adm-track-live" data-tracking="' + qesc(x.tracking_number) + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Track Shipment</span></button>') : '') +
             (x.prn && !isCancelled ? ('<button type="button" class="btn-moov-action secondary btn-adm-resched" data-prn="' + qesc(x.prn) + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg><span>Amend Collection</span></button>') : '') +
+            (x.prn && !isCancelled ? ('<button type="button" class="btn-moov-action danger btn-adm-cancel-collection" data-prn="' + qesc(x.prn) + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Cancel Collection</span></button>') : '') +
             (x.label_base64 ? ('<a href="data:image/gif;base64,' + x.label_base64 + '" download="UPS_Label_' + (x.tracking_number || x.id) + '.gif" class="btn-moov-action secondary" target="_blank" onclick="event.stopPropagation()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg><span>Print Label</span></a>') : '') +
+            (!isCancelled ? ('<button type="button" class="btn-moov-action danger btn-adm-cancel-shipment" data-id="' + x.id + '" data-tracking="' + qesc(x.tracking_number || '') + '" data-prn="' + qesc(x.prn || '') + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><span>Cancel Order</span></button>') : ('<button type="button" class="btn-moov-action secondary btn-adm-restore-shipment" data-id="' + x.id + '" data-tracking="' + qesc(x.tracking_number || '') + '" style="color:var(--mv-green);border-color:var(--mv-green)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg><span>Restore Order</span></button>')) +
           '</div>' +
         '</div>' +
 
@@ -3805,7 +3808,7 @@ function renderShipments(list) {
             '<div class="ds-label" style="margin-bottom:8px">Package Pieces (' + pkgs.length + ')</div>' +
             '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
               '<thead><tr style="border-bottom:1px solid var(--mv-divider);color:var(--mv-ink-55);font-size:10px;text-transform:uppercase">' +
-                '<th style="text-align:left;padding:4px 8px">Piece</th><th style="text-align:left;padding:4px 8px">Tracking</th><th style="text-align:left;padding:4px 8px">Packaging</th><th style="text-align:left;padding:4px 8px">Dimensions</th><th style="text-align:right;padding:4px 8px">Dead Wt</th><th style="text-align:right;padding:4px 8px">Vol Wt</th><th style="text-align:right;padding:4px 8px">Actions</th>' +
+                '<th style="text-align:left;padding:4px 8px">Piece</th><th style="text-align:left;padding:4px 8px">Tracking</th><th style="text-align:left;padding:4px 8px">Packaging</th><th style="text-align:left;padding:4px 8px">Dimensions</th><th style="text-align:right;padding:4px 8px">Dead Wt</th><th style="text-align:right;padding:4px 8px">Vol Wt</th><th style="text-align:center;padding:4px 8px">Status</th><th style="text-align:right;padding:4px 8px">Actions</th>' +
               '</tr></thead>' +
               '<tbody>' + pkgRowsHtml + '</tbody>' +
             '</table>' +
@@ -3842,6 +3845,19 @@ function renderShipments(list) {
               } else if (tData.isCollected) {
                 chipEl.innerHTML = '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>IN TRANSIT</span>';
               }
+            }
+
+            // Update piece statuses
+            if (Array.isArray(tData.parcels)) {
+              tData.parcels.forEach((p, pIdx) => {
+                const pEl = $('admPieceStatus_' + x.id + '_' + pIdx);
+                if (pEl) {
+                  const pCol = p.isDelivered ? 'var(--mv-green)' : (p.isCollected ? 'var(--mv-purple)' : 'var(--mv-ink)');
+                  const pBg = p.isDelivered ? 'rgba(0,200,83,0.1)' : (p.isCollected ? 'rgba(123,47,190,0.08)' : 'var(--mv-surface)');
+                  const pTxt = p.isDelivered ? 'Delivered' : (p.isCollected ? 'In Transit' : (p.statusDescription || 'Active'));
+                  pEl.innerHTML = '<span style="font-size:10px;font-weight:700;color:' + pCol + ';background:' + pBg + ';padding:2px 6px;border-radius:3px">' + qesc(pTxt) + '</span>';
+                }
+              });
             }
           }
         } catch (_) {}
@@ -3953,11 +3969,11 @@ document.addEventListener('click', async e => {
     return;
   }
 
-  const cancelBtn = e.target.closest && e.target.closest('.btn-adm-cancel');
+  const cancelBtn = e.target.closest && (e.target.closest('.btn-adm-cancel') || e.target.closest('.btn-adm-cancel-collection'));
   if (cancelBtn) {
     e.preventDefault();
     const prn = cancelBtn.dataset.prn;
-    if (!confirm('Are you sure you want to cancel UPS collection PRN ' + prn + '?')) return;
+    if (!confirm('Are you sure you want to cancel UPS driver collection PRN ' + prn + '? The shipment and labels will remain active.')) return;
     cancelBtn.disabled = true;
     cancelBtn.textContent = 'Cancelling…';
     try {
@@ -3969,6 +3985,54 @@ document.addEventListener('click', async e => {
         alert('Collection PRN ' + prn + ' was successfully cancelled with UPS.');
       }
       await loadCollections();
+      await loadShipments();
+    } catch (err) {
+      alert('Network Error: ' + err.message);
+    }
+    return;
+  }
+
+  const cancelShipmentBtn = e.target.closest && e.target.closest('.btn-adm-cancel-shipment');
+  if (cancelShipmentBtn) {
+    e.preventDefault();
+    const sId = cancelShipmentBtn.dataset.id;
+    const trk = cancelShipmentBtn.dataset.tracking;
+    const prn = cancelShipmentBtn.dataset.prn;
+    if (!confirm('Are you sure you want to cancel / void this UPS shipment order (' + (trk || sId) + ')?')) return;
+    cancelShipmentBtn.disabled = true;
+    cancelShipmentBtn.textContent = 'Cancelling…';
+    try {
+      const res = await jpost('/api/shipments/cancel', { id: sId, trackingNumber: trk, prn });
+      const d = await res.json();
+      if (!res.ok || !d.ok) {
+        alert('UPS Cancellation Error: ' + (d.error || 'Failed to cancel shipment.'));
+      } else {
+        alert('Shipment was successfully cancelled / voided with UPS.');
+      }
+      await loadShipments();
+      await loadCollections();
+    } catch (err) {
+      alert('Network Error: ' + err.message);
+    }
+    return;
+  }
+
+  const restoreShipmentBtn = e.target.closest && e.target.closest('.btn-adm-restore-shipment');
+  if (restoreShipmentBtn) {
+    e.preventDefault();
+    const sId = restoreShipmentBtn.dataset.id;
+    const trk = restoreShipmentBtn.dataset.tracking;
+    if (!confirm('Restore and uncancel shipment (' + (trk || sId) + ')?')) return;
+    restoreShipmentBtn.disabled = true;
+    restoreShipmentBtn.textContent = 'Restoring…';
+    try {
+      const res = await jpost('/api/shipments/uncancel', { id: sId, trackingNumber: trk, status: 'booked' });
+      const d = await res.json();
+      if (!res.ok || !d.ok) {
+        alert('Restore Error: ' + (d.error || 'Failed to restore shipment.'));
+      } else {
+        alert('Shipment was successfully restored to booked status.');
+      }
       await loadShipments();
     } catch (err) {
       alert('Network Error: ' + err.message);
