@@ -1003,11 +1003,12 @@ a:hover { text-decoration: underline; }
 }
 .moov-timeline-track {
   position: absolute;
-  top: 29px;
+  top: 30px;
   left: 36px;
   right: 36px;
-  height: 2px;
-  background: var(--mv-divider);
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 3px;
   z-index: 1;
 }
 .moov-timeline-progress {
@@ -1015,7 +1016,8 @@ a:hover { text-decoration: underline; }
   top: 0;
   left: 0;
   height: 100%;
-  background: var(--mv-green);
+  background: #10b981;
+  border-radius: 3px;
   transition: width 0.3s ease;
 }
 .moov-timeline-nodes {
@@ -1035,60 +1037,172 @@ a:hover { text-decoration: underline; }
   min-width: 60px;
 }
 .moov-timeline-dot {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   background: #ffffff;
-  border: 1.5px solid var(--mv-divider);
+  border: 2px solid #cbd5e1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  color: var(--mv-ink-45);
+  color: #64748b;
   font-weight: 800;
   margin-bottom: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
   transition: all 0.2s ease;
 }
 .moov-timeline-node.done .moov-timeline-dot {
-  background: var(--mv-green);
-  border-color: var(--mv-green);
+  background: #10b981;
+  border-color: #10b981;
   color: #ffffff;
 }
 .moov-timeline-node.current .moov-timeline-dot {
-  background: var(--mv-green);
-  border-color: var(--mv-green);
+  background: #10b981;
+  border-color: #10b981;
   color: #ffffff;
-  box-shadow: 0 0 0 4px rgba(0, 200, 83, 0.25);
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25);
   animation: pulse-dot 2s infinite ease-in-out;
 }
 .moov-timeline-title {
   font-size: 11px;
-  font-weight: 600;
-  color: var(--mv-ink-45);
+  font-weight: 700;
+  color: #64748b;
   line-height: 1.25;
 }
 .moov-timeline-node.done .moov-timeline-title {
-  color: var(--mv-ink);
+  color: #1e293b;
   font-weight: 700;
 }
 .moov-timeline-node.current .moov-timeline-title {
-  color: var(--mv-green-deep);
-  font-weight: 800;
+  color: #047857;
+  font-weight: 900;
 }
 .moov-timeline-sub {
-  font-size: 9.5px;
-  color: var(--mv-ink-45);
-  margin-top: 1px;
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
 }
 .moov-timeline-node.done .moov-timeline-sub {
-  color: var(--mv-ink-55);
+  color: #64748b;
 }
 .moov-timeline-node.current .moov-timeline-sub {
-  color: var(--mv-green-deep);
+  color: #047857;
   font-weight: 600;
 }
 @keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(0, 200, 83, 0.25); }
-  50% { box-shadow: 0 0 0 8px rgba(0, 200, 83, 0.1); }
+  0%, 100% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25); }
+  50% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.1); }
+}
+
+/* Tracking Modal Modern UI */
+.track-piece-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+.track-piece-strip::-webkit-scrollbar {
+  height: 4px;
+}
+.track-piece-strip::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.track-piece-pill {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.track-piece-pill:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+.track-piece-pill.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+.track-piece-pill .piece-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+.track-piece-pill.active .piece-dot {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4);
+}
+.track-v-timeline {
+  position: relative;
+  padding-left: 28px;
+  margin-top: 14px;
+}
+.track-v-timeline::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: #e2e8f0;
+}
+.track-v-event {
+  position: relative;
+  padding-bottom: 20px;
+}
+.track-v-event:last-child {
+  padding-bottom: 0;
+}
+.track-v-node {
+  position: absolute;
+  left: -28px;
+  top: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+.track-v-event:first-child .track-v-node {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+.track-v-event:first-child .track-v-node::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+  animation: pulse-dot 2s infinite ease-in-out;
+}
+.track-v-event:not(:first-child) .track-v-node::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
 }
 
 /* ===== DROP SHOPS SIDEBAR ===== */
@@ -4455,9 +4569,17 @@ async function openLiveTrackingModal(trackingNumber) {
   const m = $('trackingModal');
   const body = $('tmBody');
   m.style.display = 'flex';
-  $('tmModalTitle').textContent = 'Tracking ' + trackingNumber;
-  $('tmModalSub').textContent = 'Live UPS tracking & delivery status';
-  body.innerHTML = '<div style="padding:36px;text-align:center;color:var(--muted)"><div style="font-size:15px;font-weight:700;margin-bottom:6px">Contacting UPS Tracking API…</div><div style="font-size:12px">Querying current location, milestone scans, and delivery confirmation</div></div>';
+  $('tmModalTitle').textContent = 'Live Consignment Tracking';
+  $('tmModalSub').textContent = 'UPS live courier telemetry & milestone tracking';
+  body.innerHTML = `
+    <div style="padding:48px 24px;text-align:center;color:#64748b">
+      <div class="ups-loader-wrap" style="margin-bottom:12px">
+        <img class="ups-loading-logo" src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS" style="width:36px;height:36px;border-radius:6px;filter:grayscale(100%);opacity:0.6;animation:spin-ups 1.8s infinite linear" />
+      </div>
+      <div style="font-size:15px;font-weight:800;color:#0f172a;margin-bottom:4px">Connecting to UPS Tracking API…</div>
+      <div style="font-size:12.5px;color:#64748b">Querying live network scans, milestone telemetry, and piece statuses</div>
+    </div>
+  `;
 
   try {
     const res = await fetch('/api/shipments/' + encodeURIComponent(trackingNumber) + '/track');
@@ -4465,9 +4587,9 @@ async function openLiveTrackingModal(trackingNumber) {
 
     if (!res.ok || !d.ok) {
       body.innerHTML = `
-        <div style="padding:24px;background:#fef2f2;border:1px solid #fecaca;border-radius:0;color:#991b1b">
-          <div style="font-weight:800;font-size:14px;margin-bottom:4px">Tracking Update Unavailable</div>
-          <div style="font-size:12.5px">${esc(d.error || 'UPS has not recorded any physical scan activity for this tracking number yet.')}</div>
+        <div style="padding:20px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;color:#991b1b">
+          <div style="font-weight:800;font-size:14px;margin-bottom:4px">Tracking Telemetry Unavailable</div>
+          <div style="font-size:12.5px">${esc(d.error || 'UPS has not recorded physical scan activity for this tracking number yet.')}</div>
         </div>
       `;
       return;
@@ -4487,98 +4609,150 @@ async function openLiveTrackingModal(trackingNumber) {
       delivery: d.delivery || {},
     }];
 
+    const totalWeight = parcels.reduce((sum, p) => sum + (Number(p.weight) || 0), 0);
+    const stageNum = Number(d.stage) || (isDelivered ? 7 : (isCollected ? 1 : 0));
+    const stageName = d.stageName || (isDelivered ? 'Delivered' : (isCollected ? 'In Transit' : 'Label Created'));
+    const lastLoc = d.lastLocation || (parcels[0] && parcels[0].lastLocation) || 'UPS Network';
+
     let celebrationBanner = '';
     if (isDelivered) {
       celebrationBanner = `
-        <div style="background:#ecfdf5;border:1.5px solid #059669;padding:14px 18px;margin-bottom:20px;color:#065f46">
-          <div style="font-weight:800;font-size:14px">Successfully Delivered &amp; Signed</div>
-          <div style="font-size:12.5px;opacity:0.9;margin-top:2px">All packages in this consignment have been delivered. Proof of delivery recorded.</div>
-        </div>
-      `;
-    } else if (isCollected) {
-      celebrationBanner = `
-        <div style="background:#ecfdf5;border:1.5px solid #10b981;padding:14px 18px;margin-bottom:20px;color:#065f46">
-          <div style="font-weight:800;font-size:14px">Collected by UPS Courier — On Its Way</div>
-          <div style="font-size:12.5px;opacity:0.9;margin-top:2px">The courier has collected the package(s) from the supplier. Consignment is in active transit.</div>
+        <div style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);border:1.5px solid #059669;border-radius:10px;padding:14px 18px;margin-bottom:16px;color:#065f46;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-weight:900;font-size:14px;display:flex;align-items:center;gap:6px"><span>✓</span> Consignment Delivered &amp; Signed</div>
+            <div style="font-size:12px;opacity:0.9;margin-top:2px">All packages have been successfully delivered to destination.</div>
+          </div>
+          ${d.delivery && d.delivery.receivedBy ? `<div style="font-size:12px;font-weight:800;background:#fff;border:1px solid #a7f3d0;padding:4px 10px;border-radius:6px">Signed by: ${esc(d.delivery.receivedBy)}</div>` : ''}
         </div>
       `;
     }
 
-    // Render multi-parcel tabs or single view
+    const heroMilestoneCard = `
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 20px;margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+          <div>
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#64748b;letter-spacing:0.05em">Current Consignment Status</div>
+            <div style="font-size:17px;font-weight:900;color:#0f172a;margin-top:2px;display:flex;align-items:center;gap:8px">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${isDelivered ? '#10b981' : '#3b82f6'};box-shadow:0 0 0 3px ${isDelivered ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)'}"></span>
+              <span>${esc(stageName)}</span>
+              ${lastLoc && lastLoc !== 'UPS Network' ? `<span style="font-size:12.5px;font-weight:700;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:2px 8px;border-radius:9999px">📍 ${esc(lastLoc)}</span>` : ''}
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em">Tracking #</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+              <a href="https://www.ups.com/track?tracknum=${encodeURIComponent(trackingNumber)}" target="_blank" rel="noopener" style="font-family:monospace;font-size:13.5px;font-weight:800;color:#4338ca;text-decoration:none;display:inline-flex;align-items:center;gap:4px">
+                ${esc(trackingNumber)} ↗
+              </a>
+              <button type="button" class="btn-copy-trk" data-trk="${esc(trackingNumber)}" style="background:#fff;border:1px solid #cbd5e1;border-radius:4px;padding:2px 6px;font-size:11px;cursor:pointer;color:#475569" title="Copy tracking number">Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="moov-timeline-wrap" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 14px 10px;box-shadow:0 1px 3px rgba(0,0,0,0.02)">
+          ${renderStages(stageNum, d)}
+        </div>
+      </div>
+    `;
+
     const renderParcelDetail = (p) => {
       const acts = p.activities || [];
       const del = p.delivery || {};
-      const pCollected = p.isCollected;
       const pDelivered = p.isDelivered;
+      const pCollected = p.isCollected;
 
       const actsHtml = acts.length ? acts.map((a, idx) => `
-        <div style="display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--line);position:relative;align-items:flex-start">
-          <div style="width:12px;height:12px;border-radius:50%;background:${idx === 0 ? '#059669' : '#94a3b8'};margin-top:4px;flex-shrink:0"></div>
-          <div style="flex:1">
-            <div style="font-weight:800;font-size:13px;color:var(--ink)">${esc(a.status || 'Scan Event')}</div>
-            <div style="font-size:12px;color:var(--muted)">📍 ${esc(a.location || 'UPS Network')}</div>
-          </div>
-          <div style="font-size:12px;font-family:monospace;font-weight:700;color:var(--ink);text-align:right;white-space:nowrap">
-            <div>${esc(a.timestamp || a.dateFormatted || a.date || '')}</div>
+        <div class="track-v-event">
+          <div class="track-v-node"></div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px">
+              <div style="font-weight:800;font-size:13px;color:#0f172a">${esc(a.status || 'Scan Event')}</div>
+              <div style="font-size:11.5px;font-family:monospace;font-weight:700;color:#475569;background:#fff;border:1px solid #e2e8f0;padding:2px 6px;border-radius:4px;white-space:nowrap">
+                ${esc(a.timestamp || a.dateFormatted || a.date || '')}
+              </div>
+            </div>
+            ${a.location ? `<div style="font-size:11.5px;color:#64748b;display:inline-flex;align-items:center;gap:3px">📍 ${esc(a.location)}</div>` : ''}
           </div>
         </div>
-      `).join('') : '<div style="padding:16px;text-align:center;color:var(--muted)">No scan milestones registered yet for this piece.</div>';
+      `).join('') : '<div style="padding:16px;text-align:center;color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px">No scan milestones registered yet for this package.</div>';
 
       let podHtml = '';
       if (del.hasSignature || del.hasPOD || del.receivedBy) {
         podHtml = `
-          <div style="background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:16px;margin-top:18px">
-            <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:#475569;margin-bottom:10px">Proof of Delivery (POD)</div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-top:16px">
+            <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:#475569;letter-spacing:.04em;margin-bottom:10px">Proof of Delivery (POD)</div>
             <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:13px;margin-bottom:12px">
-              <div><span style="color:var(--muted)">Signed By:</span> <b>${esc(del.receivedBy || 'Recipient')}</b></div>
-              <div><span style="color:var(--muted)">Location:</span> <b>${esc(del.location || 'Delivery Address')}</b></div>
+              <div><span style="color:#64748b">Signed By:</span> <b style="color:#0f172a">${esc(del.receivedBy || 'Recipient')}</b></div>
+              <div><span style="color:#64748b">Location:</span> <b style="color:#0f172a">${esc(del.location || 'Delivery Address')}</b></div>
             </div>
             ${del.signatureBase64 ? `
               <div>
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Recipient Signature:</div>
-                <img src="data:image/png;base64,${del.signatureBase64}" alt="Delivery Signature" style="max-height:80px;border:1px solid var(--line);border-radius:4px;background:#fff;padding:6px"/>
+                <div style="font-size:11px;color:#64748b;margin-bottom:4px">Recipient Signature:</div>
+                <img src="data:image/png;base64,${del.signatureBase64}" alt="Delivery Signature" style="max-height:80px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;padding:6px"/>
               </div>
             ` : ''}
           </div>
         `;
       }
 
+      const pStatusBg = pDelivered ? '#ecfdf5' : (pCollected ? '#eff6ff' : '#f8fafc');
+      const pStatusCol = pDelivered ? '#047857' : (pCollected ? '#1d4ed8' : '#475569');
+      const pStatusBdr = pDelivered ? '#a7f3d0' : (pCollected ? '#bfdbfe' : '#e2e8f0');
+
       return `
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f9fafb;border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px">
-          <div><span style="color:var(--muted)">Tracking #:</span> <b style="font-family:monospace;color:var(--brand)">${esc(p.trackingNumber)}</b></div>
-          <div><span style="color:var(--muted)">Status:</span> <b style="color:${pDelivered ? '#059669' : (pCollected ? '#0284c7' : '#d97706')}">${esc(p.statusDescription || 'Active')}</b></div>
-          ${p.weight ? `<div><span style="color:var(--muted)">Weight:</span> <b>${esc(p.weight)} kg</b></div>` : ''}
-          ${p.lastScan && p.lastScan.timestamp ? `<div><span style="color:var(--muted)">Last Scan:</span> <b>${esc(p.lastScan.timestamp)}</b></div>` : ''}
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.03)">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-bottom:1px solid #f1f5f9;padding-bottom:14px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:14px;font-weight:900;color:#0f172a">Piece ${p.parcelIndex} of ${p.totalParcels}</span>
+              <span style="font-size:11px;font-weight:800;padding:3px 9px;border-radius:9999px;background:${pStatusBg};color:${pStatusCol};border:1px solid ${pStatusBdr}">
+                ${pDelivered ? '✓ DELIVERED' : esc((p.stageName || p.statusDescription || 'IN TRANSIT').toUpperCase())}
+              </span>
+            </div>
+            <div style="font-family:monospace;font-size:13px;font-weight:800;color:#4338ca">
+              <a href="https://www.ups.com/track?tracknum=${encodeURIComponent(p.trackingNumber)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">
+                ${esc(p.trackingNumber)} ↗
+              </a>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;margin-bottom:16px">
+            <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:10px 12px">
+              <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b">Weight</div>
+              <div style="font-size:13.5px;font-weight:800;color:#0f172a;margin-top:2px">${p.weight ? p.weight + ' kg' : 'Standard'}</div>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:10px 12px">
+              <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b">Latest Location</div>
+              <div style="font-size:13px;font-weight:800;color:#0f172a;margin-top:2px">${esc(p.lastLocation || (p.lastScan && p.lastScan.location) || 'In Transit')}</div>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #f1f5f9;border-radius:8px;padding:10px 12px">
+              <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;color:#64748b">Latest Scan Time</div>
+              <div style="font-size:12.5px;font-weight:800;font-family:monospace;color:#0f172a;margin-top:2px">${esc((p.lastScan && p.lastScan.shortTimestamp) || (p.activities && p.activities[0] && p.activities[0].shortTimestamp) || 'Recorded')}</div>
+            </div>
+          </div>
+
+          <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:#475569;letter-spacing:0.05em;margin-bottom:10px">
+            Scan Activity History
+          </div>
+          <div class="track-v-timeline">
+            ${actsHtml}
+          </div>
+          ${podHtml}
         </div>
-        <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:8px">Activity Timeline</div>
-        <div style="background:#fff;border:1px solid var(--line);border-radius:8px;padding:0 16px">
-          ${actsHtml}
-        </div>
-        ${podHtml}
       `;
     };
 
-    const modalTimelineHtml = `
-      <div style="padding:16px 20px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;margin-bottom:20px">
-        <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Courier Journey Milestones</div>
-        <div class="moov-timeline-wrap">
-          ${renderStages(Number(d.stage) || (isDelivered ? 7 : (isCollected ? 1 : 0)), d)}
-        </div>
-      </div>
-    `;
-
     if (parcels.length > 1) {
-      let tabsHtml = `<div style="display:flex;gap:8px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto;padding-bottom:4px">`;
+      let pillsHtml = `<div class="track-piece-strip">`;
       parcels.forEach((p, idx) => {
-        const badgeColor = p.isDelivered ? '#059669' : (p.isCollected ? '#0284c7' : '#64748b');
-        tabsHtml += `
-          <button type="button" class="btn-parcel-track-tab ${idx === 0 ? 'active' : ''}" data-idx="${idx}" style="padding:7px 14px;font-size:12px;font-weight:700;border:1px solid ${idx === 0 ? 'var(--brand)' : 'var(--line)'};background:${idx === 0 ? '#eff6ff' : '#fff'};color:${idx === 0 ? 'var(--brand)' : 'var(--ink)'};border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            <span>Piece ${p.parcelIndex} of ${p.totalParcels}</span>
-            <span style="width:8px;height:8px;border-radius:50%;background:${badgeColor}"></span>
+        pillsHtml += `
+          <button type="button" class="track-piece-pill ${idx === 0 ? 'active' : ''}" data-idx="${idx}">
+            <span class="piece-dot"></span>
+            <span>Piece ${p.parcelIndex}</span>
+            <span style="font-size:11.5px;opacity:0.85;font-weight:600">${p.weight ? '(' + p.weight + 'kg)' : ''}</span>
           </button>
         `;
       });
-      tabsHtml += `</div>`;
+      pillsHtml += `</div>`;
 
       let parcelContainersHtml = '';
       parcels.forEach((p, idx) => {
@@ -4587,36 +4761,53 @@ async function openLiveTrackingModal(trackingNumber) {
 
       body.innerHTML = `
         ${celebrationBanner}
-        ${modalTimelineHtml}
-        <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Multi-Piece Consignment (${parcels.length} Packages)</div>
-        ${tabsHtml}
+        ${heroMilestoneCard}
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;color:#475569;letter-spacing:0.05em">
+              📦 Multi-Piece Consignment (${parcels.length} Packages · ${totalWeight ? totalWeight.toFixed(1) + ' kg' : ''})
+            </div>
+            <div style="font-size:11.5px;color:#64748b;font-weight:700" id="pieceCounterLabel">
+              Viewing <b>Piece 1</b> of ${parcels.length}
+            </div>
+          </div>
+          ${pillsHtml}
+        </div>
         ${parcelContainersHtml}
       `;
 
-      body.querySelectorAll('.btn-parcel-track-tab').forEach(tab => {
-        tab.onclick = () => {
-          body.querySelectorAll('.btn-parcel-track-tab').forEach(t => {
-            t.style.border = '1px solid var(--line)';
-            t.style.background = '#fff';
-            t.style.color = 'var(--ink)';
-          });
-          tab.style.border = '1px solid var(--brand)';
-          tab.style.background = '#eff6ff';
-          tab.style.color = 'var(--brand)';
+      body.querySelectorAll('.track-piece-pill').forEach(pill => {
+        pill.onclick = () => {
+          body.querySelectorAll('.track-piece-pill').forEach(t => t.classList.remove('active'));
+          pill.classList.add('active');
+          const pIdx = parseInt(pill.dataset.idx, 10);
           body.querySelectorAll('.parcel-track-view').forEach(v => v.style.display = 'none');
-          const target = $('parcelTrackView_' + tab.dataset.idx);
+          const target = $('parcelTrackView_' + pIdx);
           if (target) target.style.display = 'block';
+          const counter = $('pieceCounterLabel');
+          if (counter) counter.innerHTML = `Viewing <b>Piece ${pIdx + 1}</b> of ${parcels.length}`;
         };
       });
     } else {
       body.innerHTML = `
         ${celebrationBanner}
-        ${modalTimelineHtml}
+        ${heroMilestoneCard}
         ${renderParcelDetail(parcels[0])}
       `;
     }
+
+    body.querySelectorAll('.btn-copy-trk').forEach(btn => {
+      btn.onclick = () => {
+        const trk = btn.dataset.trk;
+        if (trk) {
+          navigator.clipboard.writeText(trk);
+          btn.textContent = '✓ Copied!';
+          setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+        }
+      };
+    });
   } catch (e) {
-    body.innerHTML = `<div style="padding:20px;color:#b91c1c">Failed to connect to tracking server: ${esc(e.message)}</div>`;
+    body.innerHTML = `<div style="padding:24px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px">Failed to connect to tracking server: ${esc(e.message)}</div>`;
   }
 }
 
