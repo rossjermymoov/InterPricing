@@ -852,13 +852,13 @@ function calc(){
         <div class="blk">Cost</div>
         <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
         ${fuelLines}
-        <div class="row"><span>Fuel (${built.fc.toFixed(1)}%)</span><span>${money(built.costFuel)}</span></div>
+        <div class="row"><span>Fuel surcharge</span><span>${money(built.costFuel)}</span></div>
         ${flatLines}
         <div class="row tot"><span>Total cost price</span><span>${money(built.totalCost)}</span></div>
         <div class="blk">Customer</div>
         <div class="row"><span>Base rate (${bt})</span><span>${money(built.raw)}</span></div>
         ${fuelLines}
-        <div class="row"><span>Fuel (${built.fs.toFixed(1)}%)</span><span>${money(built.sellFuel)}</span></div>
+        <div class="row"><span>Fuel surcharge</span><span>${money(built.sellFuel)}</span></div>
         ${built.mk?`<div class="row"><span>Markup (${built.mk.toFixed(0)}%)</span><span>${money(built.markupAmt)}</span></div>`:''}
         ${flatLines}
         <div class="row tot"><span>Total customer price</span><span>${money(built.sell)}</span></div>

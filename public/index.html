@@ -2840,7 +2840,7 @@ function calc(){
 
     let breakdownHtml='<div class="ds-card-breakdown">' +
       '<div class="ds-card-row"><span>Base rate</span><span class="mv-num">'+money(built.raw)+'</span></div>' +
-      '<div class="ds-card-row"><span>Fuel surcharge ('+built.fs.toFixed(1)+'%)</span><span class="mv-num">'+money(built.sellFuel)+'</span></div>' +
+      '<div class="ds-card-row"><span>Fuel surcharge</span><span class="mv-num">'+money(built.sellFuel)+'</span></div>' +
       built.flatExtras.map(([n, v]) => {
         let displayName = n;
         if (String(n || '').toLowerCase().includes('disbursement')) {

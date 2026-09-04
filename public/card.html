@@ -2586,7 +2586,7 @@ function calc() {
       + '<div class="unit">total incl. fuel' + ((sur && sur.length) ? ' &amp; surcharges' : '') + '</div></div>'
       + '<div class="brk">'
       + '<div class="row"><span>' + (live ? 'UPS base rate' : ('Base rate' + (bt ? ' (' + bt + ')' : ''))) + '</span><span>' + money(base) + '</span></div>'
-      + '<div class="row"><span>Fuel' + (live ? '' : (' (' + (s.fuel || 0) + '%)')) + '</span><span>' + money(fuel) + '</span></div>'
+      + '<div class="row"><span>Fuel</span><span>' + money(fuel) + '</span></div>'
       + surLines
       + '<div class="row tot"><span>Total</span><span>' + money(total) + '</span></div>'
       + (cdLine ? '<div class="row cust"><span>EU customs duty</span><span>' + eur(cdLine.eur) + '</span></div>'
