@@ -48,7 +48,11 @@ function buildCardPayload(cfg, card) {
   const FUEL = S.fuelByService || {};
   const CAPS = (S.caps || cfg.caps || { cp: 31.5, ep: 3 });
   const conf = (card && card.config) || {};
-  const include = Array.isArray(conf.services) && conf.services.length ? conf.services : SERVICES.map((s) => s.key);
+  let include = Array.isArray(conf.services) && conf.services.length ? [...conf.services] : SERVICES.map((s) => s.key);
+  if (include.includes('ux') || include.includes('us')) {
+    if (!include.includes('edp')) include.push('edp');
+    if (!include.includes('edu')) include.push('edu');
+  }
   const euList = (S.regions && S.regions.eu) || [];
 
   // Base delivery price with the customer markup folded in (fuel NOT applied — card adds it).
@@ -59,6 +63,7 @@ function buildCardPayload(cfg, card) {
   for (const s of SERVICES) {
     if (!include.includes(s.key)) continue;
     const o = { key: s.key, name: s.name, carrier: s.carrier, type: s.type, days: s.days,
+      isEconomy: !!s.isEconomy,
       fuel: Math.round(((FUEL[s.key] && FUEL[s.key].sell) || 0) * 100) / 100 };
     if (s.type === 'band') {
       const src = cfg[s.src] || {};

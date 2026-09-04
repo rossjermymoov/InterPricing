@@ -2643,9 +2643,9 @@ function calc() {
     const cleanName = (s.name || '').replace(/\s*Live\s*$/i, '').trim();
     const road = isRoadService(s.key, cleanName);
     const icon = road ? ICON_LORRY : ICON_PLANE;
-    const clsType = road ? 'road' : 'air';
+    const isEcon = !!(s.isEconomy || s.key === 'edp' || s.key === 'edu');
     const transitDaysText = (days != null && days > 0) ? (days + ' business day' + (days === 1 ? '' : 's')) : 'Transit estimate on request';
-    const transitSub = road ? 'Road freight' : 'Air express';
+    const transitSub = road ? 'Road freight' : (isEcon ? 'Tracked economy' : 'Air express');
 
     const d = document.createElement('div');
     let cls = 'card ' + s.carrier.toLowerCase();
