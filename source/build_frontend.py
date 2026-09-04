@@ -767,7 +767,7 @@ function calc(){
           days:live.days,
           raw:live.costBase,
           fc:(live.costBase?(live.costFuel/live.costBase*100):0),
-          fs:(live.sellBase?(live.sellFuel/live.sellBase*100):0),
+          fs:(live.fuelRatePct != null ? live.fuelRatePct : (live.sellBase?(live.sellFuel/live.sellBase*100):0)),
           costFuel:live.costFuel,
           sellFuel:live.sellFuel,
           totalCost,

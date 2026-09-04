@@ -640,6 +640,7 @@ app.post('/api/calc-rate', async (req, res) => {
       }
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
       const fuelRate = (costBase > 0 && costFuel > 0) ? ((costFuel / costBase) * (1 + upsFuelMarkup / 100)) : 0;
+      const fuelRatePct = Math.round(fuelRate * 1000) / 10;
       const sellFuel = Math.round((sellBase + surTotal) * fuelRate * 100) / 100;
 
       services.push({
@@ -647,6 +648,7 @@ app.post('/api/calc-rate', async (req, res) => {
         costPrice: Math.round((costBase + costFuel + surTotal) * 100) / 100,
         costBase,
         costFuel,
+        fuelRatePct,
         sellPrice: Math.round((sellBase + sellFuel + surTotal) * 100) / 100,
         sellBase,
         sellFuel,

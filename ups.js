@@ -398,15 +398,51 @@ function breakdownOf(rs) {
   };
 }
 
-function parseRates(data) {
+function parseRates(data, options = {}) {
   const rr = (data && data.RateResponse) || {};
   let list = rr.RatedShipment || [];
   if (!Array.isArray(list)) list = list ? [list] : [];
-  return list.map((rs) => {
+  const parsed = list.map((rs) => {
     const c = costOf(rs);
     const code = (rs.Service && rs.Service.Code) || '';
-    return { code, name: svcName(code), cost: c.value, currency: c.currency, days: daysOf(rs), breakdown: breakdownOf(rs) };
-  }).filter((s) => s.cost != null).sort((a, b) => a.cost - b.cost);
+    const isSat = !!(
+      (rs.TimeInTransit && rs.TimeInTransit.ServiceSummary && String(rs.TimeInTransit.ServiceSummary.SaturdayDelivery) === '1') ||
+      (rs.NegotiatedRateCharges && Array.isArray(rs.NegotiatedRateCharges.ItemizedCharges) && rs.NegotiatedRateCharges.ItemizedCharges.some((i) => String(i.Code || i.code) === '300')) ||
+      (rs.ItemizedCharges && Array.isArray(rs.ItemizedCharges) && rs.ItemizedCharges.some((i) => String(i.Code || i.code) === '300'))
+    );
+    return {
+      code,
+      name: svcName(code),
+      isSaturday: isSat,
+      cost: c.value,
+      currency: c.currency,
+      days: daysOf(rs),
+      breakdown: breakdownOf(rs)
+    };
+  }).filter((s) => s.cost != null);
+
+  if (options.includeSaturday) {
+    return parsed.sort((a, b) => a.cost - b.cost);
+  }
+
+  // Deduplicate by service code: prefer standard weekday delivery (non-Saturday)
+  const deduped = [];
+  const seenCodes = new Set();
+  parsed.forEach((s) => {
+    if (!s.isSaturday && !seenCodes.has(s.code)) {
+      seenCodes.add(s.code);
+      deduped.push(s);
+    }
+  });
+  // Fallback: if a service code was only returned with Saturday, include it
+  parsed.forEach((s) => {
+    if (!seenCodes.has(s.code)) {
+      seenCodes.add(s.code);
+      deduped.push(s);
+    }
+  });
+
+  return deduped.sort((a, b) => a.cost - b.cost);
 }
 
 async function callRate(payload) {

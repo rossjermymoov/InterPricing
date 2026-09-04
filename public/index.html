@@ -2746,7 +2746,7 @@ function calc(){
           const built={
             live:true, days:live.days, raw,
             fc:(live.costBase?(live.costFuel/live.costBase*100):0),
-            fs:(live.sellBase?(live.sellFuel/live.sellBase*100):0),
+            fs:(live.fuelRatePct != null ? live.fuelRatePct : (live.sellBase?(live.sellFuel/live.sellBase*100):0)),
             costFuel:live.costFuel, sellFuel:live.sellFuel,
             totalCost:live.costPrice, mk:live.markupPct, markupAmt:live.markupAmt,
             sell:live.sellPrice, cost:live.costPrice,
