@@ -3648,14 +3648,18 @@ function renderShipments(list) {
       const wt = Number(p.weight) || 0;
       const l = Number(p.l) || 0, w = Number(p.w) || 0, h = Number(p.h) || 0;
       const volWt = (l && w && h) ? Math.round((l * w * h / 5000) * 10) / 10 : '—';
-      const trk = p.trackingNumber || x.tracking_number || '—';
+      const trk = p.trackingNumber || x.tracking_number || '';
       return '<tr style="border-bottom:1px solid var(--mv-hairline)">'
         + '<td style="padding:6px 8px;font-weight:700">Piece ' + (pIdx + 1) + '</td>'
-        + '<td style="padding:6px 8px;font-family:monospace;font-size:12px">' + qesc(trk) + '</td>'
+        + '<td style="padding:6px 8px;font-family:monospace;font-size:12px">' + (trk ? qesc(trk) : '—') + '</td>'
         + '<td style="padding:6px 8px">' + (p.packaging === 'tube' ? 'UPS Tube' : (p.packaging === 'expressbox' ? 'UPS Express Box' : 'Custom Box')) + '</td>'
         + '<td style="padding:6px 8px">' + (l ? (l + ' × ' + w + ' × ' + h + ' cm') : 'Standard') + '</td>'
         + '<td style="padding:6px 8px;text-align:right;font-weight:700">' + wt + ' kg</td>'
         + '<td style="padding:6px 8px;text-align:right;color:var(--mv-ink-55)">' + volWt + (volWt !== '—' ? ' kg' : '') + '</td>'
+        + '<td style="padding:6px 8px;text-align:right;white-space:nowrap">'
+        + (trk ? ('<button type="button" class="btn-micro-pill btn-adm-track-live" data-tracking="' + qesc(trk) + '" style="font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple);background:#fdf4ff;margin-right:4px">Track Piece</button>') : '')
+        + (p.labelGraphic ? ('<a href="data:image/gif;base64,' + p.labelGraphic + '" download="UPS_Label_' + (trk || (pIdx + 1)) + '.gif" class="btn-micro-pill" target="_blank" onclick="event.stopPropagation()" style="font-weight:700">Label</a>') : '')
+        + '</td>'
         + '</tr>';
     }).join('');
 
@@ -3733,7 +3737,7 @@ function renderShipments(list) {
             '<div class="ds-label" style="margin-bottom:8px">Package Pieces (' + pkgs.length + ')</div>' +
             '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
               '<thead><tr style="border-bottom:1px solid var(--mv-divider);color:var(--mv-ink-55);font-size:10px;text-transform:uppercase">' +
-                '<th style="text-align:left;padding:4px 8px">Piece</th><th style="text-align:left;padding:4px 8px">Tracking</th><th style="text-align:left;padding:4px 8px">Packaging</th><th style="text-align:left;padding:4px 8px">Dimensions</th><th style="text-align:right;padding:4px 8px">Dead Wt</th><th style="text-align:right;padding:4px 8px">Vol Wt</th>' +
+                '<th style="text-align:left;padding:4px 8px">Piece</th><th style="text-align:left;padding:4px 8px">Tracking</th><th style="text-align:left;padding:4px 8px">Packaging</th><th style="text-align:left;padding:4px 8px">Dimensions</th><th style="text-align:right;padding:4px 8px">Dead Wt</th><th style="text-align:right;padding:4px 8px">Vol Wt</th><th style="text-align:right;padding:4px 8px">Actions</th>' +
               '</tr></thead>' +
               '<tbody>' + pkgRowsHtml + '</tbody>' +
             '</table>' +
@@ -3895,33 +3899,99 @@ async function openAdminTrackingModal(trackingNumber) {
       return;
     }
 
-    const acts = d.activities || [];
-    const del = d.delivery || {};
+    const parcels = Array.isArray(d.parcels) && d.parcels.length ? d.parcels : [{
+      parcelIndex: 1,
+      totalParcels: 1,
+      trackingNumber: d.trackingNumber || trackingNumber,
+      statusCode: d.statusCode || '',
+      statusDescription: d.statusDescription || 'Active',
+      isCollected: d.isCollected,
+      isDelivered: d.isDelivered,
+      activities: d.activities || [],
+      delivery: d.delivery || {},
+    }];
+
     let topBanner = '';
     if (d.isDelivered) {
       topBanner = '<div style="background:rgba(0,200,83,0.1);border:1.5px solid var(--mv-green);padding:12px 16px;margin-bottom:14px;color:var(--mv-green-deep)">' +
-        '<div style="font-weight:800;font-size:13.5px">Delivered & Signed</div>' +
-        '<div style="font-size:12px;margin-top:2px">Delivered ' + (del.receivedBy ? ('to <b>' + qesc(del.receivedBy) + '</b>') : '') + ' ' + (del.location ? ('at ' + qesc(del.location)) : '') + '</div>' +
+        '<div style="font-weight:800;font-size:13.5px">Delivered &amp; Signed</div>' +
+        '<div style="font-size:12px;margin-top:2px">Consignment successfully delivered to destination.</div>' +
         '</div>';
     } else if (d.isCollected) {
       topBanner = '<div style="background:rgba(0,200,83,0.1);border:1.5px solid var(--mv-green);padding:12px 16px;margin-bottom:14px;color:var(--mv-green-deep)">' +
         '<div style="font-weight:800;font-size:13.5px">Collected by Courier — In Transit</div>' +
-        '<div style="font-size:12px;margin-top:2px">The consignment has been collected from the origin and is in the courier network.</div>' +
+        '<div style="font-size:12px;margin-top:2px">The consignment has been collected from the origin and is moving through the UPS network.</div>' +
         '</div>';
     }
 
-    const actsHtml = acts.length ? acts.map((a, idx) => `
-      <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--mv-hairline);align-items:flex-start">
-        <div style="width:10px;height:10px;background:${idx === 0 ? 'var(--mv-green)' : 'var(--mv-divider)'};margin-top:4px;flex-shrink:0"></div>
-        <div style="flex:1">
-          <div style="font-weight:800;font-size:12.5px;color:var(--mv-ink)">${qesc(a.status || 'Scan Event')}</div>
-          <div style="font-size:11.5px;color:var(--mv-ink-55)">${qesc(a.location || 'UPS Network')}</div>
+    const renderAdmParcelDetail = (p) => {
+      const acts = p.activities || [];
+      const del = p.delivery || {};
+      const actsHtml = acts.length ? acts.map((a, idx) => `
+        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--mv-hairline);align-items:flex-start">
+          <div style="width:10px;height:10px;background:${idx === 0 ? 'var(--mv-green)' : 'var(--mv-divider)'};margin-top:4px;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-weight:800;font-size:12.5px;color:var(--mv-ink)">${qesc(a.status || 'Scan Event')}</div>
+            <div style="font-size:11.5px;color:var(--mv-ink-55)">${qesc(a.location || 'UPS Network')}</div>
+          </div>
+          <div style="font-size:11px;font-family:monospace;color:var(--mv-ink-55);text-align:right">${qesc(a.date || '')}</div>
         </div>
-        <div style="font-size:11px;font-family:monospace;color:var(--mv-ink-55);text-align:right">${qesc(a.date || '')}</div>
-      </div>
-    `).join('') : '<div style="padding:14px;text-align:center;color:var(--mv-ink-55)">No scan milestones registered yet.</div>';
+      `).join('') : '<div style="padding:14px;text-align:center;color:var(--mv-ink-55)">No scan milestones registered yet for this piece.</div>';
 
-    body.innerHTML = topBanner + '<div>' + actsHtml + '</div>';
+      let podSnippet = '';
+      if (del.receivedBy || del.location) {
+        podSnippet = '<div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);padding:10px 14px;margin-top:12px;font-size:12px">' +
+          '<div><b>Signed By:</b> ' + qesc(del.receivedBy || 'Recipient') + ' ' + (del.location ? ('(' + qesc(del.location) + ')') : '') + '</div>' +
+          '</div>';
+      }
+
+      return '<div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:12px">' +
+        '<div>Tracking: <b style="font-family:monospace;color:var(--mv-purple)">' + qesc(p.trackingNumber) + '</b></div>' +
+        '<div>Status: <b style="color:' + (p.isDelivered ? 'var(--mv-green-deep)' : (p.isCollected ? 'var(--mv-purple)' : 'var(--mv-ink)')) + '">' + qesc(p.statusDescription || 'Active') + '</b></div>' +
+        (p.weight ? ('<div>Weight: <b>' + qesc(p.weight) + ' kg</b></div>') : '') +
+        (p.dimensions ? ('<div>Dims: <b>' + qesc(p.dimensions) + '</b></div>') : '') +
+        '</div>' +
+        '<div>' + actsHtml + '</div>' + podSnippet;
+    };
+
+    if (parcels.length > 1) {
+      let tabs = '<div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">';
+      parcels.forEach((p, idx) => {
+        const col = p.isDelivered ? 'var(--mv-green)' : (p.isCollected ? 'var(--mv-purple)' : 'var(--mv-divider)');
+        tabs += '<button type="button" class="btn-adm-parcel-tab ' + (idx === 0 ? 'active' : '') + '" data-idx="' + idx + '" style="padding:5px 10px;font-size:11.5px;font-weight:700;border:1px solid ' + (idx === 0 ? 'var(--mv-purple)' : 'var(--mv-hairline-2)') + ';background:' + (idx === 0 ? '#fdf4ff' : '#fff') + ';color:' + (idx === 0 ? 'var(--mv-purple)' : 'var(--mv-ink)') + ';cursor:pointer;display:inline-flex;align-items:center;gap:6px">' +
+          '<span>Piece ' + p.parcelIndex + ' of ' + p.totalParcels + '</span>' +
+          '<span style="width:7px;height:7px;border-radius:50%;background:' + col + '"></span>' +
+          '</button>';
+      });
+      tabs += '</div>';
+
+      let container = '';
+      parcels.forEach((p, idx) => {
+        container += '<div id="admParcelTrackView_' + idx + '" class="adm-parcel-track-view" style="' + (idx === 0 ? '' : 'display:none') + '">' + renderAdmParcelDetail(p) + '</div>';
+      });
+
+      body.innerHTML = topBanner +
+        '<div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--mv-ink-55);letter-spacing:0.06em;margin-bottom:8px">Multi-Piece Consignment (' + parcels.length + ' Parcels)</div>' +
+        tabs + container;
+
+      body.querySelectorAll('.btn-adm-parcel-tab').forEach(tab => {
+        tab.onclick = () => {
+          body.querySelectorAll('.btn-adm-parcel-tab').forEach(t => {
+            t.style.border = '1px solid var(--mv-hairline-2)';
+            t.style.background = '#fff';
+            t.style.color = 'var(--mv-ink)';
+          });
+          tab.style.border = '1px solid var(--mv-purple)';
+          tab.style.background = '#fdf4ff';
+          tab.style.color = 'var(--mv-purple)';
+          body.querySelectorAll('.adm-parcel-track-view').forEach(v => v.style.display = 'none');
+          const target = $('admParcelTrackView_' + tab.dataset.idx);
+          if (target) target.style.display = 'block';
+        };
+      });
+    } else {
+      body.innerHTML = topBanner + '<div>' + renderAdmParcelDetail(parcels[0]) + '</div>';
+    }
   } catch (err) {
     body.innerHTML = '<div style="padding:14px;color:var(--mv-magenta-deep)">Failed to load tracking: ' + qesc(err.message) + '</div>';
   }

@@ -1182,18 +1182,71 @@ app.post('/api/shipments/cancel', async (req, res) => {
   }
 });
 
-// PUBLIC / AUTH: Live Tracking query with activity timeline, collection milestone, and POD / signature
+// PUBLIC / AUTH: Live Tracking query with activity timeline, collection milestone, and POD / signature (supports single & multi-piece shipments)
 app.get('/api/shipments/:tracking/track', async (req, res) => {
   try {
     const { tracking } = req.params;
-    if (!tracking) return res.status(400).json({ ok: false, error: 'Tracking number required' });
+    if (!tracking) return res.status(400).json({ ok: false, error: 'Tracking number or shipment ID required' });
 
-    const trackData = await ups.trackShipment(tracking);
-    if (!trackData.ok) {
-      return res.status(400).json({ ok: false, error: trackData.error, raw: trackData.raw });
+    // 1. Check if tracking identifier corresponds to a database shipment record
+    let shipment = null;
+    if (db.hasDb) {
+      shipment = await db.getShipmentByTracking(tracking) || await db.getShipmentById(tracking);
     }
 
-    res.json(trackData);
+    const pkgList = (shipment && Array.isArray(shipment.packages) && shipment.packages.length)
+      ? shipment.packages
+      : [{ trackingNumber: tracking }];
+
+    // If multi-piece shipment, query tracking for all packages in parallel
+    const parcelResults = await Promise.all(
+      pkgList.map(async (pkg, idx) => {
+        const trk = pkg.trackingNumber || tracking;
+        const resObj = await ups.trackShipment(trk);
+        return {
+          parcelIndex: idx + 1,
+          totalParcels: pkgList.length,
+          trackingNumber: trk,
+          weight: pkg.weight || null,
+          dimensions: (pkg.l && pkg.w && pkg.h) ? `${pkg.l} × ${pkg.w} × ${pkg.h} cm` : null,
+          packaging: pkg.packaging || 'custom',
+          ok: resObj.ok,
+          statusCode: resObj.statusCode || '',
+          statusDescription: resObj.statusDescription || (resObj.ok ? 'Active' : (resObj.error || 'Pending Scans')),
+          isCollected: !!resObj.isCollected,
+          isDelivered: !!resObj.isDelivered,
+          activities: resObj.activities || [],
+          delivery: resObj.delivery || {},
+          error: resObj.error || null,
+          raw: resObj.raw || null,
+        };
+      })
+    );
+
+    // Primary parcel result (or first successful one)
+    const primary = parcelResults.find(p => p.ok) || parcelResults[0];
+
+    // Aggregated overall shipment status across parcels
+    const anyCollected = parcelResults.some(p => p.isCollected);
+    const allDelivered = parcelResults.length > 0 && parcelResults.every(p => p.isDelivered);
+    const anyDelivered = parcelResults.some(p => p.isDelivered);
+
+    res.json({
+      ok: parcelResults.some(p => p.ok),
+      shipmentId: (shipment && (shipment.shipment_id || shipment.id)) || null,
+      trackingNumber: tracking,
+      masterTracking: (shipment && shipment.tracking_number) || tracking,
+      statusCode: primary.statusCode || (allDelivered ? 'D' : (anyCollected ? 'IT' : 'M')),
+      statusDescription: allDelivered ? 'Delivered' : (anyDelivered ? 'Partially Delivered' : (anyCollected ? 'In Transit / Collected' : (primary.statusDescription || 'Manifest Registered'))),
+      isCollected: anyCollected,
+      isDelivered: allDelivered,
+      anyDelivered: anyDelivered,
+      activities: primary.activities || [],
+      delivery: primary.delivery || {},
+      parcels: parcelResults,
+      multiPiece: parcelResults.length > 1,
+      error: (!parcelResults.some(p => p.ok)) ? primary.error : null,
+    });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
