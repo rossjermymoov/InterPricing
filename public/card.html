@@ -2378,41 +2378,51 @@ function accAmount(a) {
 }
 
 function priceOf(s, c, chg) {
-  const B = RC.bands;
+  if (!s || !c || !RC) return { p: null, avail: false };
+  const B = RC.bands || [];
   if (s.type === 'band') {
-    const arr = s.prices[c];
-    if (!arr) return { p: null, avail: false };
-    if (chg > B[B.length - 1] + 1e-9) return { p: null, avail: true, note: 'over ' + B[B.length - 1] + ' kg' };
+    const arr = s.prices && s.prices[c];
+    if (!arr || !Array.isArray(arr) || arr.length === 0) return { p: null, avail: false };
+    const maxB = B[B.length - 1];
+    if (maxB != null && chg > maxB + 1e-9) return { p: null, avail: true, note: 'over ' + maxB + ' kg' };
     for (let i = 0; i < B.length; i++) {
       if (B[i] >= chg - 1e-9) return { p: arr[i], avail: true, band: B[i] };
     }
     return { p: null, avail: true };
   }
   if (s.type === 'flat') {
-    const p = s.prices[c];
+    const p = s.prices && s.prices[c];
     if (p == null) return { p: null, avail: false };
-    if (chg > s.cap + 1e-9) return { p: null, avail: true, note: 'over ' + s.cap + ' kg' };
+    if (s.cap != null && chg > s.cap + 1e-9) return { p: null, avail: true, note: 'over ' + s.cap + ' kg' };
     return { p: p, avail: true, band: '≤' + s.cap + 'kg' };
   }
-  if (s.prices && s.prices[c]) {
+  if (s.prices && Array.isArray(s.prices[c]) && s.prices[c].length > 0) {
     const zd = s.prices[c];
-    const mB = zd[zd.length - 1][0];
+    const last = zd[zd.length - 1];
+    if (last && last[0] != null) {
+      const mB = last[0];
+      if (chg <= mB + 1e-9) {
+        for (const [w, pr] of zd) {
+          if (w >= chg - 1e-9) return { p: pr, avail: true, band: w };
+        }
+      }
+      return { p: last[1], avail: true, band: '>' + mB + 'kg' };
+    }
+  }
+  const z = s.zmap && s.zmap[c];
+  const zd = z && s.zones && s.zones[z];
+  if (!z || !zd || !Array.isArray(zd) || zd.length === 0) return { p: null, avail: false };
+  const last = zd[zd.length - 1];
+  if (last && last[0] != null) {
+    const mB = last[0];
     if (chg <= mB + 1e-9) {
       for (const [w, pr] of zd) {
         if (w >= chg - 1e-9) return { p: pr, avail: true, band: w };
       }
     }
-    return { p: zd[zd.length - 1][1], avail: true, band: '>' + mB + 'kg' };
+    return { p: last[1], avail: true, band: '>' + mB + 'kg' };
   }
-  const z = s.zmap && s.zmap[c], zd = z && s.zones && s.zones[z];
-  if (!z || !zd) return { p: null, avail: false };
-  const mB = zd[zd.length - 1][0];
-  if (chg <= mB + 1e-9) {
-    for (const [w, pr] of zd) {
-      if (w >= chg - 1e-9) return { p: pr, avail: true, band: w };
-    }
-  }
-  return { p: zd[zd.length - 1][1], avail: true, band: '>' + mB + 'kg' };
+  return { p: null, avail: false };
 }
 
 function renderToggles() {
