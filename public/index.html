@@ -4875,13 +4875,17 @@ function renderSettingsData(){
 function fillFuelTable(){
   const tb=$('fuelBody'); tb.innerHTML='';
   const fbs=(P.settings&&P.settings.fuelByService)||{};
-  const dpdServices = SERVICES.filter(s => (s.carrier || '').toLowerCase() === 'dpd');
-  dpdServices.forEach(svc=>{
-    const f=fbs[svc.key]||{cost:0,sell:0};
+  const staticServices = SERVICES.filter(s => (s.carrier || '').toLowerCase() === 'dpd' || s.isEconomy || s.key === 'edp' || s.key === 'edu');
+  staticServices.forEach(svc=>{
+    const defCost = svc.key === 'edp' ? 5 : (svc.key === 'edu' ? 0 : 0);
+    const defSell = svc.key === 'edp' ? 5 : (svc.key === 'edu' ? 0 : 0);
+    const f = fbs[svc.key] || { cost: defCost, sell: defSell };
+    const costVal = f.cost != null ? f.cost : defCost;
+    const sellVal = f.sell != null ? f.sell : defSell;
     const tr=document.createElement('tr');
     tr.innerHTML='<td><b>'+svc.name+'</b></td>' +
-      '<td><input id="fc_'+svc.key+'" type="number" step="0.1" value="'+(f.cost||0)+'" class="ds-input num" style="width:90px"/> %</td>' +
-      '<td><input id="fs_'+svc.key+'" type="number" step="0.1" value="'+(f.sell||0)+'" class="ds-input num" style="width:90px"/> %</td>';
+      '<td><input id="fc_'+svc.key+'" type="number" step="0.1" value="'+costVal+'" class="ds-input num" style="width:90px"/> %</td>' +
+      '<td><input id="fs_'+svc.key+'" type="number" step="0.1" value="'+sellVal+'" class="ds-input num" style="width:90px"/> %</td>';
     tb.appendChild(tr);
   });
 }

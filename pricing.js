@@ -62,9 +62,10 @@ function buildCardPayload(cfg, card) {
   const services = [];
   for (const s of SERVICES) {
     if (!include.includes(s.key)) continue;
+    const fuelVal = (FUEL[s.key] && FUEL[s.key].sell != null) ? Number(FUEL[s.key].sell) : (s.key === 'edp' ? 5 : 0);
     const o = { key: s.key, name: s.name, carrier: s.carrier, type: s.type, days: s.days,
       isEconomy: !!s.isEconomy,
-      fuel: Math.round(((FUEL[s.key] && FUEL[s.key].sell) || 0) * 100) / 100 };
+      fuel: Math.round(fuelVal * 100) / 100 };
     if (s.type === 'band') {
       const src = cfg[s.src] || {};
       o.prices = {};

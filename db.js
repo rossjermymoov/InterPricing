@@ -215,6 +215,13 @@ async function migrateConfig() {
   if (cfg.settings) {
     if (!cfg.settings.fuelByService && seed.settings && seed.settings.fuelByService) {
       cfg.settings.fuelByService = seed.settings.fuelByService; changed = true;
+    } else if (cfg.settings.fuelByService && seed.settings && seed.settings.fuelByService) {
+      if (cfg.settings.fuelByService.edp == null && seed.settings.fuelByService.edp) {
+        cfg.settings.fuelByService.edp = seed.settings.fuelByService.edp; changed = true;
+      }
+      if (cfg.settings.fuelByService.edu == null && seed.settings.fuelByService.edu) {
+        cfg.settings.fuelByService.edu = seed.settings.fuelByService.edu; changed = true;
+      }
     }
     if (!cfg.settings.regions && seed.settings && seed.settings.regions) { cfg.settings.regions = seed.settings.regions; changed = true; }
     // Sync accessorial list from seed (adds new ones, updates structure) while keeping edited rate fields.
