@@ -398,7 +398,10 @@ app.post('/api/import-quote', async (req, res) => {
 
       const hasRemoteInLive = liveAcc.some((a) => a.remote || ['190', '195', '197', '199', '400', '401', '376'].includes(String(a.code)));
       if (!hasRemoteInLive && receiver && receiver.postcode) {
-        const eas = surcharges.lookupSurcharge({ country: receiver.country || receiverCountry, postcode: receiver.postcode, city: receiver.city, weight, qty: parcels });
+        const totalWeight = (packages || []).reduce((sum, p) => sum + (Number(p.weight) || 0) * (parseInt(p.qty, 10) || 1), 0) || 1;
+        const totalQty = (packages || []).reduce((sum, p) => sum + (parseInt(p.qty, 10) || 1), 0) || 1;
+        const destCountry = (receiver && (receiver.country || receiver.countryCode)) || 'GB';
+        const eas = surcharges.lookupSurcharge({ country: destCountry, postcode: receiver.postcode, city: receiver.city, weight: totalWeight, qty: totalQty });
         if (eas) liveAcc.push(eas);
       }
 

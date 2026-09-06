@@ -3091,11 +3091,18 @@ function initCountryCombo(boxId, inputId, menuId, onPick) {
 
 function setView(v) {
   document.querySelectorAll('#viewTabs button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
-  $('ratesView').style.display = v === 'rates' ? '' : 'none';
-  $('importView').style.display = v === 'import' ? 'block' : 'none';
-  $('bookingsView').style.display = v === 'bookings' ? 'block' : 'none';
-  if (v === 'import') prefillReceiver();
-  if (v === 'bookings') loadCustomerBookings();
+  const ratesEl = $('ratesView');
+  const importEl = $('importView');
+  const bookEl = $('bookingsView');
+  if (ratesEl) ratesEl.style.display = v === 'rates' ? '' : 'none';
+  if (importEl) importEl.style.display = v === 'import' ? 'block' : 'none';
+  if (bookEl) bookEl.style.display = v === 'bookings' ? 'block' : 'none';
+  if (v === 'import') {
+    try { prefillReceiver(); } catch (_) {}
+  }
+  if (v === 'bookings') {
+    try { loadCustomerBookings(); } catch (_) {}
+  }
   window.scrollTo(0, 0);
 }
 
@@ -5097,15 +5104,19 @@ function initImportTab() {
   prefillReceiver();
   addrBook = (RC && Array.isArray(RC.addressBook)) ? RC.addressBook.slice() : [];
   initCompanyCombo();
-  $('is_saveAddr').addEventListener('click', saveSenderAddr);
+  if ($('is_saveAddr')) $('is_saveAddr').addEventListener('click', saveSenderAddr);
   initCountryCombo('is_countryCombo', 'is_countryInput', 'is_countryList', (iso) => { senderIso = iso; });
-  $('iaddParcel').addEventListener('click', iaddParcel);
-  $('igetQuotes').addEventListener('click', igetQuotes);
-  document.querySelectorAll('#viewTabs button').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+  if ($('iaddParcel')) $('iaddParcel').addEventListener('click', iaddParcel);
+  if ($('igetQuotes')) $('igetQuotes').addEventListener('click', igetQuotes);
   initImportBooking();
 }
 
 async function boot() {
+  // Wire tab switching immediately at the start so tabs work reliably
+  document.querySelectorAll('#viewTabs button').forEach(b => {
+    b.addEventListener('click', () => setView(b.dataset.view));
+  });
+
   const token = location.pathname.split('/').filter(Boolean).pop();
   curToken = token;
   try {
@@ -5121,24 +5132,28 @@ async function boot() {
   $('title').textContent = RC.customer || RC.title || 'International Rate Card';
   if ($('today')) $('today').textContent = ' · ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  initCombo(RC.countries, RC.countries.includes('USA') ? 'USA' : RC.countries[0]);
+  if (Array.isArray(RC.countries) && RC.countries.length) {
+    initCombo(RC.countries, RC.countries.includes('USA') ? 'USA' : RC.countries[0]);
+  }
   renderToggles();
 
   ['wt', 'L', 'W', 'H', 'V', 'SK', 'pc'].forEach(id => $(id) && $(id).addEventListener('input', calc));
 
   $('notesBox').textContent = RC.notes || '';
-  $('foot').textContent = 'Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor ' + RC.divisor + '.';
+  $('foot').textContent = 'Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor ' + (RC.divisor || 5000) + '.';
 
-  calc();
-  initImportTab();
-  initCustomerBookingsEvents();
+  try { calc(); } catch (err) { console.error('[card] calc error:', err); }
+  try { initImportTab(); } catch (err) { console.error('[card] initImportTab error:', err); }
+  try { initCustomerBookingsEvents(); } catch (err) { console.error('[card] initCustomerBookingsEvents error:', err); }
 
   // Wire sidebar close button
-  $('closeDropSidebar').addEventListener('click', () => {
-    activeDropCarrier = null;
-    $('dropSidebar').style.display = 'none';
-    calc();
-  });
+  if ($('closeDropSidebar')) {
+    $('closeDropSidebar').addEventListener('click', () => {
+      activeDropCarrier = null;
+      if ($('dropSidebar')) $('dropSidebar').style.display = 'none';
+      calc();
+    });
+  }
 
   // Wire drop modal
   document.addEventListener('click', e => {
@@ -5149,8 +5164,8 @@ async function boot() {
     }
   });
 
-  $('dropModalX').addEventListener('click', closeDropModal);
-  $('dropModal').addEventListener('click', e => { if (e.target === $('dropModal')) closeDropModal(); });
+  if ($('dropModalX')) $('dropModalX').addEventListener('click', closeDropModal);
+  if ($('dropModal')) $('dropModal').addEventListener('click', e => { if (e.target === $('dropModal')) closeDropModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDropModal(); });
 }
 

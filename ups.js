@@ -155,10 +155,13 @@ function addressOf(a, fallbackCountry) {
   let city = hasCustomCity ? String(a.city).trim() : '';
   let postcode = hasCustomPostcode ? String(a.postcode).trim() : '';
 
-  // Only apply default fallback city & postcode if NEITHER was provided
+  // Apply default fallback city & postcode if NEITHER was provided
   if (!hasCustomCity && !hasCustomPostcode) {
     city = def.city || '';
     postcode = def.postcode || '';
+  } else if (!hasCustomCity && hasCustomPostcode) {
+    // If postcode was provided without city, use country default city to prevent UPS API missing-city rejection
+    city = def.city || '';
   }
 
   const addr = {
