@@ -2656,6 +2656,7 @@ function calc() {
     const isEcon = !!(s.isEconomy || s.key === 'edp' || s.key === 'edu');
     const transitDaysText = (days != null && days > 0) ? (days + ' business day' + (days === 1 ? '' : 's')) : 'Transit estimate on request';
     const transitSub = road ? 'Road freight' : (isEcon ? 'Tracked economy' : 'Air express');
+    const clsType = road ? 'road' : 'air';
 
     const d = document.createElement('div');
     let cls = 'card ' + s.carrier.toLowerCase();
@@ -3139,14 +3140,16 @@ function applyPackaging(el) {
 
 function iaddParcel() {
   const box = $('iparcels');
+  if (!box) return;
   const d = document.createElement('div');
   d.innerHTML = iparcelHTML(ipc++);
-  const el = d.firstChild;
+  const el = d.firstElementChild || d.firstChild;
+  if (!el) return;
   box.appendChild(el);
-  el.querySelectorAll('input').forEach(inp => inp.addEventListener('input', irecalc));
-  const pk = el.querySelector('.ipkg');
+  if (el.querySelectorAll) el.querySelectorAll('input').forEach(inp => inp.addEventListener('input', irecalc));
+  const pk = el.querySelector ? el.querySelector('.ipkg') : null;
   if (pk) pk.addEventListener('change', () => applyPackaging(el));
-  const rm = el.querySelector('.rmP');
+  const rm = el.querySelector ? el.querySelector('.rmP') : null;
   if (rm) rm.addEventListener('click', () => { el.remove(); irenumber(); irecalc(); });
   irecalc();
 }
