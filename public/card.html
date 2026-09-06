@@ -2583,8 +2583,8 @@ function calc() {
       if (upsLoading) {
         rows.push({ s: { key: 'ups', name: 'UPS Small Package', carrier: 'UPS' }, loading: true, total: null });
       } else if (upsReady && upsReady.enabled) {
-        const ALLOWED_UPS = new Set(['ux', 'us', 'ups_65', 'ups_11']);
-        (upsReady.services || []).filter(live => ALLOWED_UPS.has(live.key) || ['65', '11'].includes(String(live.code))).forEach(live => {
+        const ALLOWED_UPS = new Set(['ux', 'us', 'ue', 'ups_65', 'ups_11', 'ups_07', '65', '11', '07', '7', '065', '011', '007']);
+        (upsReady.services || []).filter(live => ALLOWED_UPS.has(live.key) || ALLOWED_UPS.has(String(live.code))).forEach(live => {
           const liveSur = (live.accessorials || []).map(a => ({ name: a.name, code: a.code, amt: a.amt, remote: a.remote }));
           const coveredKeys = new Set(liveSur.map(a => LIVE_CODE_TO_KEY[String(a.code)]).filter(Boolean));
           const upsCustom = applicable.filter(a => a.carrier.toLowerCase() === 'ups').filter(a => {

@@ -469,9 +469,16 @@ const CODE2KEY = {
 app.post('/api/card-rate', async (req, res) => {
   try {
     const { token, country, postcode, weight, l, w, h, residential, value } = req.body || {};
-    if (!country || !token || !db.hasDb) return res.json({ enabled: false, services: [] });
-    const card = await db.getCardByToken(token);
-    if (!card || card.enabled === false) return res.json({ enabled: false, services: [] });
+    if (!country) return res.json({ enabled: false, services: [] });
+    let card = null;
+    if (token && db.hasDb) {
+      try {
+        card = await db.getCardByToken(token);
+      } catch (e) {
+        console.error('[card-rate] getCardByToken error:', e.message);
+      }
+    }
+    if (card && card.enabled === false) return res.json({ enabled: false, services: [] });
     const iso = nameToIso(country);
     if (!iso) return res.json({ enabled: false, services: [] }); // unknown country name → card uses static
 
@@ -487,7 +494,7 @@ app.post('/api/card-rate', async (req, res) => {
     const st = cfg.settings || {};
     const euCountries = (st.regions && st.regions.eu) || [];
     const isEu = euCountries.includes(country) || euCountries.includes(iso);
-    const mkObj = (card.config && card.config.markup) || {};
+    const mkObj = (card && card.config && card.config.markup) || {};
     const markupOf = (key, code) => {
       if (typeof mkObj === 'number') return mkObj;
       const regKey = isEu ? key + '_eu' : key + '_row';

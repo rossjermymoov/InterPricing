@@ -1271,6 +1271,7 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
         ? [act.location.address.city, act.location.address.countryCode].filter(Boolean).join(', ')
         : '';
       const cCode = (act.location && act.location.address && act.location.address.countryCode || '').toUpperCase();
+      const city = (act.location && act.location.address && act.location.address.city || '').toLowerCase();
       const dt = formatUpsDateTime(act.date, act.time);
 
       if (idx === 0 && loc) lastLoc = loc;
@@ -1287,15 +1288,24 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
         }
       };
 
+      const isUkLoc = cCode === 'GB' || cCode === 'UK' || loc.toLowerCase().includes('united kingdom') ||
+        city.includes('castle donington') || city.includes('stanford le hope') || city.includes('tamworth') ||
+        city.includes('east midlands') || city.includes('dartford') || city.includes('barking') ||
+        city.includes('birmingham') || city.includes('nuneaton') || city.includes('london') ||
+        city.includes('feltham') || city.includes('luton') || city.includes('manchester') ||
+        city.includes('leeds') || city.includes('bristol') || city.includes('glasgow') ||
+        desc.includes('castle donington') || desc.includes('stanford le hope');
+
       // Stage 6: Out for delivery
       if (code === 'OF' || code === 'OD' || desc.includes('out for delivery') || desc.includes('loaded on delivery') || desc.includes('on vehicle for delivery')) {
         if (highestStage < 6) highestStage = 6;
         recordStageScan(6);
       }
-      // Stage 5: At destination UK Depot / Hub
+      // Stage 5: At destination UK Depot / Hub (any scan once physically in the UK / destination country)
       else if (
-        (cCode === 'GB' || desc.includes('uk') || desc.includes('castle donington') || desc.includes('stanford') || desc.includes('tamworth') || desc.includes('destination scan') || desc.includes('import scan') || desc.includes('customs cleared')) &&
-        (desc.includes('arrival scan') || desc.includes('warehouse scan') || desc.includes('hub scan') || desc.includes('processing at facility') || desc.includes('destination'))
+        isUkLoc ||
+        desc.includes('destination scan') || desc.includes('import scan') ||
+        ((desc.includes('arrival scan') || desc.includes('warehouse scan') || desc.includes('hub scan') || desc.includes('processing at facility') || desc.includes('destination')) && (cCode === 'GB' || isUkLoc))
       ) {
         if (highestStage < 5) highestStage = 5;
         recordStageScan(5);
@@ -1400,5 +1410,6 @@ async function uploadPaperlessDocument({ trackingNumber, documentType, base64Con
 
 module.exports = {
   quoteRates, quoteRatesRaw, createPickup, cancelPickup, buildPickupRequest,
-  bookShipment, buildShipmentRequest, voidShipment, trackShipment, uploadPaperlessDocument, svcName, configured
+  bookShipment, buildShipmentRequest, voidShipment, trackShipment, uploadPaperlessDocument,
+  normalizeTrackingStages, svcName, configured
 };
