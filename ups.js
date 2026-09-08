@@ -786,16 +786,47 @@ function buildShipmentRequest(p) {
     },
   };
 
-  const paymentInfo = {
-    ShipmentCharge: [
-      {
-        Type: '01', // Transportation
-        BillShipper: {
-          AccountNumber: acct,
-        },
+  const shipmentCharges = [
+    {
+      Type: '01', // Transportation
+      BillShipper: {
+        AccountNumber: acct,
       },
-    ],
+    },
+  ];
+
+  const dutyAcct = String(p.dutyAccountNumber || p.thirdPartyAccountNumber || '').trim();
+  const dutyPostal = String(p.dutyPostalCode || p.thirdPartyPostalCode || '').trim();
+  const dutyCountry = String(p.dutyCountryCode || p.thirdPartyCountryCode || 'GB').trim().toUpperCase();
+
+  if ((p.dutyPaymentType === 'thirdParty' || p.dutyPaymentType === 'tp') && dutyAcct) {
+    const btp = {
+      AccountNumber: dutyAcct,
+    };
+    if (dutyPostal || dutyCountry) {
+      btp.Address = {};
+      if (dutyPostal) btp.Address.PostalCode = dutyPostal;
+      if (dutyCountry) btp.Address.CountryCode = dutyCountry;
+    }
+    shipmentCharges.push({
+      Type: '02', // Duties and Taxes
+      BillThirdParty: btp,
+    });
+  } else {
+    // Standard default: Duties & Taxes billed to MOOV shipper account (door-to-door DDP)
+    shipmentCharges.push({
+      Type: '02', // Duties and Taxes
+      BillShipper: {
+        AccountNumber: acct,
+      },
+    });
+  }
+
+  const paymentInfo = {
+    ShipmentCharge: shipmentCharges,
   };
+
+  const incoTerms = String(p.incoterms || p.termsOfSale || 'DDP').trim().toUpperCase();
 
   const shipmentObj = {
     Description: S(p.description || 'Commercial Goods / International Express').slice(0, 50),
@@ -857,7 +888,7 @@ function buildShipmentRequest(p) {
       FormType: ['01'],
       UserCreatedForm: forms,
       ReasonForExport: 'SALE',
-      TermsOfSale: 'DAP',
+      TermsOfSale: incoTerms,
       InvoiceNumber: S(p.invoiceNumber || ('INV-' + Date.now().toString().slice(-6))),
       InvoiceDate: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
       PurchaseOrderNumber: S(p.reference || ('MOOV-' + Date.now().toString().slice(-6))),
@@ -872,7 +903,7 @@ function buildShipmentRequest(p) {
     shipmentObj.InternationalForms = {
       FormType: ['01'],
       ReasonForExport: 'SALE',
-      TermsOfSale: 'DAP',
+      TermsOfSale: incoTerms,
       InvoiceNumber: S(p.invoiceNumber || ('INV-' + Date.now().toString().slice(-6))),
       InvoiceDate: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
       PurchaseOrderNumber: S(p.reference || ('MOOV-' + Date.now().toString().slice(-6))),

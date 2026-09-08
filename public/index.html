@@ -3959,6 +3959,8 @@ function renderShipments(list) {
           '</div>' +
           '<div style="background:#fff;border:1px solid var(--mv-hairline-2);padding:12px">' +
             '<div class="ds-label" style="margin-bottom:4px">Manifest &amp; Customs</div>' +
+            '<div style="font-size:12px;margin-bottom:4px">Incoterms: <b>DDP (Door-to-Door)</b></div>' +
+            '<div style="font-size:12px;margin-bottom:4px">Duty Billing: <b>' + (x.response && x.response.billing && x.response.billing.dutyPaymentType === 'thirdParty' ? ('3rd Party (' + (x.response.billing.dutyAccountNumber || 'Account') + ')') : 'Account (Billed to us)') + '</b></div>' +
             '<div style="font-size:12px;margin-bottom:4px">Declared Value: <b>' + (x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—') + '</b></div>' +
             '<div style="font-size:12px;margin-bottom:4px">Commercial Invoice: <b>' + (docs.invoice ? '✓ Electronic attached' : 'Paper required') + '</b></div>' +
             '<div style="font-size:12px">Packing Slip: <b>' + (docs.packingSlip ? '✓ Electronic attached' : 'None') + '</b></div>' +

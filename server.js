@@ -983,7 +983,9 @@ app.post('/api/book-import', async (req, res) => {
     const {
       token, sender, receiver, packages, serviceCode, goodsValue,
       invoiceBase64, invoiceFormat, packingSlipBase64, packingSlipFormat,
-      bookPickup, pickupDate, readyTime, closeTime, instructions
+      bookPickup, pickupDate, readyTime, closeTime, instructions,
+      incoterms, dutyPaymentType, dutyAccountNumber, dutyPostalCode, dutyCountryCode,
+      thirdPartyAccountNumber, thirdPartyPostalCode, thirdPartyCountryCode
     } = req.body || {};
 
     let card = null;
@@ -1008,6 +1010,14 @@ app.post('/api/book-import', async (req, res) => {
       packages: pkgs,
       serviceCode: serviceCode || '65',
       goodsValue: goodsValue || 0,
+      incoterms: incoterms || 'DDP',
+      dutyPaymentType: dutyPaymentType || (thirdPartyAccountNumber ? 'thirdParty' : 'shipper'),
+      dutyAccountNumber: dutyAccountNumber || thirdPartyAccountNumber,
+      dutyPostalCode: dutyPostalCode || thirdPartyPostalCode,
+      dutyCountryCode: dutyCountryCode || thirdPartyCountryCode || 'GB',
+      thirdPartyAccountNumber: thirdPartyAccountNumber || dutyAccountNumber,
+      thirdPartyPostalCode: thirdPartyPostalCode || dutyPostalCode,
+      thirdPartyCountryCode: thirdPartyCountryCode || dutyCountryCode || 'GB',
       invoiceBase64,
       invoiceFormat,
       packingSlipBase64,
@@ -1138,7 +1148,15 @@ app.post('/api/book-import', async (req, res) => {
           invoice: !!invoiceBase64,
           packingSlip: !!packingSlipBase64,
         },
-        response: { shipment: shipResult.json, pickup: pickupResult ? pickupResult.json : null },
+        response: {
+          shipment: shipResult.json,
+          pickup: pickupResult ? pickupResult.json : null,
+          billing: {
+            incoterms: incoterms || 'DDP',
+            dutyPaymentType: dutyPaymentType || (thirdPartyAccountNumber ? 'thirdParty' : 'shipper'),
+            dutyAccountNumber: dutyAccountNumber || thirdPartyAccountNumber || null,
+          }
+        },
         created_by: req.user ? req.user.id : null,
       });
     } catch (e) {
