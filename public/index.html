@@ -1791,6 +1791,22 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
         <p class="ds-blurb">Compare carrier services by destination, weight, dimensions, fuel and markup.</p>
       </div>
 
+      <!-- Peak Demand & Surge Banner -->
+      <div id="calcSurgeBanner" style="display:none;background:var(--moov-navy);border:1px solid rgba(255,255,255,0.12);border-left:4px solid var(--moov-yellow);padding:14px 18px;margin-bottom:20px;color:#fff;font-family:inherit">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <span style="font-size:20px;line-height:1">⚠️</span>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <b style="font-size:13px;letter-spacing:0.04em;text-transform:uppercase;color:var(--moov-yellow)">UPS Peak Demand &amp; Surge Emergency Surcharges In Effect</b>
+              <span style="background:rgba(255,214,0,0.18);color:var(--moov-yellow);border:1px solid rgba(255,214,0,0.4);font-size:11px;font-weight:800;padding:2px 8px">20 Sept 2026 – 6 Feb 2027</span>
+            </div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px;line-height:1.45">
+              During this peak window, UPS Demand Surcharges apply to Additional Handling, Large Package, and Over Max limits (with your negotiated discounts factored in). A Surge Emergency Fee applies to residential deliveries (£0.48/pkg domestic, £0.13/kg standard international). All charges are automatically reflected below.
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="ds-section">
         <div class="ds-section-title">Shipment Parameters</div>
         <div class="ds-grid-calc">
@@ -2572,13 +2588,43 @@ function markupPct(svc, country){
 }
 const accList=()=>((P&&P.settings&&P.settings.accessorials)||[]);
 const region=c=>{const eu=(P.settings&&P.settings.regions&&P.settings.regions.eu)||[];return eu.includes(c)?'eu':'row';};
+function isSurgeDate(d = new Date()) {
+  const dt = d ? new Date(d) : new Date();
+  const start = new Date('2026-09-20T00:00:00Z');
+  const end = new Date('2027-02-06T23:59:59Z');
+  return dt >= start && dt <= end;
+}
+
+const DEMAND_SURCHARGE_RATES = {
+  addlHandling: 7.25,
+  largePackage: 68.95,
+  overMax: 439.90,
+};
+
+function calcSurgeFee(c, chg, isResi) {
+  if (!isSurgeDate()) return null;
+  const isDom = (c === 'United Kingdom' || c === 'GB');
+  const isIt = (c === 'Italy' || c === 'IT');
+  const applies = isResi || (isIt && isDom);
+  if (!applies) return null;
+
+  if (isDom || (isIt && isDom)) {
+    return { name: 'Surge Emergency Fee (Domestic)', amt: 0.48 };
+  }
+  const fee = Math.round(0.13 * (chg || 1) * 100) / 100;
+  return fee > 0 ? { name: 'Surge Emergency Fee (£0.13/kg)', amt: fee } : null;
+}
+
 function accCost(a){
   if(a.basis==='pctValue'){
     const mn = $('accMin_'+a.key) ? num('accMin_'+a.key) : (Number(a.min) || 14.35);
     const disc = $('accDisc_'+a.key) ? num('accDisc_'+a.key) : (Number(a.disc) || 0);
     return Math.round(mn * (1 - disc / 100) * 100) / 100;
   }
-  const l = $('accList_'+a.key) ? num('accList_'+a.key) : (a.list || 0);
+  let l = $('accList_'+a.key) ? num('accList_'+a.key) : (a.list || 0);
+  if (isSurgeDate() && DEMAND_SURCHARGE_RATES[a.key] != null) {
+    l = DEMAND_SURCHARGE_RATES[a.key];
+  }
   const d = $('accDisc_'+a.key) ? num('accDisc_'+a.key) : (a.disc || 0);
   return Math.round(l * (1 - d / 100) * 100) / 100;
 }
@@ -2588,10 +2634,11 @@ function accVal(a){
     return m;
   }
   const sellEl=$('accSell_'+a.key);
-  if(sellEl && sellEl.value!=='') return num('accSell_'+a.key);
-  if(a.sell!=null && a.sell!=='') return Number(a.sell)||0;
+  if(sellEl && sellEl.value!=='' && !isSurgeDate()) return num('accSell_'+a.key);
+  if(a.sell!=null && a.sell!=='' && !isSurgeDate()) return Number(a.sell)||0;
   return accCost(a);
 }
+
 const accOn=a=>{const el=$('acc_'+(a.group||a.key));return el&&el.checked;};
 
 const DPD_COLOR='#DC2626', UPS_COLOR='#171B2D';
@@ -2682,6 +2729,17 @@ function build(raw, svc, countryOverride){
     sumSellExtra+=v;
     sumCostExtra+=cv;
   });
+
+  if (svc && svc.carrier === 'ups') {
+    const resiEl = $('acc_residential');
+    const isResi = !!(resiEl && resiEl.checked);
+    const surge = calcSurgeFee(c, num('wt'), isResi);
+    if (surge) {
+      flatExtras.push([surge.name, surge.amt]);
+      sumSellExtra += surge.amt;
+      sumCostExtra += surge.amt;
+    }
+  }
 
   const costFuel=Math.round((raw+sumCostExtra)*fc/100*100)/100;
   const sellFuel=Math.round((raw+markupAmt+sumSellExtra)*fs/100*100)/100;
@@ -3078,6 +3136,12 @@ function bootCalc(){
       b.addEventListener('click', ()=>editCustVolTabClick(b.dataset.mk));
     });
   }
+
+  const isSurge = isSurgeDate();
+  if ($('calcSurgeBanner')) {
+    $('calcSurgeBanner').style.display = isSurge ? 'block' : 'none';
+  }
+
   calc();
 }
 

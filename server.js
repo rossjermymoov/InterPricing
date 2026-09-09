@@ -543,6 +543,22 @@ app.post('/api/card-rate', async (req, res) => {
         if (eas) accessorials.push(eas);
       }
 
+      // Check for Surge Emergency Fee (in effect 20 Sept 2026 – 6 Feb 2027)
+      const hasSurgeInLive = accessorials.some((a) => a.surge || ['430', 'surge'].includes(String(a.code).toLowerCase()) || String(a.name).toLowerCase().includes('surge'));
+      if (!hasSurgeInLive) {
+        const isDomestic = (iso === 'GB');
+        const surgeFee = surcharges.calculateSurgeEmergencyFee({
+          country: iso || country,
+          isDomestic,
+          isResidential: !!residential,
+          weight: numWeight || 1,
+          qty: 1,
+          serviceKey: key,
+          date: new Date(),
+        });
+        if (surgeFee) accessorials.push(surgeFee);
+      }
+
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
       const fuelRate = (bd.base > 0 && bd.fuel > 0) ? ((bd.fuel / bd.base) * (1 + upsFuelMarkup / 100)) : 0;
       const fuelAmount = Math.round((baseMarkedUp + surTotal) * fuelRate * 100) / 100;
@@ -554,7 +570,7 @@ app.post('/api/card-rate', async (req, res) => {
         remote: accessorials.some((a) => a.remote),
       });
     });
-    res.json({ enabled: true, postcodeUsed: !!(postcode && String(postcode).trim()), residentialUsed: !!residential, services });
+    res.json({ enabled: true, postcodeUsed: !!(postcode && String(postcode).trim()), residentialUsed: !!residential, services, surgeInfo: surcharges.getDemandSurcharges() });
   } catch (e) { res.json({ enabled: false, error: e.message, services: [] }); }
 });
 
@@ -648,6 +664,32 @@ app.post('/api/calc-rate', async (req, res) => {
           });
         }
       }
+
+      // Check for Surge Emergency Fee (in effect 20 Sept 2026 – 6 Feb 2027)
+      const hasSurgeInLive = accessorials.some((a) => a.surge || ['430', 'surge'].includes(String(a.code).toLowerCase()) || String(a.name).toLowerCase().includes('surge'));
+      if (!hasSurgeInLive) {
+        const isDomestic = (iso === 'GB');
+        const surgeFee = surcharges.calculateSurgeEmergencyFee({
+          country: iso || country,
+          isDomestic,
+          isResidential: !!residential,
+          weight: numWeight || 1,
+          qty: 1,
+          serviceKey: key,
+          date: new Date(),
+        });
+        if (surgeFee) {
+          accessorials.push({
+            code: surgeFee.code,
+            name: surgeFee.name,
+            costAmt: surgeFee.costAmt,
+            amt: surgeFee.amt,
+            remote: false,
+            surge: true,
+          });
+        }
+      }
+
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
       const fuelRate = (costBase > 0 && costFuel > 0) ? ((costFuel / costBase) * (1 + upsFuelMarkup / 100)) : 0;
       const fuelRatePct = Math.round(fuelRate * 1000) / 10;
@@ -675,6 +717,7 @@ app.post('/api/calc-rate', async (req, res) => {
       status: r.status,
       raw: r.raw,
       request: r.request,
+      surgeInfo: surcharges.getDemandSurcharges(),
       services
     });
   } catch (e) {

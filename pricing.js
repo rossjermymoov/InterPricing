@@ -97,14 +97,27 @@ function buildCardPayload(cfg, card) {
     countryList = countryList.filter((c) => allow.has(c));
   }
 
-  // Sanitised accessorial definitions — net customer amounts only (no list price / discount).
+  const surcharges = require('./surcharges');
+
+// Sanitised accessorial definitions — net customer amounts only (no list price / discount).
   const carriersShown = new Set(services.map((s) => s.carrier.toLowerCase()));
   const includeSur = conf.includeSurcharges !== false;
+  const demandInfo = surcharges.getDemandSurcharges();
+  const demandRates = (demandInfo && demandInfo.rates) || {};
+
   const accessorials = !includeSur ? [] : (S.accessorials || [])
     .filter((a) => carriersShown.has(a.applyTo))
     .map((a) => {
       const o = { key: a.key, name: a.name, group: a.group || a.key, cond: a.cond, basis: a.basis,
         carrier: (a.applyTo || '').toUpperCase(), fuelable: !!a.fuelable };
+      
+      // If peak demand rate applies to this accessorial and in effect
+      let baseList = (a.list != null ? Number(a.list) : 0);
+      if (demandInfo.active && demandRates[a.key] != null) {
+        baseList = demandRates[a.key];
+        o.demandAdjusted = true;
+      }
+
       if (a.basis === 'pctValue') {
         const customerMin = a.sellMin != null && a.sellMin !== '' ? Number(a.sellMin) : (a.sell != null && a.sell !== '' ? Number(a.sell) : (Number(a.min) || 14.35));
         const customerPct = a.sellPct != null && a.sellPct !== '' ? Number(a.sellPct) : (Number(a.pct) || 3.0);
@@ -114,9 +127,11 @@ function buildCardPayload(cfg, card) {
         o.sellPct = customerPct;
         o.amount = customerMin;
       } else {
-        const customerFlat = a.sell != null && a.sell !== '' ? Number(a.sell) : Math.round((a.list || 0) * (1 - (a.disc || 0) / 100) * 100) / 100;
+        const customerFlat = a.sell != null && a.sell !== '' ? Number(a.sell) : Math.round(baseList * (1 - (a.disc || 0) / 100) * 100) / 100;
         o.amount = customerFlat;
         o.sell = customerFlat;
+        o.list = baseList;
+        o.disc = a.disc != null ? Number(a.disc) : 0;
       }
       if (a.region) o.region = a.region;
       if (a.countries) o.countries = a.countries;
@@ -133,6 +148,7 @@ function buildCardPayload(cfg, card) {
     caps: { cp: CAPS.cp, ep: CAPS.ep },
     eu: (S.regions && S.regions.eu) || [],
     euDuty: euDutyPayload(S.euCustomsDuty),
+    surgeInfo: demandInfo,
     countries: countryList,
     receiver: conf.receiver || {
       company: card.customer || '',
@@ -153,3 +169,4 @@ function buildCardPayload(cfg, card) {
 }
 
 module.exports = { buildCardPayload, SERVICES };
+

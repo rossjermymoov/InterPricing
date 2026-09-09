@@ -1800,6 +1800,22 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 
   <!-- Main Rates View (Full Width) -->
   <div class="rates-container" id="ratesView">
+    <!-- Peak Surge & Demand Notice Banner -->
+    <div id="surgeBanner" style="display:none;background:var(--moov-navy);border:1px solid rgba(255,255,255,0.12);border-left:4px solid var(--moov-yellow);padding:14px 18px;margin-bottom:16px;color:#fff;font-family:inherit">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <span style="font-size:20px;line-height:1">⚠️</span>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <b style="font-size:13px;letter-spacing:0.04em;text-transform:uppercase;color:var(--moov-yellow)">UPS Peak Demand &amp; Surge Emergency Surcharges In Effect</b>
+            <span style="background:rgba(255,214,0,0.18);color:var(--moov-yellow);border:1px solid rgba(255,214,0,0.4);font-size:11px;font-weight:800;padding:2px 8px">20 Sept 2026 – 6 Feb 2027</span>
+          </div>
+          <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px;line-height:1.45">
+            During this peak window, UPS Demand Surcharges apply to Additional Handling, Large Package, and Over Max limits (with your negotiated discounts factored in). A Surge Emergency Fee applies to residential deliveries (£0.48/pkg domestic, £0.13/kg standard international). All charges are automatically reflected below.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="rates-layout" id="ratesLayout">
       <!-- Full-Width Pricing & Calculator Area -->
       <main class="pricing-main" id="pricingMain">
@@ -2561,16 +2577,47 @@ function doUpsFetch(key, c) {
     });
 }
 
+function isSurgeDate(d = new Date()) {
+  const dt = d ? new Date(d) : new Date();
+  const start = new Date('2026-09-20T00:00:00Z');
+  const end = new Date('2027-02-06T23:59:59Z');
+  return dt >= start && dt <= end;
+}
+
+function calcSurgeFee(c, chg, svcKey, isResi) {
+  if (!isSurgeDate()) return null;
+  const isDom = (c === 'United Kingdom' || c === 'GB');
+  const isIt = (c === 'Italy' || c === 'IT');
+  const applies = isResi || (isIt && isDom);
+  if (!applies) return null;
+
+  if (isDom || (isIt && isDom)) {
+    return { name: 'Surge Emergency Fee (Domestic)', amt: 0.48 };
+  }
+  // International Standard / Air: £0.13 / kg
+  const fee = Math.round(0.13 * (chg || 1) * 100) / 100;
+  return fee > 0 ? { name: 'Surge Emergency Fee (£0.13/kg)', amt: fee } : null;
+}
+
 function staticRow(s, c, chg, applicable) {
   const r = priceOf(s, c, chg);
   if (!r.avail || r.p == null) return { s, r, total: null };
   const base = r.p, carr = s.carrier.toLowerCase();
   const sur = applicable.filter(a => a.carrier.toLowerCase() === carr).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
+  
+  if (carr === 'ups') {
+    const resiEl = $('tg_residential');
+    const isResi = !!(resiEl && resiEl.checked);
+    const surge = calcSurgeFee(c, chg, s.key, isResi);
+    if (surge) sur.push(surge);
+  }
+
   const surTotal = sur.reduce((t, x) => t + x.amt, 0);
   const fuelRate = (s.fuel || 0) / 100;
   const fuel = Math.round((base + surTotal) * fuelRate * 100) / 100;
   return { s, r, base, fuel, sur, total: Math.round((base + fuel + surTotal) * 100) / 100, days: s.days };
 }
+
 
 const ICON_LORRY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5h11v9H2z"/><path d="M13 8.5h3.6l3.4 3.3v2.7H13z"/><circle cx="6" cy="17" r="1.7"/><circle cx="17" cy="17" r="1.7"/></svg>';
 const ICON_PLANE = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 15.5v-1.7l-7.5-4.6V4.1c0-.9-.7-1.6-1.5-1.6s-1.5.7-1.5 1.6v5.1L3 13.8v1.7l7.5-2.2v4.4l-2 1.4v1.4L12 19.6l3.5.9v-1.4l-2-1.4v-4.4z"/></svg>';
@@ -5239,7 +5286,13 @@ async function boot() {
   }
   renderToggles();
 
+  const isSurge = (RC.surgeInfo && RC.surgeInfo.active) || isSurgeDate();
+  if ($('surgeBanner')) {
+    $('surgeBanner').style.display = isSurge ? 'block' : 'none';
+  }
+
   ['wt', 'L', 'W', 'H', 'V', 'SK', 'pc'].forEach(id => $(id) && $(id).addEventListener('input', calc));
+
 
   $('notesBox').textContent = RC.notes || '';
   $('foot').textContent = 'Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor ' + (RC.divisor || 5000) + '.';
