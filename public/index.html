@@ -1739,6 +1739,11 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <label class="ds-label">Import Quote Markup %</label>
               <input id="editCustImportMarkup" type="number" min="0" step="1" value="25" class="ds-input num"/>
             </div>
+
+            <div class="ds-field-wrap" style="width:160px">
+              <label class="ds-label">Same-Day Courier Markup %</label>
+              <input id="editCustSamedayMarkup" type="number" min="0" step="1" value="15" class="ds-input num"/>
+            </div>
           </div>
 
           <div id="editRcMkList" class="ds-mklist" style="margin-top:16px"></div>
@@ -1756,6 +1761,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
             <label class="ds-toggle"><input type="checkbox" id="editRcSur" checked/> <span>Include surcharges section</span></label>
             <label class="ds-toggle"><input type="checkbox" id="editRcCheapest" checked/> <span>Highlight best price</span></label>
             <label class="ds-toggle"><input type="checkbox" id="editRcBreakdown"/> <span>Show base &amp; fuel separately</span></label>
+            <label class="ds-toggle" style="color:var(--mv-purple);font-weight:800"><input type="checkbox" id="editRcSamedayEnabled" checked/> <span>⚡ Enable Same-Day Courier Booking Tab</span></label>
             <label class="ds-toggle" style="margin-left:auto"><input type="checkbox" id="editCardEnabled" checked/> <span>Rate Card Active</span></label>
           </div>
 
@@ -2536,6 +2542,11 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <label class="ds-label">Import Quote Markup %</label>
               <input id="custImportMarkup" type="number" min="0" step="1" value="25" class="ds-input num" placeholder="e.g. 25"/>
             </div>
+
+            <div class="ds-field-wrap" style="width:160px">
+              <label class="ds-label">Same-Day Courier Markup %</label>
+              <input id="custSamedayMarkup" type="number" min="0" step="1" value="15" class="ds-input num" placeholder="e.g. 15"/>
+            </div>
           </div>
 
           <!-- Per-Service Markup Inputs for this Customer Rate Card -->
@@ -2560,6 +2571,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                 <label class="ds-toggle"><input type="checkbox" id="rcSur" checked/> <span>Include surcharges section</span></label>
                 <label class="ds-toggle"><input type="checkbox" id="rcCheapest" checked/> <span>Highlight best price</span></label>
                 <label class="ds-toggle"><input type="checkbox" id="rcBreakdown"/> <span>Show base &amp; fuel separately</span></label>
+                <label class="ds-toggle" style="color:var(--mv-purple);font-weight:800"><input type="checkbox" id="rcSamedayEnabled" checked/> <span>⚡ Enable Same-Day Courier Booking Tab</span></label>
               </div>
             </div>
           </div>
@@ -2591,6 +2603,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                 <th>Customer Name</th>
                 <th>Shareable Link</th>
                 <th>Import Markup</th>
+                <th>Same-Day Courier</th>
                 <th>Created By</th>
                 <th class="r">Views</th>
                 <th>Status</th>
@@ -4392,6 +4405,12 @@ function renderCardsTable(cards) {
       else if (Object.keys(cfg.markup).length) mkSummary = Object.keys(cfg.markup).length + ' custom rates';
     }
 
+    const sdEnabled = (cfg.samedayEnabled !== false);
+    const sdMarkupStr = sdEnabled ? ((cfg.samedayMarkupPct != null ? cfg.samedayMarkupPct : 15) + '%') : 'Disabled';
+    const sdBadge = sdEnabled
+      ? ('<span style="font-size:10.5px;font-weight:800;background:rgba(29,251,157,0.18);color:var(--mv-green-deep);padding:2px 7px;border:1px solid rgba(29,251,157,0.4)">⚡ +' + qesc(sdMarkupStr) + '</span>')
+      : ('<span style="font-size:10.5px;font-weight:700;color:var(--mv-ink-45);background:var(--mv-bg);padding:2px 6px">Off</span>');
+
     tr.innerHTML = '<td>' +
       '<b>' + qesc(c.customer || '(Unnamed Card)') + '</b>' +
       (cfg.contactName ? ('<div style="font-size:11.5px;color:var(--mv-ink-75)">' + qesc(cfg.contactName) + '</div>') : '') +
@@ -4405,6 +4424,7 @@ function renderCardsTable(cards) {
       '</div>' +
       '</td>' +
       '<td><b>' + qesc(importMarkupStr) + '</b><div style="font-size:11px;color:var(--mv-ink-55)">' + (cfg.deliveryAddress && cfg.deliveryAddress.city ? qesc(cfg.deliveryAddress.city + ', ' + (cfg.deliveryAddress.country || 'GB')) : 'Standard') + '</div></td>' +
+      '<td>' + sdBadge + '</td>' +
       '<td>' + qesc(c.creator_name || c.creator_email || '—') + '</td>' +
       '<td class="r mv-num">' + (c.views || 0) + '</td>' +
       '<td>' +
@@ -4462,6 +4482,8 @@ function openEditCardModal(cardId) {
   $('editCustPhone').value = cfg.phone || '';
   $('editCustEmail').value = cfg.email || '';
   $('editCustImportMarkup').value = (cfg.importMarkupPct != null ? cfg.importMarkupPct : 25);
+  if ($('editCustSamedayMarkup')) $('editCustSamedayMarkup').value = (cfg.samedayMarkupPct != null ? cfg.samedayMarkupPct : 15);
+  if ($('editRcSamedayEnabled')) $('editRcSamedayEnabled').checked = (cfg.samedayEnabled !== false);
 
   const da = cfg.deliveryAddress || {};
   $('editCustLine1').value = da.line1 || '';
@@ -4515,6 +4537,8 @@ $('editCardSave').onclick = async () => {
     phone: $('editCustPhone').value.trim(),
     email: $('editCustEmail').value.trim(),
     importMarkupPct: num('editCustImportMarkup'),
+    samedayMarkupPct: $('editCustSamedayMarkup') ? num('editCustSamedayMarkup') : 15,
+    samedayEnabled: $('editRcSamedayEnabled') ? $('editRcSamedayEnabled').checked : true,
     markup: editCardMarkupObj(),
     services: incServices,
     includedServices: incServices,
@@ -4570,6 +4594,8 @@ $('custCreateBtn').onclick = async () => {
     phone: $('custPhone').value.trim(),
     email: $('custEmail').value.trim(),
     importMarkupPct: num('custImportMarkup'),
+    samedayMarkupPct: $('custSamedayMarkup') ? num('custSamedayMarkup') : 15,
+    samedayEnabled: $('rcSamedayEnabled') ? $('rcSamedayEnabled').checked : true,
     markup: custCardMarkupObj(),
     services: incServices,
     includedServices: incServices,

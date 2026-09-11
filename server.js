@@ -1577,14 +1577,333 @@ app.get('/api/shipments', auth.requireAuth, async (req, res) => {
 });
 
 // CARD TOKEN: List shipments for a specific customer card
+// CARD TOKEN: List shipments for a specific customer card (both International & Same-Day)
 app.get('/api/card/:token/shipments', async (req, res) => {
   try {
     const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
     if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available' });
-    const list = await db.listShipments({ token: req.params.token, limit: req.query.limit || 20 });
-    res.json({ shipments: list });
+    const intlList = await db.listShipments({ token: req.params.token, limit: req.query.limit || 50 });
+    const sdList = await db.listSamedayJobs({ token: req.params.token, limit: req.query.limit || 50 });
+
+    const combined = [
+      ...intlList.map(x => ({ ...x, _kind: 'intl' })),
+      ...sdList.map(j => {
+        const st = Array.isArray(j.stations) ? j.stations : [];
+        const pick = st.find(s => s.type === 'P') || st[0] || {};
+        const drop = st.slice().reverse().find(s => s.type === 'D') || st[st.length - 1] || {};
+        return {
+          id: j.id,
+          tracking_number: j.job_ref,
+          shipment_id: j.job_ref,
+          status: (j.status || 'BOOKED').toLowerCase(),
+          mode: 'sameday',
+          carrier: 'SAME-DAY',
+          service_code: j.van_size,
+          service_name: `Same-Day Courier (${j.van_size || 'Van'})`,
+          customer: j.company_name || card.customer || '',
+          token: req.params.token,
+          sender: {
+            company: pick.company_name || 'Collection Site',
+            name: pick.contactname || '',
+            city: pick.city || '',
+            postcode: pick.postcode || '',
+            line1: pick.addressLine1 || '',
+            line2: pick.addressLine2 || '',
+            phone: pick.phone || '',
+            email: pick.email || '',
+            country: 'GB'
+          },
+          receiver: {
+            company: drop.company_name || 'Delivery Site',
+            name: drop.contactname || '',
+            city: drop.city || '',
+            postcode: drop.postcode || '',
+            line1: drop.addressLine1 || '',
+            line2: drop.addressLine2 || '',
+            phone: drop.phone || '',
+            email: drop.email || '',
+            country: 'GB'
+          },
+          packages: [{
+            qty: j.no_of_item || 1,
+            packaging: j.van_size || 'van',
+            weight: 0,
+            trackingNumber: j.job_ref,
+            description: j.item_des || 'Freight'
+          }],
+          parcels: j.no_of_item || 1,
+          total_weight_kg: 0,
+          goods_value: null,
+          sell_price: j.customer_price || j.price,
+          cost_price: j.price,
+          prn: null,
+          created_at: j.created_at,
+          stations: j.stations,
+          van_size: j.van_size,
+          item_des: j.item_des,
+          cancel_reason: j.cancel_reason,
+          _kind: 'sameday'
+        };
+      })
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.json({ shipments: combined });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// CARD TOKEN: Purge cancelled shipments & sameday jobs
+app.delete('/api/card/:token/shipments/cancelled', async (req, res) => {
+  try {
+    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available' });
+    const countIntl = await db.deleteCancelledShipments({ token: req.params.token });
+    const countSd = await db.deleteCancelledSamedayJobs({ token: req.params.token });
+    res.json({ success: true, count: countIntl + countSd });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// CARD TOKEN: Customer Same-Day Quote
+app.post('/api/card/:token/sameday/quotes', async (req, res) => {
+  try {
+    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available' });
+    const conf = card.config || {};
+    if (!conf.samedayEnabled) {
+      return res.status(403).json({ error: 'Same-day courier service is not enabled for this customer account.' });
+    }
+
+    const { vanSize, noOfItem, itemDes, stations, parameters } = req.body;
+    if (!stations || !Array.isArray(stations) || stations.length < 2) {
+      return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
+    }
+
+    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
+    const crownPayload = {
+      customerID: masterAccountCode,
+      vanSize: vanSize || 'SWB',
+      NoOfItem: String(noOfItem || '1'),
+      ItemDes: itemDes || 'General Freight',
+      parameters: parameters || [],
+      stations: stations.map((s, idx) => ({
+        type: s.type,
+        order_sequence: s.order_sequence || (idx + 1),
+        contactname: s.contactname || '',
+        email: s.email || '',
+        phone: s.phone || '',
+        company_name: s.company_name || '',
+        addressLine1: s.addressLine1 || '',
+        addressLine2: s.addressLine2 || '',
+        addressLine3: s.addressLine3 || '',
+        postcode: s.postcode || '',
+        city: s.city || '',
+        region: s.region || '',
+        from_date: s.from_date || new Date().toISOString().split('T')[0],
+        from_time: s.from_time || '09:00:00',
+        until_date: s.until_date || new Date().toISOString().split('T')[0],
+        until_time: s.until_time || '17:00:00',
+        instructions: s.instructions || ''
+      }))
+    };
+
+    const crownResponse = await crownClient.requestQuote(crownPayload);
+    const basePrice = parseFloat(crownResponse.price) || 0;
+    const markupPct = conf.samedayMarkupPct != null ? Number(conf.samedayMarkupPct) : (typeof conf.markup === 'number' ? conf.markup : (conf.markup && conf.markup.default != null ? conf.markup.default : 10));
+    const marginAmount = (basePrice * (markupPct / 100)).toFixed(2);
+    const customerPrice = (basePrice * (1 + markupPct / 100)).toFixed(2);
+
+    const pickupStation = stations.find(s => s.type === 'P') || stations[0];
+    const deliveryStation = stations.slice().reverse().find(s => s.type === 'D') || stations[stations.length - 1];
+
+    const savedQuote = await db.createSamedayQuote({
+      user_id: req.params.token,
+      customer_email: conf.email || null,
+      company_name: card.customer || '',
+      pickup_postcode: pickupStation ? pickupStation.postcode : '',
+      delivery_postcode: deliveryStation ? deliveryStation.postcode : '',
+      base_price: basePrice.toFixed(2),
+      margin_amount: marginAmount,
+      customer_price: customerPrice,
+      markup_percent: markupPct,
+      van_size: crownPayload.vanSize,
+      no_of_item: crownPayload.NoOfItem,
+      item_des: crownPayload.ItemDes,
+      stations: crownPayload.stations,
+      parameters: crownPayload.parameters
+    });
+
+    res.json({
+      success: true,
+      quoteId: savedQuote.id,
+      quoteRef: savedQuote.quote_ref,
+      price: customerPrice,
+      quote: savedQuote
+    });
+  } catch (err) {
+    console.error('Error calculating customer same-day quote:', err);
+    res.status(500).json({ error: err.message || 'Failed to calculate quote' });
+  }
+});
+
+// CARD TOKEN: Customer Same-Day Job Booking
+app.post('/api/card/:token/sameday/jobs', async (req, res) => {
+  try {
+    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available' });
+    const conf = card.config || {};
+    if (!conf.samedayEnabled) {
+      return res.status(403).json({ error: 'Same-day courier service is not enabled for this customer account.' });
+    }
+
+    const { quoteId, vanSize, noOfItem, itemDes, stations, parameters, customerPrice, basePrice } = req.body;
+    let jobStations = stations;
+    let jobVanSize = vanSize;
+    let jobNoOfItem = noOfItem;
+    let jobItemDes = itemDes;
+    let jobCustomerPrice = customerPrice;
+    let jobBasePrice = basePrice;
+
+    if (quoteId) {
+      const quote = await db.getSamedayQuoteByIdOrRef(quoteId);
+      if (quote) {
+        jobStations = quote.stations;
+        jobVanSize = quote.van_size;
+        jobNoOfItem = quote.no_of_item;
+        jobItemDes = quote.item_des;
+        jobCustomerPrice = quote.customer_price;
+        jobBasePrice = quote.base_price;
+      }
+    }
+
+    if (!jobStations || !Array.isArray(jobStations) || jobStations.length < 2) {
+      return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
+    }
+
+    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
+    const crownPayload = {
+      customerID: masterAccountCode,
+      vanSize: jobVanSize || 'SWB',
+      NoOfItem: String(jobNoOfItem || '1'),
+      ItemDes: jobItemDes || 'General Freight',
+      parameters: parameters || [],
+      stations: jobStations.map((s, idx) => ({
+        type: s.type,
+        order_sequence: s.order_sequence || (idx + 1),
+        contactname: s.contactname || '',
+        email: s.email || '',
+        phone: s.phone || '',
+        company_name: s.company_name || '',
+        addressLine1: s.addressLine1 || '',
+        addressLine2: s.addressLine2 || '',
+        addressLine3: s.addressLine3 || '',
+        postcode: s.postcode || '',
+        city: s.city || '',
+        region: s.region || '',
+        from_date: s.from_date || new Date().toISOString().split('T')[0],
+        from_time: s.from_time || '09:00:00',
+        until_date: s.until_date || new Date().toISOString().split('T')[0],
+        until_time: s.until_time || '17:00:00',
+        instructions: s.instructions || ''
+      }))
+    };
+
+    const crownResponse = await crownClient.createJob(crownPayload);
+
+    const savedJob = await db.createSamedayJob({
+      job_ref: crownResponse.reference,
+      user_id: req.params.token,
+      portal_slug: req.params.token,
+      customer_email: conf.email || null,
+      company_name: card.customer || '',
+      van_size: crownPayload.vanSize,
+      no_of_item: crownPayload.NoOfItem,
+      item_des: crownPayload.ItemDes,
+      status: 'BOOKED',
+      price: jobBasePrice || '0.00',
+      customer_price: jobCustomerPrice || '0.00',
+      stations: crownPayload.stations,
+      parameters: crownPayload.parameters
+    });
+
+    if (quoteId) {
+      await db.markSamedayQuoteBooked(quoteId);
+    }
+
+    sse.broadcast('job_created', savedJob);
+
+    res.json({
+      success: true,
+      jobRef: savedJob.job_ref,
+      job: savedJob
+    });
+  } catch (err) {
+    console.error('Error booking customer same-day job:', err);
+    res.status(500).json({ error: err.message || 'Failed to book transport job' });
+  }
+});
+
+// CARD TOKEN: Cancel customer Same-Day Job
+app.post('/api/card/:token/sameday/jobs/:jobRef/cancel', async (req, res) => {
+  try {
+    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available' });
+
+    const job = await db.getSamedayJobByRef(req.params.jobRef);
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    if (String(job.portal_slug) !== String(req.params.token) && String(job.user_id) !== String(req.params.token)) {
+      return res.status(403).json({ error: 'Unauthorized to cancel this job' });
+    }
+
+    const { reason } = req.body;
+    const cancelledJob = await db.cancelSamedayJob(req.params.jobRef, reason || 'Cancelled by customer');
+
+    sse.broadcast('event_webhook_received', {
+      jobRef: req.params.jobRef,
+      event: {
+        pdeType: 'CANCELLED',
+        delSignedBy: 'Cancelled by customer',
+        delDateTime: new Date().toISOString()
+      },
+      job: cancelledJob
+    });
+
+    res.json({
+      success: true,
+      message: `Job ${req.params.jobRef} has been cancelled successfully.`,
+      job: cancelledJob
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// CARD TOKEN: Tracking telemetry for Same-Day Job
+app.get('/api/card/:token/sameday/jobs/:jobRef', async (req, res) => {
+  try {
+    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available' });
+
+    const job = await db.getSamedayJobByRef(req.params.jobRef);
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    if (String(job.portal_slug) !== String(req.params.token) && String(job.user_id) !== String(req.params.token)) {
+      return res.status(403).json({ error: 'Unauthorized to view this job' });
+    }
+
+    const events = await db.getSamedayTrackingEvents(req.params.jobRef);
+    const pings = await db.getSamedayGpsPings(req.params.jobRef);
+    const latestGps = pings.length > 0 ? pings[pings.length - 1] : null;
+
+    res.json({
+      job,
+      events,
+      pings,
+      latestGps
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

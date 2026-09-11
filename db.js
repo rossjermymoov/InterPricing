@@ -776,9 +776,16 @@ async function getSamedayJobByRef(jobRef) {
   return rows[0] || null;
 }
 
-async function listSamedayJobs({ userId = null, portalSlug = null, limit = 100 } = {}) {
+async function listSamedayJobs({ userId = null, portalSlug = null, token = null, limit = 100 } = {}) {
   if (!pool) return [];
   const lim = Math.min(200, Math.max(1, Number(limit) || 100));
+  if (token) {
+    const { rows } = await pool.query(
+      `SELECT * FROM sameday_jobs WHERE portal_slug = $1 OR user_id = $1 ORDER BY created_at DESC LIMIT ${lim}`,
+      [token]
+    );
+    return rows;
+  }
   if (portalSlug) {
     const { rows } = await pool.query(
       `SELECT * FROM sameday_jobs WHERE portal_slug = $1 ORDER BY created_at DESC LIMIT ${lim}`,
@@ -797,6 +804,19 @@ async function listSamedayJobs({ userId = null, portalSlug = null, limit = 100 }
     `SELECT * FROM sameday_jobs ORDER BY created_at DESC LIMIT ${lim}`
   );
   return rows;
+}
+
+async function deleteCancelledSamedayJobs({ token = null } = {}) {
+  if (!pool) return 0;
+  if (token) {
+    const { rowCount } = await pool.query(
+      `DELETE FROM sameday_jobs WHERE (portal_slug = $1 OR user_id = $1) AND (status = 'CANCELLED' OR status = 'cancelled')`,
+      [token]
+    );
+    return rowCount;
+  }
+  const { rowCount } = await pool.query(`DELETE FROM sameday_jobs WHERE status = 'CANCELLED' OR status = 'cancelled'`);
+  return rowCount;
 }
 
 async function updateSamedayJobStatus(jobRef, status) {
@@ -925,7 +945,7 @@ module.exports = {
   deleteShipment, deleteCancelledShipments,
   // Same-Day Exports
   getNextSamedayQuoteRef, createSamedayQuote, getSamedayQuoteByIdOrRef, listSamedayQuotes, markSamedayQuoteBooked,
-  createSamedayJob, getSamedayJobByRef, listSamedayJobs, updateSamedayJobStatus, cancelSamedayJob,
+  createSamedayJob, getSamedayJobByRef, listSamedayJobs, updateSamedayJobStatus, cancelSamedayJob, deleteCancelledSamedayJobs,
   saveSamedayTrackingEvent, getSamedayTrackingEvents, saveSamedayGpsPing, getSamedayGpsPings,
   hasDb: !!pool,
 };

@@ -1771,10 +1771,186 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
     width: 100%;
     max-width: 100%;
     max-height: 92vh;
-    border-bottom: 0;
-  }
+  /* Same-Day Specific Responsive Styles */
+  .sd-atf-grid { grid-template-columns: 1fr; }
+  .sd-stops-grid { grid-template-columns: 1fr; }
+  .sd-van-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Same-Day Courier Styles */
+.sd-atf-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px;
+  align-items: start;
+}
+.sd-van-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+@media (max-width: 960px) {
+  .sd-van-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+}
+.sd-van-card {
+  background: #ffffff;
+  border: 1.5px solid var(--mv-hairline-2);
+  border-radius: 0 !important;
+  padding: 16px 12px 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 140px;
+  aspect-ratio: 1 / 1.05;
+  position: relative;
+}
+.sd-van-card:hover {
+  border-color: var(--mv-ink);
+  background: #fbfcfd;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 27, 45, 0.06);
+}
+.sd-van-card.selected {
+  border: 2px solid var(--moov-green) !important;
+  background: rgba(29, 251, 157, 0.08);
+  box-shadow: 0 0 0 1px var(--moov-green), 0 4px 14px rgba(29, 251, 157, 0.15);
+}
+.sd-van-card.selected::after {
+  content: '✓ SELECTED';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 8.5px;
+  font-weight: 900;
+  color: var(--moov-navy);
+  background: var(--moov-green);
+  padding: 1px 4px;
+  letter-spacing: .04em;
+}
+.sd-van-img-wrap {
+  width: 100%;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.sd-van-img {
+  max-width: 90%;
+  max-height: 58px;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+.sd-van-card:hover .sd-van-img,
+.sd-van-card.selected .sd-van-img {
+  transform: scale(1.06);
+}
+.sd-van-name {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--mv-ink);
+  white-space: nowrap;
+  line-height: 1.25;
+}
+.sd-van-desc {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mv-ink-55);
+  margin-top: 3px;
+  white-space: nowrap;
+}
+.sd-stops-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.sd-stop-card {
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  border-radius: 0 !important;
+  padding: 12px 14px;
+}
+.sd-stop-card.pickup {
+  border-top: 3px solid var(--mv-purple);
+}
+.sd-stop-card.drop {
+  border-top: 3px solid var(--moov-green);
+}
+.sd-stop-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.sd-stop-tag {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.sd-stop-tag.pickup { color: var(--mv-purple); }
+.sd-stop-tag.drop { color: var(--moov-green-hover); }
+.sd-inputs-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.sd-quote-panel {
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  border-top: 3px solid var(--moov-green);
+  border-radius: 0 !important;
+  padding: 16px;
+  position: sticky;
+  top: 16px;
+}
+.sd-price-big {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--moov-navy);
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+.sd-field-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.sd-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--mv-ink-75);
+  margin-bottom: 4px;
+}
+.sd-input, .sd-select {
+  width: 100%;
+  height: 34px;
+  border: 1px solid var(--mv-hairline-2);
+  background: #fff;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--mv-ink);
+  box-sizing: border-box;
+}
+.sd-input:focus, .sd-select:focus {
+  border-color: var(--moov-green-hover);
+  outline: 2px solid var(--moov-green);
 }
 </style>
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css"/>
+<script src="/vendor/leaflet/leaflet.js"></script>
 </head>
 <body>
 <div id="state" class="state">Loading rate card…</div>
@@ -1792,11 +1968,252 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
         <nav class="tabs" id="viewTabs">
           <button type="button" data-view="rates" class="active">My rates</button>
           <button type="button" data-view="import">Request an import quote</button>
+          <button type="button" data-view="sameday" id="tabSamedayBtn" style="display:none">⚡ Same-Day Courier</button>
           <button type="button" data-view="bookings">Bookings</button>
         </nav>
       </div>
     </div>
   </header>
+
+  <!-- Same-Day Courier View -->
+  <div id="samedayView" style="display:none" class="rates-container">
+    <div class="calc-card" style="margin-bottom:16px">
+      <div class="calc-head">
+        <div>
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-purple);margin-bottom:3px">EXPRESS FREIGHT &amp; DEDICATED LOGISTICS</div>
+          <h2 style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0;color:var(--mv-ink)">Same-Day Courier Booking</h2>
+          <span class="calc-sub" style="margin-top:3px">Direct point-to-point dedicated courier vehicles across the United Kingdom with real-time GPS telemetry.</span>
+        </div>
+      </div>
+
+      <form id="sdCustQuoteForm" onsubmit="handleSdCustQuote(event)">
+        <div class="sd-atf-grid">
+          <!-- Left Column: Vehicle & Routing -->
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mv-purple)">1. SELECT VEHICLE SIZE</span>
+              <span style="font-size:11.5px;color:var(--mv-ink-55)">Dedicated point-to-point transport</span>
+            </div>
+            <input type="hidden" id="sdCustVan" value="SWB"/>
+            <div class="sd-van-grid">
+              <div class="sd-van-card" data-van="SV">
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/van-sv.svg" alt="Small Van" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">Small Van</div>
+                  <div class="sd-van-desc">400kg · 1 Pallet</div>
+                </div>
+              </div>
+              <div class="sd-van-card selected" data-van="SWB">
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/van-swb.svg" alt="SWB Transit" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">SWB Transit</div>
+                  <div class="sd-van-desc">900kg · 2 Pallets</div>
+                </div>
+              </div>
+              <div class="sd-van-card" data-van="LWB">
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/van-lwb.svg" alt="LWB Transit" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">LWB Transit</div>
+                  <div class="sd-van-desc">1,350kg · 3 Pallets</div>
+                </div>
+              </div>
+              <div class="sd-van-card" data-van="XLWB">
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/van-xlwb.svg" alt="XLWB Transit" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">XLWB Transit</div>
+                  <div class="sd-van-desc">1,200kg · 4 Pallets</div>
+                </div>
+              </div>
+              <div class="sd-van-card" data-van="7.5T">
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/truck-75t.svg" alt="7.5T Truck" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">7.5T Truck</div>
+                  <div class="sd-van-desc">Tail-lift · 2.5T</div>
+                </div>
+              </div>
+              <div class="sd-van-card" data-van="Artic">
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/truck-artic.svg" alt="44T Artic" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">44T Artic</div>
+                  <div class="sd-van-desc">Trailer · 26 Pallets</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Side-by-Side Stops Container -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mv-purple)">2. ROUTE &amp; TIMINGS</span>
+              <button type="button" class="btn-moov-action secondary" onclick="addSdCustDeliveryStation()" style="height:28px;padding:0 10px;font-size:11px">
+                <span>➕ Add Drop</span>
+              </button>
+            </div>
+            <div id="sdCustStopsContainer">
+              <div class="sd-stops-grid">
+                <!-- Collection Stop -->
+                <div class="sd-stop-card pickup" id="sdCustStation1">
+                  <div class="sd-stop-head">
+                    <span class="sd-stop-tag pickup">📍 Collection Stop #1 (Origin)</span>
+                    <span style="font-size:10.5px;color:var(--mv-ink-55)">Pickup Site</span>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Postcode *</label>
+                      <input type="text" class="sd-input st-postcode" id="sdCustP1" placeholder="e.g. B1 1AA" required oninput="updateSdCustRoutePreview()"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+                      <input type="text" class="sd-input st-company" id="sdCustC1" placeholder="Company Name"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Address Line 1</label>
+                      <input type="text" class="sd-input st-address" id="sdCustA1" placeholder="Street Address"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">City</label>
+                      <input type="text" class="sd-input st-city" id="sdCustCity1" placeholder="City"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Ready Time</label>
+                      <input type="time" class="sd-input st-from-time" id="sdCustT1" value="09:00"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Contact Name &amp; Phone</label>
+                      <input type="text" class="sd-input st-contact" id="sdCustContact1" placeholder="Name &amp; Tel"/>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Delivery Stop -->
+                <div class="sd-stop-card drop" id="sdCustStation2">
+                  <div class="sd-stop-head">
+                    <span class="sd-stop-tag drop">🏁 Delivery Stop #2 (Destination)</span>
+                    <span style="font-size:10.5px;color:var(--mv-ink-55)">Drop Site</span>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Postcode *</label>
+                      <input type="text" class="sd-input st-postcode" id="sdCustP2" placeholder="e.g. M1 1AE" required oninput="updateSdCustRoutePreview()"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+                      <input type="text" class="sd-input st-company" id="sdCustC2" placeholder="Company Name"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Address Line 1</label>
+                      <input type="text" class="sd-input st-address" id="sdCustA2" placeholder="Street Address"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">City</label>
+                      <input type="text" class="sd-input st-city" id="sdCustCity2" placeholder="City"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Deliver By</label>
+                      <input type="time" class="sd-input st-until-time" id="sdCustT2" value="17:00"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
+                      <input type="text" class="sd-input st-contact" id="sdCustContact2" placeholder="Name &amp; Tel"/>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Integrated Cargo & Freight Card -->
+            <div style="background:#ffffff;border:1px solid var(--mv-hairline-2);padding:14px 16px;margin-top:14px">
+              <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mv-purple);margin-bottom:10px">
+                3. FREIGHT &amp; CARGO SPECIFICATION
+              </div>
+              <div style="display:grid;grid-template-columns:140px 1fr 180px;gap:14px;align-items:end">
+                <div class="sd-field-wrap">
+                  <label class="sd-label">Quantity / Units *</label>
+                  <input type="number" id="sdCustItemQty" class="sd-input num" value="1" min="1" required/>
+                </div>
+                <div class="sd-field-wrap">
+                  <label class="sd-label">Freight Description / Cargo Type *</label>
+                  <input type="text" id="sdCustItemDesc" class="sd-input" placeholder="e.g. 2 Euro Pallets, Engineering Spares, Print Boxes" value="Pallet of freight" required/>
+                </div>
+                <div class="sd-field-wrap">
+                  <label class="sd-label">Quick Preset</label>
+                  <select class="sd-select" onchange="if(this.value){ $('sdCustItemDesc').value=this.value; }">
+                    <option value="">Choose preset…</option>
+                    <option value="Pallets of freight">Pallets of freight</option>
+                    <option value="Cartons / Boxes">Cartons / Boxes</option>
+                    <option value="Engineering & Automotive Parts">Engineering &amp; Automotive</option>
+                    <option value="Legal & Medical Documents">Legal &amp; Medical Docs</option>
+                    <option value="Event & Exhibition Equipment">Exhibition Equipment</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Sticky Real-Time Quote & Booking Panel -->
+          <div class="sd-quote-panel">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--mv-purple)">⚡ LIVE QUOTATION</span>
+              <span style="font-size:10px;font-weight:800;background:rgba(29,251,157,0.2);color:var(--mv-green-deep);padding:2px 6px">DEDICATED</span>
+            </div>
+
+            <!-- Route Preview -->
+            <div style="background:var(--mv-bg);border:1px solid var(--mv-hairline-2);padding:8px 10px;margin-bottom:10px">
+              <div id="sdCustRoutePreview" style="font-weight:800;font-size:12px;color:var(--mv-ink);display:flex;align-items:center;gap:6px">
+                <span id="sdCustRouteP1" style="color:var(--mv-purple)">Origin</span> ➔ <span id="sdCustRouteP2" style="color:var(--moov-green-hover)">Destination</span>
+              </div>
+              <div id="sdCustVanPreview" style="font-size:11px;color:var(--mv-ink-55);margin-top:2px">
+                🚚 SWB Transit (Up to 900kg · 2 Plts)
+              </div>
+            </div>
+
+            <!-- Quote Reference -->
+            <div style="font-size:11px;color:var(--mv-ink-55);margin-bottom:4px">
+              Quotation Ref: <b id="sdCustQuoteRefDisplay" style="color:var(--mv-ink)">MOOV-AUTO</b>
+            </div>
+
+            <!-- Big Price -->
+            <div id="sdCustQuotePriceDisplay" class="sd-price-big">£0.00</div>
+
+            <!-- Action Buttons -->
+            <button type="submit" id="btnSdCustGetQuote" class="btn-moov-action primary" style="width:100%;height:38px;font-size:13px;margin-bottom:8px">
+              <span>⚡ Calculate Delivery Price</span>
+            </button>
+
+            <button type="button" id="btnSdCustBookQuote" class="btn-moov-action primary" style="width:100%;height:40px;font-size:13.5px;display:none;background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy);font-weight:900" onclick="handleOpenSdCustConfirmModal()">
+              <span>🚀 Book Dedicated Courier Now</span>
+            </button>
+
+            <!-- Feature Badges -->
+            <div style="margin-top:12px;border-top:1px solid var(--mv-hairline-2);padding-top:10px;font-size:11px;color:var(--mv-ink-55);line-height:1.6">
+              <div>✓ Guaranteed dedicated same-day dispatch</div>
+              <div>✓ Direct vehicle journey (no consolidation depots)</div>
+              <div>✓ Live GPS telemetry &amp; electronic signature POD</div>
+              <div>✓ Goods in Transit insured</div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <!-- Main Rates View (Full Width) -->
   <div class="rates-container" id="ratesView">
@@ -2367,6 +2784,51 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
       </div>
       <div id="tmBody" style="padding:22px">
         <div style="padding:32px;text-align:center;color:var(--muted)">Fetching live tracking telemetry from UPS…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAME-DAY BOOKING SAFETY CONFIRMATION MODAL -->
+  <div class="modal" id="sdCustConfirmModal" style="display:none;z-index:250">
+    <div class="modalCard" style="max-width:500px">
+      <div class="modalHead">
+        <div class="mName" style="color:var(--mv-purple);display:flex;align-items:center;gap:6px">
+          <span>⚠️</span> Confirm Same-Day Transport Booking
+        </div>
+        <div class="mAddr">Please double check your collection and delivery details</div>
+      </div>
+      <div style="padding:18px 22px">
+        <p style="font-size:13px;color:var(--mv-ink-75);margin:0 0 14px;line-height:1.45">
+          Are you sure you want to book this transport run? A dedicated courier vehicle will be allocated for same-day collection.
+        </p>
+        <div id="sdCustConfirmSummary" style="background:var(--mv-bg);border:1px solid var(--mv-hairline-2);padding:12px 14px;font-size:12px;margin-bottom:18px;line-height:1.55">
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button type="button" class="btn" id="sdCustConfirmCancel" style="padding:9px 16px">Cancel</button>
+          <button type="button" class="btn primary" id="sdCustConfirmExecute" style="padding:9px 20px;font-weight:900;background:var(--moov-green);color:var(--moov-navy);border:0">✓ Yes, Confirm &amp; Book Now</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAME-DAY LIVE GPS TRACKING & POD MODAL -->
+  <div class="modal" id="sdCustTrackModal" style="display:none;z-index:250">
+    <div class="modalCard" style="max-width:760px">
+      <div class="modalHead" style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="mName" id="sdCustTrackTitle" style="color:var(--mv-purple)">Same-Day Courier Telemetry</div>
+          <div class="mAddr">Live point-to-point GPS vehicle tracking &amp; milestones</div>
+        </div>
+        <button type="button" class="modalX" id="sdCustTrackClose" aria-label="Close">&times;</button>
+      </div>
+      <div style="padding:18px 22px;max-height:calc(90vh - 80px);overflow-y:auto">
+        <div id="sdCustMapContainer" style="height:320px;background:#171b2d;margin-bottom:14px;border:1px solid var(--mv-hairline-2)"></div>
+        <div id="sdCustPodContainer" style="display:none;background:#ecfdf5;border:1px solid #10b981;border-left:4px solid #10b981;padding:12px;margin-bottom:14px;color:#065f46;font-size:12.5px"></div>
+        <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mv-purple);margin-bottom:8px">Trip Milestones</div>
+        <div id="sdCustTimelineContainer" style="background:#fff;border:1px solid var(--mv-hairline-2);padding:12px;margin-bottom:14px"></div>
+        <div id="sdCustTrackActions" style="display:flex;justify-content:flex-end;gap:10px">
+          <button type="button" class="btn" id="sdCustTrackCloseBtn" style="padding:8px 16px">Close</button>
+        </div>
       </div>
     </div>
   </div>
@@ -3217,12 +3679,17 @@ function setView(v) {
   document.querySelectorAll('#viewTabs button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
   const ratesEl = $('ratesView');
   const importEl = $('importView');
+  const sameDayEl = $('samedayView');
   const bookEl = $('bookingsView');
   if (ratesEl) ratesEl.style.display = v === 'rates' ? '' : 'none';
   if (importEl) importEl.style.display = v === 'import' ? 'block' : 'none';
+  if (sameDayEl) sameDayEl.style.display = v === 'sameday' ? 'block' : 'none';
   if (bookEl) bookEl.style.display = v === 'bookings' ? 'block' : 'none';
   if (v === 'import') {
     try { prefillReceiver(); } catch (_) {}
+  }
+  if (v === 'sameday') {
+    try { initSdCustForm(); } catch (_) {}
   }
   if (v === 'bookings') {
     try { loadCustomerBookings(); } catch (_) {}
@@ -4386,6 +4853,7 @@ function renderCustomerBookings(shipments) {
   }
 
   shipments.forEach(x => {
+    const isSameday = x._kind === 'sameday' || x.carrier === 'SAME-DAY' || x.mode === 'sameday';
     const card = document.createElement('div');
     card.className = 'calc-card';
     card.style.cssText = 'padding:0;overflow:hidden;margin-bottom:18px;border:1px solid var(--line-strong);background:#fff;transition:border-color 0.15s ease';
@@ -4401,11 +4869,79 @@ function renderCustomerBookings(shipments) {
 
     const isCancelled = x.status === 'cancelled';
     const isRescheduled = x.status === 'rescheduled';
+    const isDelivered = x.status === 'delivered';
     const statusBadge = isCancelled
       ? '<span style="font-size:10.5px;font-weight:900;background:#fee2e2;color:#991b1b;padding:3px 8px;letter-spacing:.04em;border:1px solid #fecaca">CANCELLED</span>'
-      : (isRescheduled
-        ? '<span style="font-size:10.5px;font-weight:900;background:#ede9fe;color:#6b21a8;padding:3px 8px;letter-spacing:.04em;border:1px solid #ddd6fe">RESCHEDULED</span>'
-        : '<span style="font-size:10.5px;font-weight:900;background:#d1fae5;color:#065f46;padding:3px 8px;letter-spacing:.04em;border:1px solid #a7f3d0">BOOKED</span>');
+      : (isDelivered
+        ? '<span style="font-size:10.5px;font-weight:900;background:#d1fae5;color:#065f46;padding:3px 8px;letter-spacing:.04em;border:1px solid #a7f3d0">DELIVERED</span>'
+        : (isRescheduled
+          ? '<span style="font-size:10.5px;font-weight:900;background:#ede9fe;color:#6b21a8;padding:3px 8px;letter-spacing:.04em;border:1px solid #ddd6fe">RESCHEDULED</span>'
+          : '<span style="font-size:10.5px;font-weight:900;background:#d1fae5;color:#065f46;padding:3px 8px;letter-spacing:.04em;border:1px solid #a7f3d0">BOOKED</span>'));
+
+    if (isSameday) {
+      card.innerHTML = `
+        <!-- Same-Day Job Header -->
+        <div style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="background:rgba(29,251,157,0.25);color:var(--mv-green-deep);font-weight:900;font-size:11px;padding:3px 8px;letter-spacing:.06em">⚡ SAME-DAY COURIER</span>
+            <span style="font-weight:800;font-size:15px;color:var(--ink)">${esc(x.service_name || 'Dedicated Courier')}</span>
+            <span>${statusBadge}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:12px;color:var(--muted)">Booked: <b>${dateStr}</b></span>
+          </div>
+        </div>
+
+        <!-- Overview Grid -->
+        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:18px;background:#fff">
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">1. Collection (Origin)</div>
+            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.company || s.name || 'Origin')}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(s.city || '')} ${esc(s.postcode || '')}</div>
+          </div>
+
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">2. Delivery (Destination)</div>
+            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || r.name || 'Destination')}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(r.city || '')} ${esc(r.postcode || '')}</div>
+          </div>
+
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Job Reference</div>
+            <div style="font-weight:800;font-family:monospace;font-size:14px;color:var(--brand)">${esc(x.tracking_number || x.id)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Vehicle: <b>${esc(x.van_size || 'SWB')} Dedicated Courier</b></div>
+          </div>
+
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">4. Freight &amp; Price</div>
+            <div style="font-weight:800;font-size:15px;color:var(--ink)">£${Number(x.sell_price || 0).toFixed(2)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(x.item_des || 'General Freight')} (${x.parcels || 1} units)</div>
+          </div>
+        </div>
+
+        <!-- Action Footer -->
+        <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11.5px;color:var(--muted)">Point-to-point dedicated courier transit</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button type="button" class="btn-moov-action primary" onclick="openSdCustTrackingModal('${esc(x.tracking_number || x.id)}')" style="padding:0 14px;height:32px;font-size:12px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span>Track Live Telemetry</span>
+            </button>
+            ${(!isCancelled && !isDelivered) ? `
+              <button type="button" class="btn-moov-action danger" onclick="handleCancelSdCustJob('${esc(x.tracking_number || x.id)}')" style="padding:0 12px;height:32px;font-size:12px">
+                <span>Cancel Run</span>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
+
+      card._shipment = x;
+      box.appendChild(card);
+      return;
+    }
 
     const prnBadge = x.prn
       ? ('<div class="prn-moov-badge"><span class="prn-dot"></span><span>PRN: <b>' + esc(x.prn) + '</b></span></div>')
@@ -5259,6 +5795,369 @@ function initImportTab() {
   if ($('igetQuotes')) $('igetQuotes').addEventListener('click', igetQuotes);
   initImportBooking();
 }
+// ============================================================================
+// SAME-DAY COURIER CLIENT LOGIC FOR CUSTOMER RATE CARD
+// ============================================================================
+let currentSdCustQuote = null;
+let sdCustLeafletMap = null;
+let sdCustMapMarkers = [];
+let sdCustMapRouteLine = null;
+let sdCustDropIndex = 2;
+
+function initSdCustForm() {
+  document.querySelectorAll('#samedayView .sd-van-card').forEach(card => {
+    card.onclick = () => {
+      document.querySelectorAll('#samedayView .sd-van-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      const v = card.dataset.van;
+      if ($('sdCustVan')) $('sdCustVan').value = v;
+      updateSdCustRoutePreview();
+    };
+  });
+
+  // Prefill default collection address from customer's return address if available
+  if (RC && RC.receiver) {
+    if ($('sdCustC1') && !$('sdCustC1').value) $('sdCustC1').value = RC.receiver.company || '';
+    if ($('sdCustP1') && !$('sdCustP1').value) $('sdCustP1').value = RC.receiver.postcode || '';
+    if ($('sdCustA1') && !$('sdCustA1').value) $('sdCustA1').value = RC.receiver.line1 || '';
+    if ($('sdCustCity1') && !$('sdCustCity1').value) $('sdCustCity1').value = RC.receiver.city || '';
+    if ($('sdCustContact1') && !$('sdCustContact1').value) $('sdCustContact1').value = (RC.receiver.name || '') + (RC.receiver.phone ? (' · ' + RC.receiver.phone) : '');
+  }
+
+  updateSdCustRoutePreview();
+}
+
+function updateSdCustRoutePreview() {
+  const p1 = ($('sdCustP1') ? $('sdCustP1').value.trim() : '') || 'Origin';
+  const p2 = ($('sdCustP2') ? $('sdCustP2').value.trim() : '') || 'Destination';
+  if ($('sdCustRouteP1')) $('sdCustRouteP1').textContent = p1.toUpperCase();
+  if ($('sdCustRouteP2')) $('sdCustRouteP2').textContent = p2.toUpperCase();
+
+  const van = $('sdCustVan') ? $('sdCustVan').value : 'SWB';
+  const vanMap = {
+    'SV': 'Small Van (Up to 400kg · 1 Pallet)',
+    'SWB': 'SWB Transit (Up to 900kg · 2 Pallets)',
+    'LWB': 'LWB Transit (Up to 1,350kg · 3 Pallets)',
+    'XLWB': 'XLWB Transit (Up to 1,200kg · 4 Pallets)',
+    '7.5T': '7.5T Truck (Tail-lift · 2.5T)',
+    'Artic': '44T Artic (Trailer · 26 Pallets)'
+  };
+  if ($('sdCustVanPreview')) $('sdCustVanPreview').textContent = '🚚 ' + (vanMap[van] || van);
+}
+
+function addSdCustDeliveryStation() {
+  sdCustDropIndex++;
+  const container = $('sdCustStopsContainer');
+  if (!container) return;
+
+  const card = document.createElement('div');
+  card.className = 'sd-stop-card drop';
+  card.id = 'sdCustStation' + sdCustDropIndex;
+  card.style.marginTop = '12px';
+  card.innerHTML = `
+    <div class="sd-stop-head">
+      <span class="sd-stop-tag drop">🏁 Additional Drop Stop #${sdCustDropIndex}</span>
+      <button type="button" class="btn-micro-pill" onclick="this.closest('.sd-stop-card').remove(); updateSdCustRoutePreview();" style="color:var(--moov-red);border-color:var(--moov-red)">Remove Drop ✕</button>
+    </div>
+    <div class="sd-inputs-row">
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Postcode *</label>
+        <input type="text" class="sd-input st-postcode" placeholder="e.g. LS1 1AA" required oninput="updateSdCustRoutePreview()"/>
+      </div>
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+        <input type="text" class="sd-input st-company" placeholder="Company Name"/>
+      </div>
+    </div>
+    <div class="sd-inputs-row">
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Address Line 1</label>
+        <input type="text" class="sd-input st-address" placeholder="Street Address"/>
+      </div>
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">City</label>
+        <input type="text" class="sd-input st-city" placeholder="City"/>
+      </div>
+    </div>
+    <div class="sd-inputs-row">
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Deliver By</label>
+        <input type="time" class="sd-input st-until-time" value="17:00"/>
+      </div>
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
+        <input type="text" class="sd-input st-contact" placeholder="Name &amp; Tel"/>
+      </div>
+    </div>
+  `;
+  container.appendChild(card);
+}
+
+async function handleSdCustQuote(e) {
+  if (e) e.preventDefault();
+  const btn = $('btnSdCustGetQuote');
+  btn.disabled = true;
+  btn.textContent = 'Calculating direct route…';
+
+  const stations = [];
+  const pickCard = $('sdCustStation1');
+  if (pickCard) {
+    stations.push({
+      type: 'P',
+      order_sequence: 1,
+      postcode: (pickCard.querySelector('.st-postcode') ? pickCard.querySelector('.st-postcode').value : '').trim().toUpperCase(),
+      company_name: (pickCard.querySelector('.st-company') ? pickCard.querySelector('.st-company').value : '').trim(),
+      addressLine1: (pickCard.querySelector('.st-address') ? pickCard.querySelector('.st-address').value : '').trim(),
+      city: (pickCard.querySelector('.st-city') ? pickCard.querySelector('.st-city').value : '').trim(),
+      from_time: (pickCard.querySelector('.st-from-time') ? pickCard.querySelector('.st-from-time').value : '') + ':00',
+      contactname: (pickCard.querySelector('.st-contact') ? pickCard.querySelector('.st-contact').value : '').trim(),
+    });
+  }
+
+  document.querySelectorAll('#sdCustStopsContainer .sd-stop-card.drop').forEach((card, idx) => {
+    stations.push({
+      type: 'D',
+      order_sequence: idx + 2,
+      postcode: (card.querySelector('.st-postcode') ? card.querySelector('.st-postcode').value : '').trim().toUpperCase(),
+      company_name: (card.querySelector('.st-company') ? card.querySelector('.st-company').value : '').trim(),
+      addressLine1: (card.querySelector('.st-address') ? card.querySelector('.st-address').value : '').trim(),
+      city: (card.querySelector('.st-city') ? card.querySelector('.st-city').value : '').trim(),
+      until_time: (card.querySelector('.st-until-time') ? card.querySelector('.st-until-time').value : '17:00') + ':00',
+      contactname: (card.querySelector('.st-contact') ? card.querySelector('.st-contact').value : '').trim(),
+    });
+  });
+
+  const payload = {
+    vanSize: $('sdCustVan') ? $('sdCustVan').value : 'SWB',
+    noOfItem: $('sdCustItemQty') ? parseInt($('sdCustItemQty').value, 10) : 1,
+    itemDes: $('sdCustItemDesc') ? $('sdCustItemDesc').value : 'Pallet of freight',
+    stations
+  };
+
+  try {
+    const res = await fetch('/api/card/' + encodeURIComponent(curToken) + '/sameday/quotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Failed to calculate quote');
+
+    currentSdCustQuote = d;
+    if ($('sdCustQuoteRefDisplay')) $('sdCustQuoteRefDisplay').textContent = d.quoteRef || d.quoteId;
+    if ($('sdCustQuotePriceDisplay')) $('sdCustQuotePriceDisplay').textContent = '£' + d.price;
+    if ($('btnSdCustBookQuote')) $('btnSdCustBookQuote').style.display = 'block';
+  } catch (err) {
+    alert('Quote Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Calculate Delivery Price';
+  }
+}
+
+function handleOpenSdCustConfirmModal() {
+  if (!currentSdCustQuote) return;
+  const stations = (currentSdCustQuote.quote && currentSdCustQuote.quote.stations) || [];
+  const p1 = stations[0] ? (stations[0].postcode + ' (' + (stations[0].company_name || 'Pickup') + ')') : 'Origin';
+  const p2 = stations[stations.length - 1] ? (stations[stations.length - 1].postcode + ' (' + (stations[stations.length - 1].company_name || 'Destination') + ')') : 'Destination';
+
+  $('sdCustConfirmSummary').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="color:var(--mv-ink-55)">Quote Reference:</span>
+      <b>${currentSdCustQuote.quoteRef || currentSdCustQuote.quoteId}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="color:var(--mv-ink-55)">Vehicle Allocation:</span>
+      <b>${currentSdCustQuote.quote?.van_size || currentSdCustQuote.quote?.vanSize || 'SWB'} Dedicated Courier</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="color:var(--mv-ink-55)">Collection (Origin):</span>
+      <b style="color:var(--mv-purple)">${p1}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="color:var(--mv-ink-55)">Destination (Drop):</span>
+      <b style="color:var(--moov-green-hover)">${p2}</b>
+    </div>
+    <div style="border-top:1px solid var(--mv-hairline-2);padding-top:6px;display:flex;justify-content:space-between;align-items:center">
+      <b>Total Booking Charge:</b>
+      <span style="font-size:18px;font-weight:900;color:var(--moov-navy)">£${currentSdCustQuote.price}</span>
+    </div>
+  `;
+  $('sdCustConfirmModal').style.display = 'flex';
+}
+
+if ($('sdCustConfirmCancel')) $('sdCustConfirmCancel').onclick = () => { $('sdCustConfirmModal').style.display = 'none'; };
+
+if ($('sdCustConfirmExecute')) {
+  $('sdCustConfirmExecute').onclick = async () => {
+    if (!currentSdCustQuote) return;
+    const btn = $('sdCustConfirmExecute');
+    btn.disabled = true;
+    btn.textContent = 'Allocating dedicated vehicle…';
+
+    try {
+      const res = await fetch('/api/card/' + encodeURIComponent(curToken) + '/sameday/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quoteId: currentSdCustQuote.quoteId,
+          customerPrice: currentSdCustQuote.price
+        })
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Booking failed');
+
+      $('sdCustConfirmModal').style.display = 'none';
+      alert('🎉 Same-Day Transport Run Booked Successfully!\n\nJob Reference: ' + d.jobRef);
+      if ($('btnSdCustBookQuote')) $('btnSdCustBookQuote').style.display = 'none';
+      currentSdCustQuote = null;
+
+      setView('bookings');
+      await loadCustomerBookings();
+    } catch (err) {
+      alert('Booking error: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✓ Yes, Confirm & Book Now';
+    }
+  };
+}
+
+async function openSdCustTrackingModal(jobRef) {
+  $('sdCustTrackTitle').textContent = 'Tracking ' + jobRef;
+  $('sdCustTrackModal').style.display = 'flex';
+  $('sdCustPodContainer').style.display = 'none';
+  $('sdCustTimelineContainer').innerHTML = '<div style="color:var(--mv-ink-55);text-align:center;padding:12px">Connecting to vehicle GPS…</div>';
+
+  try {
+    const res = await fetch('/api/card/' + encodeURIComponent(curToken) + '/sameday/jobs/' + encodeURIComponent(jobRef));
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Failed to fetch job');
+
+    renderSdCustMapAndTelemetry(d);
+  } catch (e) {
+    $('sdCustTimelineContainer').innerHTML = '<div style="color:var(--mv-magenta-deep)">' + e.message + '</div>';
+  }
+}
+
+function renderSdCustMapAndTelemetry(data) {
+  const { job, events = [], pings = [] } = data;
+  if (!sdCustLeafletMap && typeof L !== 'undefined') {
+    sdCustLeafletMap = L.map('sdCustMapContainer').setView([52.4862, -1.8904], 7);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(sdCustLeafletMap);
+  }
+  if (sdCustLeafletMap) {
+    setTimeout(() => sdCustLeafletMap.invalidateSize(), 150);
+
+    sdCustMapMarkers.forEach(m => sdCustLeafletMap.removeLayer(m));
+    sdCustMapMarkers = [];
+    if (sdCustMapRouteLine) { sdCustLeafletMap.removeLayer(sdCustMapRouteLine); sdCustMapRouteLine = null; }
+
+    const latLngs = [];
+    const stations = job.stations || [];
+    stations.forEach((st, idx) => {
+      const coords = getCoordsFromPostcode(st.postcode);
+      latLngs.push(coords);
+      const isPick = st.type === 'P' || idx === 0;
+      const color = isPick ? '#4103CC' : '#1DFB9D';
+      const pin = L.divIcon({
+        className: 'sd-map-pin',
+        html: `<div style="background:${color};color:#fff;font-weight:900;border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${isPick ? 'C' : 'D'}</div>`,
+        iconSize: [26, 26]
+      });
+      const marker = L.marker(coords, { icon: pin }).addTo(sdCustLeafletMap)
+        .bindPopup(`<b>${st.company_name || (isPick ? 'Collection' : 'Delivery')}</b><br/>${st.postcode}`);
+      sdCustMapMarkers.push(marker);
+    });
+
+    if (pings.length > 0) {
+      const path = pings.map(p => [Number(p.latitude), Number(p.longitude)]);
+      sdCustMapRouteLine = L.polyline(path, { color: '#1DFB9D', weight: 4, dashArray: '6, 6' }).addTo(sdCustLeafletMap);
+      const latest = pings[pings.length - 1];
+      const vehIcon = L.divIcon({
+        className: 'sd-veh-pin',
+        html: `<div style="background:#1DFB9D;color:#171B2D;font-weight:900;border:2px solid #171B2D;border-radius:4px;padding:2px 6px;font-size:11px;box-shadow:0 0 10px #1DFB9D">🚚 LIVE COURIER</div>`,
+        iconSize: [80, 24]
+      });
+      const vm = L.marker([Number(latest.latitude), Number(latest.longitude)], { icon: vehIcon }).addTo(sdCustLeafletMap);
+      sdCustMapMarkers.push(vm);
+      sdCustLeafletMap.fitBounds(L.latLngBounds(path), { padding: [30, 30] });
+    } else if (latLngs.length >= 2) {
+      sdCustMapRouteLine = L.polyline(latLngs, { color: 'rgba(29,251,157,0.5)', weight: 3, dashArray: '4, 4' }).addTo(sdCustLeafletMap);
+      sdCustLeafletMap.fitBounds(L.latLngBounds(latLngs), { padding: [30, 30] });
+    }
+  }
+
+  const delEvent = events.find(e => e.pde_type === 'DELIVERED' || e.pd_type === 'Drop' && e.del_signed_by);
+  if (delEvent || job.status === 'DELIVERED') {
+    $('sdCustPodContainer').style.display = 'block';
+    $('sdCustPodContainer').innerHTML = `
+      <b>✓ Electronic Proof of Delivery (e-POD)</b><br/>
+      Signed by: <b>${esc(delEvent ? delEvent.del_signed_by : 'Recipient')}</b> at ${esc(delEvent ? delEvent.del_date_time : job.updated_at || 'Delivered')}
+    `;
+  }
+
+  const tDiv = $('sdCustTimelineContainer');
+  if (events.length > 0) {
+    tDiv.innerHTML = events.map(e => `
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--mv-hairline);font-size:12px">
+        <span><b>${esc(e.pde_type || e.pd_type || 'Scan')}</b> ${e.del_signed_by ? '(' + esc(e.del_signed_by) + ')' : ''}</span>
+        <span style="color:var(--mv-ink-55)">${esc(e.del_date_time || '')}</span>
+      </div>
+    `).join('');
+  } else {
+    tDiv.innerHTML = '<div style="font-size:12px;color:var(--mv-ink-55)">Job booked. Telemetry will update as soon as the driver arrives at collection.</div>';
+  }
+
+  const actDiv = $('sdCustTrackActions');
+  if (job.status === 'BOOKED' || job.status === 'IN_TRANSIT') {
+    actDiv.innerHTML = `
+      <button type="button" class="btn" id="sdCustTrackCloseBtn2" style="padding:8px 16px" onclick="$('sdCustTrackModal').style.display='none'">Close</button>
+      <button type="button" class="btn-moov-action danger" onclick="handleCancelSdCustJob('${esc(job.job_ref)}')">Cancel Job</button>
+    `;
+  } else {
+    actDiv.innerHTML = '<button type="button" class="btn" id="sdCustTrackCloseBtn2" style="padding:8px 16px" onclick="$('sdCustTrackModal').style.display='none'">Close</button>';
+  }
+}
+
+async function handleCancelSdCustJob(jobRef) {
+  if (!confirm(`Are you sure you want to cancel transport job ${jobRef}?`)) return;
+  try {
+    const res = await fetch(`/api/card/${encodeURIComponent(curToken)}/sameday/jobs/${encodeURIComponent(jobRef)}/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'Cancelled by customer from tracking modal' })
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Cancel failed');
+    alert(`Job ${jobRef} cancelled successfully.`);
+    $('sdCustTrackModal').style.display = 'none';
+    await loadCustomerBookings();
+  } catch (e) {
+    alert('Cancel error: ' + e.message);
+  }
+}
+
+if ($('sdCustTrackClose')) $('sdCustTrackClose').onclick = () => { $('sdCustTrackModal').style.display = 'none'; };
+if ($('sdCustTrackCloseBtn')) $('sdCustTrackCloseBtn').onclick = () => { $('sdCustTrackModal').style.display = 'none'; };
+
+function getCoordsFromPostcode(pc) {
+  const p = (pc || '').toUpperCase().trim();
+  if (p.startsWith('B')) return [52.4862, -1.8904];
+  if (p.startsWith('M')) return [53.4808, -2.2426];
+  if (p.startsWith('LS') || p.startsWith('L')) return [53.8008, -1.5491];
+  if (p.startsWith('SW') || p.startsWith('EC') || p.startsWith('WC') || p.startsWith('E') || p.startsWith('N') || p.startsWith('W') || p.startsWith('SE') || p.startsWith('NW')) return [51.5074, -0.1278];
+  if (p.startsWith('BS')) return [51.4545, -2.5879];
+  if (p.startsWith('G') || p.startsWith('EH')) return [55.8642, -4.2518];
+  if (p.startsWith('NE') || p.startsWith('DH')) return [54.9783, -1.6178];
+  if (p.startsWith('CF')) return [51.4816, -3.1791];
+  if (p.startsWith('SY')) return [52.7073, -2.7553];
+  return [52.4862, -1.8904];
+}
 
 async function boot() {
   // Wire tab switching immediately at the start so tabs work reliably
@@ -5281,6 +6180,13 @@ async function boot() {
   $('title').textContent = RC.customer || RC.title || 'International Rate Card';
   if ($('today')) $('today').textContent = ' · ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
+  // Check if Same-Day Courier is enabled for this customer
+  if (RC.samedayEnabled) {
+    if ($('tabSamedayBtn')) $('tabSamedayBtn').style.display = 'inline-block';
+  } else {
+    if ($('tabSamedayBtn')) $('tabSamedayBtn').style.display = 'none';
+  }
+
   if (Array.isArray(RC.countries) && RC.countries.length) {
     initCombo(RC.countries, RC.countries.includes('USA') ? 'USA' : RC.countries[0]);
   }
@@ -5292,7 +6198,6 @@ async function boot() {
   }
 
   ['wt', 'L', 'W', 'H', 'V', 'SK', 'pc'].forEach(id => $(id) && $(id).addEventListener('input', calc));
-
 
   $('notesBox').textContent = RC.notes || '';
   $('foot').textContent = 'Prices indicative and subject to final confirmation. Excludes VAT. Volumetric divisor ' + (RC.divisor || 5000) + '.';
