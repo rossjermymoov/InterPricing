@@ -1771,6 +1771,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
     width: 100%;
     max-width: 100%;
     max-height: 92vh;
+  }
   /* Same-Day Specific Responsive Styles */
   .sd-atf-grid { grid-template-columns: 1fr; }
   .sd-stops-grid { grid-template-columns: 1fr; }
@@ -6116,11 +6117,11 @@ function renderSdCustMapAndTelemetry(data) {
   const actDiv = $('sdCustTrackActions');
   if (job.status === 'BOOKED' || job.status === 'IN_TRANSIT') {
     actDiv.innerHTML = `
-      <button type="button" class="btn" id="sdCustTrackCloseBtn2" style="padding:8px 16px" onclick="$('sdCustTrackModal').style.display='none'">Close</button>
+      <button type="button" class="btn" id="sdCustTrackCloseBtn2" style="padding:8px 16px" onclick="document.getElementById('sdCustTrackModal').style.display='none'">Close</button>
       <button type="button" class="btn-moov-action danger" onclick="handleCancelSdCustJob('${esc(job.job_ref)}')">Cancel Job</button>
     `;
   } else {
-    actDiv.innerHTML = '<button type="button" class="btn" id="sdCustTrackCloseBtn2" style="padding:8px 16px" onclick="$('sdCustTrackModal').style.display='none'">Close</button>';
+    actDiv.innerHTML = '<button type="button" class="btn" id="sdCustTrackCloseBtn2" style="padding:8px 16px" onclick="document.getElementById(\'sdCustTrackModal\').style.display=\'none\'">Close</button>';
   }
 }
 
