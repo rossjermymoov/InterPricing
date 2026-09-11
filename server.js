@@ -9,6 +9,8 @@ const ups = require('./ups');
 const emailService = require('./email');
 const { nameToIso } = require('./countries');
 const surcharges = require('./surcharges');
+const crownClient = require('./lib/crownsds');
+const sse = require('./lib/sse');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1606,6 +1608,340 @@ app.get('/import', (req, res) => res.sendFile(path.join(__dirname, 'public', 'im
 
 // PUBLIC: branded card page.
 app.get('/card/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'card.html')));
+
+// ==========================================
+// REAL-TIME SSE STREAM
+// ==========================================
+app.get('/api/stream', (req, res) => {
+  sse.addClient(req, res, req.user || null);
+});
+
+// ==========================================
+// SAME-DAY COURIER API ENDPOINTS
+// ==========================================
+
+// 1. Same-Day Request Quote
+app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
+  try {
+    const { vanSize, noOfItem, itemDes, stations, parameters, customMarkupPercent } = req.body;
+
+    if (!stations || !Array.isArray(stations) || stations.length < 2) {
+      return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
+    }
+
+    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
+
+    const crownPayload = {
+      customerID: masterAccountCode,
+      vanSize: vanSize || 'SWB',
+      NoOfItem: String(noOfItem || '1'),
+      ItemDes: itemDes || 'General Freight',
+      parameters: parameters || [],
+      stations: stations.map((s, idx) => ({
+        type: s.type,
+        order_sequence: s.order_sequence || (idx + 1),
+        contactname: s.contactname || '',
+        email: s.email || '',
+        phone: s.phone || '',
+        company_name: s.company_name || '',
+        addressLine1: s.addressLine1 || '',
+        addressLine2: s.addressLine2 || '',
+        addressLine3: s.addressLine3 || '',
+        postcode: s.postcode || '',
+        city: s.city || '',
+        region: s.region || '',
+        from_date: s.from_date || new Date().toISOString().split('T')[0],
+        from_time: s.from_time || '09:00:00',
+        until_date: s.until_date || new Date().toISOString().split('T')[0],
+        until_time: s.until_time || '17:00:00',
+        instructions: s.instructions || ''
+      }))
+    };
+
+    const crownResponse = await crownClient.requestQuote(crownPayload);
+
+    const basePrice = parseFloat(crownResponse.price) || 0;
+    const markupPct = req.user && req.user.role === 'admin'
+      ? (customMarkupPercent != null ? Number(customMarkupPercent) : 0)
+      : (req.user && req.user.markup_percent != null ? Number(req.user.markup_percent) : 0);
+    const marginAmount = (basePrice * (markupPct / 100)).toFixed(2);
+    const customerPrice = (basePrice * (1 + markupPct / 100)).toFixed(2);
+
+    const pickupStation = stations.find(s => s.type === 'P') || stations[0];
+    const deliveryStation = stations.slice().reverse().find(s => s.type === 'D') || stations[stations.length - 1];
+
+    const savedQuote = await db.createSamedayQuote({
+      user_id: req.user ? String(req.user.id) : null,
+      customer_email: req.user ? req.user.email : null,
+      company_name: req.user ? (req.user.name || req.user.email) : '',
+      pickup_postcode: pickupStation ? pickupStation.postcode : '',
+      delivery_postcode: deliveryStation ? deliveryStation.postcode : '',
+      base_price: basePrice.toFixed(2),
+      margin_amount: marginAmount,
+      customer_price: customerPrice,
+      markup_percent: markupPct,
+      van_size: crownPayload.vanSize,
+      no_of_item: crownPayload.NoOfItem,
+      item_des: crownPayload.ItemDes,
+      stations: crownPayload.stations,
+      parameters: crownPayload.parameters
+    });
+
+    const isAdmin = req.user && req.user.role === 'admin';
+
+    res.json({
+      success: true,
+      quoteId: savedQuote.id,
+      quoteRef: savedQuote.quote_ref,
+      price: customerPrice,
+      basePrice: isAdmin ? basePrice.toFixed(2) : undefined,
+      marginAmount: isAdmin ? marginAmount : undefined,
+      markupPercent: isAdmin ? markupPct : undefined,
+      quote: savedQuote
+    });
+  } catch (err) {
+    console.error('Error calculating same-day quote:', err);
+    res.status(500).json({ error: err.message || 'Failed to calculate same-day quote' });
+  }
+});
+
+// 2. Same-Day List Quotes
+app.get('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.role === 'admin' ? null : req.user.id;
+    const quotes = await db.listSamedayQuotes({ userId, limit: req.query.limit });
+    res.json({ quotes });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Same-Day Book Live Courier Job
+app.post('/api/sameday/jobs', auth.requireAuth, async (req, res) => {
+  try {
+    const { quoteId, vanSize, noOfItem, itemDes, stations, parameters, customerPrice, basePrice } = req.body;
+    let jobStations = stations;
+    let jobVanSize = vanSize;
+    let jobNoOfItem = noOfItem;
+    let jobItemDes = itemDes;
+    let jobCustomerPrice = customerPrice;
+    let jobBasePrice = basePrice;
+
+    if (quoteId) {
+      const quote = await db.getSamedayQuoteByIdOrRef(quoteId);
+      if (quote) {
+        jobStations = quote.stations;
+        jobVanSize = quote.van_size;
+        jobNoOfItem = quote.no_of_item;
+        jobItemDes = quote.item_des;
+        jobCustomerPrice = quote.customer_price;
+        jobBasePrice = quote.base_price;
+      }
+    }
+
+    if (!jobStations || !Array.isArray(jobStations) || jobStations.length < 2) {
+      return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
+    }
+
+    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
+
+    const crownPayload = {
+      customerID: masterAccountCode,
+      vanSize: jobVanSize || 'SWB',
+      NoOfItem: String(jobNoOfItem || '1'),
+      ItemDes: jobItemDes || 'General Freight',
+      parameters: parameters || [],
+      stations: jobStations.map((s, idx) => ({
+        type: s.type,
+        order_sequence: s.order_sequence || (idx + 1),
+        contactname: s.contactname || '',
+        email: s.email || '',
+        phone: s.phone || '',
+        company_name: s.company_name || '',
+        addressLine1: s.addressLine1 || '',
+        addressLine2: s.addressLine2 || '',
+        addressLine3: s.addressLine3 || '',
+        postcode: s.postcode || '',
+        city: s.city || '',
+        region: s.region || '',
+        from_date: s.from_date || new Date().toISOString().split('T')[0],
+        from_time: s.from_time || '09:00:00',
+        until_date: s.until_date || new Date().toISOString().split('T')[0],
+        until_time: s.until_time || '17:00:00',
+        instructions: s.instructions || ''
+      }))
+    };
+
+    const crownResponse = await crownClient.createJob(crownPayload);
+
+    const savedJob = await db.createSamedayJob({
+      job_ref: crownResponse.reference,
+      user_id: req.user.id,
+      customer_email: req.user.email,
+      company_name: req.user.name,
+      van_size: crownPayload.vanSize,
+      no_of_item: crownPayload.NoOfItem,
+      item_des: crownPayload.ItemDes,
+      status: 'BOOKED',
+      price: jobBasePrice || '0.00',
+      customer_price: jobCustomerPrice || '0.00',
+      stations: crownPayload.stations,
+      parameters: crownPayload.parameters
+    });
+
+    if (quoteId) {
+      await db.markSamedayQuoteBooked(quoteId);
+    }
+
+    sse.broadcast('job_created', savedJob);
+
+    res.json({
+      success: true,
+      jobRef: savedJob.job_ref,
+      job: savedJob
+    });
+  } catch (err) {
+    console.error('Error booking same-day job:', err);
+    res.status(500).json({ error: err.message || 'Failed to book transport job' });
+  }
+});
+
+// 4. Same-Day List Jobs
+app.get('/api/sameday/jobs', auth.requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.role === 'admin' ? null : req.user.id;
+    const jobs = await db.listSamedayJobs({ userId, limit: req.query.limit });
+    res.json({ jobs });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. Same-Day Get Specific Job & Tracking Details
+app.get('/api/sameday/jobs/:jobRef', auth.requireAuth, async (req, res) => {
+  try {
+    const job = await db.getSamedayJobByRef(req.params.jobRef);
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+
+    if (req.user.role !== 'admin' && String(job.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'Unauthorized to view this job' });
+    }
+
+    const events = await db.getSamedayTrackingEvents(req.params.jobRef);
+    const pings = await db.getSamedayGpsPings(req.params.jobRef);
+    const latestGps = pings.length > 0 ? pings[pings.length - 1] : null;
+
+    res.json({
+      job,
+      events,
+      pings,
+      latestGps
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 6. Same-Day Cancel Job
+app.post('/api/sameday/jobs/:jobRef/cancel', auth.requireAuth, async (req, res) => {
+  try {
+    const job = await db.getSamedayJobByRef(req.params.jobRef);
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+
+    if (req.user.role !== 'admin' && String(job.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'Unauthorized to cancel this job' });
+    }
+
+    const { reason } = req.body;
+    const cancelledJob = await db.cancelSamedayJob(req.params.jobRef, reason || 'Cancelled by user');
+
+    sse.broadcast('event_webhook_received', {
+      jobRef: req.params.jobRef,
+      event: {
+        pdeType: 'CANCELLED',
+        delSignedBy: 'Cancelled by user',
+        delDateTime: new Date().toISOString()
+      },
+      job: cancelledJob
+    });
+
+    res.json({
+      success: true,
+      message: `Job ${req.params.jobRef} has been cancelled successfully.`,
+      job: cancelledJob
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// CROWN SDS WEBHOOK INGESTION
+// ==========================================
+app.post('/webhooks/crown-sds/events', async (req, res) => {
+  try {
+    const payload = req.body;
+    console.log('[Webhook: Event Received]', JSON.stringify(payload, null, 2));
+
+    const jobRef = payload.JOBREF || payload.Jobref || payload.jobRef;
+    if (!jobRef) {
+      return res.status(400).json({ success: false, message: 'Missing JOBREF in payload' });
+    }
+
+    const savedEvent = await db.saveSamedayTrackingEvent(payload);
+    const job = await db.getSamedayJobByRef(jobRef);
+
+    sse.broadcast('event_webhook_received', {
+      jobRef,
+      event: savedEvent,
+      job
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Event processed successfully',
+      eventId: savedEvent ? savedEvent.id : null
+    });
+  } catch (err) {
+    console.error('Error processing event webhook:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.post('/webhooks/crown-sds/tracking', async (req, res) => {
+  try {
+    const payload = req.body;
+    console.log('[Webhook: GPS Tracking Received]', JSON.stringify(payload, null, 2));
+
+    const jobRef = payload.Jobref || payload.JOBREF || payload.jobRef;
+    if (!jobRef) {
+      return res.status(400).json({ success: false, message: 'Missing Jobref in payload' });
+    }
+
+    const savedPing = await db.saveSamedayGpsPing(payload);
+    const job = await db.getSamedayJobByRef(jobRef);
+
+    sse.broadcast('tracking_webhook_received', {
+      jobRef,
+      gps: savedPing,
+      job
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'GPS tracking position recorded',
+      pingId: savedPing ? savedPing.id : null
+    });
+  } catch (err) {
+    console.error('Error processing live tracking webhook:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Dedicated Standalone Same-Day Customer Portal View
+app.get('/portal/:slug', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'portal.html'));
+});
 
 // ---- static front end + SPA fallback ----
 app.use(express.static(path.join(__dirname, 'public'), { extensions: ['html'] }));

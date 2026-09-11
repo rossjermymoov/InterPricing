@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Same-Day Courier Portal</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+
+  <!-- Top Customer Portal Header -->
+  <header class="app-header">
+    <div class="brand-wrapper">
+      <div>
+        <div class="moov-wordmark">MOOV<span class="moov-dot"></span></div>
+        <div class="moov-tagline" id="portal-company-title">CUSTOMER LOGISTICS PORTAL</div>
+      </div>
+    </div>
+
+    <div class="header-status-wrapper">
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+        <span>Live Telemetry Active</span>
+      </div>
+      <div class="user-profile-badge" style="border-color: rgba(29, 251, 157, 0.3);">
+        <span id="portal-customer-name" style="font-weight: 700; font-size: 0.88rem; color: var(--moov-green);">Loading portal...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="app-nav">
+    <button class="nav-tab-btn active" data-tab="portal-quotes">
+      <span>⚡</span> Request Quote & Book
+    </button>
+    <button class="nav-tab-btn" data-tab="portal-deliveries">
+      <span>📦</span> My Deliveries & Live Tracking
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- ================= TAB 1: CUSTOMER QUOTE & BOOK (ABOVE-THE-FOLD REDESIGN) ================= -->
+    <section id="tab-portal-quotes" class="tab-pane active">
+      <form id="portal-quote-form" onsubmit="handlePortalCalculateQuote(event)">
+        <div class="booking-atf-grid">
+          
+          <!-- Left Column: Vehicle & Routing -->
+          <div>
+            <!-- Vehicle Selector -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--moov-grey-light); letter-spacing: 0.5px;">
+                1. Select Vehicle Size
+              </label>
+              <span style="font-size: 0.72rem; color: var(--moov-grey-muted);">Dedicated point-to-point courier</span>
+            </div>
+            <input type="hidden" id="portal-van-size" value="LWB">
+            <div class="van-grid-compact">
+              <div class="van-pill" data-van="SV">
+                <img src="/images/vehicles/van-sv.svg" alt="Small Van" class="van-pill-img">
+                <div class="van-pill-name">Small Van</div>
+                <div class="van-pill-desc">400kg · 1 Pallet</div>
+              </div>
+              <div class="van-pill" data-van="SWB">
+                <img src="/images/vehicles/van-swb.svg" alt="SWB Transit" class="van-pill-img">
+                <div class="van-pill-name">SWB Transit</div>
+                <div class="van-pill-desc">900kg · 2 Pallets</div>
+              </div>
+              <div class="van-pill selected" data-van="LWB">
+                <img src="/images/vehicles/van-lwb.svg" alt="LWB Transit" class="van-pill-img">
+                <div class="van-pill-name">LWB Transit</div>
+                <div class="van-pill-desc">1,350kg · 3 Plts</div>
+              </div>
+              <div class="van-pill" data-van="XLWB">
+                <img src="/images/vehicles/van-xlwb.svg" alt="XLWB Transit" class="van-pill-img">
+                <div class="van-pill-name">XLWB Transit</div>
+                <div class="van-pill-desc">1,200kg · 4 Plts</div>
+              </div>
+              <div class="van-pill" data-van="7.5T">
+                <img src="/images/vehicles/truck-75t.svg" alt="7.5T Truck" class="van-pill-img">
+                <div class="van-pill-name">7.5T Truck</div>
+                <div class="van-pill-desc">Tail-lift · 2.5T</div>
+              </div>
+              <div class="van-pill" data-van="Artic">
+                <img src="/images/vehicles/truck-artic.svg" alt="44T Artic" class="van-pill-img">
+                <div class="van-pill-name">44T Artic</div>
+                <div class="van-pill-desc">Trailer · 26 Plts</div>
+              </div>
+            </div>
+
+            <!-- Stations Container (Side by Side Stops) -->
+            <div id="portal-stations-container">
+              <div class="stops-grid">
+                <!-- Collection Stop (Station 1) -->
+                <div class="stop-card-compact pickup" id="portal-station-1">
+                  <div class="stop-header">
+                    <span class="stop-tag pickup">📍 Collection Stop #1 (Origin)</span>
+                    <span style="font-size: 0.7rem; color: var(--moov-grey-muted);">Default Pickup</span>
+                  </div>
+                  <div class="compact-inputs">
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Postcode *</label>
+                      <input type="text" class="form-control-compact st-postcode" placeholder="e.g. B1 1AA" required oninput="updatePortalLiveRouteSummary()">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Company / Site</label>
+                      <input type="text" class="form-control-compact st-company" placeholder="Company Name">
+                    </div>
+                  </div>
+                  <div class="compact-inputs">
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Address Line 1</label>
+                      <input type="text" class="form-control-compact st-address" placeholder="Street Address">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">City</label>
+                      <input type="text" class="form-control-compact st-city" placeholder="City">
+                    </div>
+                  </div>
+                  <div class="compact-inputs">
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Ready Time</label>
+                      <input type="time" class="form-control-compact st-from-time" value="09:00">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Contact Name &amp; Tel</label>
+                      <input type="text" class="form-control-compact st-contact" placeholder="Name &amp; Phone">
+                    </div>
+                  </div>
+                  <input type="hidden" class="st-until-time" value="12:00">
+                </div>
+
+                <!-- Delivery Stop (Station 2) -->
+                <div class="stop-card-compact drop" id="portal-station-2">
+                  <div class="stop-header">
+                    <span class="stop-tag drop">🏁 Delivery Stop #2 (Destination)</span>
+                    <span style="font-size: 0.7rem; color: var(--moov-grey-muted);">Drop Site</span>
+                  </div>
+                  <div class="compact-inputs">
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Postcode *</label>
+                      <input type="text" class="form-control-compact st-postcode" placeholder="e.g. M1 1AE" required oninput="updatePortalLiveRouteSummary()">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Company / Site</label>
+                      <input type="text" class="form-control-compact st-company" placeholder="Company Name">
+                    </div>
+                  </div>
+                  <div class="compact-inputs">
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Address Line 1</label>
+                      <input type="text" class="form-control-compact st-address" placeholder="Street Address">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">City</label>
+                      <input type="text" class="form-control-compact st-city" placeholder="City">
+                    </div>
+                  </div>
+                  <div class="compact-inputs">
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Deliver By</label>
+                      <input type="time" class="form-control-compact st-until-time" value="17:00">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Recipient Contact</label>
+                      <input type="text" class="form-control-compact st-contact" placeholder="Name &amp; Phone">
+                    </div>
+                  </div>
+                  <input type="hidden" class="st-from-time" value="14:00">
+                </div>
+              </div>
+            </div>
+
+            <!-- Cargo Details & Add Multi-Drop Button -->
+            <div class="cargo-row-compact">
+              <div>
+                <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Item Qty *</label>
+                <input type="number" id="portal-item-count" class="form-control-compact" value="1" min="1" required>
+              </div>
+              <div>
+                <label style="font-size: 0.7rem; color: var(--moov-grey-muted); display: block; margin-bottom: 2px;">Cargo Description / Freight Type *</label>
+                <input type="text" id="portal-item-description" class="form-control-compact" placeholder="e.g. Pallets, Boxes, Engineering Parts" value="Pallets of goods" required>
+              </div>
+              <div>
+                <button type="button" class="btn btn-outline btn-sm" onclick="addPortalDeliveryStation()" style="height: 34px; white-space: nowrap;">
+                  ➕ Add Multi-Drop Stop
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Sticky Real-Time Quote & Booking Panel -->
+          <div class="quote-summary-panel" id="portal-quote-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: var(--moov-green); letter-spacing: 0.5px;">
+                ⚡ Live Quotation
+              </span>
+              <span class="status-pill BOOKED" style="font-size: 0.68rem; padding: 0.15rem 0.5rem;">Dedicated</span>
+            </div>
+
+            <!-- Visual Route & Vehicle Pill -->
+            <div style="background: rgba(0,0,0,0.25); border: 1px solid var(--moov-border); border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; margin-bottom: 0.85rem;">
+              <div id="portal-live-route-preview" style="font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; color: #fff;">
+                <span id="portal-route-origin-tag" style="color: #a48dfb;">Origin</span> ➔ <span id="portal-route-dest-tag" style="color: var(--moov-green);">Destination</span>
+              </div>
+              <div id="portal-live-van-preview" style="font-size: 0.75rem; color: var(--moov-grey-muted); margin-top: 0.25rem;">
+                🚚 LWB Transit (Up to 1,350kg)
+              </div>
+            </div>
+
+            <!-- Quote Reference Badge -->
+            <div style="font-size: 0.72rem; color: var(--moov-grey-muted); margin-bottom: 0.25rem;">
+              Quotation Ref: <b id="portal-quote-ref-display" style="color: #fff; font-weight: 800;">MOOV-AUTO</b>
+            </div>
+
+            <!-- Big Bold Price Display -->
+            <div id="portal-quote-price-display" class="quote-price-big" style="margin-bottom: 0.5rem;">£0.00</div>
+
+            <!-- Action Buttons -->
+            <button type="submit" id="btn-portal-get-quote" class="btn btn-primary" style="width: 100%; padding: 0.8rem; font-size: 0.95rem; margin-bottom: 0.5rem;">
+              ⚡ Calculate Delivery Price
+            </button>
+
+            <button type="button" id="btn-portal-book-quote" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; display: none; background: linear-gradient(135deg, #1DFB9D, #04A562); color: #171B2D; font-weight: 800;" onclick="handlePortalBookCurrentQuote()">
+              🚀 Book Dedicated Courier Now
+            </button>
+
+            <!-- Features Checklist -->
+            <div style="margin-top: 1rem; border-top: 1px solid var(--moov-border); padding-top: 0.75rem; font-size: 0.72rem; color: var(--moov-grey-muted); line-height: 1.6;">
+              <div>✓ Guaranteed dedicated same-day dispatch</div>
+              <div>✓ Live OpenStreetMap courier tracking</div>
+              <div>✓ Electronic proof of delivery (e-POD)</div>
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </section>
+
+    <!-- ================= TAB 2: LIVE DELIVERIES & TRACKING ================= -->
+    <section id="tab-portal-deliveries" class="tab-pane">
+      <div class="card" style="margin-bottom: 0;">
+        <div class="card-header" style="flex-wrap: wrap; gap: 1rem;">
+          <div class="card-title">
+            <span>📋</span> Your Deliveries & Live Tracking
+            <span id="portal-jobs-count-badge" style="font-size: 0.8rem; background: var(--moov-navy-alt); padding: 0.2rem 0.6rem; border-radius: 12px; margin-left: 0.5rem; color: var(--moov-green);">0 Runs</span>
+          </div>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="portal-jobs-search-input" class="form-control" placeholder="🔍 Search Ref or Postcode..." style="width: 240px; padding: 0.45rem 0.75rem;" oninput="filterPortalJobsTable()">
+            <select id="portal-jobs-status-filter" class="form-control" style="width: 140px; padding: 0.45rem 0.75rem;" onchange="filterPortalJobsTable()">
+              <option value="ALL">All Statuses</option>
+              <option value="BOOKED">Booked</option>
+              <option value="IN_TRANSIT">In Transit</option>
+              <option value="DELIVERED">Delivered</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="loadPortalJobsList()">🔄 Refresh</button>
+          </div>
+        </div>
+
+        <div class="table-responsive" style="max-height: 650px; overflow-y: auto;">
+          <table class="custom-table" id="portal-deliveries-table">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;"></th>
+                <th>Job Reference</th>
+                <th>Status</th>
+                <th>Vehicle & Cargo</th>
+                <th>Route (Pickup ➔ Delivery)</th>
+                <th>Price</th>
+                <th>Booked Date</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="portal-jobs-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= PORTAL LIVE TRACKING & POD EXPANDABLE MODAL ================= -->
+  <div id="portal-tracking-modal" class="modal-overlay">
+    <div class="modal-dialog modal-xl">
+      <div class="card-header" style="margin-bottom: 0.5rem; padding-bottom: 0.75rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <span style="font-size: 1.4rem;">📍</span>
+            <h2 id="portal-modal-tracking-title" style="margin: 0; font-size: 1.35rem; color: #fff;">Delivery Tracking</h2>
+            <span id="portal-modal-status-badge" class="status-pill BOOKED">BOOKED</span>
+          </div>
+          <p id="portal-modal-tracking-subtitle" style="margin: 0.35rem 0 0; font-size: 0.85rem; color: var(--moov-grey-muted);">Live OpenStreetMap tracking telemetry and electronic proof of delivery.</p>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="closePortalTrackingModal()" style="font-size: 1.1rem; padding: 0.3rem 0.6rem;">✕</button>
+      </div>
+
+      <div class="tracking-modal-grid">
+        <!-- Left: OpenStreetMap Map -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span class="live-indicator"><span class="live-dot"></span> Free OpenStreetMap Telemetry</span>
+          </div>
+          <div id="portal-modal-map-container"></div>
+          <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--moov-grey-muted); text-align: right;">
+            🗺️ Powered by free & open-source OpenStreetMap contributors
+          </div>
+        </div>
+
+        <!-- Right: POD & Milestones -->
+        <div>
+          <!-- Proof of Delivery Banner -->
+          <div id="portal-modal-pod-card" class="pod-summary-card">
+            <!-- Dynamically populated POD info -->
+          </div>
+
+          <!-- Milestone Timeline -->
+          <div class="card" style="padding: 1.1rem; margin-bottom: 1rem;">
+            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+              <span>⏱️</span> Delivery Milestones
+            </div>
+            <div id="portal-modal-tracking-timeline" class="timeline"></div>
+          </div>
+
+          <!-- Bottom Actions -->
+          <div id="portal-modal-action-bar" style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+            <!-- Cancel Button injected dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= PORTAL BOOKING CONFIRMATION MODAL ================= -->
+  <div id="portal-booking-confirm-modal" class="modal-overlay">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <div class="card-header" style="margin-bottom: 1rem; padding-bottom: 0.75rem;">
+        <div class="card-title" style="color: var(--moov-white); font-size: 1.2rem;">
+          <span>⚠️</span> Confirm Courier Booking
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="closePortalBookingConfirmModal()" style="font-size: 1.1rem; padding: 0.2rem 0.55rem;">✕</button>
+      </div>
+
+      <p style="color: var(--moov-grey-light); font-size: 0.95rem; margin-bottom: 1.25rem;">
+        Are you sure you want to book this transport run? A dedicated courier vehicle will be allocated for same-day collection.
+      </p>
+
+      <div id="portal-booking-confirm-summary" style="background: var(--moov-navy-alt); border: 1px solid var(--moov-border); border-radius: var(--radius-md); padding: 1.1rem; margin-bottom: 1.5rem; font-size: 0.88rem; line-height: 1.6;">
+        <!-- Injected dynamically -->
+      </div>
+
+      <div style="display: flex; gap: 0.75rem;">
+        <button type="button" id="btn-portal-confirm-final-booking" class="btn btn-primary" style="flex: 1; padding: 0.85rem;" onclick="executePortalFinalBooking()">
+          ✓ Yes, Confirm & Book Now
+        </button>
+        <button type="button" class="btn btn-outline" onclick="closePortalBookingConfirmModal()" style="padding: 0.85rem 1.25rem;">
+          ✕ Go Back
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/tracking.js"></script>
+  <script src="/js/portal.js"></script>
+</body>
+</html>

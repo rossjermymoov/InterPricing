@@ -3,12 +3,14 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>MoovOS — International Rate Calculator</title>
+<title>MoovOS — International &amp; Same Day Courier Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="/chart.umd.js"></script>
 <script src="/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 /* ============================================================================
    MoovOS Design System (Strict Modernist Rules + Moov Color Palette)
@@ -1346,6 +1348,141 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   border-radius: 50%;
   background: var(--moov-grey-muted);
 }
+
+/* ===== SAME-DAY COURIER ABOVE-THE-FOLD REDESIGN ===== */
+.sd-atf-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1024px) {
+  .sd-atf-grid { grid-template-columns: 1fr; }
+}
+
+.sd-van-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+@media (max-width: 900px) {
+  .sd-van-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.sd-van-card {
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  border-radius: 0 !important;
+  padding: 8px 6px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+.sd-van-card:hover {
+  border-color: var(--mv-ink);
+  background: var(--mv-surface, #f8fafc);
+  transform: translateY(-1px);
+}
+.sd-van-card.selected {
+  border: 2px solid var(--moov-green) !important;
+  background: rgba(29, 251, 157, 0.08);
+  box-shadow: 0 0 0 1px var(--moov-green);
+}
+.sd-van-img {
+  width: 100%;
+  height: 40px;
+  object-fit: contain;
+  margin-bottom: 4px;
+}
+.sd-van-name {
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--mv-ink);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.sd-van-desc {
+  font-size: 9.5px;
+  color: var(--mv-ink-55);
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.sd-stops-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 768px) {
+  .sd-stops-grid { grid-template-columns: 1fr; }
+}
+
+.sd-stop-card {
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  border-radius: 0 !important;
+  padding: 12px 14px;
+}
+.sd-stop-card.pickup {
+  border-top: 3px solid var(--mv-purple);
+}
+.sd-stop-card.drop {
+  border-top: 3px solid var(--moov-green);
+}
+.sd-stop-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.sd-stop-tag {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.sd-stop-tag.pickup { color: var(--mv-purple); }
+.sd-stop-tag.drop { color: var(--moov-green-hover); }
+
+.sd-inputs-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.sd-quote-panel {
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  border-top: 3px solid var(--moov-green);
+  border-radius: 0 !important;
+  padding: 16px;
+  position: sticky;
+  top: 16px;
+}
+.sd-price-big {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--moov-navy);
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin: 8px 0;
+}
+
+#sdMapContainer {
+  width: 100%;
+  height: 380px;
+  background: var(--moov-navy-alt);
+  border: 1px solid var(--mv-hairline-2);
+}
 </style>
 </head>
 <body>
@@ -1355,14 +1492,15 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   <aside class="mv-rail" id="hdr" style="display:none">
     <div class="mv-rail-brand">
       <div class="mv-rail-wordmark">MOOV<span class="mv-rail-dot"></span></div>
-      <div class="mv-rail-sub">INTERNATIONAL PRICING</div>
+      <div class="mv-rail-sub">INTERNATIONAL &amp; SAMEDAY</div>
     </div>
     <div class="mv-rail-scroll">
       <div class="mv-rail-group">
         <div class="mv-rail-group-label">TOOLS &amp; PRICING</div>
-        <div class="mv-rail-item active" id="navCalc"><span class="mv-rail-icon">⚡</span>Rate Calculator</div>
+        <div class="mv-rail-item active" id="navCalc"><span class="mv-rail-icon">🌍</span>International Rates</div>
+        <div class="mv-rail-item" id="navSameDay"><span class="mv-rail-icon">⚡</span>Same-Day Courier</div>
         <div class="mv-rail-item" id="navCards"><span class="mv-rail-icon">💳</span>Customer Rate Cards</div>
-        <div class="mv-rail-item" id="navShipments"><span class="mv-rail-icon">🏷️</span>Shipments &amp; Labels</div>
+        <div class="mv-rail-item" id="navShipments"><span class="mv-rail-icon">🏷️</span>Shipments &amp; Bookings</div>
         <div class="mv-rail-item" id="navCollection"><span class="mv-rail-icon">📦</span>Create a Collection</div>
         <div class="mv-rail-item" id="navQuotes"><span class="mv-rail-icon">📋</span>Quote Log</div>
       </div>
@@ -1781,6 +1919,252 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- MODAL: SAME-DAY BOOKING CONFIRMATION -->
+    <div class="ds-modal-scrim" id="sdConfirmModal" style="display:none">
+      <div class="ds-modal" style="width:480px">
+        <div class="ds-modal-head">
+          <div class="ds-kicker">COURIER DISPATCH CONFIRMATION</div>
+          <h2 style="margin:4px 0 0;font-size:20px">Confirm Dedicated Booking</h2>
+          <p class="ds-blurb" style="font-size:12px;margin-top:4px">Are you sure you want to book this transport run? A dedicated courier vehicle will be allocated for same-day dispatch.</p>
+        </div>
+        <div class="ds-modal-body">
+          <div id="sdConfirmSummary" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-left:3px solid var(--moov-green);padding:12px 14px;font-size:12.5px;line-height:1.6"></div>
+        </div>
+        <div class="ds-modal-foot">
+          <button class="ds-btn ds-btn-secondary" id="sdConfirmCancel">Go Back</button>
+          <button class="btn-moov-action primary" id="sdConfirmExecute" style="height:36px;padding:0 20px;font-size:13px">
+            <span>✓ Yes, Confirm &amp; Book Now</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: LIVE OPENSTREETMAP TRACKING (SAME-DAY) -->
+    <div class="ds-modal-scrim" id="sdTrackModal" style="display:none">
+      <div class="ds-modal" style="width:780px;max-width:94vw">
+        <div class="ds-modal-head" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="ds-kicker">SAME-DAY LIVE TRACKING &amp; E-POD</div>
+            <h2 style="margin:4px 0 0;font-size:20px" id="sdTrackTitle">Job Tracking</h2>
+            <p class="ds-blurb" style="font-size:12px;margin-top:4px">Real-time GPS telemetry and electronic proof of delivery.</p>
+          </div>
+          <button type="button" id="sdTrackCloseBtn" style="font-size:22px;background:none;border:none;cursor:pointer;color:var(--mv-ink-55);line-height:1">&times;</button>
+        </div>
+        <div class="ds-modal-body" style="display:flex;flex-direction:column;gap:14px">
+          <div id="sdMapContainer"></div>
+          <div id="sdPodContainer" style="display:none;background:var(--mv-green-bg);border:1px solid #a7f3d0;border-left:3px solid var(--moov-green);padding:10px 14px;font-size:12px"></div>
+          <div id="sdTimelineContainer" style="background:#ffffff;border:1px solid var(--mv-hairline-2);padding:12px 14px;max-height:160px;overflow-y:auto"></div>
+        </div>
+        <div class="ds-modal-foot" style="justify-content:space-between">
+          <div id="sdTrackActions"></div>
+          <button class="ds-btn ds-btn-secondary" id="sdTrackClose">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 0. SAME-DAY COURIER (sameday) -->
+    <div id="sameday" style="display:none">
+      <div class="ds-pagehead">
+        <div class="ds-kicker">UK POINT-TO-POINT TRANSPORT</div>
+        <h1 class="ds-h1">Same-Day Dedicated Courier</h1>
+        <p class="ds-blurb">Instant quotation and direct point-to-point courier dispatches across the United Kingdom.</p>
+      </div>
+
+      <form id="sdQuoteForm" onsubmit="event.preventDefault(); handleSdCalculate();">
+        <div class="sd-atf-grid">
+          
+          <!-- Left Column: Vehicle & Routing -->
+          <div>
+            <!-- Vehicle Selector -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mv-purple)">1. Select Vehicle Size</span>
+              <span style="font-size:11px;color:var(--mv-ink-55)">Dedicated point-to-point courier</span>
+            </div>
+            <input type="hidden" id="sdSelectedVan" value="SWB"/>
+            <div class="sd-van-grid">
+              <div class="sd-van-card" data-van="SV">
+                <img src="/images/vehicles/van-sv.svg" alt="Small Van" class="sd-van-img"/>
+                <div class="sd-van-name">Small Van</div>
+                <div class="sd-van-desc">400kg · 1 Plt</div>
+              </div>
+              <div class="sd-van-card selected" data-van="SWB">
+                <img src="/images/vehicles/van-swb.svg" alt="SWB Transit" class="sd-van-img"/>
+                <div class="sd-van-name">SWB Transit</div>
+                <div class="sd-van-desc">900kg · 2 Plts</div>
+              </div>
+              <div class="sd-van-card" data-van="LWB">
+                <img src="/images/vehicles/van-lwb.svg" alt="LWB Transit" class="sd-van-img"/>
+                <div class="sd-van-name">LWB Transit</div>
+                <div class="sd-van-desc">1,350kg · 3 Plts</div>
+              </div>
+              <div class="sd-van-card" data-van="XLWB">
+                <img src="/images/vehicles/van-xlwb.svg" alt="XLWB Transit" class="sd-van-img"/>
+                <div class="sd-van-name">XLWB Transit</div>
+                <div class="sd-van-desc">1,200kg · 4 Plts</div>
+              </div>
+              <div class="sd-van-card" data-van="7.5T">
+                <img src="/images/vehicles/truck-75t.svg" alt="7.5T Truck" class="sd-van-img"/>
+                <div class="sd-van-name">7.5T Truck</div>
+                <div class="sd-van-desc">Tail-lift · 2.5T</div>
+              </div>
+              <div class="sd-van-card" data-van="Artic">
+                <img src="/images/vehicles/truck-artic.svg" alt="44T Artic" class="sd-van-img"/>
+                <div class="sd-van-name">44T Artic</div>
+                <div class="sd-van-desc">Trailer · 26 Plts</div>
+              </div>
+            </div>
+
+            <!-- Side-by-Side Stops Container -->
+            <div id="sdStopsContainer">
+              <div class="sd-stops-grid">
+                <!-- Collection Stop -->
+                <div class="sd-stop-card pickup" id="sdStation1">
+                  <div class="sd-stop-head">
+                    <span class="sd-stop-tag pickup">📍 Collection Stop #1 (Origin)</span>
+                    <span style="font-size:10.5px;color:var(--mv-ink-55)">Pickup Site</span>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Postcode *</label>
+                      <input type="text" class="ds-input st-postcode" id="sdP1" placeholder="e.g. B1 1AA" required oninput="updateSdRoutePreview()"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+                      <input type="text" class="ds-input st-company" id="sdC1" placeholder="Company Name"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Address Line 1</label>
+                      <input type="text" class="ds-input st-address" id="sdA1" placeholder="Street Address"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">City</label>
+                      <input type="text" class="ds-input st-city" id="sdCity1" placeholder="City"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Ready Time</label>
+                      <input type="time" class="ds-input st-from-time" id="sdT1" value="09:00"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Contact Name &amp; Phone</label>
+                      <input type="text" class="ds-input st-contact" id="sdContact1" placeholder="Name &amp; Tel"/>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Delivery Stop -->
+                <div class="sd-stop-card drop" id="sdStation2">
+                  <div class="sd-stop-head">
+                    <span class="sd-stop-tag drop">🏁 Delivery Stop #2 (Destination)</span>
+                    <span style="font-size:10.5px;color:var(--mv-ink-55)">Drop Site</span>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Postcode *</label>
+                      <input type="text" class="ds-input st-postcode" id="sdP2" placeholder="e.g. M1 1AE" required oninput="updateSdRoutePreview()"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+                      <input type="text" class="ds-input st-company" id="sdC2" placeholder="Company Name"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Address Line 1</label>
+                      <input type="text" class="ds-input st-address" id="sdA2" placeholder="Street Address"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">City</label>
+                      <input type="text" class="ds-input st-city" id="sdCity2" placeholder="City"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Deliver By</label>
+                      <input type="time" class="ds-input st-until-time" id="sdT2" value="17:00"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
+                      <input type="text" class="ds-input st-contact" id="sdContact2" placeholder="Name &amp; Tel"/>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cargo Details & Add Multi-Drop Button -->
+            <div style="display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:end;margin-top:10px">
+              <div class="ds-field-wrap">
+                <label class="ds-label" style="font-size:10.5px">Item Qty *</label>
+                <input type="number" id="sdItemQty" class="ds-input num" value="1" min="1" required/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label" style="font-size:10.5px">Cargo Description / Freight Type *</label>
+                <input type="text" id="sdItemDesc" class="ds-input" placeholder="e.g. Pallets, Engineering Parts, Boxes" value="Pallet of freight" required/>
+              </div>
+              <div>
+                <button type="button" class="btn-moov-action secondary" onclick="addSdDeliveryStation()" style="height:35px">
+                  <span>➕ Multi-Drop</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Sticky Real-Time Quote & Booking Panel -->
+          <div class="sd-quote-panel">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--mv-purple)">⚡ LIVE QUOTATION</span>
+              <span style="font-size:10px;font-weight:800;background:rgba(29,251,157,0.2);color:var(--mv-green-deep);padding:2px 6px">DEDICATED</span>
+            </div>
+
+            <!-- Route Preview -->
+            <div style="background:var(--mv-bg);border:1px solid var(--mv-hairline-2);padding:8px 10px;margin-bottom:10px">
+              <div id="sdRoutePreview" style="font-weight:800;font-size:12px;color:var(--mv-ink);display:flex;align-items:center;gap:6px">
+                <span id="sdRouteP1" style="color:var(--mv-purple)">Origin</span> ➔ <span id="sdRouteP2" style="color:var(--moov-green-hover)">Destination</span>
+              </div>
+              <div id="sdVanPreview" style="font-size:11px;color:var(--mv-ink-55);margin-top:2px">
+                🚚 SWB Transit (Up to 900kg · 2 Plts)
+              </div>
+            </div>
+
+            <!-- Quote Reference -->
+            <div style="font-size:11px;color:var(--mv-ink-55);margin-bottom:4px">
+              Quotation Ref: <b id="sdQuoteRefDisplay" style="color:var(--mv-ink)">MOOV-AUTO</b>
+            </div>
+
+            <!-- Big Price -->
+            <div id="sdQuotePriceDisplay" class="sd-price-big">£0.00</div>
+
+            <!-- Admin Margin Breakdown -->
+            <div id="sdAdminBreakdown" style="display:none;margin-bottom:10px;padding:6px 8px;background:var(--mv-bg);border:1px solid var(--mv-hairline-2);font-size:11px">
+              <div>Base Cost: <b id="sdBasePriceDisplay">£0.00</b></div>
+              <div>Margin: <b id="sdMarginPctDisplay" style="color:var(--mv-magenta)">+0%</b> (<b id="sdMarginAmtDisplay" style="color:var(--mv-green-deep)">+£0.00</b>)</div>
+            </div>
+
+            <!-- Action Buttons -->
+            <button type="submit" id="btnSdGetQuote" class="btn-moov-action primary" style="width:100%;height:38px;font-size:13px;margin-bottom:8px">
+              <span>⚡ Calculate Delivery Price</span>
+            </button>
+
+            <button type="button" id="btnSdBookQuote" class="btn-moov-action primary" style="width:100%;height:40px;font-size:13.5px;display:none;background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy);font-weight:900" onclick="handleOpenSdConfirmModal()">
+              <span>🚀 Book Courier Now</span>
+            </button>
+
+            <!-- Feature Badges -->
+            <div style="margin-top:12px;border-top:1px solid var(--mv-hairline-2);padding-top:10px;font-size:11px;color:var(--mv-ink-55);line-height:1.6">
+              <div>✓ Guaranteed dedicated same-day dispatch</div>
+              <div>✓ Live OpenStreetMap courier telemetry</div>
+              <div>✓ Electronic proof of delivery (e-POD)</div>
+            </div>
+          </div>
+
+        </div>
+      </form>
     </div>
 
     <!-- 1. RATE CALCULATOR (app) -->
@@ -3145,10 +3529,10 @@ function bootCalc(){
   calc();
 }
 
-const SCREENS=['loading','setup','login','app','cards','shipments','settings','quotes','collection'];
+const SCREENS=['loading','setup','login','app','sameday','cards','shipments','settings','quotes','collection'];
 function screen(id){
   SCREENS.forEach(s=>$(s).style.display='none');
-  const authed=(id==='app'||id==='cards'||id==='shipments'||id==='settings'||id==='quotes'||id==='collection');
+  const authed=(id==='app'||id==='sameday'||id==='cards'||id==='shipments'||id==='settings'||id==='quotes'||id==='collection');
   $(id).style.display='block';
   $('hdr').style.display=authed?'flex':'none';
   if(!authed){
@@ -3158,12 +3542,374 @@ function screen(id){
 
   document.querySelectorAll('.mv-rail-item').forEach(el=>el.classList.remove('active'));
   if(id==='app')$('navCalc').classList.add('active');
+  if(id==='sameday')$('navSameDay').classList.add('active');
   if(id==='cards')$('navCards').classList.add('active');
   if(id==='shipments')$('navShipments').classList.add('active');
   if(id==='collection')$('navCollection').classList.add('active');
   if(id==='quotes')$('navQuotes').classList.add('active');
   if(id==='settings')$('navSettings').classList.add('active');
 }
+
+// ==========================================
+// SAME-DAY COURIER CLIENT LOGIC
+// ==========================================
+let currentSdQuote = null;
+let sdStationCount = 2;
+let sdLeafletMap = null;
+let sdMapMarkers = [];
+let sdMapRouteLine = null;
+
+const UK_POSTCODE_COORDS = {
+  'B': [52.4862, -1.8904], 'M': [53.4808, -2.2426], 'LS': [53.8008, -1.5491], 'L': [53.4084, -2.9916],
+  'S': [53.3811, -1.4701], 'NE': [54.9783, -1.6178], 'BS': [51.4545, -2.5879], 'CF': [51.4816, -3.1791],
+  'EH': [55.9533, -3.1883], 'G': [55.8642, -4.2518], 'CB': [52.2053, 0.1218], 'OX': [51.7520, -1.2577],
+  'NG': [52.9548, -1.1581], 'LE': [52.6369, -1.1398], 'CV': [52.4068, -1.5197], 'ST': [53.0027, -2.1794],
+  'SO': [50.9097, -1.4044], 'PL': [50.3755, -4.1427], 'NR': [52.6309, 1.2974], 'PE': [52.5695, -0.2405],
+  'SW': [51.4624, -0.1697], 'SE': [51.4646, -0.0450], 'EC': [51.5173, -0.0924], 'WC': [51.5188, -0.1200],
+  'W': [51.5137, -0.1978], 'E': [51.5273, -0.0384], 'N': [51.5645, -0.1147]
+};
+
+function getCoordsFromPostcode(postcode) {
+  if (!postcode) return [52.4862, -1.8904];
+  const clean = postcode.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+  const prefixMatch = clean.match(/^[A-Z]{1,2}/);
+  if (prefixMatch && UK_POSTCODE_COORDS[prefixMatch[0]]) {
+    const base = UK_POSTCODE_COORDS[prefixMatch[0]];
+    let hash = 0;
+    for (let i = 0; i < clean.length; i++) hash = (hash << 5) - hash + clean.charCodeAt(i);
+    const offsetLat = ((hash % 100) / 1000) * 0.04;
+    const offsetLng = (((hash >> 2) % 100) / 1000) * 0.04;
+    return [base[0] + offsetLat, base[1] + offsetLng];
+  }
+  return [52.4862, -1.8904];
+}
+
+function initSdForm() {
+  document.querySelectorAll('.sd-van-card').forEach(card => {
+    card.onclick = () => {
+      document.querySelectorAll('.sd-van-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      const van = card.dataset.van;
+      $('sdSelectedVan').value = van;
+      const names = {
+        'SV': '🚚 Small Van (Up to 400kg · 1 Plt)',
+        'SWB': '🚚 SWB Transit (Up to 900kg · 2 Plts)',
+        'LWB': '🚚 LWB Transit (Up to 1,350kg · 3 Plts)',
+        'XLWB': '🚚 XLWB Transit (Up to 1,200kg · 4 Plts)',
+        '7.5T': '🚛 7.5T Truck (Tail-lift · 2.5T)',
+        'Artic': '🚛 44T Artic (Trailer · 26 Plts)'
+      };
+      if ($('sdVanPreview')) $('sdVanPreview').textContent = names[van] || ('🚚 ' + van);
+    };
+  });
+  updateSdRoutePreview();
+}
+
+function updateSdRoutePreview() {
+  const p1 = $('sdP1') ? $('sdP1').value.trim() : '';
+  const p2 = $('sdP2') ? $('sdP2').value.trim() : '';
+  if ($('sdRouteP1')) $('sdRouteP1').textContent = p1 || 'Origin';
+  if ($('sdRouteP2')) $('sdRouteP2').textContent = p2 || 'Destination';
+}
+
+function addSdDeliveryStation() {
+  sdStationCount++;
+  const container = $('sdStopsContainer');
+  const div = document.createElement('div');
+  div.className = 'sd-stop-card drop';
+  div.id = 'sdStation' + sdStationCount;
+  div.style.marginTop = '10px';
+  div.innerHTML = `
+    <div class="sd-stop-head">
+      <span class="sd-stop-tag drop">🏁 Delivery Stop #${sdStationCount - 1}</span>
+      <button type="button" class="rawcopy" onclick="this.closest('.sd-stop-card').remove();" style="padding:1px 6px">✕ Remove</button>
+    </div>
+    <div class="sd-inputs-row">
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Postcode *</label>
+        <input type="text" class="ds-input st-postcode" placeholder="e.g. LS1 1UR" required oninput="updateSdRoutePreview()"/>
+      </div>
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+        <input type="text" class="ds-input st-company" placeholder="Company Name"/>
+      </div>
+    </div>
+    <div class="sd-inputs-row">
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Address Line 1</label>
+        <input type="text" class="ds-input st-address" placeholder="Street Address"/>
+      </div>
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">City</label>
+        <input type="text" class="ds-input st-city" placeholder="City"/>
+      </div>
+    </div>
+    <div class="sd-inputs-row">
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Deliver By</label>
+        <input type="time" class="ds-input st-until-time" value="17:00"/>
+      </div>
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
+        <input type="text" class="ds-input st-contact" placeholder="Name &amp; Tel"/>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+async function handleSdCalculate() {
+  const btn = $('btnSdGetQuote');
+  btn.disabled = true;
+  btn.textContent = 'Calculating price…';
+
+  try {
+    const vanSize = $('sdSelectedVan').value || 'SWB';
+    const noOfItem = $('sdItemQty').value || '1';
+    const itemDes = $('sdItemDesc').value || 'General Freight';
+
+    const cards = document.querySelectorAll('#sdStopsContainer .sd-stop-card');
+    const stations = [];
+    cards.forEach((card, idx) => {
+      const isPick = card.classList.contains('pickup');
+      const postcode = card.querySelector('.st-postcode')?.value?.trim();
+      if (!postcode) throw new Error('Please enter postcode for Stop #' + (idx + 1));
+      stations.push({
+        type: isPick ? 'P' : 'D',
+        order_sequence: idx + 1,
+        company_name: card.querySelector('.st-company')?.value || '',
+        addressLine1: card.querySelector('.st-address')?.value || '',
+        city: card.querySelector('.st-city')?.value || '',
+        postcode: postcode,
+        from_time: card.querySelector('.st-from-time')?.value || '09:00',
+        until_time: card.querySelector('.st-until-time')?.value || '17:00',
+        contactname: card.querySelector('.st-contact')?.value || '',
+      });
+    });
+
+    const res = await jpost('/api/sameday/quotes', {
+      vanSize, noOfItem, itemDes, stations
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Quotation failed');
+
+    currentSdQuote = d;
+    $('sdQuotePriceDisplay').textContent = '£' + d.price;
+    $('sdQuoteRefDisplay').textContent = d.quoteRef || d.quoteId;
+    $('btnSdBookQuote').style.display = 'block';
+
+    const adminDiv = $('sdAdminBreakdown');
+    if (adminDiv) {
+      if (d.basePrice !== undefined) {
+        adminDiv.style.display = 'block';
+        $('sdBasePriceDisplay').textContent = '£' + d.basePrice;
+        $('sdMarginPctDisplay').textContent = '+' + (d.markupPercent || 0) + '%';
+        $('sdMarginAmtDisplay').textContent = '+£' + (d.marginAmount || '0.00');
+      } else {
+        adminDiv.style.display = 'none';
+      }
+    }
+  } catch (err) {
+    alert('Quote Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Calculate Delivery Price';
+  }
+}
+
+function handleOpenSdConfirmModal() {
+  if (!currentSdQuote) return;
+  const stations = (currentSdQuote.quote && currentSdQuote.quote.stations) || [];
+  const p1 = stations[0] ? (stations[0].postcode + ' (' + (stations[0].company_name || 'Pickup') + ')') : 'Origin';
+  const p2 = stations[stations.length - 1] ? (stations[stations.length - 1].postcode + ' (' + (stations[stations.length - 1].company_name || 'Destination') + ')') : 'Destination';
+
+  $('sdConfirmSummary').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="color:var(--mv-ink-55)">Quote Reference:</span>
+      <b>${currentSdQuote.quoteRef || currentSdQuote.quoteId}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="color:var(--mv-ink-55)">Vehicle Allocation:</span>
+      <b>${currentSdQuote.quote?.van_size || currentSdQuote.quote?.vanSize || 'SWB'} Dedicated Courier</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="color:var(--mv-ink-55)">Collection (Origin):</span>
+      <b style="color:var(--mv-purple)">${p1}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+      <span style="color:var(--mv-ink-55)">Destination (Drop):</span>
+      <b style="color:var(--moov-green-hover)">${p2}</b>
+    </div>
+    <div style="border-top:1px solid var(--mv-hairline-2);padding-top:6px;display:flex;justify-content:space-between;align-items:center">
+      <b>Total Booking Charge:</b>
+      <span style="font-size:18px;font-weight:900;color:var(--moov-navy)">£${currentSdQuote.price}</span>
+    </div>
+  `;
+  $('sdConfirmModal').style.display = 'flex';
+}
+
+$('sdConfirmCancel').onclick = () => { $('sdConfirmModal').style.display = 'none'; };
+
+$('sdConfirmExecute').onclick = async () => {
+  if (!currentSdQuote) return;
+  const btn = $('sdConfirmExecute');
+  btn.disabled = true;
+  btn.textContent = 'Allocating dedicated vehicle…';
+
+  try {
+    const res = await jpost('/api/sameday/jobs', {
+      quoteId: currentSdQuote.quoteId,
+      customerPrice: currentSdQuote.price,
+      basePrice: currentSdQuote.basePrice
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Booking failed');
+
+    $('sdConfirmModal').style.display = 'none';
+    alert('🎉 Same-Day Transport Run Booked Successfully!\n\nJob Reference: ' + d.jobRef);
+    $('btnSdBookQuote').style.display = 'none';
+    currentSdQuote = null;
+
+    screen('shipments');
+    await loadShipments();
+  } catch (err) {
+    alert('Booking error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✓ Yes, Confirm & Book Now';
+  }
+};
+
+async function openSdTrackingModal(jobRef) {
+  $('sdTrackTitle').textContent = 'Tracking ' + jobRef;
+  $('sdTrackModal').style.display = 'flex';
+  $('sdPodContainer').style.display = 'none';
+  $('sdTimelineContainer').innerHTML = '<div style="color:var(--mv-ink-55);text-align:center;padding:12px">Connecting to vehicle GPS…</div>';
+
+  try {
+    const res = await fetch('/api/sameday/jobs/' + encodeURIComponent(jobRef));
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Failed to fetch job');
+
+    renderSdMapAndTelemetry(d);
+  } catch (e) {
+    $('sdTimelineContainer').innerHTML = '<div style="color:var(--mv-magenta-deep)">' + e.message + '</div>';
+  }
+}
+
+function renderSdMapAndTelemetry(data) {
+  const { job, events = [], pings = [] } = data;
+  if (!sdLeafletMap) {
+    sdLeafletMap = L.map('sdMapContainer').setView([52.4862, -1.8904], 7);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(sdLeafletMap);
+  }
+  setTimeout(() => sdLeafletMap.invalidateSize(), 150);
+
+  // Clear map markers
+  sdMapMarkers.forEach(m => sdLeafletMap.removeLayer(m));
+  sdMapMarkers = [];
+  if (sdMapRouteLine) { sdLeafletMap.removeLayer(sdMapRouteLine); sdMapRouteLine = null; }
+
+  const latLngs = [];
+  const stations = job.stations || [];
+  stations.forEach((st, idx) => {
+    const coords = getCoordsFromPostcode(st.postcode);
+    latLngs.push(coords);
+    const isPick = st.type === 'P' || idx === 0;
+    const color = isPick ? '#4103CC' : '#1DFB9D';
+    const pin = L.divIcon({
+      className: 'sd-map-pin',
+      html: `<div style="background:${color};color:#fff;font-weight:900;border:2px solid #fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${isPick ? 'C' : 'D'}</div>`,
+      iconSize: [26, 26]
+    });
+    const marker = L.marker(coords, { icon: pin }).addTo(sdLeafletMap)
+      .bindPopup(`<b>${st.company_name || (isPick ? 'Collection' : 'Delivery')}</b><br/>${st.postcode}`);
+    sdMapMarkers.push(marker);
+  });
+
+  if (pings.length > 0) {
+    const path = pings.map(p => [Number(p.latitude), Number(p.longitude)]);
+    sdMapRouteLine = L.polyline(path, { color: '#1DFB9D', weight: 4, dashArray: '6, 6' }).addTo(sdLeafletMap);
+    const latest = pings[pings.length - 1];
+    const vehIcon = L.divIcon({
+      className: 'sd-veh-pin',
+      html: `<div style="background:#1DFB9D;color:#171B2D;font-weight:900;border:2px solid #171B2D;border-radius:4px;padding:2px 6px;font-size:11px;box-shadow:0 0 10px #1DFB9D">🚚 LIVE COURIER</div>`,
+      iconSize: [80, 24]
+    });
+    const vm = L.marker([Number(latest.latitude), Number(latest.longitude)], { icon: vehIcon }).addTo(sdLeafletMap);
+    sdMapMarkers.push(vm);
+    sdLeafletMap.fitBounds(L.latLngBounds(path), { padding: [30, 30] });
+  } else if (latLngs.length >= 2) {
+    sdMapRouteLine = L.polyline(latLngs, { color: 'rgba(29,251,157,0.5)', weight: 3, dashArray: '4, 4' }).addTo(sdLeafletMap);
+    sdLeafletMap.fitBounds(L.latLngBounds(latLngs), { padding: [30, 30] });
+  }
+
+  // POD
+  const delEvent = events.find(e => e.pde_type === 'DELIVERED' || e.pd_type === 'Drop' && e.del_signed_by);
+  if (delEvent || job.status === 'DELIVERED') {
+    $('sdPodContainer').style.display = 'block';
+    $('sdPodContainer').innerHTML = `
+      <b>✓ Electronic Proof of Delivery (e-POD)</b><br/>
+      Signed by: <b>${qesc(delEvent ? delEvent.del_signed_by : 'Recipient')}</b> at ${qesc(delEvent ? delEvent.del_date_time : job.updated_at || 'Delivered')}
+    `;
+  }
+
+  // Milestones Timeline
+  const tDiv = $('sdTimelineContainer');
+  if (events.length > 0) {
+    tDiv.innerHTML = events.map(e => `
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--mv-hairline);font-size:12px">
+        <span><b>${qesc(e.pde_type || e.pd_type || 'Scan')}</b> ${e.del_signed_by ? '(' + qesc(e.del_signed_by) + ')' : ''}</span>
+        <span style="color:var(--mv-ink-55)">${qesc(e.del_date_time || '')}</span>
+      </div>
+    `).join('');
+  } else {
+    tDiv.innerHTML = '<div style="font-size:12px;color:var(--mv-ink-55)">Job booked. Telemetry will update as soon as the driver arrives at collection.</div>';
+  }
+
+  // Cancel action
+  const actDiv = $('sdTrackActions');
+  if (job.status === 'BOOKED' || job.status === 'IN_TRANSIT') {
+    actDiv.innerHTML = `<button type="button" class="btn-moov-action danger" onclick="handleCancelSdJob('${qesc(job.job_ref)}')">Cancel Job</button>`;
+  } else {
+    actDiv.innerHTML = '';
+  }
+}
+
+async function handleCancelSdJob(jobRef) {
+  if (!confirm(`Are you sure you want to cancel transport job ${jobRef}?`)) return;
+  try {
+    const res = await jpost(`/api/sameday/jobs/${encodeURIComponent(jobRef)}/cancel`, { reason: 'Cancelled from dispatch console' });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Cancel failed');
+    alert(`Job ${jobRef} cancelled successfully.`);
+    $('sdTrackModal').style.display = 'none';
+    await loadShipments();
+  } catch (e) {
+    alert('Cancel error: ' + e.message);
+  }
+}
+
+$('sdTrackClose').onclick = () => { $('sdTrackModal').style.display = 'none'; };
+$('sdTrackCloseBtn').onclick = () => { $('sdTrackModal').style.display = 'none'; };
+
+// Real-Time SSE Listener
+function connectSse() {
+  const evtSource = new EventSource('/api/stream');
+  evtSource.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'job_created' || msg.type === 'event_webhook_received' || msg.type === 'tracking_webhook_received') {
+        if ($('shipments').style.display === 'block') loadShipments();
+      }
+    } catch (err) {}
+  };
+}
+connectSse();
 
 const jpost=(p,b)=>fetch(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
 const jput =(p,b)=>fetch(p,{method:'PUT', headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
@@ -3199,6 +3945,7 @@ async function init(){
 }
 
 $('navCalc').onclick=()=>{screen('app');calc();};
+$('navSameDay').onclick=()=>{screen('sameday');initSdForm();};
 $('navCards').onclick=openCards;
 $('navShipments').onclick=openShipments;
 $('navCollection').onclick=openCollection;
@@ -3885,10 +4632,50 @@ async function openShipments() {
 
 async function loadShipments() {
   try {
-    const r = await fetch('/api/shipments');
-    if (!r.ok) { $('shipEmpty').textContent = 'Could not load shipments.'; return; }
-    const d = await r.json();
-    renderShipments(d.shipments || []);
+    const [rShip, rSd] = await Promise.all([
+      fetch('/api/shipments'),
+      fetch('/api/sameday/jobs').catch(() => ({ ok: false }))
+    ]);
+    
+    let intlList = [];
+    if (rShip.ok) {
+      const d1 = await rShip.json();
+      intlList = (d1.shipments || []).map(x => ({ ...x, service_type: 'international' }));
+    }
+
+    let sdList = [];
+    if (rSd.ok) {
+      const d2 = await rSd.json();
+      sdList = (d2.jobs || []).map(j => ({
+        id: j.id,
+        service_type: 'sameday',
+        tracking_number: j.job_ref,
+        carrier: 'SAME-DAY',
+        service_name: (j.van_size || 'SWB') + ' Transit (' + (j.no_of_item || 1) + ' Plt)',
+        mode: 'sameday',
+        customer: j.company_name || j.customer_email || 'Customer',
+        sender: j.stations && j.stations[0] ? {
+          company: j.stations[0].company_name || 'Pickup',
+          city: j.stations[0].city,
+          postcode: j.stations[0].postcode,
+          country: 'GB'
+        } : {},
+        receiver: j.stations && j.stations.length > 1 ? {
+          company: j.stations[j.stations.length - 1].company_name || 'Delivery',
+          city: j.stations[j.stations.length - 1].city,
+          postcode: j.stations[j.stations.length - 1].postcode,
+          country: 'GB'
+        } : {},
+        parcels: j.no_of_item || 1,
+        total_weight_kg: 0,
+        status: j.status ? j.status.toLowerCase() : 'booked',
+        created_at: j.created_at,
+        raw_sd_job: j
+      }));
+    }
+
+    const combined = [...intlList, ...sdList].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    renderShipments(combined);
   } catch (e) {
     $('shipEmpty').textContent = 'Could not load shipments: ' + e.message;
   }
@@ -3945,26 +4732,40 @@ function renderShipments(list) {
     const fromStr = [s.company || s.name, s.city, s.country].filter(Boolean).join(', ') || '—';
     const toStr = [r.company || r.name, r.city, r.postcode, r.country || 'GB'].filter(Boolean).join(', ') || '—';
 
+    const isSd = x.service_type === 'sameday';
     const isCancelled = x.status === 'cancelled';
     const isRescheduled = x.status === 'rescheduled';
+    const isDelivered = x.status === 'delivered';
     const statusChip = isCancelled
       ? '<span class="ds-status ds-status--attention"><span class="ds-mark ds-mark--attention"></span>CANCELLED</span>'
-      : (isRescheduled
-        ? '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>RESCHEDULED</span>'
-        : '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>BOOKED</span>');
+      : (isDelivered
+        ? '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>DELIVERED</span>'
+        : (isRescheduled
+          ? '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>RESCHEDULED</span>'
+          : '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>' + (isSd ? 'DISPATCHED' : 'BOOKED') + '</span>'));
 
-    const prnStr = x.prn
-      ? ('<span style="font-family:monospace;font-weight:800;color:var(--mv-purple);background:rgba(123,47,190,0.08);padding:2px 6px;border:1px solid rgba(123,47,190,0.2)">' + qesc(x.prn) + '</span>')
-      : '<span class="ds-status--waiting">—</span>';
+    const modeBadge = isSd
+      ? '<span style="font-size:9.5px;font-weight:900;color:var(--moov-navy);background:var(--moov-green);padding:1px 6px;letter-spacing:.05em">⚡ SAME-DAY</span>'
+      : '<span style="font-size:9.5px;font-weight:800;color:var(--mv-purple);background:rgba(65,3,204,0.08);padding:1px 6px;letter-spacing:.05em">🌍 ' + qesc((x.mode || 'import').toUpperCase()) + '</span>';
+
+    const prnStr = isSd
+      ? '<span style="font-size:11px;color:var(--mv-ink-55)">Direct Driver</span>'
+      : (x.prn
+        ? ('<span style="font-family:monospace;font-weight:800;color:var(--mv-purple);background:rgba(123,47,190,0.08);padding:2px 6px;border:1px solid rgba(123,47,190,0.2)">' + qesc(x.prn) + '</span>')
+        : '<span class="ds-status--waiting">—</span>');
 
     const docs = x.documents_attached || {};
-    const docsStr = (docs.invoice || docs.packingSlip)
-      ? '<span style="font-size:10px;font-weight:800;color:#065f46;background:#d1fae5;padding:1px 5px;letter-spacing:.04em">✓ PAPERLESS</span>'
-      : '<span style="font-size:10px;color:var(--mv-ink-55)">STANDARD</span>';
+    const docsStr = isSd
+      ? '<span style="font-size:10px;font-weight:800;color:var(--mv-green-deep)">e-POD LIVE</span>'
+      : ((docs.invoice || docs.packingSlip)
+        ? '<span style="font-size:10px;font-weight:800;color:#065f46;background:#d1fae5;padding:1px 5px;letter-spacing:.04em">✓ PAPERLESS</span>'
+        : '<span style="font-size:10px;color:var(--mv-ink-55)">STANDARD</span>');
 
-    const trackingStr = x.tracking_number
-      ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:12.5px;font-weight:800;color:var(--mv-purple);text-decoration:none" onclick="event.stopPropagation()">' + qesc(x.tracking_number) + '</a>')
-      : '—';
+    const trackingStr = isSd
+      ? ('<span style="font-family:monospace;font-size:12.5px;font-weight:800;color:var(--moov-navy);background:rgba(29,251,157,0.2);padding:2px 6px;cursor:pointer" onclick="openSdTrackingModal(\'' + qesc(x.tracking_number) + '\')">' + qesc(x.tracking_number) + '</span>')
+      : (x.tracking_number
+        ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:12.5px;font-weight:800;color:var(--mv-purple);text-decoration:none" onclick="event.stopPropagation()">' + qesc(x.tracking_number) + '</a>')
+        : '—');
 
     // 7-Stage Progress calculation
     let currentStageIdx = (x.status === 'delivered') ? 7 : (x.status === 'in_transit' ? 3 : (x.status === 'collected' ? 1 : 0));
@@ -3998,16 +4799,18 @@ function renderShipments(list) {
     mainTr.style.cursor = 'pointer';
 
     mainTr.innerHTML = '<td>' + trackingStr + '</td>' +
-      '<td><b>' + qesc(x.service_name || x.service_code || 'UPS') + '</b><div style="font-size:10px;color:var(--mv-ink-55);font-weight:700">' + qesc((x.mode || 'import').toUpperCase()) + '</div></td>' +
+      '<td><b>' + qesc(x.service_name || x.service_code || 'Service') + '</b><div style="margin-top:2px">' + modeBadge + '</div></td>' +
       '<td>' + qesc(x.customer || 'Direct') + '</td>' +
       '<td style="font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + qesc(fromStr) + '">' + qesc(fromStr) + '</td>' +
       '<td style="font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + qesc(toStr) + '">' + qesc(toStr) + '</td>' +
-      '<td><b>' + totalParcels + ' pc</b> · ' + totalWeight + ' kg</td>' +
+      '<td><b>' + totalParcels + ' pc</b>' + (totalWeight ? (' · ' + totalWeight + ' kg') : '') + '</td>' +
       '<td>' + prnStr + '</td>' +
       '<td><span id="admStatusChip_' + x.id + '">' + statusChip + '</span><div style="margin-top:2px">' + docsStr + '</div></td>' +
       '<td style="white-space:nowrap;font-size:12px">' + qDT(x.created_at) + '</td>' +
       '<td style="text-align:right;white-space:nowrap">' +
-        '<button type="button" class="ds-btn ds-btn-secondary btn-inspect-shipment" data-id="' + x.id + '" style="padding:4px 8px;font-size:11px" onclick="event.stopPropagation(); toggleShipmentDrawer(\'' + x.id + '\')">Inspect ▾</button>' +
+        (isSd
+          ? ('<button type="button" class="btn-moov-action primary" style="height:28px;padding:0 10px;font-size:11px" onclick="event.stopPropagation(); openSdTrackingModal(\'' + qesc(x.tracking_number) + '\')">📍 Track Live</button>')
+          : ('<button type="button" class="ds-btn ds-btn-secondary btn-inspect-shipment" data-id="' + x.id + '" style="padding:4px 8px;font-size:11px" onclick="event.stopPropagation(); toggleShipmentDrawer(\'' + x.id + '\')">Inspect ▾</button>')) +
       '</td>';
 
     const drawerTr = document.createElement('tr');
@@ -4927,19 +5730,68 @@ function drawQuoteChart(perDay){
       scales:{y:{beginAtZero:true,ticks:{precision:0,font:{family:'Archivo'}},grid:{color:'rgba(32,30,29,.08)'}},x:{grid:{display:false},ticks:{font:{family:'Archivo'},maxRotation:0,autoSkip:true,maxTicksLimit:10}}}}});
 }
 async function loadQuoteLog(q){
-  try{const r=await fetch('/api/quotes'+(q?('?q='+encodeURIComponent(q)):''));if(!r.ok){$('qEmpty').textContent='Could not load the quote log.';return;}
-    renderQuoteLog((await r.json()).quotes||[]);}catch(e){$('qEmpty').textContent='Could not load the quote log.';}
+  try {
+    const [rIntl, rSd] = await Promise.all([
+      fetch('/api/quotes' + (q ? ('?q=' + encodeURIComponent(q)) : '')),
+      fetch('/api/sameday/quotes').catch(() => ({ ok: false }))
+    ]);
+
+    let intlQuotes = [];
+    if (rIntl.ok) {
+      const d1 = await rIntl.json();
+      intlQuotes = (d1.quotes || []).map(x => ({ ...x, service_type: 'international' }));
+    }
+
+    let sdQuotes = [];
+    if (rSd.ok) {
+      const d2 = await rSd.json();
+      sdQuotes = (d2.quotes || []).map(qItem => ({
+        id: qItem.id,
+        service_type: 'sameday',
+        created_at: qItem.created_at,
+        customer: qItem.company_name || qItem.customer_email || 'Direct',
+        sender_country: qItem.pickup_postcode || 'Origin',
+        receiver_country: qItem.delivery_postcode || 'Destination',
+        receiver_postcode: '',
+        parcels: qItem.no_of_item || 1,
+        weight_kg: 0,
+        goods_value: null,
+        cheapest: qItem.customer_price || qItem.price,
+        raw_sd_quote: qItem
+      }));
+    }
+
+    let combined = [...intlQuotes, ...sdQuotes];
+    if (q) {
+      const qLower = q.toLowerCase();
+      combined = combined.filter(x => 
+        (x.customer && x.customer.toLowerCase().includes(qLower)) ||
+        (x.sender_country && x.sender_country.toLowerCase().includes(qLower)) ||
+        (x.receiver_country && x.receiver_country.toLowerCase().includes(qLower))
+      );
+    }
+    combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    renderQuoteLog(combined);
+  } catch (e) {
+    $('qEmpty').textContent = 'Could not load the quote log: ' + e.message;
+  }
 }
+
 function renderQuoteLog(rows){
   const tb=$('qBody');tb.innerHTML='';
   rows.forEach(x=>{
+    const isSd = x.service_type === 'sameday';
     const from=x.sender_country||'—';const to=[x.receiver_country||'',x.receiver_postcode||''].filter(Boolean).join(' ')||'—';
+    const modeBadge = isSd
+      ? '<span style="font-size:9.5px;font-weight:900;color:var(--moov-navy);background:var(--moov-green);padding:1px 5px;margin-right:4px">⚡ SAME-DAY</span>'
+      : '<span style="font-size:9.5px;font-weight:800;color:var(--mv-purple);background:rgba(65,3,204,0.08);padding:1px 5px;margin-right:4px">🌍 INTL</span>';
+
     const tr=document.createElement('tr');
     tr.innerHTML='<td><button class="rawcopy" data-id="'+x.id+'" style="padding:2px 5px">▸</button></td>' +
       '<td style="white-space:nowrap">' + qDT(x.created_at) + '</td>' +
-      '<td><b>' + qesc(x.customer||'(direct)') + '</b></td>' +
+      '<td>' + modeBadge + '<b>' + qesc(x.customer||'(direct)') + '</b></td>' +
       '<td style="white-space:nowrap">' + qesc(from) + ' → ' + qesc(to) + '</td>' +
-      '<td>' + (x.parcels||1) + ' pcs · ' + (x.weight_kg||0) + 'kg</td>' +
+      '<td>' + (x.parcels||1) + ' pcs' + (x.weight_kg ? (' · ' + x.weight_kg + 'kg') : '') + '</td>' +
       '<td style="color:var(--mv-ink-55)">' + (x.goods_value?('£'+Number(x.goods_value).toFixed(0)):'—') + '</td>' +
       '<td class="r" style="font-weight:800">' + (x.cheapest!=null?('£'+Number(x.cheapest).toFixed(2)):'—') + '</td>';
     tb.appendChild(tr);

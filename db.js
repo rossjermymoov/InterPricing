@@ -145,6 +145,83 @@ async function initDb() {
   await pool.query(`CREATE INDEX IF NOT EXISTS shipments_created_idx ON shipments (created_at DESC);`);
   await pool.query(`CREATE INDEX IF NOT EXISTS shipments_tracking_idx ON shipments (tracking_number);`);
   
+  // ---- SAME-DAY COURIER SCHEMA TABLES ----
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sameday_quotes (
+      id text PRIMARY KEY,
+      quote_ref text UNIQUE NOT NULL,
+      user_id text,
+      customer_email text,
+      company_name text,
+      pickup_postcode text,
+      delivery_postcode text,
+      van_size text,
+      no_of_item integer DEFAULT 1,
+      item_des text,
+      base_price numeric,
+      margin_amount numeric,
+      customer_price numeric,
+      markup_percent numeric,
+      stations jsonb DEFAULT '[]'::jsonb,
+      parameters jsonb DEFAULT '[]'::jsonb,
+      status text DEFAULT 'QUOTED',
+      created_at timestamptz NOT NULL DEFAULT now()
+    );`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS sameday_quotes_created_idx ON sameday_quotes (created_at DESC);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS sameday_quotes_ref_idx ON sameday_quotes (quote_ref);`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sameday_jobs (
+      id text PRIMARY KEY,
+      job_ref text UNIQUE NOT NULL,
+      user_id text,
+      portal_slug text,
+      customer_email text,
+      company_name text,
+      van_size text,
+      no_of_item integer DEFAULT 1,
+      item_des text,
+      status text DEFAULT 'BOOKED',
+      price numeric,
+      customer_price numeric,
+      stations jsonb DEFAULT '[]'::jsonb,
+      parameters jsonb DEFAULT '[]'::jsonb,
+      cancel_reason text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS sameday_jobs_created_idx ON sameday_jobs (created_at DESC);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS sameday_jobs_ref_idx ON sameday_jobs (job_ref);`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sameday_tracking_events (
+      id text PRIMARY KEY,
+      job_ref text NOT NULL,
+      del_nos text,
+      del_ref text,
+      del_signed_by text,
+      del_geo_loc text,
+      del_comp text,
+      del_date_time text,
+      pd_type text,
+      pde_type text,
+      raw_payload jsonb,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS sameday_events_job_idx ON sameday_tracking_events (job_ref);`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sameday_gps_pings (
+      id text PRIMARY KEY,
+      job_ref text NOT NULL,
+      latitude numeric,
+      longitude numeric,
+      gps_date_time_utc text,
+      utc_offset numeric DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS sameday_gps_job_idx ON sameday_gps_pings (job_ref);`);
+
   // Auto-restore any Bessette order erroneously marked as cancelled
   try {
     const uncancelRes = await pool.query(`
@@ -166,7 +243,7 @@ async function initDb() {
   }
 
   await migrateConfig();
-  console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs, collections, shipments)');
+  console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs, collections, shipments, sameday_quotes, sameday_jobs)');
 }
 
 // ---- quote logging + reporting ----
@@ -570,6 +647,274 @@ async function updateShipmentDocuments(idOrTracking, docs) {
   return rows[0] || null;
 }
 
+// ==========================================
+// SAME-DAY COURIER DATABASE METHODS
+// ==========================================
+
+async function getNextSamedayQuoteRef() {
+  if (!pool) return 'MOOV-' + Math.floor(1000 + Math.random() * 9000);
+  try {
+    const { rows } = await pool.query(
+      `SELECT quote_ref FROM sameday_quotes WHERE quote_ref LIKE 'MOOV-%' ORDER BY created_at DESC LIMIT 50`
+    );
+    let maxNum = 1000;
+    for (const r of rows) {
+      const num = parseInt(String(r.quote_ref).replace('MOOV-', ''), 10);
+      if (!isNaN(num) && num > maxNum) maxNum = num;
+    }
+    return `MOOV-${maxNum + 1}`;
+  } catch (e) {
+    return 'MOOV-' + Math.floor(1000 + Math.random() * 9000);
+  }
+}
+
+async function createSamedayQuote(q) {
+  if (!pool) return null;
+  const id = 'qt_' + crypto.randomBytes(6).toString('hex');
+  const quoteRef = (q.quote_ref && String(q.quote_ref).startsWith('MOOV-'))
+    ? q.quote_ref
+    : await getNextSamedayQuoteRef();
+
+  const { rows } = await pool.query(
+    `INSERT INTO sameday_quotes (
+      id, quote_ref, user_id, customer_email, company_name, pickup_postcode, delivery_postcode,
+      van_size, no_of_item, item_des, base_price, margin_amount, customer_price, markup_percent,
+      stations, parameters, status
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+    [
+      id,
+      quoteRef,
+      q.user_id || null,
+      q.customer_email || null,
+      q.company_name || null,
+      q.pickup_postcode || null,
+      q.delivery_postcode || null,
+      q.van_size || 'SWB',
+      parseInt(q.no_of_item, 10) || 1,
+      q.item_des || 'General Freight',
+      q.base_price != null ? Number(q.base_price) : null,
+      q.margin_amount != null ? Number(q.margin_amount) : null,
+      q.customer_price != null ? Number(q.customer_price) : null,
+      q.markup_percent != null ? Number(q.markup_percent) : 0,
+      JSON.stringify(q.stations || []),
+      JSON.stringify(q.parameters || []),
+      q.status || 'QUOTED'
+    ]
+  );
+  return rows[0] || null;
+}
+
+async function getSamedayQuoteByIdOrRef(idOrRef) {
+  if (!pool || !idOrRef) return null;
+  const { rows } = await pool.query(
+    `SELECT * FROM sameday_quotes WHERE id = $1 OR quote_ref = $1 LIMIT 1`,
+    [String(idOrRef)]
+  );
+  return rows[0] || null;
+}
+
+async function listSamedayQuotes({ userId = null, limit = 50 } = {}) {
+  if (!pool) return [];
+  const lim = Math.min(100, Math.max(1, Number(limit) || 50));
+  if (userId) {
+    const { rows } = await pool.query(
+      `SELECT * FROM sameday_quotes WHERE user_id::text = $1 ORDER BY created_at DESC LIMIT ${lim}`,
+      [String(userId)]
+    );
+    return rows;
+  }
+  const { rows } = await pool.query(
+    `SELECT * FROM sameday_quotes ORDER BY created_at DESC LIMIT ${lim}`
+  );
+  return rows;
+}
+
+async function markSamedayQuoteBooked(idOrRef) {
+  if (!pool || !idOrRef) return null;
+  const { rows } = await pool.query(
+    `UPDATE sameday_quotes SET status = 'BOOKED' WHERE id = $1 OR quote_ref = $1 RETURNING *`,
+    [String(idOrRef)]
+  );
+  return rows[0] || null;
+}
+
+async function createSamedayJob(j) {
+  if (!pool) return null;
+  const id = 'job_' + crypto.randomBytes(6).toString('hex');
+  const { rows } = await pool.query(
+    `INSERT INTO sameday_jobs (
+      id, job_ref, user_id, portal_slug, customer_email, company_name,
+      van_size, no_of_item, item_des, status, price, customer_price,
+      stations, parameters
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING *`,
+    [
+      id,
+      String(j.job_ref),
+      j.user_id ? String(j.user_id) : null,
+      j.portal_slug || null,
+      j.customer_email || null,
+      j.company_name || null,
+      j.van_size || 'SWB',
+      parseInt(j.no_of_item, 10) || 1,
+      j.item_des || 'General Freight',
+      j.status || 'BOOKED',
+      j.price != null ? Number(j.price) : null,
+      j.customer_price != null ? Number(j.customer_price) : null,
+      JSON.stringify(j.stations || []),
+      JSON.stringify(j.parameters || [])
+    ]
+  );
+  return rows[0] || null;
+}
+
+async function getSamedayJobByRef(jobRef) {
+  if (!pool || !jobRef) return null;
+  const { rows } = await pool.query(
+    `SELECT * FROM sameday_jobs WHERE job_ref = $1 OR id = $1 LIMIT 1`,
+    [String(jobRef)]
+  );
+  return rows[0] || null;
+}
+
+async function listSamedayJobs({ userId = null, portalSlug = null, limit = 100 } = {}) {
+  if (!pool) return [];
+  const lim = Math.min(200, Math.max(1, Number(limit) || 100));
+  if (portalSlug) {
+    const { rows } = await pool.query(
+      `SELECT * FROM sameday_jobs WHERE portal_slug = $1 ORDER BY created_at DESC LIMIT ${lim}`,
+      [portalSlug]
+    );
+    return rows;
+  }
+  if (userId) {
+    const { rows } = await pool.query(
+      `SELECT * FROM sameday_jobs WHERE user_id::text = $1 ORDER BY created_at DESC LIMIT ${lim}`,
+      [String(userId)]
+    );
+    return rows;
+  }
+  const { rows } = await pool.query(
+    `SELECT * FROM sameday_jobs ORDER BY created_at DESC LIMIT ${lim}`
+  );
+  return rows;
+}
+
+async function updateSamedayJobStatus(jobRef, status) {
+  if (!pool || !jobRef) return null;
+  const { rows } = await pool.query(
+    `UPDATE sameday_jobs SET status = $2, updated_at = now() WHERE job_ref = $1 OR id = $1 RETURNING *`,
+    [String(jobRef), status]
+  );
+  return rows[0] || null;
+}
+
+async function cancelSamedayJob(jobRef, reason = 'Cancelled by customer') {
+  if (!pool || !jobRef) return null;
+  const { rows } = await pool.query(
+    `UPDATE sameday_jobs SET status = 'CANCELLED', cancel_reason = $2, updated_at = now() WHERE job_ref = $1 OR id = $1 RETURNING *`,
+    [String(jobRef), reason]
+  );
+  if (rows[0]) {
+    await saveSamedayTrackingEvent({
+      job_ref: String(jobRef),
+      del_nos: '0',
+      del_ref: 'CANCELLED',
+      del_signed_by: `Cancelled (${reason})`,
+      del_date_time: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      pd_type: 'Drop',
+      pde_type: 'CANCELLED'
+    });
+  }
+  return rows[0] || null;
+}
+
+async function saveSamedayTrackingEvent(evt) {
+  if (!pool || !evt) return null;
+  const id = 'evt_' + crypto.randomBytes(6).toString('hex');
+  const jobRef = String(evt.job_ref || evt.jobRef || evt.JOBREF || evt.Jobref);
+  const pdeType = evt.pde_type || evt.pdeType || evt.PDETYPE || '';
+  const pdType = evt.pd_type || evt.pdType || evt.PDTYPE || '';
+  const signedBy = evt.del_signed_by || evt.delSignedBy || evt.DELSIGNEDBY || '';
+
+  const { rows } = await pool.query(
+    `INSERT INTO sameday_tracking_events (
+      id, job_ref, del_nos, del_ref, del_signed_by, del_geo_loc, del_comp, del_date_time, pd_type, pde_type, raw_payload
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+    [
+      id,
+      jobRef,
+      evt.del_nos || evt.delNos || evt.DELNOS || null,
+      evt.del_ref || evt.delRef || evt.DELREF || null,
+      signedBy,
+      evt.del_geo_loc || evt.delGeoLoc || evt.DELGEOLOC || null,
+      evt.del_comp || evt.delComp || evt.DELCOMP || null,
+      evt.del_date_time || evt.delDateTime || evt.DELDATETIME || new Date().toISOString(),
+      pdType,
+      pdeType,
+      JSON.stringify(evt.raw_payload || evt)
+    ]
+  );
+
+  // Update parent job status accordingly
+  if (pdeType === 'CANCELLED') {
+    await updateSamedayJobStatus(jobRef, 'CANCELLED');
+  } else if (pdeType === 'DELIVERED' || (pdType === 'Drop' && signedBy)) {
+    await updateSamedayJobStatus(jobRef, 'DELIVERED');
+  } else if (pdeType === 'COLLECTED' || pdType === 'Pick') {
+    await updateSamedayJobStatus(jobRef, 'IN_TRANSIT');
+  }
+
+  return rows[0] || null;
+}
+
+async function getSamedayTrackingEvents(jobRef) {
+  if (!pool || !jobRef) return [];
+  const { rows } = await pool.query(
+    `SELECT * FROM sameday_tracking_events WHERE job_ref = $1 ORDER BY created_at ASC`,
+    [String(jobRef)]
+  );
+  return rows;
+}
+
+async function saveSamedayGpsPing(ping) {
+  if (!pool || !ping) return null;
+  const id = 'gps_' + crypto.randomBytes(6).toString('hex');
+  const jobRef = String(ping.job_ref || ping.jobRef || ping.Jobref || ping.JOBREF);
+  const lat = Number(ping.latitude || ping.Latitude);
+  const lon = Number(ping.longitude || ping.Longitude);
+
+  const { rows } = await pool.query(
+    `INSERT INTO sameday_gps_pings (
+      id, job_ref, latitude, longitude, gps_date_time_utc, utc_offset
+    ) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [
+      id,
+      jobRef,
+      lat,
+      lon,
+      ping.gps_date_time_utc || ping.gpsDateTimeUtc || ping.GpsDateTimeUtc || new Date().toISOString(),
+      Number(ping.utc_offset || ping.utcOffset || ping.UtcOffset || 0)
+    ]
+  );
+
+  // If status is booked, transition to in_transit
+  const job = await getSamedayJobByRef(jobRef);
+  if (job && job.status === 'BOOKED') {
+    await updateSamedayJobStatus(jobRef, 'IN_TRANSIT');
+  }
+
+  return rows[0] || null;
+}
+
+async function getSamedayGpsPings(jobRef) {
+  if (!pool || !jobRef) return [];
+  const { rows } = await pool.query(
+    `SELECT * FROM sameday_gps_pings WHERE job_ref = $1 ORDER BY created_at ASC`,
+    [String(jobRef)]
+  );
+  return rows;
+}
+
 module.exports = {
   initDb, getConfig, setConfig, getSecret,
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
@@ -578,5 +923,9 @@ module.exports = {
   createCollectionRecord, listCollections, getCollectionByPrn, updateCollectionByPrn,
   createShipmentRecord, listShipments, getShipmentById, getShipmentByTracking, updateShipmentStatus, updateShipmentPrn, updateShipmentDocuments,
   deleteShipment, deleteCancelledShipments,
+  // Same-Day Exports
+  getNextSamedayQuoteRef, createSamedayQuote, getSamedayQuoteByIdOrRef, listSamedayQuotes, markSamedayQuoteBooked,
+  createSamedayJob, getSamedayJobByRef, listSamedayJobs, updateSamedayJobStatus, cancelSamedayJob,
+  saveSamedayTrackingEvent, getSamedayTrackingEvents, saveSamedayGpsPing, getSamedayGpsPings,
   hasDb: !!pool,
 };

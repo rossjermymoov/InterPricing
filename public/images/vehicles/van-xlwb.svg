@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 80" fill="none">
+  <defs>
+    <linearGradient id="xlwbBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#364363"/>
+      <stop offset="100%" stop-color="#1B2234"/>
+    </linearGradient>
+    <linearGradient id="accentGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1DFB9D"/>
+      <stop offset="100%" stop-color="#04A562"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="80" cy="74" rx="74" ry="4" fill="rgba(0,0,0,0.45)"/>
+  <!-- XLWB Jumbo Extended Body -->
+  <path d="M 20 62 L 152 62 C 155 62 157 59 157 55 L 157 18 C 157 15 154 14 150 14 L 56 14 C 46 14 34 22 24 34 L 14 43 C 11 46 10 50 10 55 L 10 59 C 10 62 15 62 20 62 Z" fill="url(#xlwbBody)" stroke="#3F4765" stroke-width="1.5"/>
+  <!-- Windows -->
+  <path d="M 26 36 L 52 26 L 52 48 L 18 48 Z" fill="#121522" stroke="#3F4765" stroke-width="1"/>
+  <path d="M 30 36 L 46 28 L 44 47 L 23 47 Z" fill="rgba(29,251,157,0.15)"/>
+  <!-- Extended Panels -->
+  <line x1="54" y1="14" x2="54" y2="62" stroke="#3F4765" stroke-width="1.2"/>
+  <line x1="94" y1="14" x2="94" y2="62" stroke="#3F4765" stroke-width="1.2"/>
+  <line x1="128" y1="14" x2="128" y2="62" stroke="#3F4765" stroke-width="1.2" stroke-dasharray="2,2"/>
+  <!-- Super High Roof Indicator -->
+  <line x1="56" y1="21" x2="155" y2="21" stroke="#3F4765" stroke-width="1" stroke-dasharray="3,3"/>
+  <!-- Moov Accent Stripe -->
+  <path d="M 11 54 L 156 54 L 156 57 L 11 57 Z" fill="url(#accentGlow)"/>
+  <!-- Lights -->
+  <path d="M 10 47 L 15 47 L 14 52 L 10 52 Z" fill="#1DFB9D"/>
+  <path d="M 155 20 L 157 20 L 157 38 L 155 38 Z" fill="#FF4B4B"/>
+  <!-- Handles -->
+  <rect x="46" y="49" width="6" height="2" rx="1" fill="#717D96"/>
+  <rect x="60" y="49" width="6" height="2" rx="1" fill="#717D96"/>
+  <!-- Wheels -->
+  <g transform="translate(34, 62)">
+    <circle cx="0" cy="0" r="11" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="6" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2.5" fill="#1DFB9D"/>
+  </g>
+  <g transform="translate(132, 62)">
+    <circle cx="0" cy="0" r="11" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="6" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2.5" fill="#1DFB9D"/>
+  </g>
+</svg>

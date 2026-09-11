@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 80" fill="none">
+  <defs>
+    <linearGradient id="cabBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#364363"/>
+      <stop offset="100%" stop-color="#1B2234"/>
+    </linearGradient>
+    <linearGradient id="boxBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#283048"/>
+      <stop offset="100%" stop-color="#151A27"/>
+    </linearGradient>
+    <linearGradient id="accentGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1DFB9D"/>
+      <stop offset="100%" stop-color="#04A562"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="80" cy="74" rx="74" ry="4" fill="rgba(0,0,0,0.45)"/>
+  
+  <!-- Box Body / Cargo Box (With Tail-lift) -->
+  <rect x="52" y="12" width="102" height="49" rx="3" fill="url(#boxBody)" stroke="#3F4765" stroke-width="1.5"/>
+  <!-- Box Ribs / Texture -->
+  <line x1="77" y1="12" x2="77" y2="61" stroke="#3F4765" stroke-width="1"/>
+  <line x1="102" y1="12" x2="102" y2="61" stroke="#3F4765" stroke-width="1"/>
+  <line x1="127" y1="12" x2="127" y2="61" stroke="#3F4765" stroke-width="1"/>
+  
+  <!-- Tail Lift Pillar -->
+  <rect x="150" y="15" width="4" height="45" fill="#717D96"/>
+  <rect x="146" y="58" width="9" height="3" fill="#1DFB9D"/>
+
+  <!-- Moov Green Accent on Box -->
+  <path d="M 53 53 L 153 53 L 153 56 L 53 56 Z" fill="url(#accentGlow)"/>
+
+  <!-- Cab (Forward Control) -->
+  <path d="M 12 59 L 50 59 L 50 25 C 50 22 47 20 44 20 L 22 20 C 18 20 14 26 12 32 L 8 45 C 7 48 7 52 7 56 L 7 59 L 12 59 Z" fill="url(#cabBody)" stroke="#3F4765" stroke-width="1.5"/>
+  <!-- Cab Windshield & Window -->
+  <path d="M 14 33 L 44 24 L 44 43 L 10 43 Z" fill="#121522" stroke="#3F4765" stroke-width="1"/>
+  <path d="M 17 33 L 38 27 L 36 42 L 13 42 Z" fill="rgba(29,251,157,0.15)"/>
+  <!-- Mirror -->
+  <rect x="6" y="32" width="3" height="8" rx="1" fill="#717D96"/>
+  <!-- Cab Light -->
+  <path d="M 7 50 L 11 50 L 10 55 L 7 55 Z" fill="#1DFB9D"/>
+  
+  <!-- Underrun Bars -->
+  <rect x="62" y="60" width="45" height="2" fill="#717D96"/>
+
+  <!-- Wheels (Dual Rear) -->
+  <!-- Front Wheel -->
+  <g transform="translate(28, 62)">
+    <circle cx="0" cy="0" r="11" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="6" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2.5" fill="#1DFB9D"/>
+  </g>
+  <!-- Rear Wheels -->
+  <g transform="translate(126, 62)">
+    <circle cx="0" cy="0" r="11" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="6" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2.5" fill="#1DFB9D"/>
+  </g>
+</svg>

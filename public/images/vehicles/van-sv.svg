@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 80" fill="none">
+  <defs>
+    <linearGradient id="svBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2D364F"/>
+      <stop offset="100%" stop-color="#181D2D"/>
+    </linearGradient>
+    <linearGradient id="accentGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1DFB9D"/>
+      <stop offset="100%" stop-color="#04A562"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="80" cy="74" rx="65" ry="4" fill="rgba(0,0,0,0.45)"/>
+  <path d="M 28 62 L 138 62 C 141 62 143 60 143 56 L 143 36 C 143 32 140 30 136 30 L 78 30 C 72 30 54 33 42 42 L 28 47 C 24 49 22 53 22 57 L 22 60 C 22 62 25 62 28 62 Z" fill="url(#svBody)" stroke="#3F4765" stroke-width="1.5"/>
+  <path d="M 44 43 L 74 34 L 74 48 L 33 48 Z" fill="#121522" stroke="#3F4765" stroke-width="1"/>
+  <path d="M 48 43 L 64 36 L 62 47 L 42 47 Z" fill="rgba(29,251,157,0.15)"/>
+  <line x1="77" y1="30" x2="77" y2="62" stroke="#3F4765" stroke-width="1.2" stroke-dasharray="2,2"/>
+  <path d="M 23 55 L 142 55 L 142 58 L 23 58 Z" fill="url(#accentGlow)"/>
+  <path d="M 22 51 L 27 51 L 26 55 L 22 55 Z" fill="#1DFB9D"/>
+  <path d="M 141 36 L 143 36 L 143 46 L 141 46 Z" fill="#FF4B4B"/>
+  <rect x="65" y="50" width="6" height="2" rx="1" fill="#717D96"/>
+  <rect x="85" y="50" width="6" height="2" rx="1" fill="#717D96"/>
+  <g transform="translate(45, 62)">
+    <circle cx="0" cy="0" r="11" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="6" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2.5" fill="#1DFB9D"/>
+  </g>
+  <g transform="translate(118, 62)">
+    <circle cx="0" cy="0" r="11" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="6" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2.5" fill="#1DFB9D"/>
+  </g>
+</svg>

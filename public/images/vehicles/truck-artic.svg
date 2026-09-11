@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 80" fill="none">
+  <defs>
+    <linearGradient id="articCab" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3A486B"/>
+      <stop offset="100%" stop-color="#1B2236"/>
+    </linearGradient>
+    <linearGradient id="trailerBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#283048"/>
+      <stop offset="100%" stop-color="#141926"/>
+    </linearGradient>
+    <linearGradient id="accentGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1DFB9D"/>
+      <stop offset="100%" stop-color="#04A562"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="80" cy="74" rx="76" ry="4" fill="rgba(0,0,0,0.45)"/>
+  
+  <!-- Articulated Trailer (Curtainsider / Box) -->
+  <rect x="44" y="10" width="112" height="51" rx="3" fill="url(#trailerBody)" stroke="#3F4765" stroke-width="1.5"/>
+  <!-- Curtain Straps / Ribs -->
+  <line x1="68" y1="10" x2="68" y2="61" stroke="#3F4765" stroke-width="1" stroke-dasharray="2,2"/>
+  <line x1="92" y1="10" x2="92" y2="61" stroke="#3F4765" stroke-width="1" stroke-dasharray="2,2"/>
+  <line x1="116" y1="10" x2="116" y2="61" stroke="#3F4765" stroke-width="1" stroke-dasharray="2,2"/>
+  <line x1="140" y1="10" x2="140" y2="61" stroke="#3F4765" stroke-width="1" stroke-dasharray="2,2"/>
+
+  <!-- Moov Green Trailer Accent -->
+  <path d="M 45 53 L 155 53 L 155 56 L 45 56 Z" fill="url(#accentGlow)"/>
+
+  <!-- Tractor Unit / Big Rig Cab -->
+  <!-- Cab Deflector / High Top Roof -->
+  <path d="M 12 14 L 38 10 L 38 59 L 10 59 L 4 48 L 4 28 C 4 22 8 16 12 14 Z" fill="url(#articCab)" stroke="#3F4765" stroke-width="1.5"/>
+  <!-- Windshield -->
+  <path d="M 8 28 L 32 20 L 32 40 L 6 40 Z" fill="#121522" stroke="#3F4765" stroke-width="1"/>
+  <path d="M 10 28 L 28 22 L 26 39 L 8 39 Z" fill="rgba(29,251,157,0.15)"/>
+  <!-- Cab Grille & Headlight -->
+  <rect x="4" y="44" width="3" height="10" fill="#717D96"/>
+  <path d="M 4 47 L 8 47 L 7 53 L 4 53 Z" fill="#1DFB9D"/>
+  <!-- Mirror -->
+  <rect x="2" y="26" width="2" height="9" rx="1" fill="#717D96"/>
+
+  <!-- Coupling Neck Gap -->
+  <rect x="38" y="48" width="8" height="10" fill="#151928"/>
+
+  <!-- Tractor Front Wheel -->
+  <g transform="translate(18, 62)">
+    <circle cx="0" cy="0" r="10.5" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="5.5" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2.5" fill="#1DFB9D"/>
+  </g>
+  
+  <!-- Tractor Drive Axle -->
+  <g transform="translate(38, 62)">
+    <circle cx="0" cy="0" r="10.5" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="5.5" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2.5" fill="#1DFB9D"/>
+  </g>
+
+  <!-- Trailer Tri-Axle Wheels -->
+  <g transform="translate(112, 62)">
+    <circle cx="0" cy="0" r="10.5" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="5.5" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2" fill="#1DFB9D"/>
+  </g>
+  <g transform="translate(130, 62)">
+    <circle cx="0" cy="0" r="10.5" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="5.5" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2" fill="#1DFB9D"/>
+  </g>
+  <g transform="translate(148, 62)">
+    <circle cx="0" cy="0" r="10.5" fill="#111319" stroke="#3F4765" stroke-width="2"/>
+    <circle cx="0" cy="0" r="5.5" fill="#2A324B"/>
+    <circle cx="0" cy="0" r="2" fill="#1DFB9D"/>
+  </g>
+</svg>
