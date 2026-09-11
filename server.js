@@ -1672,7 +1672,7 @@ app.post('/api/card/:token/sameday/quotes', async (req, res) => {
     const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
     if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available' });
     const conf = card.config || {};
-    if (!conf.samedayEnabled) {
+    if (conf.samedayEnabled === false) {
       return res.status(403).json({ error: 'Same-day courier service is not enabled for this customer account.' });
     }
 
@@ -1754,7 +1754,7 @@ app.post('/api/card/:token/sameday/jobs', async (req, res) => {
     const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
     if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available' });
     const conf = card.config || {};
-    if (!conf.samedayEnabled) {
+    if (conf.samedayEnabled === false) {
       return res.status(403).json({ error: 'Same-day courier service is not enabled for this customer account.' });
     }
 

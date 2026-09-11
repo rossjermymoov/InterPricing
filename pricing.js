@@ -163,7 +163,7 @@ function buildCardPayload(cfg, card) {
     },
     deliveryAddress: conf.deliveryAddress || null,
     addressBook: Array.isArray(conf.addressBook) ? conf.addressBook : [], // saved sender/supplier addresses
-    samedayEnabled: !!conf.samedayEnabled,
+    samedayEnabled: conf.samedayEnabled !== false,
     samedayMarkupPct: conf.samedayMarkupPct != null ? Number(conf.samedayMarkupPct) : (typeof conf.markup === 'number' ? conf.markup : (conf.markup && conf.markup.default != null ? conf.markup.default : 10)),
     services,
     accessorials,

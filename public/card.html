@@ -6181,8 +6181,8 @@ async function boot() {
   $('title').textContent = RC.customer || RC.title || 'International Rate Card';
   if ($('today')) $('today').textContent = ' · ' + new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  // Check if Same-Day Courier is enabled for this customer
-  if (RC.samedayEnabled) {
+  // Check if Same-Day Courier is enabled for this customer (enabled by default)
+  if (RC.samedayEnabled !== false) {
     if ($('tabSamedayBtn')) $('tabSamedayBtn').style.display = 'inline-block';
   } else {
     if ($('tabSamedayBtn')) $('tabSamedayBtn').style.display = 'none';
