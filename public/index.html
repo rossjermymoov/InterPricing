@@ -1363,62 +1363,101 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 .sd-van-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
-@media (max-width: 900px) {
-  .sd-van-grid { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 960px) {
+  .sd-van-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+}
+@media (max-width: 600px) {
+  .sd-van-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 .sd-van-card {
   background: #ffffff;
-  border: 1px solid var(--mv-hairline-2);
+  border: 1.5px solid var(--mv-hairline-2);
   border-radius: 0 !important;
-  padding: 8px 6px;
+  padding: 16px 12px 14px;
   text-align: center;
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: all 0.15s ease;
   user-select: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
+  min-height: 140px;
+  aspect-ratio: 1 / 1.05;
+  position: relative;
 }
 .sd-van-card:hover {
   border-color: var(--mv-ink);
-  background: var(--mv-surface, #f8fafc);
-  transform: translateY(-1px);
+  background: #fbfcfd;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 27, 45, 0.06);
 }
 .sd-van-card.selected {
   border: 2px solid var(--moov-green) !important;
   background: rgba(29, 251, 157, 0.08);
-  box-shadow: 0 0 0 1px var(--moov-green);
+  box-shadow: 0 0 0 1px var(--moov-green), 0 4px 14px rgba(29, 251, 157, 0.15);
+}
+.sd-van-card.selected::after {
+  content: '✓ SELECTED';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 8.5px;
+  font-weight: 900;
+  color: var(--moov-navy);
+  background: var(--moov-green);
+  padding: 1px 4px;
+  letter-spacing: .04em;
+}
+.sd-van-img-wrap {
+  width: 100%;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
 }
 .sd-van-img {
-  width: 100%;
-  height: 40px;
+  max-width: 90%;
+  max-height: 58px;
   object-fit: contain;
-  margin-bottom: 4px;
+  transition: transform 0.2s ease;
+}
+.sd-van-card:hover .sd-van-img,
+.sd-van-card.selected .sd-van-img {
+  transform: scale(1.06);
 }
 .sd-van-name {
   font-weight: 800;
-  font-size: 11px;
+  font-size: 13px;
   color: var(--mv-ink);
   white-space: nowrap;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 .sd-van-desc {
-  font-size: 9.5px;
+  font-size: 11px;
+  font-weight: 600;
   color: var(--mv-ink-55);
-  margin-top: 2px;
+  margin-top: 3px;
   white-space: nowrap;
+}
+
+.sd-section-card {
+  background: #ffffff;
+  border: 1px solid var(--mv-hairline-2);
+  padding: 18px 20px;
+  margin-bottom: 16px;
 }
 
 .sd-stops-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 @media (max-width: 768px) {
   .sd-stops-grid { grid-template-columns: 1fr; }
@@ -1978,45 +2017,75 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           <!-- Left Column: Vehicle & Routing -->
           <div>
             <!-- Vehicle Selector -->
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mv-purple)">1. Select Vehicle Size</span>
-              <span style="font-size:11px;color:var(--mv-ink-55)">Dedicated point-to-point courier</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mv-purple)">1. SELECT VEHICLE SIZE</span>
+              <span style="font-size:11.5px;color:var(--mv-ink-55)">Dedicated point-to-point transport</span>
             </div>
             <input type="hidden" id="sdSelectedVan" value="SWB"/>
             <div class="sd-van-grid">
               <div class="sd-van-card" data-van="SV">
-                <img src="/images/vehicles/van-sv.svg" alt="Small Van" class="sd-van-img"/>
-                <div class="sd-van-name">Small Van</div>
-                <div class="sd-van-desc">400kg · 1 Plt</div>
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/van-sv.svg" alt="Small Van" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">Small Van</div>
+                  <div class="sd-van-desc">400kg · 1 Pallet</div>
+                </div>
               </div>
               <div class="sd-van-card selected" data-van="SWB">
-                <img src="/images/vehicles/van-swb.svg" alt="SWB Transit" class="sd-van-img"/>
-                <div class="sd-van-name">SWB Transit</div>
-                <div class="sd-van-desc">900kg · 2 Plts</div>
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/van-swb.svg" alt="SWB Transit" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">SWB Transit</div>
+                  <div class="sd-van-desc">900kg · 2 Pallets</div>
+                </div>
               </div>
               <div class="sd-van-card" data-van="LWB">
-                <img src="/images/vehicles/van-lwb.svg" alt="LWB Transit" class="sd-van-img"/>
-                <div class="sd-van-name">LWB Transit</div>
-                <div class="sd-van-desc">1,350kg · 3 Plts</div>
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/van-lwb.svg" alt="LWB Transit" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">LWB Transit</div>
+                  <div class="sd-van-desc">1,350kg · 3 Pallets</div>
+                </div>
               </div>
               <div class="sd-van-card" data-van="XLWB">
-                <img src="/images/vehicles/van-xlwb.svg" alt="XLWB Transit" class="sd-van-img"/>
-                <div class="sd-van-name">XLWB Transit</div>
-                <div class="sd-van-desc">1,200kg · 4 Plts</div>
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/van-xlwb.svg" alt="XLWB Transit" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">XLWB Transit</div>
+                  <div class="sd-van-desc">1,200kg · 4 Pallets</div>
+                </div>
               </div>
               <div class="sd-van-card" data-van="7.5T">
-                <img src="/images/vehicles/truck-75t.svg" alt="7.5T Truck" class="sd-van-img"/>
-                <div class="sd-van-name">7.5T Truck</div>
-                <div class="sd-van-desc">Tail-lift · 2.5T</div>
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/truck-75t.svg" alt="7.5T Truck" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">7.5T Truck</div>
+                  <div class="sd-van-desc">Tail-lift · 2.5T</div>
+                </div>
               </div>
               <div class="sd-van-card" data-van="Artic">
-                <img src="/images/vehicles/truck-artic.svg" alt="44T Artic" class="sd-van-img"/>
-                <div class="sd-van-name">44T Artic</div>
-                <div class="sd-van-desc">Trailer · 26 Plts</div>
+                <div class="sd-van-img-wrap">
+                  <img src="/images/vehicles/truck-artic.svg" alt="44T Artic" class="sd-van-img"/>
+                </div>
+                <div>
+                  <div class="sd-van-name">44T Artic</div>
+                  <div class="sd-van-desc">Trailer · 26 Pallets</div>
+                </div>
               </div>
             </div>
 
             <!-- Side-by-Side Stops Container -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mv-purple)">2. ROUTE &amp; TIMINGS</span>
+              <button type="button" class="btn-moov-action secondary" onclick="addSdDeliveryStation()" style="height:28px;padding:0 10px;font-size:11px">
+                <span>➕ Add Drop</span>
+              </button>
+            </div>
             <div id="sdStopsContainer">
               <div class="sd-stops-grid">
                 <!-- Collection Stop -->
@@ -2097,20 +2166,31 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               </div>
             </div>
 
-            <!-- Cargo Details & Add Multi-Drop Button -->
-            <div style="display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:end;margin-top:10px">
-              <div class="ds-field-wrap">
-                <label class="ds-label" style="font-size:10.5px">Item Qty *</label>
-                <input type="number" id="sdItemQty" class="ds-input num" value="1" min="1" required/>
+            <!-- Integrated Cargo & Freight Card -->
+            <div style="background:#ffffff;border:1px solid var(--mv-hairline-2);padding:14px 16px;margin-top:14px">
+              <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--mv-purple);margin-bottom:10px">
+                3. FREIGHT &amp; CARGO SPECIFICATION
               </div>
-              <div class="ds-field-wrap">
-                <label class="ds-label" style="font-size:10.5px">Cargo Description / Freight Type *</label>
-                <input type="text" id="sdItemDesc" class="ds-input" placeholder="e.g. Pallets, Engineering Parts, Boxes" value="Pallet of freight" required/>
-              </div>
-              <div>
-                <button type="button" class="btn-moov-action secondary" onclick="addSdDeliveryStation()" style="height:35px">
-                  <span>➕ Multi-Drop</span>
-                </button>
+              <div style="display:grid;grid-template-columns:140px 1fr 180px;gap:14px;align-items:end">
+                <div class="ds-field-wrap">
+                  <label class="ds-label">Quantity / Units *</label>
+                  <input type="number" id="sdItemQty" class="ds-input num" value="1" min="1" required/>
+                </div>
+                <div class="ds-field-wrap">
+                  <label class="ds-label">Freight Description / Cargo Type *</label>
+                  <input type="text" id="sdItemDesc" class="ds-input" placeholder="e.g. 2 Euro Pallets, Engineering Spares, Print Boxes" value="Pallet of freight" required/>
+                </div>
+                <div class="ds-field-wrap">
+                  <label class="ds-label">Quick Preset</label>
+                  <select class="ds-select" onchange="if(this.value){ $('sdItemDesc').value=this.value; }">
+                    <option value="">Choose preset…</option>
+                    <option value="Pallets of freight">Pallets of freight</option>
+                    <option value="Cartons / Boxes">Cartons / Boxes</option>
+                    <option value="Engineering & Automotive Parts">Engineering &amp; Automotive</option>
+                    <option value="Legal & Medical Documents">Legal &amp; Medical Docs</option>
+                    <option value="Event & Exhibition Equipment">Exhibition Equipment</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
