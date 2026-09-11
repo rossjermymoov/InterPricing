@@ -2074,7 +2074,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="sd-input st-postcode" id="sdCustP1" placeholder="e.g. B1 1AA" required oninput="updateSdCustRoutePreview()"/>
                     </div>
                     <div>
-                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Company / Site Name</label>
                       <input type="text" class="sd-input st-company" id="sdCustC1" placeholder="Company Name"/>
                     </div>
                   </div>
@@ -2084,11 +2084,25 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="sd-input st-address" id="sdCustA1" placeholder="Street Address"/>
                     </div>
                     <div>
-                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">City</label>
-                      <input type="text" class="sd-input st-city" id="sdCustCity1" placeholder="City"/>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Address Line 2 (optional)</label>
+                      <input type="text" class="sd-input st-address2" id="sdCustA1_2" placeholder="Unit, Building, Suite"/>
                     </div>
                   </div>
-                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Town / City</label>
+                      <input type="text" class="sd-input st-city" id="sdCustCity1" placeholder="City"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Contact Person</label>
+                      <input type="text" class="sd-input st-contact" id="sdCustContact1" placeholder="Full Name"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Phone Number</label>
+                      <input type="tel" class="sd-input st-phone" id="sdCustPhone1" placeholder="Telephone / Mobile"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr">
                     <div>
                       <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Pickup Date *</label>
                       <input type="date" class="sd-input st-from-date" id="sdCustD1" required/>
@@ -2096,10 +2110,6 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                     <div>
                       <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Ready Time *</label>
                       <input type="time" class="sd-input st-from-time" id="sdCustT1" value="09:00" required/>
-                    </div>
-                    <div>
-                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Contact &amp; Phone</label>
-                      <input type="text" class="sd-input st-contact" id="sdCustContact1" placeholder="Name &amp; Tel"/>
                     </div>
                   </div>
                 </div>
@@ -2116,7 +2126,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="sd-input st-postcode" id="sdCustP2" placeholder="e.g. M1 1AE" required oninput="updateSdCustRoutePreview()"/>
                     </div>
                     <div>
-                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Company / Site Name</label>
                       <input type="text" class="sd-input st-company" id="sdCustC2" placeholder="Company Name"/>
                     </div>
                   </div>
@@ -2126,11 +2136,25 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="sd-input st-address" id="sdCustA2" placeholder="Street Address"/>
                     </div>
                     <div>
-                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">City</label>
-                      <input type="text" class="sd-input st-city" id="sdCustCity2" placeholder="City"/>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Address Line 2 (optional)</label>
+                      <input type="text" class="sd-input st-address2" id="sdCustA2_2" placeholder="Unit, Building, Suite"/>
                     </div>
                   </div>
-                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Town / City</label>
+                      <input type="text" class="sd-input st-city" id="sdCustCity2" placeholder="City"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Contact Person</label>
+                      <input type="text" class="sd-input st-contact" id="sdCustContact2" placeholder="Full Name"/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Phone Number</label>
+                      <input type="tel" class="sd-input st-phone" id="sdCustPhone2" placeholder="Telephone / Mobile"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr">
                     <div>
                       <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Delivery Date *</label>
                       <input type="date" class="sd-input st-until-date" id="sdCustD2" required/>
@@ -2138,10 +2162,6 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                     <div>
                       <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Deliver By *</label>
                       <input type="time" class="sd-input st-until-time" id="sdCustT2" value="17:00" required/>
-                    </div>
-                    <div>
-                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
-                      <input type="text" class="sd-input st-contact" id="sdCustContact2" placeholder="Name &amp; Tel"/>
                     </div>
                   </div>
                 </div>
@@ -5842,8 +5862,10 @@ function initSdCustForm() {
     if ($('sdCustC1') && !$('sdCustC1').value) $('sdCustC1').value = RC.receiver.company || '';
     if ($('sdCustP1') && !$('sdCustP1').value) $('sdCustP1').value = RC.receiver.postcode || '';
     if ($('sdCustA1') && !$('sdCustA1').value) $('sdCustA1').value = RC.receiver.line1 || '';
+    if ($('sdCustA1_2') && !$('sdCustA1_2').value) $('sdCustA1_2').value = RC.receiver.line2 || '';
     if ($('sdCustCity1') && !$('sdCustCity1').value) $('sdCustCity1').value = RC.receiver.city || '';
-    if ($('sdCustContact1') && !$('sdCustContact1').value) $('sdCustContact1').value = (RC.receiver.name || '') + (RC.receiver.phone ? (' · ' + RC.receiver.phone) : '');
+    if ($('sdCustContact1') && !$('sdCustContact1').value) $('sdCustContact1').value = RC.receiver.name || '';
+    if ($('sdCustPhone1') && !$('sdCustPhone1').value) $('sdCustPhone1').value = RC.receiver.phone || '';
   }
 
   updateSdCustRoutePreview();
@@ -5888,7 +5910,7 @@ function addSdCustDeliveryStation() {
         <input type="text" class="sd-input st-postcode" placeholder="e.g. LS1 1AA" required oninput="updateSdCustRoutePreview()"/>
       </div>
       <div>
-        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Company / Site Name</label>
         <input type="text" class="sd-input st-company" placeholder="Company Name"/>
       </div>
     </div>
@@ -5898,11 +5920,25 @@ function addSdCustDeliveryStation() {
         <input type="text" class="sd-input st-address" placeholder="Street Address"/>
       </div>
       <div>
-        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">City</label>
-        <input type="text" class="sd-input st-city" placeholder="City"/>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Address Line 2 (optional)</label>
+        <input type="text" class="sd-input st-address2" placeholder="Unit, Building, Suite"/>
       </div>
     </div>
-    <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
+    <div class="sd-inputs-row">
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Town / City</label>
+        <input type="text" class="sd-input st-city" placeholder="City"/>
+      </div>
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Contact Person</label>
+        <input type="text" class="sd-input st-contact" placeholder="Full Name"/>
+      </div>
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Phone Number</label>
+        <input type="tel" class="sd-input st-phone" placeholder="Telephone / Mobile"/>
+      </div>
+    </div>
+    <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr">
       <div>
         <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Delivery Date *</label>
         <input type="date" class="sd-input st-until-date" value="${todayStr}" min="${todayStr}" required/>
@@ -5910,10 +5946,6 @@ function addSdCustDeliveryStation() {
       <div>
         <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Deliver By *</label>
         <input type="time" class="sd-input st-until-time" value="17:00" required/>
-      </div>
-      <div>
-        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
-        <input type="text" class="sd-input st-contact" placeholder="Name &amp; Tel"/>
       </div>
     </div>
   `;
@@ -5936,10 +5968,12 @@ async function handleSdCustQuote(e) {
       postcode: (pickCard.querySelector('.st-postcode') ? pickCard.querySelector('.st-postcode').value : '').trim().toUpperCase(),
       company_name: (pickCard.querySelector('.st-company') ? pickCard.querySelector('.st-company').value : '').trim(),
       addressLine1: (pickCard.querySelector('.st-address') ? pickCard.querySelector('.st-address').value : '').trim(),
+      addressLine2: (pickCard.querySelector('.st-address2') ? pickCard.querySelector('.st-address2').value : '').trim(),
       city: (pickCard.querySelector('.st-city') ? pickCard.querySelector('.st-city').value : '').trim(),
       from_date: fDate,
       from_time: fTime + (fTime.length === 5 ? ':00' : ''),
       contactname: (pickCard.querySelector('.st-contact') ? pickCard.querySelector('.st-contact').value : '').trim(),
+      phone: (pickCard.querySelector('.st-phone') ? pickCard.querySelector('.st-phone').value : '').trim(),
     });
   }
 
@@ -5952,10 +5986,12 @@ async function handleSdCustQuote(e) {
       postcode: (card.querySelector('.st-postcode') ? card.querySelector('.st-postcode').value : '').trim().toUpperCase(),
       company_name: (card.querySelector('.st-company') ? card.querySelector('.st-company').value : '').trim(),
       addressLine1: (card.querySelector('.st-address') ? card.querySelector('.st-address').value : '').trim(),
+      addressLine2: (card.querySelector('.st-address2') ? card.querySelector('.st-address2').value : '').trim(),
       city: (card.querySelector('.st-city') ? card.querySelector('.st-city').value : '').trim(),
       until_date: uDate,
       until_time: uTime + (uTime.length === 5 ? ':00' : ''),
       contactname: (card.querySelector('.st-contact') ? card.querySelector('.st-contact').value : '').trim(),
+      phone: (card.querySelector('.st-phone') ? card.querySelector('.st-phone').value : '').trim(),
     });
   });
 

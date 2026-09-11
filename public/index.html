@@ -2106,7 +2106,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="ds-input st-postcode" id="sdP1" placeholder="e.g. B1 1AA" required oninput="updateSdRoutePreview()"/>
                     </div>
                     <div>
-                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Company / Site Name</label>
                       <input type="text" class="ds-input st-company" id="sdC1" placeholder="Company Name"/>
                     </div>
                   </div>
@@ -2116,11 +2116,25 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="ds-input st-address" id="sdA1" placeholder="Street Address"/>
                     </div>
                     <div>
-                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">City</label>
-                      <input type="text" class="ds-input st-city" id="sdCity1" placeholder="City"/>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Address Line 2 (optional)</label>
+                      <input type="text" class="ds-input st-address2" id="sdA1_2" placeholder="Unit, Building, Suite"/>
                     </div>
                   </div>
-                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Town / City</label>
+                      <input type="text" class="ds-input st-city" id="sdCity1" placeholder="City"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Contact Person</label>
+                      <input type="text" class="ds-input st-contact" id="sdContact1" placeholder="Full Name"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Phone Number</label>
+                      <input type="tel" class="ds-input st-phone" id="sdPhone1" placeholder="Telephone / Mobile"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr">
                     <div>
                       <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Pickup Date *</label>
                       <input type="date" class="ds-input st-from-date" id="sdD1" required/>
@@ -2128,10 +2142,6 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                     <div>
                       <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Ready Time *</label>
                       <input type="time" class="ds-input st-from-time" id="sdT1" value="09:00" required/>
-                    </div>
-                    <div>
-                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Contact &amp; Phone</label>
-                      <input type="text" class="ds-input st-contact" id="sdContact1" placeholder="Name &amp; Tel"/>
                     </div>
                   </div>
                 </div>
@@ -2148,7 +2158,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="ds-input st-postcode" id="sdP2" placeholder="e.g. M1 1AE" required oninput="updateSdRoutePreview()"/>
                     </div>
                     <div>
-                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Company / Site Name</label>
                       <input type="text" class="ds-input st-company" id="sdC2" placeholder="Company Name"/>
                     </div>
                   </div>
@@ -2158,11 +2168,25 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="ds-input st-address" id="sdA2" placeholder="Street Address"/>
                     </div>
                     <div>
-                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">City</label>
-                      <input type="text" class="ds-input st-city" id="sdCity2" placeholder="City"/>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Address Line 2 (optional)</label>
+                      <input type="text" class="ds-input st-address2" id="sdA2_2" placeholder="Unit, Building, Suite"/>
                     </div>
                   </div>
-                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
+                  <div class="sd-inputs-row">
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Town / City</label>
+                      <input type="text" class="ds-input st-city" id="sdCity2" placeholder="City"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Contact Person</label>
+                      <input type="text" class="ds-input st-contact" id="sdContact2" placeholder="Full Name"/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Phone Number</label>
+                      <input type="tel" class="ds-input st-phone" id="sdPhone2" placeholder="Telephone / Mobile"/>
+                    </div>
+                  </div>
+                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr">
                     <div>
                       <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Delivery Date *</label>
                       <input type="date" class="ds-input st-until-date" id="sdD2" required/>
@@ -2170,10 +2194,6 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                     <div>
                       <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Deliver By *</label>
                       <input type="time" class="ds-input st-until-time" id="sdT2" value="17:00" required/>
-                    </div>
-                    <div>
-                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
-                      <input type="text" class="ds-input st-contact" id="sdContact2" placeholder="Name &amp; Tel"/>
                     </div>
                   </div>
                 </div>
@@ -3745,7 +3765,7 @@ function addSdDeliveryStation() {
         <input type="text" class="ds-input st-postcode" placeholder="e.g. LS1 1UR" required oninput="updateSdRoutePreview()"/>
       </div>
       <div>
-        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Company / Site</label>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Company / Site Name</label>
         <input type="text" class="ds-input st-company" placeholder="Company Name"/>
       </div>
     </div>
@@ -3755,11 +3775,25 @@ function addSdDeliveryStation() {
         <input type="text" class="ds-input st-address" placeholder="Street Address"/>
       </div>
       <div>
-        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">City</label>
-        <input type="text" class="ds-input st-city" placeholder="City"/>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Address Line 2 (optional)</label>
+        <input type="text" class="ds-input st-address2" placeholder="Unit, Building, Suite"/>
       </div>
     </div>
-    <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
+    <div class="sd-inputs-row">
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Town / City</label>
+        <input type="text" class="ds-input st-city" placeholder="City"/>
+      </div>
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Contact Person</label>
+        <input type="text" class="ds-input st-contact" placeholder="Full Name"/>
+      </div>
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Phone Number</label>
+        <input type="tel" class="ds-input st-phone" placeholder="Telephone / Mobile"/>
+      </div>
+    </div>
+    <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr">
       <div>
         <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Delivery Date *</label>
         <input type="date" class="ds-input st-until-date" value="${todayStr}" min="${todayStr}" required/>
@@ -3767,10 +3801,6 @@ function addSdDeliveryStation() {
       <div>
         <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Deliver By *</label>
         <input type="time" class="ds-input st-until-time" value="17:00" required/>
-      </div>
-      <div>
-        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
-        <input type="text" class="ds-input st-contact" placeholder="Name &amp; Tel"/>
       </div>
     </div>
   `;
@@ -3802,6 +3832,7 @@ async function handleSdCalculate() {
         order_sequence: idx + 1,
         company_name: card.querySelector('.st-company')?.value || '',
         addressLine1: card.querySelector('.st-address')?.value || '',
+        addressLine2: card.querySelector('.st-address2')?.value || '',
         city: card.querySelector('.st-city')?.value || '',
         postcode: postcode,
         from_date: isPick ? fDate : undefined,
@@ -3809,6 +3840,7 @@ async function handleSdCalculate() {
         until_date: !isPick ? uDate : undefined,
         until_time: !isPick ? (uTime + (uTime.length === 5 ? ':00' : '')) : undefined,
         contactname: card.querySelector('.st-contact')?.value || '',
+        phone: card.querySelector('.st-phone')?.value || '',
       });
     });
 
