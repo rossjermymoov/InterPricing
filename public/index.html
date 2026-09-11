@@ -2224,6 +2224,9 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <div id="sdVanPreview" style="font-size:11px;color:var(--mv-ink-55);margin-top:2px">
                 🚚 SWB Transit (Up to 900kg · 2 Plts)
               </div>
+              <div id="sdDistPreview" style="font-size:10.5px;font-weight:700;color:var(--mv-purple);margin-top:4px;display:none">
+                📍 Est. Direct Distance: <span id="sdDistValue">--</span> miles
+              </div>
             </div>
 
             <!-- Quote Reference -->
@@ -3836,6 +3839,10 @@ async function handleSdCalculate() {
     currentSdQuote = d;
     $('sdQuotePriceDisplay').textContent = '£' + d.price;
     $('sdQuoteRefDisplay').textContent = d.quoteRef || d.quoteId;
+    if (d.distanceMiles && $('sdDistPreview')) {
+      $('sdDistPreview').style.display = 'block';
+      if ($('sdDistValue')) $('sdDistValue').textContent = d.distanceMiles;
+    }
     $('btnSdBookQuote').style.display = 'block';
 
     const adminDiv = $('sdAdminBreakdown');

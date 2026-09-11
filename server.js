@@ -1759,6 +1759,7 @@ app.post('/api/card/:token/sameday/quotes', async (req, res) => {
       quoteId: savedQuote.id,
       quoteRef: savedQuote.quote_ref,
       price: customerPrice,
+      distanceMiles: crownResponse.distanceMiles,
       quote: savedQuote
     });
   } catch (err) {
@@ -2051,6 +2052,7 @@ app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
       quoteId: savedQuote.id,
       quoteRef: savedQuote.quote_ref,
       price: customerPrice,
+      distanceMiles: crownResponse.distanceMiles,
       basePrice: isAdmin ? basePrice.toFixed(2) : undefined,
       marginAmount: isAdmin ? marginAmount : undefined,
       markupPercent: isAdmin ? markupPct : undefined,
