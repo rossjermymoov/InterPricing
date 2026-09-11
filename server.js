@@ -1681,6 +1681,25 @@ app.post('/api/card/:token/sameday/quotes', async (req, res) => {
       return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
     }
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    const pStop = stations.find(s => s.type === 'P') || stations[0];
+    const dStop = stations.slice().reverse().find(s => s.type === 'D') || stations[stations.length - 1];
+    const pDate = pStop.from_date || todayStr;
+    const pTime = (pStop.from_time || '09:00:00').slice(0, 5);
+    const dDate = dStop.until_date || todayStr;
+    const dTime = (dStop.until_time || '17:00:00').slice(0, 5);
+
+    const pDT = new Date(`${pDate}T${pTime}:00`);
+    const dDT = new Date(`${dDate}T${dTime}:00`);
+    const now = new Date();
+
+    if (dDT < new Date(now.getTime() - 5 * 60 * 1000)) {
+      return res.status(400).json({ error: 'Delivery date & time cannot be in the past. Please select a valid future date & time.' });
+    }
+    if (dDT <= pDT) {
+      return res.status(400).json({ error: 'Delivery date & time must be strictly after collection date & time.' });
+    }
+
     const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
     const crownPayload = {
       customerID: masterAccountCode,
@@ -1701,9 +1720,9 @@ app.post('/api/card/:token/sameday/quotes', async (req, res) => {
         postcode: s.postcode || '',
         city: s.city || '',
         region: s.region || '',
-        from_date: s.from_date || new Date().toISOString().split('T')[0],
+        from_date: s.from_date || todayStr,
         from_time: s.from_time || '09:00:00',
-        until_date: s.until_date || new Date().toISOString().split('T')[0],
+        until_date: s.until_date || todayStr,
         until_time: s.until_time || '17:00:00',
         instructions: s.instructions || ''
       }))
@@ -1948,6 +1967,25 @@ app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
     }
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    const pStop = stations.find(s => s.type === 'P') || stations[0];
+    const dStop = stations.slice().reverse().find(s => s.type === 'D') || stations[stations.length - 1];
+    const pDate = pStop.from_date || todayStr;
+    const pTime = (pStop.from_time || '09:00:00').slice(0, 5);
+    const dDate = dStop.until_date || todayStr;
+    const dTime = (dStop.until_time || '17:00:00').slice(0, 5);
+
+    const pDT = new Date(`${pDate}T${pTime}:00`);
+    const dDT = new Date(`${dDate}T${dTime}:00`);
+    const now = new Date();
+
+    if (dDT < new Date(now.getTime() - 5 * 60 * 1000)) {
+      return res.status(400).json({ error: 'Delivery date & time cannot be in the past. Please select a valid future date & time.' });
+    }
+    if (dDT <= pDT) {
+      return res.status(400).json({ error: 'Delivery date & time must be strictly after collection date & time.' });
+    }
+
     const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
 
     const crownPayload = {
@@ -1969,9 +2007,9 @@ app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
         postcode: s.postcode || '',
         city: s.city || '',
         region: s.region || '',
-        from_date: s.from_date || new Date().toISOString().split('T')[0],
+        from_date: s.from_date || todayStr,
         from_time: s.from_time || '09:00:00',
-        until_date: s.until_date || new Date().toISOString().split('T')[0],
+        until_date: s.until_date || todayStr,
         until_time: s.until_time || '17:00:00',
         instructions: s.instructions || ''
       }))

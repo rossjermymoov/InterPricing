@@ -2120,13 +2120,17 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="ds-input st-city" id="sdCity1" placeholder="City"/>
                     </div>
                   </div>
-                  <div class="sd-inputs-row">
+                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
                     <div>
-                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Ready Time</label>
-                      <input type="time" class="ds-input st-from-time" id="sdT1" value="09:00"/>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Pickup Date *</label>
+                      <input type="date" class="ds-input st-from-date" id="sdD1" required/>
                     </div>
                     <div>
-                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Contact Name &amp; Phone</label>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Ready Time *</label>
+                      <input type="time" class="ds-input st-from-time" id="sdT1" value="09:00" required/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Contact &amp; Phone</label>
                       <input type="text" class="ds-input st-contact" id="sdContact1" placeholder="Name &amp; Tel"/>
                     </div>
                   </div>
@@ -2158,10 +2162,14 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="ds-input st-city" id="sdCity2" placeholder="City"/>
                     </div>
                   </div>
-                  <div class="sd-inputs-row">
+                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
                     <div>
-                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Deliver By</label>
-                      <input type="time" class="ds-input st-until-time" id="sdT2" value="17:00"/>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Delivery Date *</label>
+                      <input type="date" class="ds-input st-until-date" id="sdD2" required/>
+                    </div>
+                    <div>
+                      <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Deliver By *</label>
+                      <input type="time" class="ds-input st-until-time" id="sdT2" value="17:00" required/>
                     </div>
                     <div>
                       <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
@@ -3678,6 +3686,16 @@ function getCoordsFromPostcode(postcode) {
 }
 
 function initSdForm() {
+  const todayStr = new Date().toISOString().split('T')[0];
+  if ($('sdD1')) {
+    if (!$('sdD1').value) $('sdD1').value = todayStr;
+    $('sdD1').min = todayStr;
+  }
+  if ($('sdD2')) {
+    if (!$('sdD2').value) $('sdD2').value = todayStr;
+    $('sdD2').min = todayStr;
+  }
+
   document.querySelectorAll('.sd-van-card').forEach(card => {
     card.onclick = () => {
       document.querySelectorAll('.sd-van-card').forEach(c => c.classList.remove('selected'));
@@ -3708,6 +3726,7 @@ function updateSdRoutePreview() {
 function addSdDeliveryStation() {
   sdStationCount++;
   const container = $('sdStopsContainer');
+  const todayStr = new Date().toISOString().split('T')[0];
   const div = document.createElement('div');
   div.className = 'sd-stop-card drop';
   div.id = 'sdStation' + sdStationCount;
@@ -3737,10 +3756,14 @@ function addSdDeliveryStation() {
         <input type="text" class="ds-input st-city" placeholder="City"/>
       </div>
     </div>
-    <div class="sd-inputs-row">
+    <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
       <div>
-        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Deliver By</label>
-        <input type="time" class="ds-input st-until-time" value="17:00"/>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Delivery Date *</label>
+        <input type="date" class="ds-input st-until-date" value="${todayStr}" min="${todayStr}" required/>
+      </div>
+      <div>
+        <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Deliver By *</label>
+        <input type="time" class="ds-input st-until-time" value="17:00" required/>
       </div>
       <div>
         <label class="ds-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
@@ -3753,8 +3776,7 @@ function addSdDeliveryStation() {
 
 async function handleSdCalculate() {
   const btn = $('btnSdGetQuote');
-  btn.disabled = true;
-  btn.textContent = 'Calculating price…';
+  const todayStr = new Date().toISOString().split('T')[0];
 
   try {
     const vanSize = $('sdSelectedVan').value || 'SWB';
@@ -3767,6 +3789,11 @@ async function handleSdCalculate() {
       const isPick = card.classList.contains('pickup');
       const postcode = card.querySelector('.st-postcode')?.value?.trim();
       if (!postcode) throw new Error('Please enter postcode for Stop #' + (idx + 1));
+      const fDate = card.querySelector('.st-from-date')?.value || todayStr;
+      const uDate = card.querySelector('.st-until-date')?.value || todayStr;
+      const fTime = card.querySelector('.st-from-time')?.value || '09:00';
+      const uTime = card.querySelector('.st-until-time')?.value || '17:00';
+
       stations.push({
         type: isPick ? 'P' : 'D',
         order_sequence: idx + 1,
@@ -3774,11 +3801,31 @@ async function handleSdCalculate() {
         addressLine1: card.querySelector('.st-address')?.value || '',
         city: card.querySelector('.st-city')?.value || '',
         postcode: postcode,
-        from_time: card.querySelector('.st-from-time')?.value || '09:00',
-        until_time: card.querySelector('.st-until-time')?.value || '17:00',
+        from_date: isPick ? fDate : undefined,
+        from_time: isPick ? (fTime + (fTime.length === 5 ? ':00' : '')) : undefined,
+        until_date: !isPick ? uDate : undefined,
+        until_time: !isPick ? (uTime + (uTime.length === 5 ? ':00' : '')) : undefined,
         contactname: card.querySelector('.st-contact')?.value || '',
       });
     });
+
+    // Client-side date and time validation
+    const pStop = stations.find(s => s.type === 'P');
+    const dStop = stations.slice().reverse().find(s => s.type === 'D');
+    if (pStop && dStop) {
+      const pDateTime = new Date(`${pStop.from_date}T${pStop.from_time.slice(0, 5)}:00`);
+      const dDateTime = new Date(`${dStop.until_date}T${dStop.until_time.slice(0, 5)}:00`);
+      const now = new Date();
+      if (dDateTime < new Date(now.getTime() - 5 * 60 * 1000)) {
+        throw new Error('Delivery date & time cannot be in the past. Please select a valid future time.');
+      }
+      if (dDateTime <= pDateTime) {
+        throw new Error('Delivery date & time must be strictly after collection date & time.');
+      }
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Calculating price…';
 
     const res = await jpost('/api/sameday/quotes', {
       vanSize, noOfItem, itemDes, stations

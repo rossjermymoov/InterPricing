@@ -2088,13 +2088,17 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="sd-input st-city" id="sdCustCity1" placeholder="City"/>
                     </div>
                   </div>
-                  <div class="sd-inputs-row">
+                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
                     <div>
-                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Ready Time</label>
-                      <input type="time" class="sd-input st-from-time" id="sdCustT1" value="09:00"/>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Pickup Date *</label>
+                      <input type="date" class="sd-input st-from-date" id="sdCustD1" required/>
                     </div>
                     <div>
-                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Contact Name &amp; Phone</label>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Ready Time *</label>
+                      <input type="time" class="sd-input st-from-time" id="sdCustT1" value="09:00" required/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Contact &amp; Phone</label>
                       <input type="text" class="sd-input st-contact" id="sdCustContact1" placeholder="Name &amp; Tel"/>
                     </div>
                   </div>
@@ -2126,10 +2130,14 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                       <input type="text" class="sd-input st-city" id="sdCustCity2" placeholder="City"/>
                     </div>
                   </div>
-                  <div class="sd-inputs-row">
+                  <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
                     <div>
-                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Deliver By</label>
-                      <input type="time" class="sd-input st-until-time" id="sdCustT2" value="17:00"/>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Delivery Date *</label>
+                      <input type="date" class="sd-input st-until-date" id="sdCustD2" required/>
+                    </div>
+                    <div>
+                      <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Deliver By *</label>
+                      <input type="time" class="sd-input st-until-time" id="sdCustT2" value="17:00" required/>
                     </div>
                     <div>
                       <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
@@ -5806,6 +5814,16 @@ let sdCustMapRouteLine = null;
 let sdCustDropIndex = 2;
 
 function initSdCustForm() {
+  const todayStr = new Date().toISOString().split('T')[0];
+  if ($('sdCustD1')) {
+    if (!$('sdCustD1').value) $('sdCustD1').value = todayStr;
+    $('sdCustD1').min = todayStr;
+  }
+  if ($('sdCustD2')) {
+    if (!$('sdCustD2').value) $('sdCustD2').value = todayStr;
+    $('sdCustD2').min = todayStr;
+  }
+
   document.querySelectorAll('#samedayView .sd-van-card').forEach(card => {
     card.onclick = () => {
       document.querySelectorAll('#samedayView .sd-van-card').forEach(c => c.classList.remove('selected'));
@@ -5851,6 +5869,7 @@ function addSdCustDeliveryStation() {
   const container = $('sdCustStopsContainer');
   if (!container) return;
 
+  const todayStr = new Date().toISOString().split('T')[0];
   const card = document.createElement('div');
   card.className = 'sd-stop-card drop';
   card.id = 'sdCustStation' + sdCustDropIndex;
@@ -5880,10 +5899,14 @@ function addSdCustDeliveryStation() {
         <input type="text" class="sd-input st-city" placeholder="City"/>
       </div>
     </div>
-    <div class="sd-inputs-row">
+    <div class="sd-inputs-row" style="grid-template-columns: 1fr 1fr 1.2fr">
       <div>
-        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Deliver By</label>
-        <input type="time" class="sd-input st-until-time" value="17:00"/>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Delivery Date *</label>
+        <input type="date" class="sd-input st-until-date" value="${todayStr}" min="${todayStr}" required/>
+      </div>
+      <div>
+        <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Deliver By *</label>
+        <input type="time" class="sd-input st-until-time" value="17:00" required/>
       </div>
       <div>
         <label class="sd-label" style="font-size:10.5px;margin-bottom:3px">Recipient Contact</label>
@@ -5897,12 +5920,13 @@ function addSdCustDeliveryStation() {
 async function handleSdCustQuote(e) {
   if (e) e.preventDefault();
   const btn = $('btnSdCustGetQuote');
-  btn.disabled = true;
-  btn.textContent = 'Calculating direct route…';
 
+  const todayStr = new Date().toISOString().split('T')[0];
   const stations = [];
   const pickCard = $('sdCustStation1');
   if (pickCard) {
+    const fDate = (pickCard.querySelector('.st-from-date') ? pickCard.querySelector('.st-from-date').value : '') || todayStr;
+    const fTime = (pickCard.querySelector('.st-from-time') ? pickCard.querySelector('.st-from-time').value : '09:00');
     stations.push({
       type: 'P',
       order_sequence: 1,
@@ -5910,12 +5934,15 @@ async function handleSdCustQuote(e) {
       company_name: (pickCard.querySelector('.st-company') ? pickCard.querySelector('.st-company').value : '').trim(),
       addressLine1: (pickCard.querySelector('.st-address') ? pickCard.querySelector('.st-address').value : '').trim(),
       city: (pickCard.querySelector('.st-city') ? pickCard.querySelector('.st-city').value : '').trim(),
-      from_time: (pickCard.querySelector('.st-from-time') ? pickCard.querySelector('.st-from-time').value : '') + ':00',
+      from_date: fDate,
+      from_time: fTime + (fTime.length === 5 ? ':00' : ''),
       contactname: (pickCard.querySelector('.st-contact') ? pickCard.querySelector('.st-contact').value : '').trim(),
     });
   }
 
   document.querySelectorAll('#sdCustStopsContainer .sd-stop-card.drop').forEach((card, idx) => {
+    const uDate = (card.querySelector('.st-until-date') ? card.querySelector('.st-until-date').value : '') || todayStr;
+    const uTime = (card.querySelector('.st-until-time') ? card.querySelector('.st-until-time').value : '17:00');
     stations.push({
       type: 'D',
       order_sequence: idx + 2,
@@ -5923,10 +5950,35 @@ async function handleSdCustQuote(e) {
       company_name: (card.querySelector('.st-company') ? card.querySelector('.st-company').value : '').trim(),
       addressLine1: (card.querySelector('.st-address') ? card.querySelector('.st-address').value : '').trim(),
       city: (card.querySelector('.st-city') ? card.querySelector('.st-city').value : '').trim(),
-      until_time: (card.querySelector('.st-until-time') ? card.querySelector('.st-until-time').value : '17:00') + ':00',
+      until_date: uDate,
+      until_time: uTime + (uTime.length === 5 ? ':00' : ''),
       contactname: (card.querySelector('.st-contact') ? card.querySelector('.st-contact').value : '').trim(),
     });
   });
+
+  // Client-side date and time validation
+  try {
+    const pStop = stations.find(s => s.type === 'P');
+    const dStop = stations.slice().reverse().find(s => s.type === 'D');
+    if (pStop && dStop) {
+      const pDateTime = new Date(`${pStop.from_date}T${pStop.from_time.slice(0, 5)}:00`);
+      const dDateTime = new Date(`${dStop.until_date}T${dStop.until_time.slice(0, 5)}:00`);
+      const now = new Date();
+      // Allow a small grace margin of 5 minutes in case clock is slightly off for immediate same-day bookings
+      if (dDateTime < new Date(now.getTime() - 5 * 60 * 1000)) {
+        throw new Error('Delivery date & time cannot be in the past. Please select a valid future time.');
+      }
+      if (dDateTime <= pDateTime) {
+        throw new Error('Delivery date & time must be strictly after collection date & time.');
+      }
+    }
+  } catch (valErr) {
+    alert(valErr.message);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Calculating direct route…';
 
   const payload = {
     vanSize: $('sdCustVan') ? $('sdCustVan').value : 'SWB',
