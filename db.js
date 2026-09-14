@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const seedPath = path.join(__dirname, 'seed.json');
 const readSeed = () => {
   const s = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
-  s.dataVersion = 21;
+  s.dataVersion = 22;
   return s;
 };
 
@@ -322,13 +322,21 @@ async function migrateConfig() {
     cfg.settings = deepFill(cfg.settings || {}, seed.settings || {});
     // Duty rules were redefined in v10 — take the DPD duty accessorials straight from seed
     // (the generic sync above preserves edited rate fields, which would keep the old £12.50 / USA bucket).
-    const RESET_KEYS = ['dpdEu', 'dpdRow', 'dpdUsa', 'disbursement'];
+    const RESET_KEYS = ['dpdRoad', 'dpdAir', 'dpdEu', 'dpdRow', 'dpdUsa', 'disbursement'];
     const seedAcc = (seed.settings && seed.settings.accessorials) || [];
     const seedByKey = {}; seedAcc.forEach((a) => { seedByKey[a.key] = a; });
     if (cfg.settings && Array.isArray(cfg.settings.accessorials)) {
-      cfg.settings.accessorials = cfg.settings.accessorials
-        .filter((a) => a.key !== 'dpdUsa' && a.key !== 'ddp' && a.key !== 'merchantProc' && !a.key.endsWith('_dpd'))
+      // Remove deprecated / old keys
+      let currentAcc = cfg.settings.accessorials
+        .filter((a) => a.key !== 'dpdUsa' && a.key !== 'dpdEu' && a.key !== 'dpdRow' && a.key !== 'ddp' && a.key !== 'merchantProc' && !a.key.endsWith('_dpd'))
         .map((a) => (RESET_KEYS.includes(a.key) && seedByKey[a.key]) ? JSON.parse(JSON.stringify(seedByKey[a.key])) : a);
+      // Ensure seed accessorials like dpdRoad and dpdAir are included
+      seedAcc.forEach((sa) => {
+        if (!currentAcc.some((a) => a.key === sa.key)) {
+          currentAcc.push(JSON.parse(JSON.stringify(sa)));
+        }
+      });
+      cfg.settings.accessorials = currentAcc;
     }
     cfg.dataVersion = seed.dataVersion;
     changed = true;

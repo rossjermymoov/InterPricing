@@ -1032,6 +1032,38 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   padding-top: 4px;
 }
 
+/* DPD DDP & Duty Info Boxes */
+.dpd-info-box {
+  margin: 10px 0 8px 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  text-align: left;
+}
+.dpd-info-box.air {
+  background: #fbf7ff;
+  border: 1px solid #e9d5ff;
+  color: #581c87;
+}
+.dpd-info-box.road {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #14532d;
+}
+.dpd-info-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 11.5px;
+  margin-bottom: 3px;
+}
+.dpd-info-body {
+  color: #334155;
+  font-size: 11px;
+}
+
 .ds-modal-scrim {
   position: fixed;
   inset: 0;
@@ -3233,10 +3265,25 @@ function build(raw, svc, countryOverride){
       return;
     }
     if(a.carrier&&a.carrier!==svc.carrier)return;
+    if(a.cond==='service'&&(a.services||[]).length && !(a.services||[]).includes(svc.key))return;
     flatExtras.push([a.name,v]);
     sumSellExtra+=v;
     sumCostExtra+=cv;
   });
+
+  if (svc && svc.carrier === 'dpd') {
+    const isRoad = ['cp', 'ep'].includes(svc.key);
+    const isAir = ['ca', 'ae'].includes(svc.key);
+    if (isRoad && !flatExtras.some(([n]) => n.toLowerCase().includes('admin') || n.toLowerCase().includes('road'))) {
+      flatExtras.push(['DPD Road Admin Fee', 2.50]);
+      sumSellExtra += 2.50;
+      sumCostExtra += 2.50;
+    } else if (isAir && !flatExtras.some(([n]) => n.toLowerCase().includes('admin') || n.toLowerCase().includes('air'))) {
+      flatExtras.push(['DPD Air DDP Admin Fee', 5.00]);
+      sumSellExtra += 5.00;
+      sumCostExtra += 5.00;
+    }
+  }
 
   if (svc && svc.carrier === 'ups') {
     const resiEl = $('acc_residential');
@@ -3552,6 +3599,7 @@ function calc(){
     const transitDaysText = (days != null && days > 0) ? (days + ' business day' + (days === 1 ? '' : 's')) : 'Transit estimate on request';
     const transitSub = isRoadSvc ? 'Road freight' : 'Air express';
 
+    const isUsa = (c === 'USA' || c === 'US' || c === 'United States');
     let breakdownHtml='<div class="ds-card-breakdown">' +
       '<div class="ds-card-row"><span>Base rate</span><span class="mv-num">'+money(built.raw)+'</span></div>' +
       '<div class="ds-card-row"><span>Fuel surcharge</span><span class="mv-num">'+money(built.sellFuel)+'</span></div>' +
@@ -3559,10 +3607,31 @@ function calc(){
         let displayName = n;
         if (String(n || '').toLowerCase().includes('disbursement')) {
           displayName = 'Disbursement fee <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">Calculated as a minimum of £8.00 or 3% of forwarded customs duties and taxes prepaid upon import.</span></span>';
+        } else if (String(n || '').toLowerCase().includes('air ddp admin') || String(n || '').toLowerCase().includes('dpd air')) {
+          displayName = n + ' <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">£5.00 parcel admin fee included. Post-clearance duty forwarding fee is ' + (isUsa ? '1.0% (USA)' : '2.5%') + ' of forwarded duties/taxes.</span></span>';
+        } else if (String(n || '').toLowerCase().includes('dpd road admin') || String(n || '').toLowerCase().includes('road admin')) {
+          displayName = n + ' <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">£2.50 per shipment admin fee. EU customs fees apply separately.</span></span>';
         }
         return '<div class="ds-card-row"><span>' + displayName + '</span><span class="mv-num">' + money(v) + '</span></div>';
       }).join('') +
       '</div>';
+
+    let dpdInfoBoxHtml = '';
+    if (svc.carrier === 'dpd') {
+      const isRoad = ['cp', 'ep'].includes(svc.key) || isRoadSvc;
+      if (isRoad) {
+        dpdInfoBoxHtml = '<div class="dpd-info-box road">'
+          + '<div class="dpd-info-head"><span>ℹ️</span> DPD Road Classic Customs</div>'
+          + '<div class="dpd-info-body">£2.50 shipment admin fee is included above. EU customs duty applies for orders under €150. Destination duties and local taxes are assessed upon arrival.</div>'
+          + '</div>';
+      } else {
+        const pct = isUsa ? '1.0%' : '2.5%';
+        dpdInfoBoxHtml = '<div class="dpd-info-box air">'
+          + '<div class="dpd-info-head"><span>✈️</span> DPD Air DDP Duty Terms</div>'
+          + '<div class="dpd-info-body">£5.00 parcel admin fee is included in the quote above. When duties &amp; taxes are assessed at destination, DPD charges <b>' + pct + '</b> of the forwarded duty/tax amount (billed post-clearance).</div>'
+          + '</div>';
+      }
+    }
 
     d.className=cls;
     d.innerHTML='<div class="ds-card-head">' +
@@ -3572,7 +3641,8 @@ function calc(){
       '<div class="qeta ' + clsType + '"><span class="veh">' + icon + '</span><span><span class="days">' + transitDaysText + '</span><br><span class="dsub">' + transitSub + '</span></span></div>' +
       '<div class="ds-card-price">'+money(built.sell)+'</div>' +
       '<div class="ds-card-sub">'+(live?'Live rate with account discount':'Standard rate card')+'</div>' +
-      breakdownHtml;
+      breakdownHtml +
+      dpdInfoBoxHtml;
     R.appendChild(d);
   });
 

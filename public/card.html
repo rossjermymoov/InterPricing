@@ -1021,6 +1021,38 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   opacity: 1;
 }
 
+/* DPD DDP & Duty Info Boxes */
+.dpd-info-box {
+  margin: 10px 0 8px 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  text-align: left;
+}
+.dpd-info-box.air {
+  background: #fbf7ff;
+  border: 1px solid #e9d5ff;
+  color: #581c87;
+}
+.dpd-info-box.road {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #14532d;
+}
+.dpd-info-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+  font-size: 11.5px;
+  margin-bottom: 3px;
+}
+.dpd-info-body {
+  color: #334155;
+  font-size: 11px;
+}
+
 /* ===== MOOV OS CONNECTED TIMELINE COMPONENT ===== */
 .moov-timeline-wrap {
   position: relative;
@@ -2925,7 +2957,7 @@ function accGeom() {
   };
 }
 
-function accApplies(a, c, actual) {
+function accApplies(a, c, actual, svcKey) {
   const g = accGeom();
   if (a.cond === 'toggle') {
     const el = $('tg_' + (a.group || a.key));
@@ -2934,6 +2966,7 @@ function accApplies(a, c, actual) {
   if (a.cond === 'always') return true;
   if (a.cond === 'countryIn') return (a.countries || []).includes(c);
   if (a.cond === 'region') return region(c) === a.region;
+  if (a.cond === 'service') return (a.services || []).includes(svcKey);
   if (a.cond === 'auto') {
     if (a.key === 'addlHandling') return actual > 25 || g.longest > 100 || g.second > 76;
     if (a.key === 'largePackage') return g.girth > 300;
@@ -2972,19 +3005,6 @@ function priceOf(s, c, chg) {
     if (p == null) return { p: null, avail: false };
     if (s.cap != null && chg > s.cap + 1e-9) return { p: null, avail: true, note: 'over ' + s.cap + ' kg' };
     return { p: p, avail: true, band: '≤' + s.cap + 'kg' };
-  }
-  if (s.prices && Array.isArray(s.prices[c]) && s.prices[c].length > 0) {
-    const zd = s.prices[c];
-    const last = zd[zd.length - 1];
-    if (last && last[0] != null) {
-      const mB = last[0];
-      if (chg <= mB + 1e-9) {
-        for (const [w, pr] of zd) {
-          if (w >= chg - 1e-9) return { p: pr, avail: true, band: w };
-        }
-      }
-      return { p: last[1], avail: true, band: '>' + mB + 'kg' };
-    }
   }
   const z = s.zmap && s.zmap[c];
   const zd = z && s.zones && s.zones[z];
@@ -3099,6 +3119,16 @@ function staticRow(s, c, chg, applicable) {
   const base = r.p, carr = s.carrier.toLowerCase();
   const sur = applicable.filter(a => a.carrier.toLowerCase() === carr).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
   
+  if (carr === 'dpd') {
+    const isRoad = ['cp', 'ep'].includes(s.key);
+    const isAir = ['ca', 'ae'].includes(s.key);
+    if (isRoad && !sur.some(x => x.name.toLowerCase().includes('admin') || x.name.toLowerCase().includes('road'))) {
+      sur.push({ name: 'DPD Road Admin Fee', amt: 2.50 });
+    } else if (isAir && !sur.some(x => x.name.toLowerCase().includes('admin') || x.name.toLowerCase().includes('air'))) {
+      sur.push({ name: 'DPD Air DDP Admin Fee', amt: 5.00 });
+    }
+  }
+
   if (carr === 'ups') {
     const resiEl = $('tg_residential');
     const isResi = !!(resiEl && resiEl.checked);
@@ -3178,7 +3208,8 @@ function calc() {
   if (!dpdLimit.exceeded) {
     const dpdServices = svcList.filter(s => s.carrier.toLowerCase() !== 'ups' && !(s.key === 'ep' && actual > 3));
     dpdServices.forEach(s => {
-      const r = staticRow(s, c, chg, applicable);
+      const svcSurcharges = accList().filter(a => accApplies(a, c, actual, s.key));
+      const r = staticRow(s, c, chg, svcSurcharges);
       if (r && r.total != null) rows.push(r);
     });
   }
@@ -3311,13 +3342,35 @@ function calc() {
     d.className = cls;
 
     const bt = live ? null : (typeof (r && r.band) === 'number' ? r.band + ' kg band' : (r && r.band));
+    const isUsa = (c === 'USA' || c === 'US' || c === 'United States');
     const surLines = (sur || []).map(x => {
       let displayName = x.name;
       if (String(x.name || '').toLowerCase().includes('disbursement')) {
         displayName = 'Disbursement fee <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">Calculated as a minimum of £8.00 or 3% of forwarded customs duties and taxes prepaid upon import.</span></span>';
+      } else if (String(x.name || '').toLowerCase().includes('air ddp admin') || String(x.name || '').toLowerCase().includes('dpd air')) {
+        displayName = x.name + ' <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">£5.00 parcel admin fee included. Post-clearance duty forwarding fee is ' + (isUsa ? '1.0% (USA)' : '2.5%') + ' of forwarded duties/taxes.</span></span>';
+      } else if (String(x.name || '').toLowerCase().includes('dpd road admin') || String(x.name || '').toLowerCase().includes('road admin')) {
+        displayName = x.name + ' <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">£2.50 per shipment admin fee. EU customs fees apply separately.</span></span>';
       }
       return '<div class="row' + (x.remote ? ' remote' : '') + '"><span>' + displayName + '</span><span>' + money(x.amt) + '</span></div>';
     }).join('');
+
+    let dpdInfoBoxHtml = '';
+    if (carr === 'dpd') {
+      const isRoad = ['cp', 'ep'].includes(s.key) || road;
+      if (isRoad) {
+        dpdInfoBoxHtml = '<div class="dpd-info-box road">'
+          + '<div class="dpd-info-head"><span>ℹ️</span> DPD Road Classic Customs</div>'
+          + '<div class="dpd-info-body">£2.50 shipment admin fee is included above. EU customs duty applies for orders under €150. Destination duties and local taxes are assessed upon arrival.</div>'
+          + '</div>';
+      } else {
+        const pct = isUsa ? '1.0%' : '2.5%';
+        dpdInfoBoxHtml = '<div class="dpd-info-box air">'
+          + '<div class="dpd-info-head"><span>✈️</span> DPD Air DDP Duty Terms</div>'
+          + '<div class="dpd-info-body">£5.00 parcel admin fee is included in the quote above. When duties &amp; taxes are assessed at destination, DPD charges <b>' + pct + '</b> of the forwarded duty/tax amount (billed post-clearance).</div>'
+          + '</div>';
+      }
+    }
 
     const dropBtnActive = (activeDropCarrier === carr) ? ' active' : '';
     const dropBtnText = (activeDropCarrier === carr) ? '✓ Showing nearest drop shops' : ('📍 Find ' + carr + ' drop shops');
@@ -3334,6 +3387,7 @@ function calc() {
       + (cdLine ? '<div class="row cust"><span>EU customs duty</span><span>' + eur(cdLine.eur) + '</span></div>'
         + '<div class="custsub">' + cdLine.sku + ' item' + (cdLine.sku > 1 ? 's' : '') + ' × €' + cdLine.perSku + ' · paid at import</div>' : '')
       + '</div>'
+      + dpdInfoBoxHtml
       + '<div class="card-actions">'
       + '<button type="button" class="btn-drop-finder' + dropBtnActive + '" data-carrier="' + carr + '">' + dropBtnText + '</button>'
       + '</div>';

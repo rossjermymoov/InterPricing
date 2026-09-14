@@ -24974,11 +24974,11 @@
         "fuelable": false
       },
       {
-        "key": "dpdEu",
-        "name": "DPD EU disbursement fee",
+        "key": "dpdRoad",
+        "name": "DPD Road Admin Fee",
         "applyTo": "dpd",
-        "cond": "region",
-        "region": "eu",
+        "cond": "service",
+        "services": ["cp", "ep"],
         "basis": "flat",
         "list": 2.5,
         "disc": 0,
@@ -24986,15 +24986,15 @@
         "fuelable": false
       },
       {
-        "key": "dpdRow",
-        "name": "DPD customs clearance & disbursement",
+        "key": "dpdAir",
+        "name": "DPD Air DDP Admin Fee",
         "applyTo": "dpd",
-        "cond": "region",
-        "region": "row",
+        "cond": "service",
+        "services": ["ca", "ae"],
         "basis": "flat",
-        "list": 5,
+        "list": 5.0,
         "disc": 0,
-        "sell": 5,
+        "sell": 5.0,
         "fuelable": false
       }
     ],
