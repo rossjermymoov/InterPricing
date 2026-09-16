@@ -625,23 +625,24 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 }
 
 /* Card badges */
-.card .badge {
+.card .badge, .qcard .badge {
   position: absolute;
   top: 12px;
   right: 12px;
   font-size: 10px;
   font-weight: 800;
-  color: var(--moov-navy);
-  background: var(--moov-green);
+  color: #fff;
+  background: #059669;
   padding: 4px 10px;
   letter-spacing: .06em;
   text-transform: uppercase;
   border-radius: 4px;
   line-height: 1.1;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
-.card .badge.fastest { background: var(--moov-blue); color: #fff; }
-.card .badge.best-both { background: linear-gradient(90deg, var(--moov-green), var(--moov-blue)); color: var(--moov-navy); }
+.card .badge.fastest, .qcard .badge.fastest { background: #1e293b; color: #1DFB9D; border: 1px solid #334155; }
+.card .badge.best-both, .qcard .badge.best-both { background: #121624; color: #1DFB9D; border: 1px solid #059669; }
+.card .badge.cheapest, .qcard .badge.cheapest { background: #059669; color: #fff; }
 
 /* Rotating Grayed-Out UPS Loader */
 .card.loadcard.ups-loader-card {
@@ -1994,14 +1995,18 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
     <div class="inner">
       <div class="top">
         <div style="display:flex;align-items:center;gap:18px">
-          <img class="brandlogo" src="/logo.png" alt="MOOV Parcel" onerror="this.outerHTML='<div class=\'brandlogo fallback\'>moov parcel</div>'"/>
+          <div class="flex items-center gap-2" style="display:inline-flex;align-items:baseline">
+            <span style="font-weight:900;font-size:24px;letter-spacing:-0.04em;color:#fff">moov</span>
+            <span style="font-weight:300;font-size:24px;letter-spacing:-0.02em;color:#94a3b8;margin-left:5px">parcel</span>
+            <span style="display:inline-block;width:7px;height:7px;background:var(--moov-green);margin-left:4px;vertical-align:baseline"></span>
+          </div>
           <div style="height:20px;width:1px;background:rgba(255,255,255,0.2)"></div>
-          <h1 id="title" style="margin:0;font-size:18px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1">International Rate Card</h1>
+          <h1 id="title" style="margin:0;font-size:16px;font-weight:700;color:#e2e8f0;letter-spacing:-.01em;line-height:1">Enterprise Logistics</h1>
         </div>
         <nav class="tabs" id="viewTabs">
           <button type="button" data-view="rates" class="active">International Rates</button>
-          <button type="button" data-view="import">Request an import quote</button>
-          <button type="button" data-view="sameday" id="tabSamedayBtn" style="display:none">⚡ Same-Day Courier</button>
+          <button type="button" data-view="import">Import Quoting</button>
+          <button type="button" data-view="sameday" id="tabSamedayBtn" style="display:none">Dedicated Same Day</button>
           <button type="button" data-view="bookings">Bookings</button>
         </nav>
       </div>
@@ -3334,7 +3339,7 @@ function calc() {
       badge = '<span class="badge best-both">BEST &amp; FASTEST</span>';
     } else if (isCheapest) {
       cls += ' win';
-      badge = '<span class="badge">BEST PRICE</span>';
+      badge = '<span class="badge cheapest">CHEAPEST</span>';
     } else if (isFastest && !hasBestAndFastest) {
       cls += ' fast';
       badge = '<span class="badge fastest">FASTEST</span>';
@@ -3904,7 +3909,7 @@ function irender(services) {
       + '</div>'
     ) : '';
     const bookBtn = '<button type="button" class="btn primary ibookbtn" data-code="' + esc(q.code) + '" data-name="' + esc(cleanName) + '" data-price="' + q.price + '" style="width:100%;margin-top:14px;padding:10px 14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">Book Shipment &amp; Collection →</button>';
-    const badgeHTML = isOnly ? '<span class="badge best-both">BEST &amp; FASTEST</span>' : (i === 0 ? '<span class="badge">BEST PRICE</span>' : '');
+    const badgeHTML = isOnly ? '<span class="badge best-both">BEST &amp; FASTEST</span>' : (i === 0 ? '<span class="badge cheapest">CHEAPEST</span>' : '');
     const d = document.createElement('div');
     d.className = 'qcard' + (isOnly || i === 0 ? ' win' : '');
     d.innerHTML = badgeHTML
