@@ -3905,6 +3905,8 @@ function irender(services) {
     ) : '';
     const bookBtn = '<button type="button" class="btn primary ibookbtn" data-code="' + esc(q.code) + '" data-name="' + esc(cleanName) + '" data-price="' + q.price + '" style="width:100%;margin-top:14px;padding:10px 14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">Book Shipment &amp; Collection →</button>';
     const badgeHTML = isOnly ? '<span class="badge best-both">BEST &amp; FASTEST</span>' : (i === 0 ? '<span class="badge">BEST PRICE</span>' : '');
+    const d = document.createElement('div');
+    d.className = 'qcard' + (isOnly || i === 0 ? ' win' : '');
     d.innerHTML = badgeHTML
       + '<span class="cbadge ups">UPS</span>'
       + '<div class="svc">' + cleanName + '</div>'
