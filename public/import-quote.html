@@ -248,6 +248,7 @@ const EXAMPLE=[
   {name:'UPS Worldwide Expedited',days:3,price:52.10},
   {name:'UPS Worldwide Saver',days:1,price:64.35}
 ];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
 function money(v){return '£'+Number(v).toFixed(2);}
 function etaText(d){if(d==null)return 'Transit estimate on request';if(d<=1)return '1 business day';return d+' business days';}
 function val(id){const el=$(id);return el?(el.value||'').trim():'';}
@@ -319,6 +320,9 @@ $('getQuotes').addEventListener('click',async()=>{
   let data=null;
   try{const res=await fetch('/api/import-quote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(collectPayload())});data=await res.json();}catch(e){}
   const live=!!(data&&data.enabled&&data.services&&data.services.length);
+  if (data && !live && data.error) {
+    $('resnote').innerHTML = '<span style="color:#b91c1c;font-weight:700">⚠️ Live UPS API notice: ' + esc(data.error) + '.</span> Showing baseline estimates below:';
+  }
   renderQuotes(live?data.services:EXAMPLE,live);
 });
 </script>

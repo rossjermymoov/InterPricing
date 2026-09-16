@@ -333,7 +333,7 @@ app.post('/api/import-quote', async (req, res) => {
   try {
     const { mode, sender, receiver, packages, value, currency, token, hsLines } = req.body || {};
     const r = await ups.quoteRates({ mode, sender, receiver, packages, value, currency });
-    if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
+    if (!r || !r.enabled) return res.json({ enabled: false, error: (r && r.error) || 'UPS rate call returned no rates', status: r && r.status, services: [] });
     const cfg = await db.getConfig();
     // Markup precedence: this customer's card → global import setting → env → 0.
     let markup = null, card = null;

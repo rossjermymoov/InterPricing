@@ -500,9 +500,17 @@ async function quoteRates(payload) {
   const r = await callRate(payload);
   if (!r) return { enabled: false, error: 'UPS credentials not configured' };
   if (!r.ok) {
+    let errMsg = 'UPS Rating ' + r.status;
+    if (r.json && r.json.response && r.json.response.errors && r.json.response.errors.length) {
+      errMsg = r.json.response.errors.map((e) => e.message || e.code).join('; ');
+    } else if (r.json && r.json.Error && r.json.Error.Description) {
+      errMsg = r.json.Error.Description;
+    } else if (r.text) {
+      errMsg += ': ' + (r.text || '').slice(0, 400);
+    }
     return {
       enabled: false,
-      error: 'UPS Rating ' + r.status + ': ' + (r.text || '').slice(0, 400),
+      error: errMsg,
       status: r.status,
       raw: r.text,
       request,
