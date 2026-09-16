@@ -1561,9 +1561,13 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 
   <!-- LEFT RAIL -->
   <aside class="mv-rail" id="hdr" style="display:none">
-    <div class="mv-rail-brand">
-      <div class="mv-rail-wordmark">MOOV<span class="mv-rail-dot"></span></div>
-      <div class="mv-rail-sub">INTERNATIONAL &amp; SAMEDAY</div>
+    <div class="mv-rail-brand" style="padding:22px 20px 18px">
+      <div style="display:inline-flex;align-items:baseline;line-height:1">
+        <span style="font-weight:900;font-size:24px;letter-spacing:-0.04em;color:#fff">moov</span>
+        <span style="font-weight:300;font-size:24px;letter-spacing:-0.02em;color:#94a3b8;margin-left:5px">parcel</span>
+        <span style="display:inline-block;width:7px;height:7px;background:var(--moov-green);margin-left:4px;vertical-align:baseline"></span>
+      </div>
+      <div class="mv-rail-sub" style="margin-top:6px">CONTROL PLANE · v2.4</div>
     </div>
     <div class="mv-rail-scroll">
       <div class="mv-rail-group">
@@ -4999,34 +5003,34 @@ function renderShipments(list) {
     const isRescheduled = x.status === 'rescheduled';
     const isDelivered = x.status === 'delivered';
     const statusChip = isCancelled
-      ? '<span class="ds-status ds-status--attention"><span class="ds-mark ds-mark--attention"></span>CANCELLED</span>'
+      ? '<span style="display:inline-flex;align-items:center;padding:2px 7px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;font-size:10px;font-weight:800;letter-spacing:.04em;border-radius:3px">CANCELLED</span>'
       : (isDelivered
-        ? '<span class="ds-status ds-status--settled"><span class="ds-mark ds-mark--settled"></span>DELIVERED</span>'
+        ? '<span style="display:inline-flex;align-items:center;padding:2px 7px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:10px;font-weight:800;letter-spacing:.04em;border-radius:3px">DELIVERED</span>'
         : (isRescheduled
-          ? '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>RESCHEDULED</span>'
-          : '<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>' + (isSd ? 'DISPATCHED' : 'BOOKED') + '</span>'));
+          ? '<span style="display:inline-flex;align-items:center;padding:2px 7px;background:#f8fafc;color:#334155;border:1px solid #cbd5e1;font-size:10px;font-weight:800;letter-spacing:.04em;border-radius:3px">RESCHEDULED</span>'
+          : '<span style="display:inline-flex;align-items:center;padding:2px 7px;background:#121624;color:#1DFB9D;border:1px solid #334155;font-size:10px;font-weight:800;letter-spacing:.04em;border-radius:3px">' + (isSd ? 'DISPATCHED' : 'MANIFESTED') + '</span>'));
 
     const modeBadge = isSd
-      ? '<span style="font-size:9.5px;font-weight:900;color:var(--moov-navy);background:var(--moov-green);padding:1px 6px;letter-spacing:.05em">⚡ SAME-DAY</span>'
-      : '<span style="font-size:9.5px;font-weight:800;color:var(--mv-purple);background:rgba(65,3,204,0.08);padding:1px 6px;letter-spacing:.05em">🌍 ' + qesc((x.mode || 'import').toUpperCase()) + '</span>';
+      ? '<span style="font-size:9.5px;font-weight:800;color:#121624;background:#1DFB9D;padding:2px 6px;letter-spacing:.04em;border-radius:3px">SAME-DAY</span>'
+      : '<span style="font-size:9.5px;font-weight:800;color:#334155;background:#f1f5f9;padding:2px 6px;letter-spacing:.04em;border-radius:3px;border:1px solid #e2e8f0">' + qesc((x.mode || 'import').toUpperCase()) + '</span>';
 
     const prnStr = isSd
       ? '<span style="font-size:11px;color:var(--mv-ink-55)">Direct Driver</span>'
       : (x.prn
-        ? ('<span style="font-family:monospace;font-weight:800;color:var(--mv-purple);background:rgba(123,47,190,0.08);padding:2px 6px;border:1px solid rgba(123,47,190,0.2)">' + qesc(x.prn) + '</span>')
-        : '<span class="ds-status--waiting">—</span>');
+        ? ('<span style="font-family:monospace;font-weight:800;color:#121624;background:#f8fafc;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px">' + qesc(x.prn) + '</span>')
+        : '<span style="color:#94a3b8">—</span>');
 
     const docs = x.documents_attached || {};
     const docsStr = isSd
-      ? '<span style="font-size:10px;font-weight:800;color:var(--mv-green-deep)">e-POD LIVE</span>'
+      ? '<span style="font-size:10px;font-weight:800;color:#059669">e-POD ACTIVE</span>'
       : ((docs.invoice || docs.packingSlip)
-        ? '<span style="font-size:10px;font-weight:800;color:#065f46;background:#d1fae5;padding:1px 5px;letter-spacing:.04em">✓ PAPERLESS</span>'
-        : '<span style="font-size:10px;color:var(--mv-ink-55)">STANDARD</span>');
+        ? '<span style="font-size:10px;font-weight:800;color:#047857;background:#ecfdf5;padding:2px 6px;letter-spacing:.04em;border:1px solid #a7f3d0;border-radius:3px">PAPERLESS EDI</span>'
+        : '<span style="font-size:10px;color:var(--mv-ink-55)">STANDARD INV</span>');
 
     const trackingStr = isSd
-      ? ('<span style="font-family:monospace;font-size:12.5px;font-weight:800;color:var(--moov-navy);background:rgba(29,251,157,0.2);padding:2px 6px;cursor:pointer" onclick="openSdTrackingModal(\'' + qesc(x.tracking_number) + '\')">' + qesc(x.tracking_number) + '</span>')
+      ? ('<span style="font-family:monospace;font-size:12px;font-weight:800;color:#121624;background:#f0fdf4;border:1px solid #bbf7d0;padding:2px 6px;border-radius:3px;cursor:pointer" onclick="openSdTrackingModal(\'' + qesc(x.tracking_number) + '\')">' + qesc(x.tracking_number) + '</span>')
       : (x.tracking_number
-        ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:12.5px;font-weight:800;color:var(--mv-purple);text-decoration:none" onclick="event.stopPropagation()">' + qesc(x.tracking_number) + '</a>')
+        ? ('<a href="https://www.ups.com/track?tracknum=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:12px;font-weight:800;color:#121624;text-decoration:none;background:#f8fafc;padding:2px 6px;border:1px solid #e2e8f0;border-radius:3px" onclick="event.stopPropagation()">' + qesc(x.tracking_number) + '</a>')
         : '—');
 
     // 7-Stage Progress calculation
@@ -5049,8 +5053,8 @@ function renderShipments(list) {
         + '<td style="padding:6px 8px;text-align:left" id="admPieceScan_' + x.id + '_' + pIdx + '"><span style="font-size:11px;color:var(--mv-ink-55)">' + (isCancelled ? '—' : 'Awaiting scan…') + '</span></td>'
         + '<td style="padding:6px 8px;text-align:center" id="admPieceStatus_' + x.id + '_' + pIdx + '"><span style="font-size:10px;color:var(--mv-ink-55)">' + (isCancelled ? 'Cancelled' : 'Ready') + '</span></td>'
         + '<td style="padding:6px 8px;text-align:right;white-space:nowrap">'
-        + (trk ? ('<button type="button" class="btn-micro-pill btn-adm-track-live" data-tracking="' + qesc(trk) + '" style="font-weight:700;color:var(--mv-purple);border-color:var(--mv-purple);background:#fdf4ff;margin-right:4px">Track Piece</button>') : '')
-        + (p.labelGraphic ? ('<a href="data:image/gif;base64,' + p.labelGraphic + '" download="UPS_Label_' + (trk || (pIdx + 1)) + '.gif" class="btn-micro-pill" target="_blank" onclick="event.stopPropagation()" style="font-weight:700">Label</a>') : '')
+        + (trk ? ('<button type="button" class="btn-micro-pill btn-adm-track-live" data-tracking="' + qesc(trk) + '" style="font-weight:700;color:#121624;border-color:#cbd5e1;background:#f8fafc;margin-right:4px">Track Piece</button>') : '')
+        + (p.labelGraphic ? ('<a href="data:image/gif;base64,' + p.labelGraphic + '" download="UPS_Label_' + (trk || (pIdx + 1)) + '.gif" class="btn-micro-pill" target="_blank" onclick="event.stopPropagation()" style="font-weight:700;background:#121624;color:#fff;border-color:#121624">Download Label</a>') : '')
         + '</td>'
         + '</tr>';
     }).join('');
@@ -5071,8 +5075,8 @@ function renderShipments(list) {
       '<td style="white-space:nowrap;font-size:12px">' + qDT(x.created_at) + '</td>' +
       '<td style="text-align:right;white-space:nowrap">' +
         (isSd
-          ? ('<button type="button" class="btn-moov-action primary" style="height:28px;padding:0 10px;font-size:11px" onclick="event.stopPropagation(); openSdTrackingModal(\'' + qesc(x.tracking_number) + '\')">📍 Track Live</button>')
-          : ('<button type="button" class="ds-btn ds-btn-secondary btn-inspect-shipment" data-id="' + x.id + '" style="padding:4px 8px;font-size:11px" onclick="event.stopPropagation(); toggleShipmentDrawer(\'' + x.id + '\')">Inspect ▾</button>')) +
+          ? ('<button type="button" class="btn-moov-action primary" style="height:28px;padding:0 10px;font-size:11px" onclick="event.stopPropagation(); openSdTrackingModal(\'' + qesc(x.tracking_number) + '\')">Track Live</button>')
+          : ('<button type="button" class="btn-moov-action secondary btn-inspect-shipment" data-id="' + x.id + '" style="height:28px;padding:0 10px;font-size:11px" onclick="event.stopPropagation(); toggleShipmentDrawer(\'' + x.id + '\')">Inspect Details ▾</button>')) +
       '</td>';
 
     const drawerTr = document.createElement('tr');
