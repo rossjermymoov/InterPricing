@@ -13,13 +13,12 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 /* ============================================================================
-   MoovOS Design System (Strict Modernist Rules + Moov Color Palette)
-   - Zero border radius anywhere.
-   - Primary brand accent: #1DFB9D (Moov Green), hover #04A562, inactive #1A745B.
-   - Dark surfaces & text: #171B2D (Moov Navy), #12141D (Navy Alt), #3F4253 (Slate).
-   - Accents: #CD1D69 (Moov Red), #4103CC / #6F4B9F (Purple), #276E93 (Blue), #FECA00 (Yellow).
-   - Archivo typography, flush left, tabular numerals.
+   MoovOS Design System (Slick Modern Executive Edition)
+   - Inter / Roboto typography, high precision.
+   - Primary brand accent: #1DFB9D (Moov Green), hover #04A562.
+   - Dark surfaces & text: #121624 (Moov Navy), #0b0e14 (Background), #1e293b (Slate).
    ============================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
 :root {
   /* Brand */
@@ -28,59 +27,58 @@
   --moov-green-inactive: #1A745B;
 
   /* Neutrals / Dark UI */
-  --moov-navy:           #171B2D;
-  --moov-navy-alt:       #12141D;
-  --moov-slate:          #3F4253;
-  --moov-grey:           #454957;
-  --moov-grey-light:     #C6C7CD;
-  --moov-grey-muted:     #9FA2B4;
-  --moov-border:         #DFE0EB;
+  --moov-navy:           #121624;
+  --moov-navy-alt:       #0c0f18;
+  --moov-slate:          #1e293b;
+  --moov-grey:           #475569;
+  --moov-grey-light:     #cbd5e1;
+  --moov-grey-muted:     #94a3b8;
+  --moov-border:         #e2e8f0;
   --moov-white:          #FFFFFF;
   --moov-white-alt:      #FDFFFF;
 
   /* Accents */
-  --moov-red:            #CD1D69;
-  --moov-purple:         #4103CC;
-  --moov-purple-light:   #6F4B9F;
-  --moov-blue:           #276E93;
-  --moov-yellow:         #FECA00;
+  --moov-red:            #ef4444;
+  --moov-purple:         #6366f1;
+  --moov-purple-light:   #818cf8;
+  --moov-blue:           #0ea5e9;
+  --moov-yellow:         #f59e0b;
 
   /* Functional Mappings */
-  --mv-bg:               #f4f5f8;
-  --mv-surface:          #ffffff;
+  --mv-bg:               #0b0e14;
+  --mv-surface:          #f8fafc;
   --mv-surface-light:    #ffffff;
-  --mv-ink:              var(--moov-navy);
-  --mv-divider:          var(--moov-border);
-  --mv-hairline:         rgba(23, 27, 45, .10);
-  --mv-hairline-2:        rgba(23, 27, 45, .20);
+  --mv-ink:              #0f172a;
+  --mv-divider:          #e2e8f0;
+  --mv-hairline:         #f1f5f9;
+  --mv-hairline-2:       #e2e8f0;
 
-  --mv-green:            var(--moov-green);
-  --mv-green-hover:      var(--moov-green-hover);
-  --mv-green-deep:       #0A8F43;
+  --mv-green:            #1DFB9D;
+  --mv-green-hover:      #04A562;
+  --mv-green-deep:       #059669;
   --mv-green-bg:         rgba(29, 251, 157, .12);
 
   --mv-purple:           var(--moov-purple);
-  --mv-purple-600:       #3102A0;
-  --mv-purple-100:       #F2EEFC;
-  --mv-purple-200:       #E0D4FA;
+  --mv-purple-600:       #4f46e5;
+  --mv-purple-100:       #eef2ff;
+  --mv-purple-200:       #e0e7ff;
 
   --mv-magenta:          var(--moov-red);
-  --mv-magenta-deep:     #9E0C4E;
-  --mv-magenta-bg:       rgba(205, 29, 105, .08);
+  --mv-magenta-deep:     #b91c1c;
+  --mv-magenta-bg:       rgba(239, 68, 68, .08);
 
   --mv-teal:             var(--moov-blue);
-  --mv-teal-deep:        #1A516E;
+  --mv-teal-deep:        #0284c7;
 
   --mv-ink-45:           var(--moov-grey-muted);
   --mv-ink-55:           var(--moov-grey);
   --mv-ink-75:           var(--moov-slate);
 
-  --font-family:         'Archivo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family:         'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
-  border-radius: 0 !important;
 }
 
 body {
@@ -99,7 +97,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 :focus-visible { outline: 2px solid var(--moov-green); outline-offset: 2px; }
 ::selection { background: var(--moov-green); color: var(--moov-navy); }
 
-.mv-num { font-variant-numeric: tabular-nums; }
+.mv-num { font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace; }
 
 .mv-app {
   display: flex;
@@ -107,9 +105,9 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   background: var(--mv-bg);
 }
 
-/* Left Rail (238px) - Premium Dark Navy */
+/* Left Rail (250px) - Premium Dark Navy */
 .mv-rail {
-  width: 238px;
+  width: 250px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -124,22 +122,22 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 }
 
 .mv-rail-brand {
-  padding: 26px 20px 20px 22px;
+  padding: 24px 20px 20px 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .mv-rail-wordmark {
-  font-weight: 800;
-  font-size: 28px;
+  font-weight: 900;
+  font-size: 26px;
   line-height: .9;
-  letter-spacing: -.035em;
+  letter-spacing: -.04em;
   display: flex;
   align-items: flex-end;
-  gap: 5px;
+  gap: 4px;
   color: #ffffff;
 }
 .mv-rail-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   background: var(--moov-green);
   margin-bottom: 2px;
 }
@@ -512,7 +510,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   pointer-events: none;
 }
 
-/* ===== MOOV OS UNIFIED ACTION BUTTONS & BADGES ===== */
+/* ===== MOOV UNIFIED ACTION BUTTONS & BADGES ===== */
 .btn-moov-action {
   box-sizing: border-box;
   display: inline-flex;
@@ -523,14 +521,14 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   padding: 0 12px;
   font-family: var(--font-family);
   font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: .02em;
-  border-radius: 0;
+  font-weight: 700;
+  letter-spacing: .01em;
+  border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
   line-height: 1;
   text-decoration: none;
-  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+  transition: all 0.15s ease;
   user-select: none;
 }
 .btn-moov-action:active {
@@ -541,35 +539,35 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   display: block;
 }
 .btn-moov-action.primary {
-  background: var(--moov-green);
-  color: var(--moov-navy);
-  border: 1px solid var(--moov-green);
+  background: #121624;
+  color: #ffffff;
+  border: 1px solid #121624;
 }
 .btn-moov-action.primary:hover {
-  background: var(--moov-green-hover);
-  border-color: var(--moov-green-hover);
+  background: #1e293b;
+  border-color: #1e293b;
   color: #ffffff;
   text-decoration: none;
 }
 .btn-moov-action.secondary {
   background: #ffffff;
-  color: var(--mv-ink);
-  border: 1px solid var(--mv-hairline-2);
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
 }
 .btn-moov-action.secondary:hover {
-  background: var(--mv-surface, #f8fafc);
-  border-color: var(--mv-ink);
-  color: var(--mv-ink);
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
   text-decoration: none;
 }
 .btn-moov-action.danger {
   background: #ffffff;
-  color: var(--moov-red);
-  border: 1px solid var(--moov-red);
+  color: #ef4444;
+  border: 1px solid #fecaca;
 }
 .btn-moov-action.danger:hover {
-  background: var(--mv-magenta-bg);
-  color: var(--moov-red);
+  background: #fef2f2;
+  color: #b91c1c;
   text-decoration: none;
 }
 
@@ -582,20 +580,20 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   padding: 0 10px;
   font-family: var(--font-family);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: .06em;
   text-transform: uppercase;
   background: #ffffff;
-  color: var(--mv-ink);
-  border: 1px solid var(--mv-hairline-2);
-  border-radius: 0;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all .12s;
+  transition: all .15s ease;
 }
 .btn-moov-refresh:hover {
-  background: var(--mv-surface);
-  border-color: var(--moov-green-hover);
-  color: var(--moov-green-hover);
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
 }
 .btn-moov-refresh svg {
   transition: transform .3s ease;

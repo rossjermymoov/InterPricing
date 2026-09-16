@@ -5,16 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>International Rate Card</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<style>
 /* ============================================================================
-   MoovOS Design System (Strict Modernist Rules + Moov Color Palette)
-   - Zero border radius anywhere.
-   - Primary brand accent: #1DFB9D (Moov Green), hover #04A562, inactive #1A745B.
-   - Dark surfaces & text: #171B2D (Moov Navy), #12141D (Navy Alt), #3F4253 (Slate).
-   - Accents: #CD1D69 (Moov Red), #4103CC / #6F4B9F (Purple), #276E93 (Blue), #FECA00 (Yellow).
-   - Archivo typography, flush left, tabular numerals.
+   Moov Enterprise Design System (Slick Modern Executive Theme)
+   - Inter / Roboto typography, high precision.
+   - Primary brand accent: #1DFB9D (Moov Green), hover #04A562.
+   - Dark surfaces & text: #121624 (Moov Navy), #0b0e14 (Background), #1e293b (Slate).
    ============================================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
 :root {
   /* Brand */
@@ -23,54 +20,38 @@
   --moov-green-inactive: #1A745B;
 
   /* Neutrals / Dark UI */
-  --moov-navy:           #171B2D;
-  --moov-navy-alt:       #12141D;
-  --moov-slate:          #3F4253;
-  --moov-grey:           #454957;
-  --moov-grey-light:     #C6C7CD;
-  --moov-grey-muted:     #9FA2B4;
-  --moov-border:         #DFE0EB;
+  --moov-navy:           #121624;
+  --moov-navy-alt:       #0c0f18;
+  --moov-slate:          #1e293b;
+  --moov-grey:           #475569;
+  --moov-grey-light:     #cbd5e1;
+  --moov-grey-muted:     #94a3b8;
+  --moov-border:         #e2e8f0;
   --moov-white:          #FFFFFF;
   --moov-white-alt:      #FDFFFF;
 
   /* Accents */
-  --moov-red:            #CD1D69;
-  --moov-purple:         #4103CC;
-  --moov-purple-light:   #6F4B9F;
-  --moov-blue:           #276E93;
-  --moov-yellow:         #FECA00;
+  --moov-red:            #ef4444;
+  --moov-purple:         #6366f1;
+  --moov-purple-light:   #818cf8;
+  --moov-blue:           #0ea5e9;
+  --moov-yellow:         #f59e0b;
 
   /* Functional Mappings */
-  --mv-bg:               #f4f5f8;
-  --mv-surface:          #ffffff;
+  --mv-bg:               #0b0e14;
+  --mv-surface:          #f8fafc;
   --mv-surface-light:    #ffffff;
-  --mv-ink:              var(--moov-navy);
-  --mv-divider:          var(--moov-border);
-  --mv-hairline:         rgba(23, 27, 45, .10);
-  --mv-hairline-2:        rgba(23, 27, 45, .20);
+  --mv-ink:              #0f172a;
+  --mv-divider:          #e2e8f0;
+  --mv-hairline:         #f1f5f9;
+  --mv-hairline-2:       #e2e8f0;
 
-  --mv-green:            var(--moov-green);
-  --mv-green-hover:      var(--moov-green-hover);
-  --mv-green-deep:       #0A8F43;
+  --mv-green:            #1DFB9D;
+  --mv-green-hover:      #04A562;
+  --mv-green-deep:       #059669;
   --mv-green-bg:         rgba(29, 251, 157, .12);
 
-  --mv-purple:           var(--moov-purple);
-  --mv-purple-600:       #3102A0;
-  --mv-purple-100:       #F2EEFC;
-  --mv-purple-200:       #E0D4FA;
-
-  --mv-magenta:          var(--moov-red);
-  --mv-magenta-deep:     #9E0C4E;
-  --mv-magenta-bg:       rgba(205, 29, 105, .08);
-
-  --mv-teal:             var(--moov-blue);
-  --mv-teal-deep:        #1A516E;
-
-  --mv-ink-45:           var(--moov-grey-muted);
-  --mv-ink-55:           var(--moov-grey);
-  --mv-ink-75:           var(--moov-slate);
-
-  --font-family:         'Archivo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-family:         'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   /* Legacy mappings */
   --brand:               var(--moov-navy);
@@ -89,26 +70,22 @@
   --bg:                  var(--mv-bg);
   --card:                var(--mv-surface-light);
   --card-subtle:         var(--mv-surface);
-  --line:                var(--mv-hairline);
+  --line:                var(--mv-hairline-2);
   --line-strong:         var(--mv-divider);
   --muted:               var(--moov-grey);
   --muted-light:         var(--moov-grey-muted);
-  --ink:                 var(--moov-navy);
-  --ink-soft:            var(--moov-slate);
-  --shadow-sm:           none;
-  --shadow-md:           none;
-  --shadow-lg:           none;
+  --ink:                 var(--mv-ink);
+  --ink-soft:            var(--moov-grey);
 }
 
 *, *::before, *::after {
   box-sizing: border-box;
-  border-radius: 0 !important;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background: var(--mv-bg);
+  background: #0b0e14;
   color: var(--mv-ink);
   font-family: var(--font-family);
   font-size: 14px;
@@ -121,21 +98,18 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 :focus-visible { outline: 2px solid var(--moov-green); outline-offset: 2px; }
 ::selection { background: var(--moov-green); color: var(--moov-navy); }
 
-.mv-num { font-variant-numeric: tabular-nums; }
+.mv-num { font-variant-numeric: tabular-nums; font-family: 'JetBrains Mono', monospace; }
 
-/* ===== HERO HEADER (COMPACT MOOV OS BANNER) ===== */
+/* ===== HERO HEADER (ENTERPRISE SLICK DARK HEADER) ===== */
 .hero {
-  background: var(--moov-navy);
+  background: #121624;
   color: #fff;
-  padding: 12px 28px 14px;
-  border-bottom: 3px solid transparent;
-  background-image: linear-gradient(var(--moov-navy), var(--moov-navy)), linear-gradient(90deg, var(--moov-green), var(--moov-red));
-  background-origin: border-box;
-  background-clip: padding-box, border-box;
+  padding: 16px 28px;
+  border-bottom: 1px solid #1e293b;
 }
 .hero .inner {
   width: 100%;
-  max-width: 1680px;
+  max-width: 1480px;
   margin: 0 auto;
 }
 .hero .top {
@@ -146,62 +120,45 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   width: 100%;
   flex-wrap: wrap;
 }
-.brandlogo {
-  height: 26px;
-  width: auto;
-  display: block;
-}
-.brandlogo.fallback {
-  font-weight: 800;
-  font-size: 22px;
-  letter-spacing: -.035em;
-  color: #fff;
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-.brandlogo.fallback .dot {
-  width: 7px;
-  height: 7px;
-  background: var(--mv-green);
-  display: inline-block;
-}
 
-/* ===== VIEW TABS (MOOV OS MODERN TOGGLE) ===== */
+/* ===== VIEW TABS (PILL SWITCHER) ===== */
 .tabs {
   display: inline-flex;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 2px;
+  background: #0c0f18;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px;
   margin: 0;
-  gap: 2px;
+  gap: 4px;
+  border-radius: 8px;
 }
 .tabs button {
   border: 0;
   background: transparent;
-  color: #cbd5e1;
-  font-weight: 700;
+  color: #94a3b8;
+  font-weight: 600;
   font-size: 12.5px;
-  padding: 6px 14px;
+  padding: 7px 16px;
   cursor: pointer;
   font-family: inherit;
+  border-radius: 6px;
   transition: all 0.12s ease;
 }
 .tabs button.active {
-  background: #ffffff;
-  color: var(--mv-ink);
+  background: #1DFB9D;
+  color: #121624;
   font-weight: 800;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 .tabs button:not(.active):hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
 }
 
-/* ===== MAIN RATES LAYOUT (WIDENED 20% & ABOVE-THE-FOLD) ===== */
+/* ===== MAIN RATES LAYOUT ===== */
 .rates-container {
   width: 100%;
-  max-width: 1680px;
-  padding: 16px 24px 40px;
+  max-width: 1480px;
+  padding: 24px 24px 48px;
   margin: 0 auto;
   box-sizing: border-box;
 }
@@ -209,7 +166,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  gap: 20px;
+  gap: 24px;
   width: 100%;
 }
 .pricing-main {
@@ -218,23 +175,24 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   width: 100%;
 }
 
-/* ===== MOOV OS SECTION & FIGURE CONTAINERS ===== */
+/* ===== SECTION & CARD CONTAINERS ===== */
 .calc-card {
-  background: var(--mv-surface-light);
-  border: 1px solid var(--mv-hairline-2);
-  border-top: 2px solid var(--mv-divider);
-  padding: 16px 22px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 22px 26px;
   width: 100%;
   box-sizing: border-box;
   position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 .calc-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
-  border-bottom: 2px solid var(--mv-divider);
-  padding-bottom: 10px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 14px;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -489,42 +447,43 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   margin: 18px 0 6px;
 }
 
-/* ===== RATE CARDS (MOOV OS MODERNIST 3-COLUMN CARDS) ===== */
+/* ===== RATE CARDS (SLICK MODERN 3-COLUMN CARDS) ===== */
 .cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 18px;
+  gap: 20px;
+  margin-top: 20px;
   width: 100%;
 }
 @media(max-width: 1100px) {
   .cards { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
 }
-.card {
-  background: var(--mv-surface-light);
-  border: 1px solid var(--mv-hairline-2);
-  border-top: 2px solid var(--mv-divider);
-  padding: 16px 18px;
+.card, .qcard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 22px 20px;
   position: relative;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   box-sizing: border-box;
-  transition: border-color .12s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: all .15s ease;
 }
-.card:hover { border-color: var(--mv-ink); }
-.card.win {
-  border-top: 3px solid var(--mv-green);
-  border-color: var(--mv-green-deep);
+.card:hover, .qcard:hover { 
+  border-color: #94a3b8;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.card.win, .qcard.win {
+  border: 2px solid #121624;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
 }
 .card.fast {
-  border-top: 3px solid var(--mv-teal);
-}
-.card.win.fast {
-  border-top: 3px solid var(--mv-green);
-  border-left: 3px solid var(--mv-teal);
+  border-color: #cbd5e1;
 }
 .card.na {
-  background: var(--mv-surface);
+  background: #f8fafc;
   border-style: dashed;
   opacity: .7;
 }
@@ -534,10 +493,10 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 .card .cmark {
-  height: 24px;
+  height: 28px;
   width: auto;
   max-width: 80px;
   object-fit: contain;
@@ -546,38 +505,41 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 
 .cbadge {
   display: inline-block;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
   color: #fff;
-  padding: 2px 7px;
-  letter-spacing: .08em;
+  padding: 3px 8px;
+  letter-spacing: .06em;
   text-transform: uppercase;
+  border-radius: 4px;
 }
 .cbadge.dpd { background: var(--dpd); }
 .cbadge.ups { background: var(--moov-navy); }
 .cbadge.dhl { background: var(--dhl); }
 
 .card .svc {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
-  color: var(--mv-ink);
+  color: #121624;
   margin: 4px 0 0;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
-/* Big Square Vehicle & Transit Box */
+/* Transit Box */
 .qeta {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 10px 0 8px;
-  padding: 8px 10px;
-  background: var(--mv-surface);
-  border: 1px solid var(--mv-hairline-2);
+  gap: 12px;
+  margin: 12px 0 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
 }
 .qeta .veh {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -725,54 +687,54 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 }
 .btn-drop-finder:hover {
   background: var(--mv-surface);
-  border-color: var(--mv-ink);
-}
-
-/* ===== MOOV OS BUTTONS ===== */
+/* ===== BUTTONS (SLICK ENTERPRISE) ===== */
 .btn, .ds-btn {
   font-family: var(--font-family);
   font-weight: 700;
   font-size: 13px;
-  padding: 8px 16px;
+  padding: 10px 18px;
+  border-radius: 8px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--mv-ink);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  transition: all .12s;
+  transition: all .15s ease;
 }
 .btn.primary, .ds-btn-primary {
-  background: var(--moov-green);
-  color: var(--moov-navy);
-  border-color: var(--moov-green);
-  font-weight: 800;
+  background: #121624;
+  color: #ffffff;
+  border-color: #121624;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 .btn.primary:hover, .ds-btn-primary:hover {
-  background: var(--moov-green-hover);
-  border-color: var(--moov-green-hover);
+  background: #1e293b;
+  border-color: #1e293b;
   color: #ffffff;
 }
 .btn.ghost, .ds-btn-secondary {
-  border-color: var(--mv-divider);
-  background: transparent;
-  color: var(--mv-ink);
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
 }
 .btn.ghost:hover, .ds-btn-secondary:hover {
-  background: rgba(23, 27, 45, .06);
-  border-color: var(--mv-ink);
+  background: #f1f5f9;
+  border-color: #94a3b8;
 }
 .btn.danger, .ds-btn-danger {
-  border-color: var(--moov-red);
-  color: var(--moov-red);
-  background: transparent;
+  border-color: #fecaca;
+  color: #ef4444;
+  background: #fef2f2;
 }
 .btn.danger:hover, .ds-btn-danger:hover {
-  background: var(--mv-magenta-bg);
+  background: #fee2e2;
 }
 
-/* ===== MOOV OS UNIFIED ACTION BUTTONS & BADGES ===== */
+/* ===== UNIFIED ACTION BUTTONS ===== */
 .btn-moov-action {
   box-sizing: border-box;
   display: inline-flex;
@@ -780,57 +742,45 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   justify-content: center;
   gap: 7px;
   height: 34px;
-  padding: 0 13px;
+  padding: 0 14px;
   font-family: var(--font-family);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: .02em;
-  border-radius: 0;
+  font-weight: 700;
+  letter-spacing: .01em;
+  border-radius: 6px;
   cursor: pointer;
   white-space: nowrap;
   line-height: 1;
   text-decoration: none;
-  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+  transition: all 0.15s ease;
   user-select: none;
 }
-.btn-moov-action:active {
-  transform: translateY(1px);
-}
-.btn-moov-action svg {
-  flex-shrink: 0;
-  display: block;
-}
 .btn-moov-action.primary {
-  background: var(--moov-green);
-  color: var(--moov-navy);
-  border: 1px solid var(--moov-green);
+  background: #121624;
+  color: #ffffff;
+  border: 1px solid #121624;
 }
 .btn-moov-action.primary:hover {
-  background: var(--moov-green-hover);
-  border-color: var(--moov-green-hover);
+  background: #1e293b;
+  border-color: #1e293b;
   color: #ffffff;
-  text-decoration: none;
 }
 .btn-moov-action.secondary {
   background: #ffffff;
-  color: var(--mv-ink);
-  border: 1px solid var(--mv-hairline-2);
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
 }
 .btn-moov-action.secondary:hover {
-  background: var(--mv-surface, #f8fafc);
-  border-color: var(--mv-ink);
-  color: var(--mv-ink);
-  text-decoration: none;
+  background: #f8fafc;
+  border-color: #94a3b8;
 }
 .btn-moov-action.danger {
   background: #ffffff;
-  color: var(--moov-red);
-  border: 1px solid var(--moov-red);
+  color: #ef4444;
+  border: 1px solid #fecaca;
 }
 .btn-moov-action.danger:hover {
-  background: var(--mv-magenta-bg);
-  color: var(--moov-red);
-  text-decoration: none;
+  background: #fef2f2;
 }
 
 .btn-moov-refresh {
@@ -1554,39 +1504,40 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   padding: 0 0 60px;
 }
 .panel {
-  background: var(--mv-surface-light);
-  border: 1px solid var(--mv-hairline-2);
-  border-top: 2px solid var(--mv-divider);
-  padding: 22px 26px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 24px 28px;
   margin-top: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
-.phead { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.phead .pn { width: 22px; height: 22px; flex: none; background: var(--moov-navy); color: var(--moov-green); font-weight: 800; font-size: 11px; display: inline-flex; align-items: center; justify-content: center; }
-.phead h3 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; }
-.phead .sub { margin: 0 0 0 auto; font-size: 12px; color: var(--mv-ink-55); }
+.phead { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.phead .pn { width: 26px; height: 26px; border-radius: 6px; flex: none; background: #121624; color: #1DFB9D; font-weight: 800; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; }
+.phead h3 { margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; font-weight: 800; color: #121624; }
+.phead .sub { margin: 0 0 0 auto; font-size: 12px; color: #64748b; }
 
 .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 760px) { .duo { grid-template-columns: 1fr; } }
-.party { border: 1px solid var(--mv-hairline-2); border-top: 3px solid var(--mv-divider); padding: 18px; background: #fff; }
-.party:first-child { border-top-color: var(--moov-red); }
-.party:last-child { border-top-color: var(--moov-green); }
-.plab { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--mv-ink); margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+.party { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; background: #f8fafc; }
+.party:first-child { border-top: 3px solid #ef4444; }
+.party:last-child { border-top: 3px solid #10b981; }
+.plab { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #121624; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
 .pfields { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .pfields .f { margin: 0; }
 .pfields .span2 { grid-column: 1 / -1; }
 
-.iparcel { border: 1px solid var(--mv-hairline-2); padding: 16px 20px 18px; margin-bottom: 12px; position: relative; background: #fff; }
-.iparcel .pbadge { font-size: 9.5px; font-weight: 800; color: var(--mv-ink-55); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 12px; display: block; }
+.iparcel { border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px 22px; margin-bottom: 14px; position: relative; background: #f8fafc; }
+.iparcel .pbadge { font-size: 10px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 12px; display: block; }
 .ipgrid { display: flex; flex-wrap: wrap; gap: 16px 20px; align-items: flex-end; width: 100%; }
 .ipgrid .f input, .ipgrid .f select { width: 100%; }
-.iparcel .f input.ipfix { background: var(--mv-surface); color: var(--mv-ink-55); cursor: not-allowed; }
-.rmP { position: absolute; top: 10px; right: 10px; border: 1px solid var(--mv-hairline-2); background: #fff; width: 26px; height: 26px; cursor: pointer; color: var(--moov-red); font-size: 14px; line-height: 1; }
-.rmP:hover { background: var(--mv-magenta-bg); border-color: var(--moov-red); }
-.addP { border: 1px solid var(--mv-divider); background: #fff; color: var(--mv-ink); font-weight: 700; font-size: 12.5px; padding: 8px 16px; cursor: pointer; font-family: inherit; }
-.addP:hover { background: rgba(23,27,45,.05); border-color: var(--mv-ink); }
+.iparcel .f input.ipfix { background: #f1f5f9; color: #64748b; cursor: not-allowed; }
+.rmP { position: absolute; top: 12px; right: 12px; border: 1px solid #fecaca; background: #fff; width: 28px; height: 28px; border-radius: 6px; cursor: pointer; color: #ef4444; font-size: 14px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.rmP:hover { background: #fef2f2; border-color: #ef4444; }
+.addP { border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; color: #121624; font-weight: 700; font-size: 12.5px; padding: 8px 16px; cursor: pointer; font-family: inherit; transition: all .15s ease; }
+.addP:hover { background: #f1f5f9; border-color: #94a3b8; }
 .iactions { display: flex; align-items: center; gap: 14px; margin-top: 24px; flex-wrap: wrap; }
-.print { display: inline-flex; gap: 8px; align-items: center; background: var(--moov-green); color: var(--moov-navy); border: 0; padding: 10px 22px; font-weight: 800; cursor: pointer; font-size: 13.5px; font-family: inherit; }
-.print:hover { background: var(--moov-green-hover); color: #fff; }
+.print { display: inline-flex; gap: 8px; align-items: center; background: #121624; color: #ffffff; border: 0; padding: 12px 24px; font-weight: 700; border-radius: 8px; cursor: pointer; font-size: 13.5px; font-family: inherit; transition: all .15s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.print:hover { background: #1e293b; }
 
 /* ===== MODALS (MOOV OS STRICT MODERNIST) ===== */
 .modal {
