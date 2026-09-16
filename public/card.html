@@ -39,8 +39,8 @@
   --moov-yellow:         #f59e0b;
 
   /* Functional Mappings */
-  --mv-bg:               #0b0e14;
-  --mv-surface:          #f8fafc;
+  --mv-bg:               #f4f5f8;
+  --mv-surface:          #ffffff;
   --mv-surface-light:    #ffffff;
   --mv-ink:              #0f172a;
   --mv-divider:          #e2e8f0;
@@ -86,8 +86,8 @@
 body {
   margin: 0;
   padding: 0;
-  background: #0b0e14;
-  color: var(--mv-ink);
+  background: #f4f5f8;
+  color: #0f172a;
   font-family: var(--font-family);
   font-size: 14px;
   line-height: 1.55;
@@ -236,23 +236,23 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   white-space: nowrap;
 }
 .f input, .f select {
-  padding: 7px 0;
-  border: 0;
-  border-bottom: 1px solid var(--mv-hairline-2);
-  background: transparent;
-  font-size: 14px;
-  color: var(--mv-ink);
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  font-size: 13.5px;
+  color: #0f172a;
   font-family: inherit;
   width: 100%;
   outline: 0;
-  transition: border-color .12s;
+  transition: all .15s ease;
 }
 .f input:hover, .f select:hover {
-  border-bottom-color: var(--mv-ink);
+  border-color: #94a3b8;
 }
 .f input:focus, .f select:focus {
-  border-bottom-color: var(--mv-purple);
-  box-shadow: 0 1px 0 var(--mv-purple);
+  border-color: #121624;
+  box-shadow: 0 0 0 2px rgba(29, 251, 157, 0.4);
 }
 
 .f.country { flex: 2 1 240px; min-width: 200px; }
@@ -688,6 +688,8 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 }
 .btn-drop-finder:hover {
   background: var(--mv-surface);
+}
+
 /* ===== BUTTONS (SLICK ENTERPRISE) ===== */
 .btn, .ds-btn {
   font-family: var(--font-family);
@@ -1781,9 +1783,9 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 }
 .sd-van-card {
   background: #ffffff;
-  border: 1.5px solid var(--mv-hairline-2);
-  border-radius: 0 !important;
-  padding: 16px 12px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 10px 12px;
   text-align: center;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -1792,20 +1794,20 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  min-height: 140px;
-  aspect-ratio: 1 / 1.05;
+  min-height: 120px;
   position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 .sd-van-card:hover {
-  border-color: var(--mv-ink);
-  background: #fbfcfd;
+  border-color: #94a3b8;
+  background: #f8fafc;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(23, 27, 45, 0.06);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 .sd-van-card.selected {
-  border: 2px solid var(--moov-green) !important;
+  border: 2px solid #1DFB9D !important;
   background: rgba(29, 251, 157, 0.08);
-  box-shadow: 0 0 0 1px var(--moov-green), 0 4px 14px rgba(29, 251, 157, 0.15);
+  box-shadow: 0 0 0 1px #1DFB9D, 0 4px 14px rgba(29, 251, 157, 0.15);
 }
 .sd-van-card.selected::after {
   content: '✓ SELECTED';
@@ -1814,40 +1816,42 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   right: 6px;
   font-size: 8.5px;
   font-weight: 900;
-  color: var(--moov-navy);
-  background: var(--moov-green);
-  padding: 1px 4px;
+  color: #121624;
+  background: #1DFB9D;
+  padding: 2px 6px;
+  border-radius: 4px;
   letter-spacing: .04em;
 }
 .sd-van-img-wrap {
   width: 100%;
-  height: 62px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  overflow: hidden;
 }
 .sd-van-img {
-  max-width: 90%;
-  max-height: 58px;
+  max-width: 85px;
+  max-height: 44px;
   object-fit: contain;
   transition: transform 0.2s ease;
 }
 .sd-van-card:hover .sd-van-img,
 .sd-van-card.selected .sd-van-img {
-  transform: scale(1.06);
+  transform: scale(1.05);
 }
 .sd-van-name {
   font-weight: 800;
-  font-size: 13px;
-  color: var(--mv-ink);
+  font-size: 12.5px;
+  color: #0f172a;
   white-space: nowrap;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 .sd-van-desc {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  color: var(--mv-ink-55);
+  color: #64748b;
   margin-top: 3px;
   white-space: nowrap;
 }
@@ -1859,49 +1863,51 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 }
 .sd-stop-card {
   background: #ffffff;
-  border: 1px solid var(--mv-hairline-2);
-  border-radius: 0 !important;
-  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 .sd-stop-card.pickup {
-  border-top: 3px solid var(--mv-purple);
+  border-top: 3px solid #6366f1;
 }
 .sd-stop-card.drop {
-  border-top: 3px solid var(--moov-green);
+  border-top: 3px solid #10b981;
 }
 .sd-stop-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .sd-stop-tag {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: .06em;
 }
-.sd-stop-tag.pickup { color: var(--mv-purple); }
-.sd-stop-tag.drop { color: var(--moov-green-hover); }
+.sd-stop-tag.pickup { color: #4f46e5; }
+.sd-stop-tag.drop { color: #059669; }
 .sd-inputs-row {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 .sd-quote-panel {
   background: #ffffff;
-  border: 1px solid var(--mv-hairline-2);
-  border-top: 3px solid var(--moov-green);
-  border-radius: 0 !important;
-  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-top: 3px solid #1DFB9D;
+  border-radius: 12px;
+  padding: 18px;
   position: sticky;
   top: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .sd-price-big {
-  font-size: 36px;
+  font-size: 34px;
   font-weight: 900;
-  color: var(--moov-navy);
+  color: #121624;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -1912,27 +1918,29 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   flex-direction: column;
 }
 .sd-label {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: .08em;
-  color: var(--mv-ink-75);
+  color: #475569;
   margin-bottom: 4px;
 }
 .sd-input, .sd-select {
   width: 100%;
-  height: 34px;
-  border: 1px solid var(--mv-hairline-2);
-  background: #fff;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
   padding: 0 10px;
   font-family: inherit;
   font-size: 13px;
-  color: var(--mv-ink);
+  color: #0f172a;
   box-sizing: border-box;
+  transition: all .15s ease;
 }
 .sd-input:focus, .sd-select:focus {
-  border-color: var(--moov-green-hover);
-  outline: 2px solid var(--moov-green);
+  border-color: #121624;
+  outline: 2px solid #1DFB9D;
 }
 </style>
 <link rel="stylesheet" href="/vendor/leaflet/leaflet.css"/>
