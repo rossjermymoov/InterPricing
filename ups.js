@@ -68,6 +68,18 @@ const COUNTRY_DEFAULTS = {
   'NZ': { city: 'Auckland', postcode: '1010' },
   'AE': { city: 'Dubai', postcode: '00000' },
   'SA': { city: 'Riyadh', postcode: '11564' },
+  'HN': { city: 'Tegucigalpa', postcode: '11101' },
+  'GT': { city: 'Guatemala City', postcode: '01001' },
+  'CR': { city: 'San Jose', postcode: '10101' },
+  'PA': { city: 'Panama City', postcode: '0801' },
+  'SV': { city: 'San Salvador', postcode: '1101' },
+  'NI': { city: 'Managua', postcode: '11001' },
+  'MX': { city: 'Mexico City', postcode: '01000' },
+  'CO': { city: 'Bogota', postcode: '110111' },
+  'PE': { city: 'Lima', postcode: '15001' },
+  'CL': { city: 'Santiago', postcode: '8320000' },
+  'AR': { city: 'Buenos Aires', postcode: 'C1002' },
+  'BR': { city: 'Sao Paulo', postcode: '01000-000' },
 };
 
 function usZipToState(zip) {
