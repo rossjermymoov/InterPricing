@@ -1082,13 +1082,13 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 .ds-modal-scrim {
   position: fixed;
   inset: 0;
-  background: rgba(23, 27, 45, .6);
-  backdrop-filter: blur(2px);
+  background: rgba(23, 27, 45, .7);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  z-index: 99;
+  z-index: 9999;
 }
 .ds-modal {
   background: var(--mv-surface);
@@ -1099,6 +1099,21 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   max-height: 90vh;
   display: flex;
   flex-direction: column;
+  margin: auto;
+}
+#setup.ds-modal-scrim, #login.ds-modal-scrim {
+  position: fixed;
+  inset: 0;
+  background: #171b2d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+#setup .ds-modal, #login .ds-modal {
+  margin: auto;
+  box-shadow: 0 24px 60px rgba(0,0,0,.45);
+  border-radius: 4px;
 }
 .ds-modal-head {
   padding: 20px 24px 12px;
@@ -3746,7 +3761,11 @@ const SCREENS=['loading','setup','login','app','sameday','cards','shipments','se
 function screen(id){
   SCREENS.forEach(s=>$(s).style.display='none');
   const authed=(id==='app'||id==='sameday'||id==='cards'||id==='shipments'||id==='settings'||id==='quotes'||id==='collection');
-  $(id).style.display='block';
+  if(id==='setup'||id==='login'||id==='loading'){
+    $(id).style.display='flex';
+  } else {
+    $(id).style.display='block';
+  }
   $('hdr').style.display=authed?'flex':'none';
   if(!authed){
     $('pwPanel').style.display='none';

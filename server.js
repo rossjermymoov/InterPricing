@@ -2308,6 +2308,20 @@ app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 
 initDbAndListen();
 async function initDbAndListen() {
-  try { await db.initDb(); } catch (e) { console.error('[server] initDb error:', e.message); }
+  try {
+    await db.initDb();
+    if (process.env.ADMIN_PASSWORD && db.hasDb) {
+      const adminEmail = (process.env.ADMIN_EMAIL || 'ross@moovparcel.com').trim().toLowerCase();
+      const existing = await db.getUserByEmail(adminEmail);
+      const password_hash = await auth.hashPassword(process.env.ADMIN_PASSWORD);
+      if (existing) {
+        await db.updateUser(existing.id, { password_hash, role: 'admin' });
+        console.log(`[auth] Reset admin password for ${adminEmail} via ADMIN_PASSWORD.`);
+      } else {
+        await db.createUser({ email: adminEmail, name: 'Ross Jermy', password_hash, role: 'admin' });
+        console.log(`[auth] Created admin user ${adminEmail} via ADMIN_PASSWORD.`);
+      }
+    }
+  } catch (e) { console.error('[server] initDb error:', e.message); }
   app.listen(PORT, () => console.log('International Rate Calculator listening on port ' + PORT));
 }
