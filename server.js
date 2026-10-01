@@ -11,6 +11,8 @@ const { nameToIso } = require('./countries');
 const surcharges = require('./surcharges');
 const crownClient = require('./lib/crownsds');
 const sse = require('./lib/sse');
+const billing = require('./lib/billing');
+const returnLabel = require('./lib/returnLabel');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -293,6 +295,166 @@ app.put('/api/card/:token/addressbook', async (req, res) => {
     await db.updateCard(card.id, { config });
     res.json({ ok: true, addressBook: list });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// PUBLIC: Live quote for customer returns using Billing API (DPD & Yodel)
+app.post('/api/card/:token/returns/quote', async (req, res) => {
+  try {
+    if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
+    const card = await db.getCardByToken(req.params.token);
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available.' });
+
+    const cfg = card.config || {};
+    const { shipFrom, parcels } = req.body || {};
+    if (!shipFrom || !shipFrom.postcode) {
+      return res.status(400).json({ error: 'Origin sender postcode is required' });
+    }
+
+    const da = cfg.deliveryAddress || {};
+    const shipTo = {
+      name: da.name || cfg.contactName || 'Returns Department',
+      company: card.customer || da.company || 'Warehouse',
+      line1: da.line1 || 'Main Warehouse',
+      line2: da.line2 || '',
+      city: da.city || 'Birmingham',
+      postcode: da.postcode || 'B66 1BY',
+      county: da.county || '',
+      country: da.country || 'GB',
+      phone: da.phone || cfg.phone || '',
+      email: da.email || cfg.email || '',
+    };
+
+    const markupPct = cfg.returnsMarkupPct != null ? Number(cfg.returnsMarkupPct) : 15;
+
+    const quoteRes = await billing.fetchBillingQuote({
+      clientName: cfg.billingClientName || process.env.BILLING_CLIENT_NAME,
+      customerDcId: cfg.billingCustomerDcId || process.env.BILLING_CUSTOMER_DC_ID,
+      customerKey: cfg.billingCustomerKey || process.env.BILLING_CUSTOMER_KEY,
+      authCompany: cfg.voilaAuthCompany || process.env.VOILA_AUTH_COMPANY,
+      endpointUrl: cfg.billingEndpointUrl || process.env.BILLING_ENDPOINT_URL,
+      shipFrom,
+      shipTo,
+      parcels: (Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15 }],
+      markupPct,
+    });
+
+    res.json({
+      ok: true,
+      services: quoteRes.services,
+      dpd: quoteRes.dpd,
+      yodel: quoteRes.yodel,
+      destination: shipTo,
+    });
+  } catch (err) {
+    console.error('[returns/quote error]', err.message);
+    res.status(500).json({ error: err.message || 'Failed to fetch return quote' });
+  }
+});
+
+// PUBLIC: Book a return label (DPD-12DROPQR or YODC2C)
+app.post('/api/card/:token/returns/book', async (req, res) => {
+  try {
+    if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
+    const card = await db.getCardByToken(req.params.token);
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available.' });
+
+    const cfg = card.config || {};
+    const { courier, serviceCode, serviceName, sellPrice, costPrice, sender, parcels, rawQrImage, rawLabelImage } = req.body || {};
+
+    const da = cfg.deliveryAddress || {};
+    const receiver = {
+      name: da.name || cfg.contactName || 'Returns Department',
+      company: card.customer || da.company || 'Warehouse',
+      line1: da.line1 || 'Main Warehouse',
+      line2: da.line2 || '',
+      city: da.city || 'Birmingham',
+      postcode: da.postcode || 'B66 1BY',
+      county: da.county || '',
+      country: da.country || 'GB',
+      phone: da.phone || cfg.phone || '',
+      email: da.email || cfg.email || '',
+    };
+
+    const isDpd = String(courier).toUpperCase() === 'DPD';
+    const cName = isDpd ? 'DPD' : 'YODEL';
+    const actualCode = isDpd ? (serviceCode || 'DPD-12DROPQR') : (serviceCode || 'YODC2C');
+    const actualName = serviceName || (isDpd ? 'DPD Drop Off Next Day (QR & Label)' : 'Yodel Direct Return (C2C)');
+
+    const trackingNumber = returnLabel.generateReturnTrackingNumber(cName);
+
+    const pkgs = (Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15 }];
+    const totalWeight = pkgs.reduce((sum, p) => sum + (Number(p.weight || p.weightKg) || 1.5), 0);
+
+    // Generate bespoke Moov Parcel return label SVG
+    const labelSvg = returnLabel.generateReturnLabelSvg({
+      courier: cName,
+      trackingNumber,
+      serviceName: actualName,
+      serviceCode: actualCode,
+      sender: sender || {},
+      receiver,
+      weightKg: totalWeight,
+      piece: 1,
+      totalPieces: pkgs.length,
+      rawQrImage: rawQrImage || null,
+      rawLabelImage: rawLabelImage || null,
+    });
+
+    const labelBase64 = 'data:image/svg+xml;utf8,' + encodeURIComponent(labelSvg);
+
+    const shipmentRecord = {
+      shipment_id: 'ret_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+      tracking_number: trackingNumber,
+      status: 'booked',
+      mode: 'return',
+      carrier: cName,
+      service_code: actualCode,
+      service_name: actualName,
+      card_id: card.id,
+      customer: card.customer,
+      token: card.token,
+      sender: sender || {},
+      receiver,
+      packages: pkgs.map((p, idx) => ({
+        trackingNumber: trackingNumber,
+        labelGraphic: labelBase64,
+        weight: p.weight || p.weightKg || 1.5,
+        l: p.l || 30,
+        w: p.w || 20,
+        h: p.h || 15,
+        packaging: 'custom',
+      })),
+      total_weight_kg: totalWeight,
+      goods_value: 0,
+      cost_price: Number(costPrice) || Number(sellPrice) || 5.0,
+      sell_price: Number(sellPrice) || 5.75,
+      prn: null,
+      label_base64: labelBase64,
+      documents_attached: null,
+      response: {
+        courier: cName,
+        serviceCode: actualCode,
+        serviceName: actualName,
+        trackingNumber,
+        qrCodeUrl: `https://track.moovparcel.com/r/${trackingNumber}`,
+        created_at: new Date().toISOString(),
+      },
+      created_by: card.created_by || null,
+    };
+
+    const saved = await db.createShipmentRecord(shipmentRecord);
+
+    res.json({
+      ok: true,
+      shipment: saved || shipmentRecord,
+      trackingNumber,
+      labelBase64,
+      labelSvg,
+    });
+  } catch (err) {
+    console.error('[returns/book error]', err.message);
+    res.status(500).json({ error: err.message || 'Failed to book return shipment' });
+  }
 });
 // ADMIN: test a postcode against the courier pickup API (diagnose + reveal response shape).
 app.post('/api/pickups-test', auth.requireAdmin, async (req, res) => {

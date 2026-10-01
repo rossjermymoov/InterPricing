@@ -155,6 +155,44 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* Returns & Create Menu Styles */
+.create-opt:hover {
+  background: rgba(29, 251, 157, 0.12) !important;
+  color: var(--moov-green) !important;
+}
+.return-service-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+.return-service-card:hover {
+  border-color: #94a3b8;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+.return-service-card.selected {
+  border-color: #121624;
+  background: #f8fafc;
+  box-shadow: 0 0 0 2px var(--moov-green);
+}
+.return-select-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  background: #f1f5f9;
+  color: #475569;
+  transition: all 0.15s ease;
+}
+.return-service-card.selected .return-select-badge {
+  background: var(--moov-green);
+  color: #121624;
+}
+
 /* ===== MAIN RATES LAYOUT ===== */
 .rates-container {
   width: 100%;
@@ -1963,12 +2001,44 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           <div style="height:20px;width:1px;background:rgba(255,255,255,0.2)"></div>
           <h1 id="title" style="margin:0;font-size:16px;font-weight:700;color:#e2e8f0;letter-spacing:-.01em;line-height:1">Enterprise Logistics</h1>
         </div>
-        <nav class="tabs" id="viewTabs">
-          <button type="button" data-view="rates" class="active">International Rates</button>
-          <button type="button" data-view="import">Import Quoting</button>
-          <button type="button" data-view="sameday" id="tabSamedayBtn" style="display:none">Dedicated Same Day</button>
-          <button type="button" data-view="bookings">Bookings</button>
-        </nav>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="create-menu-wrap" style="position:relative">
+            <button type="button" class="btn-create-trigger" id="btnCreateMenu" style="display:inline-flex;align-items:center;gap:6px;background:var(--moov-green);color:#121624;border:0;padding:7px 14px;border-radius:6px;font-size:12.5px;font-weight:800;cursor:pointer;transition:all .15s ease">
+              <span>➕ Create</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div id="createDropdown" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#121624;border:1px solid #1e293b;border-top:2px solid var(--moov-green);border-radius:8px;box-shadow:0 10px 30px rgba(0,0,0,0.5);width:220px;z-index:100;overflow:hidden">
+              <button type="button" class="create-opt" onclick="triggerCreateNav('returns')" style="width:100%;text-align:left;padding:10px 14px;background:transparent;border:0;color:#f8fafc;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06)">
+                <span style="font-size:16px">📦</span>
+                <div>
+                  <div>Return Label</div>
+                  <div style="font-size:10.5px;color:#94a3b8;font-weight:400">DPD &amp; Yodel live returns</div>
+                </div>
+              </button>
+              <button type="button" class="create-opt" onclick="triggerCreateNav('import')" style="width:100%;text-align:left;padding:10px 14px;background:transparent;border:0;color:#f8fafc;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06)">
+                <span style="font-size:16px">✈️</span>
+                <div>
+                  <div>Import Booking</div>
+                  <div style="font-size:10.5px;color:#94a3b8;font-weight:400">UPS direct supplier collection</div>
+                </div>
+              </button>
+              <button type="button" class="create-opt" onclick="triggerCreateNav('sameday')" style="width:100%;text-align:left;padding:10px 14px;background:transparent;border:0;color:#f8fafc;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;cursor:pointer">
+                <span style="font-size:16px">⚡</span>
+                <div>
+                  <div>Dedicated Same Day</div>
+                  <div style="font-size:10.5px;color:#94a3b8;font-weight:400">Point-to-point courier runs</div>
+                </div>
+              </button>
+            </div>
+          </div>
+          <nav class="tabs" id="viewTabs">
+            <button type="button" data-view="rates" class="active">International rates</button>
+            <button type="button" data-view="import">Import quoting</button>
+            <button type="button" data-view="sameday" id="tabSamedayBtn" style="display:none">Dedicated same day</button>
+            <button type="button" data-view="returns" id="tabReturnsBtn">Returns</button>
+            <button type="button" data-view="bookings">Bookings</button>
+          </nav>
+        </div>
       </div>
     </div>
   </header>
@@ -2470,6 +2540,269 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
         <div class="cards iq" id="iqcards"></div>
       </div>
       <div class="foot">Prices indicative and subject to final confirmation. Excludes VAT. Import duties &amp; taxes billed separately at import.</div>
+    </div>
+  </div>
+
+  <!-- Returns View -->
+  <div id="returnsView" style="display:none" class="rates-container">
+    <div style="background:#fff;border:1px solid var(--line);border-left:4px solid var(--moov-green);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:38px;height:38px;border-radius:8px;background:#121624;display:flex;align-items:center;justify-content:center;font-size:20px">📦</div>
+        <div>
+          <div style="font-weight:800;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px">
+            Customer Self-Service Returns
+          </div>
+          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">
+            Generate instant domestic return labels with live pricing from DPD and Yodel. Supports paperless QR code drop-off and printable labels.
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;background:rgba(29,251,157,0.15);color:var(--moov-navy);padding:5px 12px;border:1px solid rgba(29,251,157,0.4)">
+          DPD-12DROPQR · YODC2C · Live Billing API Rates
+        </span>
+      </div>
+    </div>
+
+    <div class="rates-layout" style="gap:24px">
+      <!-- Left Column: Sender Details & Return Origin -->
+      <div style="flex:1.2;min-width:320px">
+        <div class="calc-card" style="margin-bottom:20px">
+          <!-- 1. Destination / Return To -->
+          <div class="calc-head">
+            <div>
+              <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-green-deep);margin-bottom:3px">1. RETURNS DESTINATION</div>
+              <h2 style="font-size:16px;font-weight:800;margin:0;color:var(--mv-ink)">Returning To Your Address</h2>
+              <span class="calc-sub">Returns will always be delivered back to your registered premises.</span>
+            </div>
+          </div>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid var(--moov-green);padding:12px 16px;margin-bottom:18px;border-radius:6px">
+            <div style="font-weight:800;font-size:14px;color:var(--mv-ink)" id="retDestCompany">—</div>
+            <div style="font-size:12.5px;color:var(--mv-ink-55);margin-top:2px" id="retDestAddress">—</div>
+            <div style="font-size:11px;color:var(--mv-green-deep);font-weight:700;margin-top:4px">✓ Address verified from customer rate card</div>
+          </div>
+
+          <!-- 2. Sender / Origin Address -->
+          <div class="calc-head" style="margin-top:24px">
+            <div>
+              <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-purple);margin-bottom:3px">2. SENDER DETAILS (RETURNING FROM)</div>
+              <h2 style="font-size:16px;font-weight:800;margin:0;color:var(--mv-ink)">Customer / Shopper Address</h2>
+              <span class="calc-sub">Enter the collection address or drop-off sender info.</span>
+            </div>
+          </div>
+
+          <form id="returnsQuoteForm" onsubmit="handleReturnsQuoteSubmit(event)">
+            <div class="calc-grid">
+              <div class="f" style="flex:1 1 200px">
+                <label>Shopper / Contact Name *</label>
+                <input type="text" id="retSenderName" placeholder="e.g. Sarah Jenkins" required/>
+              </div>
+              <div class="f" style="flex:1 1 200px">
+                <label>Company (Optional)</label>
+                <input type="text" id="retSenderCompany" placeholder="e.g. Acme Studio"/>
+              </div>
+            </div>
+
+            <div class="calc-grid" style="margin-top:12px">
+              <div class="f" style="flex:2 1 280px">
+                <label>Address Line 1 *</label>
+                <input type="text" id="retSenderLine1" placeholder="Street address" required/>
+              </div>
+              <div class="f" style="flex:1.5 1 200px">
+                <label>Address Line 2 (Optional)</label>
+                <input type="text" id="retSenderLine2" placeholder="Apt, Suite, Unit"/>
+              </div>
+            </div>
+
+            <div class="calc-grid" style="margin-top:12px">
+              <div class="f" style="flex:1.5 1 160px">
+                <label>Town / City *</label>
+                <input type="text" id="retSenderCity" placeholder="City" required/>
+              </div>
+              <div class="f" style="flex:1 1 130px">
+                <label>UK Postcode *</label>
+                <input type="text" id="retSenderPostcode" placeholder="e.g. M1 1AE" style="text-transform:uppercase" required/>
+              </div>
+              <div class="f" style="flex:1 1 120px">
+                <label>Country</label>
+                <input type="text" value="United Kingdom (GB)" disabled style="background:#f1f5f9;color:#64748b"/>
+              </div>
+            </div>
+
+            <div class="calc-grid" style="margin-top:12px">
+              <div class="f" style="flex:1 1 180px">
+                <label>Contact Phone</label>
+                <input type="tel" id="retSenderPhone" placeholder="Mobile / telephone"/>
+              </div>
+              <div class="f" style="flex:1 1 180px">
+                <label>Contact Email</label>
+                <input type="email" id="retSenderEmail" placeholder="shopper@example.com"/>
+              </div>
+            </div>
+
+            <!-- 3. Package Specs -->
+            <div class="calc-head" style="margin-top:24px">
+              <div>
+                <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-purple);margin-bottom:3px">3. PARCEL WEIGHT &amp; DIMENSIONS</div>
+                <h2 style="font-size:16px;font-weight:800;margin:0;color:var(--mv-ink)">Return Package Specifications</h2>
+              </div>
+            </div>
+
+            <div class="calc-grid">
+              <div class="f small">
+                <label>Weight (kg)</label>
+                <input type="number" id="retPkgWeight" min="0.1" max="30" step="0.1" value="1.5" required/>
+              </div>
+              <div class="f small">
+                <label>Length (cm)</label>
+                <input type="number" id="retPkgL" min="1" max="150" step="1" value="30"/>
+              </div>
+              <div class="f small">
+                <label>Width (cm)</label>
+                <input type="number" id="retPkgW" min="1" max="150" step="1" value="20"/>
+              </div>
+              <div class="f small">
+                <label>Height (cm)</label>
+                <input type="number" id="retPkgH" min="1" max="150" step="1" value="15"/>
+              </div>
+              <div class="f" style="flex:2 1 180px;align-self:flex-end">
+                <button type="submit" id="btnGetReturnQuotes" class="btn-moov-action primary" style="width:100%;height:38px;font-size:13px">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <span>Get Live Return Rates</span>
+                </button>
+              </div>
+            </div>
+            <div id="retQuoteMsg" style="margin-top:10px;font-size:12.5px;font-weight:700"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right Column: Live Courier Quotes & Booking -->
+      <div style="flex:1;min-width:320px">
+        <div class="calc-card" style="margin-bottom:20px">
+          <div class="calc-head">
+            <div>
+              <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-purple);margin-bottom:3px">4. CHOOSE RETURN SERVICE</div>
+              <h2 style="font-size:16px;font-weight:800;margin:0;color:var(--mv-ink)">Live Carrier Comparison</h2>
+              <span class="calc-sub">Direct integration with Billing API for live rates.</span>
+            </div>
+          </div>
+
+          <div id="retServicesPlaceholder" style="padding:40px 20px;text-align:center;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;color:#64748b">
+            <div style="font-size:24px;margin-bottom:8px">📦 ⇄ 🚚</div>
+            <div style="font-weight:800;color:var(--mv-ink);font-size:14px">No Return Quotes Fetched Yet</div>
+            <div style="font-size:12px;margin-top:4px">Enter the return sender address and click "Get Live Return Rates" to compare DPD and Yodel live prices.</div>
+          </div>
+
+          <div id="retServicesContainer" style="display:none;flex-direction:column;gap:14px">
+            <!-- DPD Service Card -->
+            <div class="return-service-card" id="retCardDpd" onclick="selectReturnService('DPD')">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="background:#DC2626;color:#fff;font-weight:900;font-size:13px;padding:3px 8px;border-radius:4px;letter-spacing:.05em">DPD</div>
+                  <div>
+                    <div style="font-weight:800;font-size:14.5px;color:var(--mv-ink)">DPD Drop-Off Return (Paperless QR)</div>
+                    <div style="font-size:11px;color:#64748b;font-family:monospace">Service ID: DPD-12DROPQR</div>
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:20px;font-weight:900;color:var(--mv-ink);font-family:'JetBrains Mono',monospace" id="retDpdPrice">£5.75</div>
+                  <div style="font-size:10px;color:#64748b">excl. VAT</div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:#475569;margin-top:6px;line-height:1.4">
+                🚀 <b>Next Working Day:</b> Drop off at any of 6,000+ local DPD Pickup shops with paperless mobile QR code or printed barcode label.
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:flex-end">
+                <span class="return-select-badge" id="retBadgeDpd">Select DPD</span>
+              </div>
+            </div>
+
+            <!-- Yodel Service Card -->
+            <div class="return-service-card" id="retCardYodel" onclick="selectReturnService('YODEL')">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="background:#059669;color:#fff;font-weight:900;font-size:13px;padding:3px 8px;border-radius:4px;letter-spacing:.05em">YODEL</div>
+                  <div>
+                    <div style="font-weight:800;font-size:14.5px;color:var(--mv-ink)">Yodel Direct Return (C2C)</div>
+                    <div style="font-size:11px;color:#64748b;font-family:monospace">Service ID: YODC2C</div>
+                  </div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:20px;font-weight:900;color:var(--mv-ink);font-family:'JetBrains Mono',monospace" id="retYodelPrice">£5.75</div>
+                  <div style="font-size:10px;color:#64748b">excl. VAT</div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:#475569;margin-top:6px;line-height:1.4">
+                🚚 <b>2–3 Working Days:</b> Reliable nationwide return network. Drop off at any Yodel Store / Collect+ point or await scheduled courier collection.
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:flex-end">
+                <span class="return-select-badge" id="retBadgeYodel">Select Yodel</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 5: Final Create & Print Action -->
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0">
+            <button type="button" id="btnBookReturnLabel" class="btn-moov-action primary" style="width:100%;height:44px;font-size:14px" disabled onclick="handleBookReturnLabel()">
+              <span>✓ Create &amp; Print Return Label</span>
+            </button>
+            <div style="font-size:11.5px;color:#64748b;text-align:center;margin-top:8px">
+              Generates Moov Parcel branded return label with QR code for mobile drop-off &amp; barcode for thermal printing.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RETURN LABEL SUCCESS & PRINT -->
+  <div class="ds-modal-scrim" id="returnLabelModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(18,22,36,0.85);z-index:999;align-items:center;justify-content:center;padding:16px">
+    <div class="ds-modal" style="width:680px;max-width:95vw;max-height:92vh;overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 20px 50px rgba(0,0,0,0.4)">
+      <div style="padding:18px 24px;background:#121624;color:#fff;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1e293b">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:22px">🎉</span>
+          <div>
+            <h3 style="margin:0;font-size:17px;font-weight:800;color:#fff">Return Label Created Successfully</h3>
+            <div style="font-size:11.5px;color:#94a3b8" id="retModalSub">—</div>
+          </div>
+        </div>
+        <button type="button" onclick="closeReturnModal()" style="background:transparent;border:0;color:#cbd5e1;font-size:22px;cursor:pointer">&times;</button>
+      </div>
+      <div style="padding:22px 24px">
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+          <div style="flex:1;min-width:260px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;text-align:center">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#64748b;margin-bottom:8px">Moov Branded Label &amp; QR Code</div>
+            <div id="retModalSvgPreview" style="max-height:360px;overflow:hidden;border:1px solid #cbd5e1;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.08);border-radius:4px;display:flex;justify-content:center"></div>
+          </div>
+          <div style="flex:1;min-width:240px">
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:12px 16px;border-radius:8px;margin-bottom:16px">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:#166534">Tracking Reference</div>
+              <div style="font-size:18px;font-weight:900;font-family:monospace;color:#14532d;letter-spacing:1px" id="retModalTracking">—</div>
+            </div>
+            <div style="font-size:12.5px;color:#334155;line-height:1.5;margin-bottom:16px">
+              <b>Next steps:</b><br/>
+              1. <b>Print:</b> Print label on 4x6 thermal or A4 sheet.<br/>
+              2. <b>Or Paperless:</b> Shopper can show the QR code directly at the drop-off location.<br/>
+              3. <b>Track:</b> All return events and scans are tracked in your Bookings tab.
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <button type="button" class="btn-moov-action primary" id="btnPrintThermal" style="height:36px;font-size:12.5px" onclick="printCurrentReturnLabel('thermal')">
+                🖨️ Print Thermal (4" x 6") Label
+              </button>
+              <button type="button" class="btn-moov-action secondary" id="btnPrintA4" style="height:36px;font-size:12.5px" onclick="printCurrentReturnLabel('a4')">
+                📄 Download / Print A4 PDF
+              </button>
+              <button type="button" class="btn-moov-action secondary" onclick="viewReturnInBookings()" style="height:36px;font-size:12.5px">
+                📋 View in Bookings History
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="padding:14px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeReturnModal()" style="padding:8px 20px">Done</button>
+      </div>
     </div>
   </div>
 
@@ -3921,18 +4254,272 @@ function initCountryCombo(boxId, inputId, menuId, onPick) {
   document.addEventListener('click', e => { if (!box.contains(e.target)) close(); });
 }
 
+function triggerCreateNav(view) {
+  if ($('createDropdown')) $('createDropdown').style.display = 'none';
+  setView(view);
+  if (view === 'returns') {
+    setTimeout(() => {
+      const el = $('retSenderName');
+      if (el) el.focus();
+    }, 100);
+  }
+}
+
+let currentReturnQuote = null;
+let currentSelectedReturnService = null;
+let latestBookedReturn = null;
+
+function initReturnsView() {
+  const rc = (RC && (RC.receiver || RC.deliveryAddress)) || null;
+  const company = (RC && RC.customer) || (rc && rc.company) || 'Your Company';
+  const cEl = $('retDestCompany');
+  const aEl = $('retDestAddress');
+  if (cEl) cEl.textContent = company;
+  if (aEl && rc) {
+    const parts = [rc.name || rc.contactName, rc.line1, rc.line2, rc.city, rc.postcode, 'United Kingdom'].filter(Boolean);
+    aEl.textContent = parts.join(', ');
+  }
+}
+
+async function handleReturnsQuoteSubmit(e) {
+  if (e) e.preventDefault();
+  const msg = $('retQuoteMsg');
+  const btn = $('btnGetReturnQuotes');
+  msg.style.color = 'var(--mv-purple)';
+  msg.textContent = 'Fetching live return quotes from Billing API…';
+  btn.disabled = true;
+
+  const shipFrom = {
+    name: $('retSenderName').value.trim(),
+    company: $('retSenderCompany').value.trim(),
+    line1: $('retSenderLine1').value.trim(),
+    line2: $('retSenderLine2').value.trim(),
+    city: $('retSenderCity').value.trim(),
+    postcode: $('retSenderPostcode').value.trim().toUpperCase(),
+    phone: $('retSenderPhone').value.trim(),
+    email: $('retSenderEmail').value.trim(),
+    country: 'GB',
+  };
+
+  const parcels = [{
+    weight: Number($('retPkgWeight').value) || 1.5,
+    l: Number($('retPkgL').value) || 30,
+    w: Number($('retPkgW').value) || 20,
+    h: Number($('retPkgH').value) || 15,
+  }];
+
+  try {
+    const res = await fetch('/api/card/' + encodeURIComponent(curToken) + '/returns/quote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shipFrom, parcels }),
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Failed to fetch return quotes');
+
+    currentReturnQuote = d;
+    currentSelectedReturnService = null;
+
+    // Extract DPD and Yodel quotes
+    const dpdQuote = (d.dpd && d.dpd[0]) || (d.services || []).find(s => s.courier === 'DPD') || { price: 5.75, code: 'DPD-12DROPQR', name: 'DPD Drop Off Next Day (QR & Label)' };
+    const yodelQuote = (d.yodel && d.yodel[0]) || (d.services || []).find(s => s.courier === 'YODEL') || { price: 5.75, code: 'YODC2C', name: 'Yodel Direct Return (C2C)' };
+
+    $('retDpdPrice').textContent = '£' + Number(dpdQuote.sellPrice || dpdQuote.price || 5.75).toFixed(2);
+    $('retYodelPrice').textContent = '£' + Number(yodelQuote.sellPrice || yodelQuote.price || 5.75).toFixed(2);
+
+    $('retServicesPlaceholder').style.display = 'none';
+    $('retServicesContainer').style.display = 'flex';
+    msg.style.color = 'var(--mv-green-deep)';
+    msg.textContent = '✓ Live return rates fetched! Choose DPD or Yodel below.';
+
+    // Default select DPD
+    selectReturnService('DPD');
+  } catch (err) {
+    msg.style.color = '#ef4444';
+    msg.textContent = 'Quote error: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function selectReturnService(carrier) {
+  const isDpd = carrier === 'DPD';
+  currentSelectedReturnService = isDpd ? 'DPD' : 'YODEL';
+  const cardDpd = $('retCardDpd');
+  const cardYodel = $('retCardYodel');
+  const badgeDpd = $('retBadgeDpd');
+  const badgeYodel = $('retBadgeYodel');
+  const bookBtn = $('btnBookReturnLabel');
+
+  if (cardDpd) cardDpd.classList.toggle('selected', isDpd);
+  if (cardYodel) cardYodel.classList.toggle('selected', !isDpd);
+
+  if (badgeDpd) badgeDpd.textContent = isDpd ? '✓ Selected (DPD)' : 'Select DPD';
+  if (badgeYodel) badgeYodel.textContent = !isDpd ? '✓ Selected (YODEL)' : 'Select Yodel';
+
+  if (bookBtn) {
+    bookBtn.disabled = false;
+    bookBtn.textContent = `✓ Create & Print ${carrier} Return Label`;
+  }
+}
+
+async function handleBookReturnLabel() {
+  if (!currentSelectedReturnService) {
+    alert('Please choose either DPD or Yodel return service.');
+    return;
+  }
+
+  const btn = $('btnBookReturnLabel');
+  btn.disabled = true;
+  btn.textContent = 'Booking return & generating label…';
+
+  const isDpd = currentSelectedReturnService === 'DPD';
+  const serviceCode = isDpd ? 'DPD-12DROPQR' : 'YODC2C';
+  const serviceName = isDpd ? 'DPD Drop Off Return (Paperless QR & Label)' : 'Yodel Direct Return (C2C)';
+
+  const quoteList = currentReturnQuote ? (currentReturnQuote.services || []) : [];
+  const matchedService = quoteList.find(s => s.courier === currentSelectedReturnService);
+  const price = matchedService ? (matchedService.sellPrice || matchedService.price) : 5.75;
+  const costPrice = matchedService ? (matchedService.basePrice || matchedService.cost) : 5.0;
+
+  const sender = {
+    name: $('retSenderName').value.trim(),
+    company: $('retSenderCompany').value.trim(),
+    line1: $('retSenderLine1').value.trim(),
+    line2: $('retSenderLine2').value.trim(),
+    city: $('retSenderCity').value.trim(),
+    postcode: $('retSenderPostcode').value.trim().toUpperCase(),
+    phone: $('retSenderPhone').value.trim(),
+    email: $('retSenderEmail').value.trim(),
+  };
+
+  const parcels = [{
+    weight: Number($('retPkgWeight').value) || 1.5,
+    l: Number($('retPkgL').value) || 30,
+    w: Number($('retPkgW').value) || 20,
+    h: Number($('retPkgH').value) || 15,
+  }];
+
+  try {
+    const res = await fetch('/api/card/' + encodeURIComponent(curToken) + '/returns/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        courier: currentSelectedReturnService,
+        serviceCode,
+        serviceName,
+        sellPrice: price,
+        costPrice,
+        sender,
+        parcels,
+      }),
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Failed to generate return label');
+
+    latestBookedReturn = d;
+
+    $('retModalSub').textContent = `${currentSelectedReturnService} Prepaid Return · ${serviceCode}`;
+    $('retModalTracking').textContent = d.trackingNumber;
+
+    const preview = $('retModalSvgPreview');
+    if (preview && d.labelSvg) {
+      preview.innerHTML = d.labelSvg;
+    }
+
+    $('returnLabelModal').style.display = 'flex';
+  } catch (err) {
+    alert('Return booking error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = `✓ Create & Print ${currentSelectedReturnService} Return Label`;
+  }
+}
+
+function closeReturnModal() {
+  $('returnLabelModal').style.display = 'none';
+}
+
+function viewReturnInBookings() {
+  closeReturnModal();
+  setView('bookings');
+}
+
+async function printCurrentReturnLabel(format = 'thermal') {
+  if (!latestBookedReturn) return;
+  const svgString = latestBookedReturn.labelSvg;
+  const trackingNumber = latestBookedReturn.trackingNumber || 'RETURN_LABEL';
+
+  if (!svgString) {
+    alert('Label graphic unavailable for printing.');
+    return;
+  }
+
+  // Render SVG to Image and Print / Export PDF
+  const img = new Image();
+  const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(svgBlob);
+
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 1800;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, 1200, 1800);
+    const pngUrl = canvas.toDataURL('image/png', 1.0);
+    URL.revokeObjectURL(url);
+
+    if (window.jspdf && window.jspdf.jsPDF) {
+      const isA4 = format === 'a4';
+      let doc;
+      if (isA4) {
+        doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        doc.addImage(pngUrl, 'PNG', 35, 15, 140, 220);
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Moov Parcel Returns — Tracking: ${trackingNumber} — Prepaid Return Shipping`, 105, 245, { align: 'center' });
+      } else {
+        doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
+        doc.addImage(pngUrl, 'PNG', 0.08, 0.08, 3.84, 5.84);
+      }
+      const pdfBlob = doc.output('blob');
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const w = window.open(pdfUrl, '_blank');
+      if (!w) {
+        const a = document.createElement('a');
+        a.href = pdfUrl;
+        a.download = `Moov_Return_Label_${trackingNumber}_${isA4 ? 'A4' : '4x6'}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } else {
+      const w = window.open('');
+      w.document.write(`<img src="${pngUrl}" style="max-width:100%;height:auto;display:block;margin:auto" onload="window.print()"/>`);
+    }
+  };
+  img.src = url;
+}
+
 function setView(v) {
   document.querySelectorAll('#viewTabs button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
   const ratesEl = $('ratesView');
   const importEl = $('importView');
   const sameDayEl = $('samedayView');
+  const returnsEl = $('returnsView');
   const bookEl = $('bookingsView');
   if (ratesEl) ratesEl.style.display = v === 'rates' ? '' : 'none';
   if (importEl) importEl.style.display = v === 'import' ? 'block' : 'none';
   if (sameDayEl) sameDayEl.style.display = v === 'sameday' ? 'block' : 'none';
+  if (returnsEl) returnsEl.style.display = v === 'returns' ? 'block' : 'none';
   if (bookEl) bookEl.style.display = v === 'bookings' ? 'block' : 'none';
   if (v === 'import') {
     try { prefillReceiver(); } catch (_) {}
+  }
+  if (v === 'returns') {
+    try { initReturnsView(); } catch (_) {}
   }
   if (v === 'sameday') {
     try { initSdCustForm(); } catch (_) {}
@@ -5210,6 +5797,78 @@ function renderCustomerBookings(shipments) {
         </div>
       `;
 
+      card._shipment = x;
+      box.appendChild(card);
+      return;
+    }
+
+    const isReturn = x.mode === 'return' || (x.service_code && (x.service_code.includes('DROPQR') || x.service_code.includes('YODC2C')));
+    if (isReturn) {
+      const isDpd = String(x.carrier || '').toUpperCase() === 'DPD' || String(x.service_code || '').includes('DPD');
+      const courierColor = isDpd ? '#DC2626' : '#059669';
+      const courierBg = isDpd ? '#FEF2F2' : '#ECFDF5';
+      const courierName = isDpd ? 'DPD' : 'YODEL';
+      const returnTrackLink = x.tracking_number
+        ? (isDpd
+          ? '<a href="https://www.dpd.co.uk/tracking/trackingSearch.do?search.searchType=0&search.parcelNumber=' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:13px;font-weight:800;color:' + courierColor + ';text-decoration:none">' + esc(x.tracking_number) + ' ↗</a>'
+          : '<a href="https://www.yodel.co.uk/track/' + encodeURIComponent(x.tracking_number) + '" target="_blank" rel="noopener" style="font-family:monospace;font-size:13px;font-weight:800;color:' + courierColor + ';text-decoration:none">' + esc(x.tracking_number) + ' ↗</a>')
+        : '—';
+
+      card.innerHTML = `
+        <!-- Return Shipment Header -->
+        <div style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="background:${courierBg};color:${courierColor};font-weight:900;font-size:11px;padding:3px 8px;letter-spacing:.06em;border:1px solid ${courierColor}40">📦 RETURN LABEL (${courierName})</span>
+            <span style="font-weight:800;font-size:15px;color:var(--ink)">${esc(x.service_name || 'Customer Return')}</span>
+            <span>${statusBadge}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:12px;color:var(--muted)">Created: <b>${dateStr}</b></span>
+          </div>
+        </div>
+
+        <!-- Overview Grid -->
+        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:18px;background:#fff">
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">1. Returned From (Shopper)</div>
+            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.name || s.company || 'Customer')}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(s.city || '')} ${esc(s.postcode || '')}</div>
+          </div>
+
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">2. Destination (Your Warehouse)</div>
+            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || r.name || 'Warehouse')}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(r.city || '')} ${esc(r.postcode || '')}</div>
+          </div>
+
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Return Tracking Reference</div>
+            <div>${returnTrackLink}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Service: <b>${esc(x.service_code || 'Prepaid Return')}</b></div>
+          </div>
+
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">4. Return Postage</div>
+            <div style="font-weight:800;font-size:15px;color:var(--ink)">£${Number(x.sell_price || 0).toFixed(2)}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">${totalWeight} kg (${totalParcels} parcel)</div>
+          </div>
+        </div>
+
+        <!-- Action Footer -->
+        <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="font-size:11.5px;color:var(--muted)">Prepaid domestic return shipment via ${courierName}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            ${x.label_base64 ? `
+              <button type="button" class="btn-moov-action primary btn-print-single" data-img="${x.label_base64}" style="padding:0 14px;height:32px;font-size:12px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                <span>Print Return Label</span>
+              </button>
+            ` : ''}
+          </div>
+        </div>
+      `;
       card._shipment = x;
       box.appendChild(card);
       return;
@@ -6523,6 +7182,27 @@ async function boot() {
     if ($('tabSamedayBtn')) $('tabSamedayBtn').style.display = 'none';
   }
 
+  // Check if Returns is enabled for this customer (enabled by default)
+  if (RC.returnsEnabled !== false) {
+    if ($('tabReturnsBtn')) $('tabReturnsBtn').style.display = 'inline-block';
+  } else {
+    if ($('tabReturnsBtn')) $('tabReturnsBtn').style.display = 'none';
+  }
+
+  // Wire Create menu dropdown
+  if ($('btnCreateMenu')) {
+    $('btnCreateMenu').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const drop = $('createDropdown');
+      if (drop) drop.style.display = (drop.style.display === 'none' || !drop.style.display) ? 'block' : 'none';
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if ($('createDropdown') && !e.target.closest('.create-menu-wrap')) {
+      $('createDropdown').style.display = 'none';
+    }
+  });
+
   if (Array.isArray(RC.countries) && RC.countries.length) {
     initCombo(RC.countries, RC.countries.includes('USA') ? 'USA' : RC.countries[0]);
   }
@@ -6540,6 +7220,7 @@ async function boot() {
 
   try { calc(); } catch (err) { console.error('[card] calc error:', err); }
   try { initImportTab(); } catch (err) { console.error('[card] initImportTab error:', err); }
+  try { initReturnsView(); } catch (err) { console.error('[card] initReturnsView error:', err); }
   try { initCustomerBookingsEvents(); } catch (err) { console.error('[card] initCustomerBookingsEvents error:', err); }
 
   // Wire sidebar close button
