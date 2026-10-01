@@ -324,18 +324,14 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
       email: da.email || cfg.email || '',
     };
 
-    const markupPct = cfg.returnsMarkupPct != null ? Number(cfg.returnsMarkupPct) : 15;
-
     const quoteRes = await billing.fetchBillingQuote({
-      clientName: cfg.billingClientName || process.env.BILLING_CLIENT_NAME,
+      clientName: 'Moov Parcel',
       customerDcId: cfg.billingCustomerDcId || process.env.BILLING_CUSTOMER_DC_ID,
       customerKey: cfg.billingCustomerKey || process.env.BILLING_CUSTOMER_KEY,
       authCompany: cfg.voilaAuthCompany || process.env.VOILA_AUTH_COMPANY,
-      endpointUrl: cfg.billingEndpointUrl || process.env.BILLING_ENDPOINT_URL,
       shipFrom,
       shipTo,
       parcels: (Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15 }],
-      markupPct,
     });
 
     res.json({

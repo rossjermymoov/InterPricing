@@ -166,7 +166,6 @@ function buildCardPayload(cfg, card) {
     samedayEnabled: conf.samedayEnabled !== false,
     samedayMarkupPct: conf.samedayMarkupPct != null ? Number(conf.samedayMarkupPct) : (typeof conf.markup === 'number' ? conf.markup : (conf.markup && conf.markup.default != null ? conf.markup.default : 10)),
     returnsEnabled: conf.returnsEnabled !== false,
-    returnsMarkupPct: conf.returnsMarkupPct != null ? Number(conf.returnsMarkupPct) : 15,
     services,
     accessorials,
   };

@@ -1832,21 +1832,13 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           </div>
 
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin:20px 0 8px">5. RETURNS &amp; BILLING API CONFIGURATION</div>
-          <p class="ds-blurb" style="font-size:12px;margin-bottom:12px">Configure customer self-service returns powered by live Billing API rates (DPD-12DROPQR and YODC2C).</p>
+          <p class="ds-blurb" style="font-size:12px;margin-bottom:12px">Configure customer self-service returns powered by live Billing API rates (DPD-12DROPQR and YODC2C). Client name is hardcoded to <strong>Moov Parcel</strong>.</p>
           <div style="display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px">
             <label class="ds-toggle" style="color:var(--mv-green-deep);font-weight:800">
               <input type="checkbox" id="editRcReturnsEnabled" checked/> <span>📦 Enable Customer Returns Tab</span>
             </label>
-            <div class="ds-field-wrap" style="width:160px;margin-left:auto">
-              <label class="ds-label">Returns Markup %</label>
-              <input id="editCustReturnsMarkup" type="number" min="0" step="1" value="15" class="ds-input num"/>
-            </div>
           </div>
           <div class="ds-grid ds-grid-3" style="gap:12px">
-            <div class="ds-field-wrap">
-              <label class="ds-label">Billing Client Name</label>
-              <input id="editCustBillingClientName" type="text" class="ds-input" placeholder="Moov Parcel"/>
-            </div>
             <div class="ds-field-wrap">
               <label class="ds-label">Billing Customer DC ID</label>
               <input id="editCustBillingCustomerDcId" type="text" class="ds-input" placeholder="Kitloop"/>
@@ -1855,15 +1847,9 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <label class="ds-label">Billing Customer Key</label>
               <input id="editCustBillingCustomerKey" type="text" class="ds-input" placeholder="Billing API Key"/>
             </div>
-          </div>
-          <div class="ds-grid ds-grid-2" style="gap:12px;margin-top:10px">
             <div class="ds-field-wrap">
               <label class="ds-label">Voila Auth Company</label>
               <input id="editCustVoilaAuthCompany" type="text" class="ds-input" placeholder="Moov Master"/>
-            </div>
-            <div class="ds-field-wrap">
-              <label class="ds-label">Billing API Endpoint URL</label>
-              <input id="editCustBillingEndpointUrl" type="text" class="ds-input" placeholder="https://production.billingapi.co.uk/api/customer-routes/get-quote"/>
             </div>
           </div>
 
@@ -2713,23 +2699,15 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
         <!-- Section 5: Returns & Billing API Configuration -->
         <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--mv-hairline)">
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin-bottom:8px">5. RETURNS &amp; BILLING API CONFIGURATION</div>
-          <p class="ds-blurb" style="font-size:12px;margin-bottom:14px">Configure customer self-service returns powered by live Billing API rates (DPD-12DROPQR and YODC2C).</p>
+          <p class="ds-blurb" style="font-size:12px;margin-bottom:14px">Configure customer self-service returns powered by live Billing API rates (DPD-12DROPQR and YODC2C). Client name is hardcoded to <strong>Moov Parcel</strong>.</p>
           
           <div style="display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
             <label class="ds-toggle" style="color:var(--mv-green-deep);font-weight:800">
               <input type="checkbox" id="rcReturnsEnabled" checked/> <span>📦 Enable Customer Returns Tab</span>
             </label>
-            <div class="ds-field-wrap" style="width:160px;margin-left:auto">
-              <label class="ds-label">Returns Markup %</label>
-              <input id="custReturnsMarkup" type="number" min="0" step="1" value="15" class="ds-input num" placeholder="e.g. 15"/>
-            </div>
           </div>
 
           <div class="ds-grid ds-grid-3" style="gap:14px">
-            <div class="ds-field-wrap">
-              <label class="ds-label">Billing Client Name</label>
-              <input id="custBillingClientName" type="text" class="ds-input" value="Moov Parcel" placeholder="Moov Parcel"/>
-            </div>
             <div class="ds-field-wrap">
               <label class="ds-label">Billing Customer DC ID</label>
               <input id="custBillingCustomerDcId" type="text" class="ds-input" value="Kitloop" placeholder="Kitloop"/>
@@ -2738,16 +2716,9 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <label class="ds-label">Billing Customer Key</label>
               <input id="custBillingCustomerKey" type="password" class="ds-input" value="b62e9045a42d43468840c6e07b568fcd" placeholder="Billing API Key"/>
             </div>
-          </div>
-
-          <div class="ds-grid ds-grid-2" style="gap:14px;margin-top:10px">
             <div class="ds-field-wrap">
               <label class="ds-label">Voila Auth Company</label>
               <input id="custVoilaAuthCompany" type="text" class="ds-input" value="Moov Master" placeholder="Moov Master"/>
-            </div>
-            <div class="ds-field-wrap">
-              <label class="ds-label">Billing API Endpoint URL</label>
-              <input id="custBillingEndpointUrl" type="text" class="ds-input" value="https://production.billingapi.co.uk/api/customer-routes/get-quote" placeholder="https://production.billingapi.co.uk/api/customer-routes/get-quote"/>
             </div>
           </div>
         </div>
@@ -4757,12 +4728,9 @@ function openEditCardModal(cardId) {
   if ($('editCustSamedayMarkup')) $('editCustSamedayMarkup').value = (cfg.samedayMarkupPct != null ? cfg.samedayMarkupPct : 15);
   if ($('editRcSamedayEnabled')) $('editRcSamedayEnabled').checked = (cfg.samedayEnabled !== false);
   if ($('editRcReturnsEnabled')) $('editRcReturnsEnabled').checked = (cfg.returnsEnabled !== false);
-  if ($('editCustReturnsMarkup')) $('editCustReturnsMarkup').value = (cfg.returnsMarkupPct != null ? cfg.returnsMarkupPct : 15);
-  if ($('editCustBillingClientName')) $('editCustBillingClientName').value = cfg.billingClientName || '';
   if ($('editCustBillingCustomerDcId')) $('editCustBillingCustomerDcId').value = cfg.billingCustomerDcId || '';
   if ($('editCustBillingCustomerKey')) $('editCustBillingCustomerKey').value = cfg.billingCustomerKey || '';
   if ($('editCustVoilaAuthCompany')) $('editCustVoilaAuthCompany').value = cfg.voilaAuthCompany || '';
-  if ($('editCustBillingEndpointUrl')) $('editCustBillingEndpointUrl').value = cfg.billingEndpointUrl || '';
 
   const da = cfg.deliveryAddress || {};
   $('editCustLine1').value = da.line1 || '';
@@ -4819,12 +4787,10 @@ $('editCardSave').onclick = async () => {
     samedayMarkupPct: $('editCustSamedayMarkup') ? num('editCustSamedayMarkup') : 15,
     samedayEnabled: $('editRcSamedayEnabled') ? $('editRcSamedayEnabled').checked : true,
     returnsEnabled: $('editRcReturnsEnabled') ? $('editRcReturnsEnabled').checked : true,
-    returnsMarkupPct: $('editCustReturnsMarkup') ? num('editCustReturnsMarkup') : 15,
-    billingClientName: $('editCustBillingClientName') ? $('editCustBillingClientName').value.trim() : '',
+    billingClientName: 'Moov Parcel',
     billingCustomerDcId: $('editCustBillingCustomerDcId') ? $('editCustBillingCustomerDcId').value.trim() : '',
     billingCustomerKey: $('editCustBillingCustomerKey') ? $('editCustBillingCustomerKey').value.trim() : '',
     voilaAuthCompany: $('editCustVoilaAuthCompany') ? $('editCustVoilaAuthCompany').value.trim() : '',
-    billingEndpointUrl: $('editCustBillingEndpointUrl') ? $('editCustBillingEndpointUrl').value.trim() : '',
     markup: editCardMarkupObj(),
     services: incServices,
     includedServices: incServices,
@@ -4883,12 +4849,10 @@ $('custCreateBtn').onclick = async () => {
     samedayMarkupPct: $('custSamedayMarkup') ? num('custSamedayMarkup') : 15,
     samedayEnabled: $('rcSamedayEnabled') ? $('rcSamedayEnabled').checked : true,
     returnsEnabled: $('rcReturnsEnabled') ? $('rcReturnsEnabled').checked : true,
-    returnsMarkupPct: $('custReturnsMarkup') ? num('custReturnsMarkup') : 15,
-    billingClientName: $('custBillingClientName') ? $('custBillingClientName').value.trim() : '',
+    billingClientName: 'Moov Parcel',
     billingCustomerDcId: $('custBillingCustomerDcId') ? $('custBillingCustomerDcId').value.trim() : '',
     billingCustomerKey: $('custBillingCustomerKey') ? $('custBillingCustomerKey').value.trim() : '',
     voilaAuthCompany: $('custVoilaAuthCompany') ? $('custVoilaAuthCompany').value.trim() : '',
-    billingEndpointUrl: $('custBillingEndpointUrl') ? $('custBillingEndpointUrl').value.trim() : '',
     markup: custCardMarkupObj(),
     services: incServices,
     includedServices: incServices,
