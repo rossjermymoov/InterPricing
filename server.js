@@ -104,7 +104,6 @@ app.put('/api/settings', auth.requireAdmin, async (req, res) => {
       return r;
     };
     const { fuelByService, caps, accessorials, euCustomsDuty } = req.body || {};
-    if (req.body && req.body.upsFuelMarkup != null) cfg.settings.upsFuelMarkup = Number(req.body.upsFuelMarkup) || 0;
     if (req.body && req.body.importMarkupPct != null) cfg.settings.importMarkupPct = Number(req.body.importMarkupPct) || 0;
     if (req.body && req.body.debugRaw != null) cfg.settings.debugRaw = !!req.body.debugRaw;
     if (req.body && req.body.hsFreeLines != null) cfg.settings.hsFreeLines = Math.max(0, Math.floor(Number(req.body.hsFreeLines) || 0));
@@ -542,7 +541,6 @@ app.post('/api/import-quote', async (req, res) => {
     });
     const customSurTotal = customSurcharges.reduce((sum, x) => sum + x.amt, 0);
 
-    const upsFuelMarkup = Number((cfg.settings || {}).upsFuelMarkup) || 0;
     const services = (r.services || [])
       .filter((s) => ALLOWED_UPS_CODES.has(String(s.code)))
       .map((s) => {
@@ -570,7 +568,7 @@ app.post('/api/import-quote', async (req, res) => {
         allSurcharges.push({ key: 'hs', name: 'HS customs entry (' + hsExtra + ' extra line' + (hsExtra === 1 ? '' : 's') + ')', amt: hsCharge });
       }
       const surchargesTotal = allSurcharges.reduce((t, x) => t + x.amt, 0);
-      const fuelRate = (bd.base > 0 && bd.fuel > 0) ? ((bd.fuel / bd.base) * (1 + upsFuelMarkup / 100)) : 0;
+      const fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0;
       const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
       const finalPrice = Math.round((baseMarkedUp + fuelAmount + surchargesTotal) * 100) / 100;
 
@@ -682,7 +680,6 @@ app.post('/api/card-rate', async (req, res) => {
     });
     if (!r || !r.enabled) return res.json({ enabled: false, services: [] });
 
-    const upsFuelMarkup = Number((cfg.settings || {}).upsFuelMarkup) || 0;
     const services = [];
     (r.services || []).filter((s) => ALLOWED_UPS_CODES.has(String(s.code))).forEach((s) => {
       const key = CODE2KEY[s.code] || ('ups_' + s.code);
@@ -720,7 +717,7 @@ app.post('/api/card-rate', async (req, res) => {
       }
 
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
-      const fuelRate = (bd.base > 0 && bd.fuel > 0) ? ((bd.fuel / bd.base) * (1 + upsFuelMarkup / 100)) : 0;
+      const fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0;
       const fuelAmount = Math.round((baseMarkedUp + surTotal) * fuelRate * 100) / 100;
 
       services.push({
@@ -753,7 +750,6 @@ app.post('/api/calc-rate', async (req, res) => {
     const cfg = await db.getConfig();
     const st = cfg.settings || {};
     const globalMarkup = Number(st.importMarkupPct) || 0;
-    const upsFuelMarkup = Number(st.upsFuelMarkup) || 0;
     const euCountries = (st.regions && st.regions.eu) || [];
     const isEu = euCountries.includes(country) || euCountries.includes(iso);
     const mkObj = (markup && typeof markup === 'object') ? markup : (typeof markup === 'number' ? markup : {});
@@ -851,7 +847,7 @@ app.post('/api/calc-rate', async (req, res) => {
       }
 
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
-      const fuelRate = (costBase > 0 && costFuel > 0) ? ((costFuel / costBase) * (1 + upsFuelMarkup / 100)) : 0;
+      const fuelRate = (costBase > 0 && costFuel > 0) ? (costFuel / costBase) : 0;
       const fuelRatePct = Math.round(fuelRate * 1000) / 10;
       const sellFuel = Math.round((sellBase + surTotal) * fuelRate * 100) / 100;
 
