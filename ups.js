@@ -241,21 +241,6 @@ function buildRateRequest(p) {
   const invoiceTotal = (goodsVal != null && goodsVal > 0) ? goodsVal : 100;
   const invoiceCurrency = S(p.currency || 'GBP').toUpperCase();
 
-  const isReturn = !!(p.isReturn || p.mode === 'return' || p.mode === 'intl_return');
-  const retServiceType = p.returnServiceType || p.returnService;
-  let retCode = p.returnServiceCode;
-  if (!retCode && (isReturn || retServiceType)) {
-    if (retServiceType === 'driver_brings_label' || retServiceType === '1_attempt' || retServiceType === '3') {
-      retCode = '3';
-    } else if (retServiceType === '3_attempts' || retServiceType === '5') {
-      retCode = '5';
-    } else if (retServiceType === 'electronic_label' || retServiceType === 'erl' || retServiceType === '8') {
-      retCode = '8';
-    } else if (retServiceType === 'print_label' || retServiceType === '9' || isReturn) {
-      retCode = '9';
-    }
-  }
-
   const shipmentObj = {
     Shipper: shipper, ShipTo: shipTo, ShipFrom: shipFrom,
     ShipmentRatingOptions: { NegotiatedRatesIndicator: 'Y' }, // account (negotiated) rates
@@ -265,9 +250,6 @@ function buildRateRequest(p) {
     NumOfPieces: String(Package.length),
     Package,
   };
-  if (retCode) {
-    shipmentObj.ReturnService = { Code: String(retCode), Description: 'UPS Return Service' };
-  }
 
   return {
     RateRequest: {
