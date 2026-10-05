@@ -297,7 +297,41 @@ app.put('/api/card/:token/addressbook', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// PUBLIC: Live quote for customer returns using Billing API (DPD & Yodel)
+function resolveCardMarkup(card, serviceCode, originCountry, st) {
+  if (!card) return Number(st && st.importMarkupPct) || 0;
+  const cfg = card.config || {};
+  
+  // 1. Direct explicit import/return keys on card config
+  if (cfg.importMarkupPct != null && isFinite(Number(cfg.importMarkupPct))) return Number(cfg.importMarkupPct);
+  if (cfg.importMarkup != null && isFinite(Number(cfg.importMarkup))) return Number(cfg.importMarkup);
+  if (cfg.returnMarkupPct != null && isFinite(Number(cfg.returnMarkupPct))) return Number(cfg.returnMarkupPct);
+  if (cfg.returnMarkup != null && isFinite(Number(cfg.returnMarkup))) return Number(cfg.returnMarkup);
+  if (cfg.markupPct != null && isFinite(Number(cfg.markupPct))) return Number(cfg.markupPct);
+
+  // 2. card.config.markup (can be a number or an object)
+  const m = cfg.markup != null ? cfg.markup : card.markup;
+  if (typeof m === 'number' && isFinite(m)) return m;
+  if (typeof m === 'string' && isFinite(Number(m))) return Number(m);
+
+  if (m && typeof m === 'object') {
+    if (m.import != null && isFinite(Number(m.import))) return Number(m.import);
+    if (m.return != null && isFinite(Number(m.return))) return Number(m.return);
+    
+    const euCountries = (st && st.regions && st.regions.eu) || [];
+    const isEu = originCountry && (euCountries.includes(originCountry) || euCountries.includes(countries.nameToIso(originCountry)));
+    const svcKey = ['11', '011', '03'].includes(String(serviceCode)) ? 'us' : 'ux';
+    const regKey = isEu ? svcKey + '_eu' : svcKey + '_row';
+
+    if (m[regKey] != null && isFinite(Number(m[regKey]))) return Number(m[regKey]);
+    if (m[svcKey] != null && isFinite(Number(m[svcKey]))) return Number(m[svcKey]);
+    if (m.default != null && isFinite(Number(m.default))) return Number(m.default);
+  }
+
+  // 3. Fallback to global settings
+  const p = Number(st && st.importMarkupPct);
+  return isFinite(p) ? p : (Number(process.env.UPS_IMPORT_MARKUP) || 0);
+}
+
 // PUBLIC: Live quote for customer returns (UPS International Returns with Returns Plus & DPD/Yodel domestic)
 app.post('/api/card/:token/returns/quote', async (req, res) => {
   try {
@@ -348,16 +382,6 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
         if (r && r.enabled && Array.isArray(r.services) && r.services.length) {
           const globalCfg = await db.getConfig();
           const st = globalCfg.settings || {};
-          
-          // Exact same markup hierarchy as Import: customer card importMarkupPct -> global settings importMarkupPct -> env -> 0
-          let markup = null;
-          const cm = cfg.importMarkupPct != null ? cfg.importMarkupPct : cfg.returnMarkupPct;
-          if (cm != null && isFinite(Number(cm))) {
-            markup = Number(cm);
-          } else {
-            const p = Number(st.importMarkupPct);
-            markup = isFinite(p) ? p : (Number(process.env.UPS_IMPORT_MARKUP) || 0);
-          }
 
           // Extra surcharge if Driver Brings Label (UPS Returns Plus 1 Attempt) is requested (~£4.25 list)
           let returnsPlusFee = 0;
@@ -377,6 +401,7 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
             .filter((s) => ALLOWED_UPS_CODES.has(String(s.code)))
             .map((s) => {
               const bd = s.breakdown || {};
+              const markup = resolveCardMarkup(card, s.code, originCountry, st);
               const factor = 1 + markup / 100;
               const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
               const liveAcc = (bd.accessorials || []).map((a) => ({
@@ -790,6 +815,7 @@ app.post('/api/import-quote', async (req, res) => {
       .filter((s) => ALLOWED_UPS_CODES.has(String(s.code)))
       .map((s) => {
       const bd = s.breakdown || {};
+      const markup = resolveCardMarkup(card, s.code, sender && sender.country, st);
       const factor = 1 + markup / 100;
       const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
       const liveAcc = (bd.accessorials || []).map((a) => ({
