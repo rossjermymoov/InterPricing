@@ -406,9 +406,7 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
               const surchargesTotal = liveAcc.reduce((t, x) => t + x.amt, 0);
               const isStandard = ['11', '011', '03'].includes(String(s.code));
               // Published fuel: 34% Standard, 53.25% Express with 25% discount
-              const discountedFuelRate = isStandard ? (0.34 * 0.75) : (0.5325 * 0.75);
-              let fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0;
-              if (fuelRate < 0.15) fuelRate = discountedFuelRate;
+              const fuelRate = isStandard ? (0.34 * 0.75) : (0.5325 * 0.75);
 
               const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
               const finalPrice = Math.round((baseMarkedUp + surchargesTotal + fuelAmount) * 100) / 100;
@@ -818,9 +816,8 @@ app.post('/api/import-quote', async (req, res) => {
       }
       const surchargesTotal = allSurcharges.reduce((t, x) => t + x.amt, 0);
       const isStandard = ['11', '011', '03'].includes(String(s.code));
-      const discountedFuelRate = isStandard ? (0.34 * 0.75) : (0.5325 * 0.75);
-      let fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0;
-      if (fuelRate < 0.15) fuelRate = discountedFuelRate;
+      // Published fuel: 34% Standard, 53.25% Express with 25% discount
+      const fuelRate = isStandard ? (0.34 * 0.75) : (0.5325 * 0.75);
 
       const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
       const finalPrice = Math.round((baseMarkedUp + surchargesTotal + fuelAmount) * 100) / 100;
