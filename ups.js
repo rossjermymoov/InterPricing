@@ -801,10 +801,13 @@ function buildShipmentRequest(p) {
   // For cross-border imports originating overseas (e.g. NL -> GB), UPS requires the ReturnService
   // container (Code: '9' Print Return Label) so the shipment originates from ShipFrom (NL)
   // and delivers to ShipTo (GB) billed to the UK Shipper account.
+  const ukEoriNumber = S(p.ukEori || p.importerEori || 'GB446867375').slice(0, 18);
+  const senderTaxId = S(p.senderTaxId || p.senderVat || (sender && (sender.taxId || sender.vatNumber)) || '').slice(0, 18);
+
   const shipperObj = {
     Name: 'MOOV Parcel',
     AttentionName: 'Operations',
-    TaxIdentificationNumber: 'GB446867375',
+    TaxIdentificationNumber: ukEoriNumber,
     Phone: { Number: '07498991612' },
     ShipperNumber: acct,
     Address: {
@@ -863,6 +866,7 @@ function buildShipmentRequest(p) {
     ShipTo: {
       Name: S(receiver.company || receiver.name || 'Recipient').slice(0, 35),
       AttentionName: S(receiver.name || receiver.company || 'Recipient').slice(0, 35),
+      TaxIdentificationNumber: ukEoriNumber,
       Phone: { Number: S(receiver.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
       EMailAddress: S(receiver.email || '').slice(0, 50),
       Address: receiverAddr.Address,
@@ -870,6 +874,7 @@ function buildShipmentRequest(p) {
     ShipFrom: {
       Name: S(sender.company || sender.name || 'Sender').slice(0, 35),
       AttentionName: S(sender.name || sender.company || 'Sender').slice(0, 35),
+      ...(senderTaxId ? { TaxIdentificationNumber: senderTaxId } : {}),
       Phone: { Number: S(sender.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
       EMailAddress: S(sender.email || '').slice(0, 50),
       Address: senderAddr.Address,
@@ -985,8 +990,17 @@ function buildShipmentRequest(p) {
       InvoiceDate: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
       PurchaseOrderNumber: purchaseOrderNumber,
       CurrencyCode: p.currency || 'GBP',
-      DeclarationStatement: isReturn ? 'Returned goods being returned to the United Kingdom. Relief from import duty and VAT claimed.' : 'I hereby declare that the information in this invoice is true and correct.',
-      Comments: isReturn ? 'Customer Return / Repatriation of goods to UK' : 'Commercial Invoices provided for customs clearance',
+      DeclarationStatement: isReturn ? 'Returned goods being returned to the United Kingdom. Relief from import duty and VAT claimed under Returned Goods Relief (CPC 61 23).' : 'I hereby declare that the information in this invoice is true and correct.',
+      Comments: isReturn ? 'Customer Return / Repatriation of goods to UK (CPC 61 23)' : 'Commercial Invoices provided for customs clearance',
+      Contacts: {
+        SoldTo: {
+          Name: S(receiver.company || receiver.name || 'Importer').slice(0, 35),
+          AttentionName: S(receiver.name || receiver.company || 'Importer').slice(0, 35),
+          TaxIdentificationNumber: ukEoriNumber,
+          Phone: { Number: S(receiver.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
+          Address: receiverAddr.Address,
+        },
+      },
     };
     if (productList.length > 0) {
       intlForms.Product = productList;

@@ -2829,9 +2829,21 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                   </select>
                 </div>
               </div>
-              <div style="margin-top:6px;font-size:11px;color:var(--moov-green-deep);display:flex;align-items:center;gap:6px">
+
+              <div class="calc-grid" style="margin-top:12px">
+                <div class="f" style="flex:1.5 1 200px">
+                  <label>UK Importer EORI / VAT Number *</label>
+                  <input type="text" id="retUkEori" value="GB446867375" placeholder="e.g. GB446867375" required style="font-weight:700"/>
+                </div>
+                <div class="f" style="flex:1.5 1 200px">
+                  <label>Sender Tax / VAT ID (Greece / Origin - Optional)</label>
+                  <input type="text" id="retSenderTaxId" placeholder="e.g. EL999999999"/>
+                </div>
+              </div>
+
+              <div style="margin-top:8px;font-size:11px;color:var(--moov-green-deep);display:flex;align-items:center;gap:6px">
                 <span>🛡️</span>
-                <span><b>DDP with Returned Goods Relief (RGR):</b> The UK merchant covers import clearance. Returned merchandise qualifies for zero import duty &amp; VAT under CPC 61 23 / RGR. Shopper abroad pays £0.</span>
+                <span><b>DDP with Returned Goods Relief (RGR CPC 61 23):</b> Full electronic Paperless EDI transmission to UPS customs. Zero import duty &amp; VAT on repatriation. Shopper pays £0.</span>
               </div>
 
               <!-- Line Items Table -->
@@ -4720,7 +4732,15 @@ function renderReturnServices(data) {
     let cleanName = String(s.name || 'UPS Standard').replace(/\bReturn\b/gi, '').trim();
     if (!cleanName.toLowerCase().startsWith('ups') && isUps) cleanName = 'UPS ' + cleanName;
 
-    const rPlusDesc = currentReturnMethod === 'driver_brings_label' ? '🚚 <b>UPS Returns Plus (1 Attempt):</b> Driver arrives with pre-printed label in hand.' : (currentReturnMethod === 'electronic_label' ? '📧 <b>Electronic Return:</b> Barcode link emailed automatically.' : '📄 <b>Prepaid Return:</b> Downloadable instant PDF/thermal label.');
+    const rPlusDesc = currentReturnMethod === 'driver_brings_label' ? '🚚 <b>UPS Returns Plus (1 Attempt):</b> Driver arrives with pre-printed label in hand on the next business day (09:00 - 17:30).' : (currentReturnMethod === 'electronic_label' ? '📧 <b>Electronic Return:</b> Barcode link emailed automatically.' : '📄 <b>Prepaid Return:</b> Downloadable instant PDF/thermal label.');
+
+    const bd = s.breakdown || {};
+    const rawCost = Number(bd.rawBaseCost || bd.base || 0);
+    const markupPct = Number(bd.markupPct || 0);
+    const markupAmt = Number(bd.markupAmount || (markupPct ? (rawCost * markupPct / 100) : 0));
+    const retPlusFee = Number(bd.returnsPlusFee || (currentReturnMethod === 'driver_brings_label' ? 4.25 : 0));
+    const fuelAmt = Number(bd.fuel || 0);
+    const fuelPct = bd.fuelRatePct || '15';
 
     card.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
@@ -4739,9 +4759,39 @@ function renderReturnServices(data) {
       <div style="font-size:11.5px;color:#475569;margin-top:6px;line-height:1.4">
         ${isUps ? rPlusDesc : '🚀 Drop off at local pickup shop or scheduled drop point.'}
       </div>
+
+      <!-- Live Pricing & Markup Breakdown -->
+      <div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:11px;color:#475569">
+        <div style="font-weight:800;font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mv-purple);margin-bottom:4px">
+          Live Pricing &amp; Markup Breakdown
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:1px 0">
+          <span>UPS Inbound Base Cost:</span>
+          <b>£${rawCost.toFixed(2)}</b>
+        </div>
+        ${markupPct > 0 ? `
+        <div style="display:flex;justify-content:space-between;padding:1px 0;color:var(--mv-purple)">
+          <span>Applied Rate Card Markup (+${markupPct}%):</span>
+          <b>+£${markupAmt.toFixed(2)}</b>
+        </div>` : ''}
+        ${retPlusFee > 0 ? `
+        <div style="display:flex;justify-content:space-between;padding:1px 0;color:#0284c7">
+          <span>UPS Returns Plus (Driver Brings Label):</span>
+          <b>+£${retPlusFee.toFixed(2)}</b>
+        </div>` : ''}
+        <div style="display:flex;justify-content:space-between;padding:1px 0">
+          <span>Fuel Surcharge (~${fuelPct}%):</span>
+          <b>+£${fuelAmt.toFixed(2)}</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding-top:4px;margin-top:4px;border-top:1px solid #cbd5e1;font-weight:800;color:var(--mv-ink)">
+          <span>Total Client Sell Price:</span>
+          <span>£${priceNum.toFixed(2)}</span>
+        </div>
+      </div>
+
       <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;font-weight:700;color:var(--moov-green-deep);display:flex;align-items:center;gap:4px">
-          <span>✓</span><span>Includes DDP &amp; Customs Transit</span>
+          <span>✓</span><span>Includes DDP &amp; Electronic Customs</span>
         </span>
         <span class="return-select-badge">${idx === 0 ? '✓ Selected' : 'Select'}</span>
       </div>
@@ -4833,6 +4883,8 @@ async function handleBookReturnLabel() {
         packages: parcels,
         lineItems,
         goodsValue: totalVal,
+        ukEori: $('retUkEori')?.value.trim() || 'GB446867375',
+        senderTaxId: $('retSenderTaxId')?.value.trim() || '',
         termsOfSale: $('retTermsOfSale')?.value || 'DDP',
         incoterms: $('retTermsOfSale')?.value || 'DDP',
         reasonForExport: $('retReasonForExport')?.value || 'RETURN',

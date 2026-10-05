@@ -415,11 +415,16 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
                 currency: s.currency || 'GBP',
                 price: finalPrice,
                 breakdown: {
+                  rawBaseCost: bd.base || 0,
+                  markupPct: markup,
+                  markupAmount: Math.round((baseMarkedUp - (bd.base || 0)) * 100) / 100,
                   base: baseMarkedUp,
                   fuel: fuelAmount,
+                  fuelRatePct: Math.round(fuelRate * 1000) / 10,
                   surcharges: surchargesTotal,
                   returnsPlusFee: returnsPlusFee,
                   accessorials: liveAcc,
+                  totalSellPrice: finalPrice,
                 },
                 returnServiceType: returnServiceType || 'driver_brings_label',
               };
@@ -521,9 +526,10 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
         lineItems: Array.isArray(lineItems) ? lineItems : [],
         originalOrderRef: orderRef || '',
         declarationStatement: declarationStatement || 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty claimed (RGR CPC 61 23).',
-        goodsValue: Number(goodsValue) || 50,
         termsOfSale: req.body.termsOfSale || req.body.incoterms || 'DDP',
         incoterms: req.body.incoterms || req.body.termsOfSale || 'DDP',
+        ukEori: req.body.ukEori || cfg.eori || cfg.eoriNumber || 'GB446867375',
+        senderTaxId: req.body.senderTaxId || '',
       });
 
       if (!shipResult.ok) {
