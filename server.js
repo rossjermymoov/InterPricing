@@ -299,24 +299,9 @@ app.put('/api/card/:token/addressbook', async (req, res) => {
 
 function resolveCardMarkup(card, serviceCode, originCountry, st) {
   const cfg = card ? ((typeof card.config === 'string') ? JSON.parse(card.config || '{}') : (card.config || {})) : {};
-  const m = cfg.markup != null ? cfg.markup : (card && card.markup);
-
-  // 1. Dedicated Customer Import / Return Markup
-  const rawImp = cfg.importMarkupPct != null ? cfg.importMarkupPct : (cfg.importMarkup != null ? cfg.importMarkup : (cfg.returnMarkupPct != null ? cfg.returnMarkupPct : (cfg.returnMarkup != null ? cfg.returnMarkup : (m && m.import))));
-  if (rawImp != null && isFinite(Number(rawImp))) {
-    const val = Number(rawImp);
-    if (val >= 70) return val;
-    if (val > 10) return val;
-  }
-
-  // 2. Rate card markup object check
-  if (m && typeof m === 'object') {
-    if (m.ux_eu && Number(m.ux_eu) >= 70) return Number(m.ux_eu);
-    if (m.default && Number(m.default) >= 70) return Number(m.default);
-  }
-
-  // Default to 70% markup for all inbound customer returns
-  return 70;
+  const imp = cfg.importMarkupPct != null ? cfg.importMarkupPct : (cfg.importMarkup != null ? cfg.importMarkup : (cfg.returnMarkupPct != null ? cfg.returnMarkupPct : (cfg.returnMarkup != null ? cfg.returnMarkup : 70)));
+  const n = Number(imp);
+  return (isFinite(n) && n > 0) ? n : 70;
 }
 
 // PUBLIC: Live quote for customer returns (UPS International Returns with Returns Plus & DPD/Yodel domestic)
@@ -392,7 +377,8 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
               const bd = s.breakdown || {};
               const markup = resolveCardMarkup(card, s.code, originCountry, st);
               const factor = 1 + markup / 100;
-              const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
+              const rawBase = Number((bd.base != null && bd.base > 0) ? bd.base : (s.cost || 0));
+              const baseMarkedUp = Math.round(rawBase * factor * 100) / 100;
               const liveAcc = (bd.accessorials || []).map((a) => ({
                 code: a.code,
                 name: a.name,
