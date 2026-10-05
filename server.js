@@ -409,8 +409,8 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
               let fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0;
               if (fuelRate < 0.15) fuelRate = discountedFuelRate;
 
-              const fuelAmount = Math.round(baseMarkedUp * fuelRate * 100) / 100;
-              const finalPrice = Math.round((baseMarkedUp + fuelAmount + surchargesTotal) * 100) / 100;
+              const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
+              const finalPrice = Math.round((baseMarkedUp + surchargesTotal + fuelAmount) * 100) / 100;
 
               return {
                 code: s.code,
@@ -821,8 +821,8 @@ app.post('/api/import-quote', async (req, res) => {
       let fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0;
       if (fuelRate < 0.15) fuelRate = discountedFuelRate;
 
-      const fuelAmount = Math.round(baseMarkedUp * fuelRate * 100) / 100;
-      const finalPrice = Math.round((baseMarkedUp + fuelAmount + surchargesTotal) * 100) / 100;
+      const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
+      const finalPrice = Math.round((baseMarkedUp + surchargesTotal + fuelAmount) * 100) / 100;
 
       return {
         code: s.code,
