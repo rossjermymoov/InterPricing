@@ -850,8 +850,9 @@ function buildShipmentRequest(p) {
 
   const senderAddr = addressOf(sender, '');
   const receiverAddr = addressOf(receiver, 'GB');
-  const originCountry = (senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'GB';
-  const isImperial = isImperialCountry(originCountry);
+  // In UPS Shipping API (/api/shipments/v1/ship), package weights and dimensions are validated
+  // against the Shipper's account country (GB = Metric: KGS & CM).
+  const isImperial = !!p.forceImperial;
   const UOM_WEIGHT = isImperial ? { Code: 'LBS', Description: 'Pounds' } : { Code: 'KGS', Description: 'Kilograms' };
   const UOM_DIM = isImperial ? { Code: 'IN', Description: 'Inches' } : { Code: 'CM', Description: 'Centimeters' };
 
@@ -1122,7 +1123,7 @@ function buildShipmentRequest(p) {
   };
 }
 
-async function bookShipment(payload) {
+async function bookShipment(payload, retryCount = 0) {
   const tk = await token();
   if (!tk) return { ok: false, error: 'UPS credentials not configured' };
 
@@ -1157,6 +1158,13 @@ async function bookShipment(payload) {
     } else if (text) {
       errMsg += ': ' + text.slice(0, 350);
     }
+
+    // Auto-retry with inverted measurement system if UPS rejected units
+    if (retryCount === 0 && (errMsg.toLowerCase().includes('measurement system') || errMsg.toLowerCase().includes('unit of measurement'))) {
+      console.warn('[bookShipment] Retrying booking with toggled measurement system...');
+      return bookShipment({ ...payload, forceImperial: !payload.forceImperial }, 1);
+    }
+
     return { ok: false, status: res.status, error: errMsg, raw: text, request: reqBody };
   }
 
