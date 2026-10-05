@@ -1268,12 +1268,19 @@ async function trackShipment(trackingNumber) {
   const activities = Array.isArray(firstPkg.activity) ? firstPkg.activity : (firstPkg.activity ? [firstPkg.activity] : []);
   const deliveryInfo = firstPkg.deliveryInformation || {};
 
-  // Check if collected / picked up
-  const isCollected = activities.some((a) => {
+  // Check if collected / picked up (strictly excluding manifest & label-created events)
+  const isManifestStatus = (statusDescription || '').toLowerCase().includes('order processed') ||
+    (statusDescription || '').toLowerCase().includes('ready for ups') ||
+    (statusDescription || '').toLowerCase().includes('label created') ||
+    (statusDescription || '').toLowerCase().includes('shipper created');
+
+  const isCollected = !isManifestStatus && (activities.some((a) => {
     const desc = ((a.status && a.status.description) || (a.activityScan && a.activityScan.description) || '').toLowerCase();
     const type = ((a.status && a.status.type) || '').toLowerCase();
-    return desc.includes('pickup') || desc.includes('picked up') || desc.includes('collection') || desc.includes('collected') || desc.includes('origin scan') || desc.includes('drop-off') || type === 'p' || type === 'or';
-  }) || ['P', 'OR', 'DP', 'IT', 'OT', 'DL', 'D'].includes(statusCode);
+    const isManifestAct = desc.includes('order processed') || desc.includes('ready for ups') || desc.includes('label created') || desc.includes('shipper created') || desc.includes('electronic billing');
+    if (isManifestAct) return false;
+    return desc.includes('pickup') || desc.includes('picked up') || desc.includes('collection') || desc.includes('collected') || desc.includes('origin scan') || desc.includes('drop-off') || (type === 'p' && !desc.includes('ready')) || type === 'or';
+  }) || (['OR', 'DP'].includes(statusCode)));
 
   const isDelivered = statusCode === 'D' || statusCode === 'DELIVERED' || statusDescription.toLowerCase().includes('delivered') || !!deliveryInfo.receivedBy;
 
@@ -1312,7 +1319,10 @@ async function trackShipment(trackingNumber) {
     const pDel = pkg.deliveryInformation || deliveryInfo;
     const pActsFormatted = mapActivities(pActs.length ? pActs : activities);
     const pIsDelivered = pCode === 'D' || pCode === 'DELIVERED' || pDesc.toLowerCase().includes('delivered') || !!(pDel && pDel.receivedBy);
-    const pIsCollected = isCollected || pActsFormatted.some((a) => a.status.toLowerCase().includes('pickup') || a.status.toLowerCase().includes('collected'));
+    const pIsCollected = isCollected || pActsFormatted.some((a) => {
+      const st = a.status.toLowerCase();
+      return !st.includes('ready') && !st.includes('label created') && (st.includes('pickup') || st.includes('collected') || st.includes('origin scan'));
+    });
     const pStageInfo = normalizeTrackingStages({ statusCode: pCode, statusDescription: pDesc, isCollected: pIsCollected, isDelivered: pIsDelivered, activities: pActs.length ? pActs : activities, deliveryInfo: pDel });
     const latestScan = pActsFormatted[0] || null;
 
@@ -1443,6 +1453,13 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
         }
       };
 
+      const isManifest = desc.includes('order processed') || desc.includes('ready for ups') || desc.includes('label created') || desc.includes('shipper created') || desc.includes('electronic billing') || desc.includes('shipment information received') || code === 'MP' || code === 'M';
+
+      // Pre-collection manifest notifications do not advance physical transit stages
+      if (isManifest) {
+        return;
+      }
+
       const isUkLoc = cCode === 'GB' || cCode === 'UK' || loc.toLowerCase().includes('united kingdom') ||
         city.includes('castle donington') || city.includes('stanford le hope') || city.includes('tamworth') ||
         city.includes('east midlands') || city.includes('dartford') || city.includes('barking') ||
@@ -1456,11 +1473,11 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
         if (highestStage < 6) highestStage = 6;
         recordStageScan(6);
       }
-      // Stage 5: At destination UK Depot / Hub (any scan once physically in the UK / destination country)
+      // Stage 5: At destination UK Depot / Hub (any physical scan once physically in the UK / destination country)
       else if (
-        isUkLoc ||
+        (isUkLoc && (isCollected || highestStage >= 1)) ||
         desc.includes('destination scan') || desc.includes('import scan') ||
-        ((desc.includes('arrival scan') || desc.includes('warehouse scan') || desc.includes('hub scan') || desc.includes('processing at facility') || desc.includes('destination')) && (cCode === 'GB' || isUkLoc))
+        ((desc.includes('arrival scan') || desc.includes('warehouse scan') || desc.includes('hub scan') || desc.includes('processing at facility')) && (cCode === 'GB' || isUkLoc) && (isCollected || highestStage >= 1))
       ) {
         if (highestStage < 5) highestStage = 5;
         recordStageScan(5);
@@ -1490,20 +1507,21 @@ function normalizeTrackingStages({ statusCode, statusDescription, isCollected, i
 
   // Fallback if status code or description indicates progress
   const sDescLow = (statusDescription || '').toLowerCase();
-  if (highestStage === 0) {
+  const isManifestDesc = sDescLow.includes('order processed') || sDescLow.includes('ready for ups') || sDescLow.includes('label created') || sDescLow.includes('shipper created');
+  if (highestStage === 0 && !isManifestDesc) {
     if (sDescLow.includes('out for delivery')) highestStage = 6;
     else if (sDescLow.includes('hub') || sDescLow.includes('transit')) highestStage = 3;
     else if (isCollected) highestStage = 1;
   }
 
-  const stageObj = STAGES.find((s) => s.stage === highestStage) || STAGES[0];
+  const stageObj = STAGES.find((s) => s.stage === highestStage) || { stage: 0, name: 'Booked', desc: 'Awaiting Collection' };
   return {
     stage: highestStage,
-    stageName: stageObj.name,
-    stageDesc: stageObj.desc,
+    stageName: highestStage === 0 ? 'Booked' : stageObj.name,
+    stageDesc: highestStage === 0 ? 'Awaiting Collection' : stageObj.desc,
     stageTimestamps,
     lastLocation: lastLoc,
-    latestStatusText: latestDesc || stageObj.name,
+    latestStatusText: latestDesc || (highestStage === 0 ? 'Booked (Awaiting Collection)' : stageObj.name),
   };
 }
 
