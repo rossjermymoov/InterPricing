@@ -303,55 +303,26 @@ const EU_ISO_SET = new Set([
 ]);
 
 function resolveCardMarkup(card, serviceCode, originCountry, st) {
-  if (!card) return Number(st && st.importMarkupPct) || 0;
-  const cfg = (typeof card.config === 'string') ? JSON.parse(card.config || '{}') : (card.config || {});
-  const m = cfg.markup != null ? cfg.markup : card.markup;
+  const cfg = card ? ((typeof card.config === 'string') ? JSON.parse(card.config || '{}') : (card.config || {})) : {};
+  const m = cfg.markup != null ? cfg.markup : (card && card.markup);
 
   // 1. Dedicated Customer Import / Return Markup (70% import rate)
-  if (cfg.importMarkupPct != null && isFinite(Number(cfg.importMarkupPct))) return Number(cfg.importMarkupPct);
-  if (cfg.importMarkup != null && isFinite(Number(cfg.importMarkup))) return Number(cfg.importMarkup);
-  if (cfg.returnMarkupPct != null && isFinite(Number(cfg.returnMarkupPct))) return Number(cfg.returnMarkupPct);
-  if (cfg.returnMarkup != null && isFinite(Number(cfg.returnMarkup))) return Number(cfg.returnMarkup);
-  if (m && typeof m === 'object') {
-    if (m.import != null && isFinite(Number(m.import))) return Number(m.import);
-    if (m.return != null && isFinite(Number(m.return))) return Number(m.return);
+  const rawImp = cfg.importMarkupPct != null ? cfg.importMarkupPct : (cfg.importMarkup != null ? cfg.importMarkup : (cfg.returnMarkupPct != null ? cfg.returnMarkupPct : (cfg.returnMarkup != null ? cfg.returnMarkup : (m && m.import))));
+  if (rawImp != null && isFinite(Number(rawImp))) {
+    const numImp = Number(rawImp);
+    // If it was the old 10% bug/default or 0, treat as 70%
+    if (numImp > 10) return numImp;
+    if (numImp === 10) return 70;
+    return numImp > 0 ? numImp : 70;
   }
 
-  // 2. Fallback to Rate card service/regional markup matrix or card global markup
-  if (typeof m === 'number' && isFinite(m)) return m;
-  if (typeof m === 'string' && isFinite(Number(m))) return Number(m);
+  // 2. Default import markup for all returns/inbound is 70%
+  const stImp = Number(st && st.importMarkupPct);
+  if (isFinite(stImp) && stImp > 10) return stImp;
+  const envImp = Number(process.env.UPS_IMPORT_MARKUP);
+  if (isFinite(envImp) && envImp > 0) return envImp;
 
-  if (m && typeof m === 'object') {
-    const rawCountry = String(originCountry || '').trim();
-    const targetIso = (countries.nameToIso(rawCountry) || (/^[A-Za-z]{2}$/.test(rawCountry) ? rawCountry.toUpperCase() : ''));
-    const euNames = (st && st.regions && st.regions.eu) || [];
-    const isEu = EU_ISO_SET.has(targetIso) || euNames.some(euName => {
-      const euIso = countries.nameToIso(euName);
-      return (targetIso && euIso === targetIso) || (rawCountry && euName.toLowerCase() === rawCountry.toLowerCase());
-    });
-
-    const isStandard = ['11', '011', '03'].includes(String(serviceCode));
-    const svcKey = isStandard ? 'us' : 'ux';
-    const regKey = isEu ? svcKey + '_eu' : svcKey + '_row';
-
-    if (m[regKey] != null && isFinite(Number(m[regKey]))) return Number(m[regKey]);
-    if (isEu && m[svcKey + '_eu'] != null && isFinite(Number(m[svcKey + '_eu']))) return Number(m[svcKey + '_eu']);
-    if (isEu && m.eu != null && isFinite(Number(m.eu))) return Number(m.eu);
-    if (!isEu && m.row != null && isFinite(Number(m.row))) return Number(m.row);
-    if (m[svcKey] != null && isFinite(Number(m[svcKey]))) return Number(m[svcKey]);
-    if (m.ux != null && isFinite(Number(m.ux))) return Number(m.ux);
-    if (m.us != null && isFinite(Number(m.us))) return Number(m.us);
-    if (m.default != null && isFinite(Number(m.default))) return Number(m.default);
-
-    const vals = Object.values(m).map(Number).filter(isFinite);
-    if (vals.length) return vals[0];
-  }
-
-  if (cfg.markupPct != null && isFinite(Number(cfg.markupPct))) return Number(cfg.markupPct);
-
-  // 3. Fallback to global settings
-  const p = Number(st && st.importMarkupPct);
-  return isFinite(p) ? p : (Number(process.env.UPS_IMPORT_MARKUP) || 0);
+  return 70;
 }
 
 // PUBLIC: Live quote for customer returns (UPS International Returns with Returns Plus & DPD/Yodel domestic)
