@@ -4854,13 +4854,18 @@ function renderReturnServices(data) {
     const fuelAmt = Number(bd.fuel || 0);
     const fuelPct = bd.fuelRatePct || '15';
 
+    const pkgWeight = Number($('retPkgWeight')?.value) || 1.5;
+    const pkgL = Number($('retPkgL')?.value) || 30;
+    const pkgW = Number($('retPkgW')?.value) || 20;
+    const pkgH = Number($('retPkgH')?.value) || 15;
+
     card.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:10px">
           ${logoHtml}
           <div>
             <div style="font-weight:800;font-size:14.5px;color:var(--mv-ink)">${esc(cleanName)}</div>
-            <div style="font-size:11px;color:#64748b">${s.days ? s.days + ' Business Day' + (s.days === 1 ? '' : 's') + ' Transit' : 'Express Inbound Return'}</div>
+            <div style="font-size:11px;color:#64748b"><b>${pkgWeight} kg</b> (${pkgL}×${pkgW}×${pkgH} cm) · ${s.days ? s.days + ' Business Day' + (s.days === 1 ? '' : 's') + ' Transit' : 'Express Inbound Return'}</div>
           </div>
         </div>
         <div style="text-align:right">
