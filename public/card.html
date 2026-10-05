@@ -2708,25 +2708,30 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <div class="f" style="flex:1.5 1 200px">
                 <label>Country *</label>
                 <select id="retSenderCountry" onchange="handleReturnCountryChange()" required>
-                  <option value="US">🇺🇸 United States (US)</option>
-                  <option value="DE">🇩🇪 Germany (DE)</option>
-                  <option value="FR">🇫🇷 France (FR)</option>
-                  <option value="IT">🇮🇹 Italy (IT)</option>
-                  <option value="ES">🇪🇸 Spain (ES)</option>
-                  <option value="IE">🇮🇪 Ireland (IE)</option>
-                  <option value="CA">🇨🇦 Canada (CA)</option>
-                  <option value="AU">🇦🇺 Australia (AU)</option>
-                  <option value="NL">🇳🇱 Netherlands (NL)</option>
-                  <option value="BE">🇧🇪 Belgium (BE)</option>
-                  <option value="CH">🇨🇭 Switzerland (CH)</option>
-                  <option value="AT">🇦🇹 Austria (AT)</option>
-                  <option value="SE">🇸🇪 Sweden (SE)</option>
-                  <option value="DK">🇩🇰 Denmark (DK)</option>
-                  <option value="PL">🇵🇱 Poland (PL)</option>
-                  <option value="CN">🇨🇳 China (CN)</option>
-                  <option value="HK">🇭🇰 Hong Kong (HK)</option>
-                  <option value="JP">🇯🇵 Japan (JP)</option>
-                  <option value="GB">🇬🇧 United Kingdom (GB - Domestic)</option>
+                  <optgroup label="Popular Origins">
+                    <option value="GR" selected>🇬🇷 Greece (GR)</option>
+                    <option value="US">🇺🇸 United States (US)</option>
+                    <option value="DE">🇩🇪 Germany (DE)</option>
+                    <option value="FR">🇫🇷 France (FR)</option>
+                    <option value="IT">🇮🇹 Italy (IT)</option>
+                    <option value="ES">🇪🇸 Spain (ES)</option>
+                    <option value="IE">🇮🇪 Ireland (IE)</option>
+                    <option value="NL">🇳🇱 Netherlands (NL)</option>
+                    <option value="BE">🇧🇪 Belgium (BE)</option>
+                    <option value="CY">🇨🇾 Cyprus (CY)</option>
+                    <option value="CA">🇨🇦 Canada (CA)</option>
+                    <option value="AU">🇦🇺 Australia (AU)</option>
+                    <option value="CH">🇨🇭 Switzerland (CH)</option>
+                    <option value="AT">🇦🇹 Austria (AT)</option>
+                    <option value="SE">🇸🇪 Sweden (SE)</option>
+                    <option value="DK">🇩🇰 Denmark (DK)</option>
+                    <option value="PL">🇵🇱 Poland (PL)</option>
+                    <option value="PT">🇵🇹 Portugal (PT)</option>
+                    <option value="CN">🇨🇳 China (CN)</option>
+                    <option value="HK">🇭🇰 Hong Kong (HK)</option>
+                    <option value="JP">🇯🇵 Japan (JP)</option>
+                    <option value="GB">🇬🇧 United Kingdom (GB - Domestic)</option>
+                  </optgroup>
                 </select>
               </div>
               <div class="f" style="flex:1.5 1 180px">
@@ -2837,10 +2842,17 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                   <label>Original Order / Invoice Ref *</label>
                   <input type="text" id="retOrderRef" placeholder="e.g. ORD-98210" required/>
                 </div>
-                <div class="f" style="flex:1 1 120px">
-                  <label>Terms of Sale</label>
-                  <input type="text" value="DAP (Delivered at Place)" disabled style="background:#f1f5f9;color:#64748b"/>
+                <div class="f" style="flex:1 1 180px">
+                  <label>Terms of Sale (Incoterms) *</label>
+                  <select id="retTermsOfSale" style="font-weight:700">
+                    <option value="DDP" selected>DDP (Delivered Duty Paid - UK Shipper Pays)</option>
+                    <option value="DAP">DAP (Delivered at Place)</option>
+                  </select>
                 </div>
+              </div>
+              <div style="margin-top:6px;font-size:11px;color:var(--moov-green-deep);display:flex;align-items:center;gap:6px">
+                <span>🛡️</span>
+                <span><b>DDP with Returned Goods Relief (RGR):</b> The UK merchant covers import clearance. Returned merchandise qualifies for zero import duty &amp; VAT under CPC 61 23 / RGR. Shopper abroad pays £0.</span>
               </div>
 
               <!-- Line Items Table -->
@@ -4465,7 +4477,32 @@ let currentSelectedReturnService = null;
 let currentReturnMethod = 'driver_brings_label';
 let latestBookedReturn = null;
 
+function populateReturnCountries() {
+  const sel = $('retSenderCountry');
+  if (!sel || sel.dataset.populated === 'true') return;
+  const curVal = sel.value || 'GR';
+  const popularCodes = ['GR', 'US', 'DE', 'FR', 'IT', 'ES', 'IE', 'NL', 'BE', 'CY', 'AU', 'CA', 'CH', 'AT', 'SE', 'DK', 'PL', 'PT', 'CN', 'HK', 'JP', 'GB'];
+  const allList = (typeof WORLD_COUNTRIES !== 'undefined') ? WORLD_COUNTRIES : [];
+
+  let html = '<optgroup label="Popular Return Origins">';
+  popularCodes.forEach(code => {
+    const found = allList.find(x => x.c === code);
+    if (found) {
+      html += `<option value="${found.c}">${esc(found.n)} (${found.c})</option>`;
+    }
+  });
+  html += '</optgroup><optgroup label="All Countries A-Z">';
+  allList.forEach(item => {
+    html += `<option value="${item.c}">${esc(item.n)} (${item.c})</option>`;
+  });
+  html += '</optgroup>';
+  sel.innerHTML = html;
+  sel.value = curVal;
+  sel.dataset.populated = 'true';
+}
+
 function initReturnsView() {
+  populateReturnCountries();
   const rc = (RC && (RC.receiver || RC.deliveryAddress)) || null;
   const company = (RC && RC.customer) || (rc && rc.company) || 'Your Registered Warehouse';
   const cEl = $('retDestCompany');
@@ -4788,9 +4825,11 @@ async function handleBookReturnLabel() {
         packages: parcels,
         lineItems,
         goodsValue: totalVal,
+        termsOfSale: $('retTermsOfSale')?.value || 'DDP',
+        incoterms: $('retTermsOfSale')?.value || 'DDP',
         reasonForExport: $('retReasonForExport')?.value || 'RETURN',
         orderRef: $('retOrderRef')?.value.trim() || '',
-        declarationStatement: 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty claimed.',
+        declarationStatement: 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty claimed (RGR CPC 61 23).',
       }),
     });
     const d = await res.json();

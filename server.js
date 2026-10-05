@@ -510,8 +510,10 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
         reasonForExport: reasonForExport || 'RETURN',
         lineItems: Array.isArray(lineItems) ? lineItems : [],
         originalOrderRef: orderRef || '',
-        declarationStatement: declarationStatement || 'Returned merchandise being returned to the United Kingdom for refund/repair.',
+        declarationStatement: declarationStatement || 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty claimed (RGR CPC 61 23).',
         goodsValue: Number(goodsValue) || 50,
+        termsOfSale: req.body.termsOfSale || req.body.incoterms || 'DDP',
+        incoterms: req.body.incoterms || req.body.termsOfSale || 'DDP',
       });
 
       if (!shipResult.ok) {
