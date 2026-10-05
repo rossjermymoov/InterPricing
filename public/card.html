@@ -1267,6 +1267,42 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
   background: var(--moov-grey-muted);
 }
 
+/* ===== COLLAPSIBLE BOOKINGS & JOURNEY TIMELINE ===== */
+.booking-header-toggle {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+}
+.booking-header-toggle:hover {
+  background-color: #f1f5f9 !important;
+}
+.booking-chev {
+  transition: transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.booking-chev.collapsed {
+  transform: rotate(-90deg);
+}
+.journey-toggle-bar {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+}
+.journey-toggle-bar:hover {
+  background-color: #f8fafc !important;
+}
+.journey-chev {
+  transition: transform 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.journey-chev.collapsed {
+  transform: rotate(-90deg);
+}
+
 /* ===== DROP SHOPS SIDEBAR ===== */
 .drop-sidebar {
   width: 380px;
@@ -2669,7 +2705,10 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           </div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button type="button" onclick="clearReturnForm()" class="btn-micro-pill" style="font-weight:700;color:#ef4444;border-color:#fca5a5;background:#fff;padding:5px 12px;cursor:pointer" title="Reset all inputs for a new return">
+          ✕ Clear Form / New Return
+        </button>
         <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;background:rgba(29,251,157,0.15);color:var(--moov-navy);padding:5px 12px;border:1px solid rgba(29,251,157,0.4);border-radius:4px">
           UPS Returns Plus · Paperless Customs EDI · Instant Labels
         </span>
@@ -3013,7 +3052,10 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           <h2 style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0;color:var(--mv-ink)">My Bookings &amp; Collections</h2>
           <span class="calc-sub" style="margin-top:3px">Track booked shipments, inspect package dimensions, download labels, and reschedule UPS collections.</span>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button type="button" id="toggleCollapseAllBookingsBtn" onclick="toggleCollapseAllBookings()" class="btn-moov-action secondary" style="height:32px;font-size:12px;padding:0 12px">
+            <span id="collapseAllBtnText">Collapse All</span>
+          </button>
           <button type="button" id="purgeCancelledBtn" class="btn-moov-action danger" style="height:32px;display:none">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
             <span>PURGE CANCELLED</span>
@@ -4508,101 +4550,69 @@ let currentSelectedReturnService = null;
 let currentReturnMethod = 'driver_brings_label';
 let latestBookedReturn = null;
 
-function saveReturnFormState() {
+function clearReturnForm() {
   try {
     const token = curToken || location.pathname.split('/').filter(Boolean).pop();
-    if (!token) return;
-    const lineItems = getReturnLineItems();
-    const data = {
-      name: $('retSenderName')?.value || '',
-      company: $('retSenderCompany')?.value || '',
-      line1: $('retSenderLine1')?.value || '',
-      line2: $('retSenderLine2')?.value || '',
-      city: $('retSenderCity')?.value || '',
-      postcode: $('retSenderPostcode')?.value || '',
-      phone: $('retSenderPhone')?.value || '',
-      email: $('retSenderEmail')?.value || '',
-      country: $('retSenderCountry')?.value || 'GR',
-      countryInput: $('ret_countryInput')?.value || '',
-      orderRef: $('retOrderRef')?.value || '',
-      ukEori: $('retUkEori')?.value || '',
-      senderTaxId: $('retSenderTaxId')?.value || '',
-      reason: $('retReasonForExport')?.value || 'RETURN',
-      terms: $('retTermsOfSale')?.value || 'DDP',
-      method: currentReturnMethod,
-      weight: $('retPkgWeight')?.value || '1.5',
-      l: $('retPkgL')?.value || '30',
-      w: $('retPkgW')?.value || '20',
-      h: $('retPkgH')?.value || '15',
-      items: lineItems,
-    };
-    localStorage.setItem('moov_ret_form_' + token, JSON.stringify(data));
+    if (token) localStorage.removeItem('moov_ret_form_' + token);
   } catch (_) {}
-}
 
-function restoreReturnFormState() {
-  try {
-    const token = curToken || location.pathname.split('/').filter(Boolean).pop();
-    if (!token) return;
-    const raw = localStorage.getItem('moov_ret_form_' + token);
-    if (!raw) return;
-    const d = JSON.parse(raw);
-    if (!d) return;
+  if ($('retSenderName')) $('retSenderName').value = '';
+  if ($('retSenderCompany')) $('retSenderCompany').value = '';
+  if ($('retSenderLine1')) $('retSenderLine1').value = '';
+  if ($('retSenderLine2')) $('retSenderLine2').value = '';
+  if ($('retSenderCity')) $('retSenderCity').value = '';
+  if ($('retSenderPostcode')) $('retSenderPostcode').value = '';
+  if ($('retSenderPhone')) $('retSenderPhone').value = '';
+  if ($('retSenderEmail')) $('retSenderEmail').value = '';
+  if ($('retOrderRef')) $('retOrderRef').value = '';
+  if ($('retSenderTaxId')) $('retSenderTaxId').value = '';
+  if ($('retPkgWeight')) $('retPkgWeight').value = '1.5';
+  if ($('retPkgL')) $('retPkgL').value = '30';
+  if ($('retPkgW')) $('retPkgW').value = '20';
+  if ($('retPkgH')) $('retPkgH').value = '15';
 
-    if (d.name && $('retSenderName')) $('retSenderName').value = d.name;
-    if (d.company && $('retSenderCompany')) $('retSenderCompany').value = d.company;
-    if (d.line1 && $('retSenderLine1')) $('retSenderLine1').value = d.line1;
-    if (d.line2 && $('retSenderLine2')) $('retSenderLine2').value = d.line2;
-    if (d.city && $('retSenderCity')) $('retSenderCity').value = d.city;
-    if (d.postcode && $('retSenderPostcode')) $('retSenderPostcode').value = d.postcode;
-    if (d.phone && $('retSenderPhone')) $('retSenderPhone').value = d.phone;
-    if (d.email && $('retSenderEmail')) $('retSenderEmail').value = d.email;
-    if (d.orderRef && $('retOrderRef')) $('retOrderRef').value = d.orderRef;
-    if (d.ukEori && $('retUkEori')) $('retUkEori').value = d.ukEori;
-    if (d.senderTaxId && $('retSenderTaxId')) $('retSenderTaxId').value = d.senderTaxId;
-    if (d.reason && $('retReasonForExport')) $('retReasonForExport').value = d.reason;
-    if (d.terms && $('retTermsOfSale')) $('retTermsOfSale').value = d.terms;
-    if (d.weight && $('retPkgWeight')) $('retPkgWeight').value = d.weight;
-    if (d.l && $('retPkgL')) $('retPkgL').value = d.l;
-    if (d.w && $('retPkgW')) $('retPkgW').value = d.w;
-    if (d.h && $('retPkgH')) $('retPkgH').value = d.h;
-    if (d.country && $('retSenderCountry')) {
-      $('retSenderCountry').value = d.country;
-      if ($('ret_countryInput') && d.countryInput) $('ret_countryInput').value = d.countryInput;
-    }
-    if (d.method) setReturnMethod(d.method);
+  const tbody = $('retItemsBody');
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr class="ret-item-row">
+        <td><input type="text" class="sd-input ret-item-desc" placeholder="e.g. Silk Blouse" value="Merchandise Return" required style="height:32px;font-size:12px"/></td>
+        <td><input type="text" class="sd-input ret-item-hs" placeholder="e.g. 6205.20" value="6205.20" style="height:32px;font-size:12px"/></td>
+        <td><input type="number" class="sd-input ret-item-qty" min="1" value="1" style="height:32px;font-size:12px;text-align:center" oninput="updateReturnCustomsTotal()"/></td>
+        <td><input type="number" class="sd-input ret-item-val" min="1" step="0.5" value="50" style="height:32px;font-size:12px;text-align:right" oninput="updateReturnCustomsTotal()"/></td>
+        <td><input type="text" class="sd-input ret-item-origin" value="GB" maxlength="2" style="height:32px;font-size:12px;text-align:center;text-transform:uppercase"/></td>
+        <td><button type="button" onclick="removeReturnItemRow(this)" style="background:transparent;border:0;color:#ef4444;font-size:16px;cursor:pointer">&times;</button></td>
+      </tr>
+    `;
+    updateReturnCustomsTotal();
+  }
 
-    if (Array.isArray(d.items) && d.items.length) {
-      const tbody = $('retItemsBody');
-      if (tbody) {
-        tbody.innerHTML = '';
-        d.items.forEach(it => {
-          const tr = document.createElement('tr');
-          tr.className = 'ret-item-row';
-          tr.innerHTML = `
-            <td><input type="text" class="sd-input ret-item-desc" placeholder="e.g. Silk Blouse" value="${esc(it.description || 'Merchandise Return')}" required style="height:32px;font-size:12px" oninput="saveReturnFormState()"/></td>
-            <td><input type="text" class="sd-input ret-item-hs" placeholder="e.g. 6205.20" value="${esc(it.hsCode || '6205.20')}" style="height:32px;font-size:12px" oninput="saveReturnFormState()"/></td>
-            <td><input type="number" class="sd-input ret-item-qty" min="1" value="${it.qty || 1}" style="height:32px;font-size:12px;text-align:center" oninput="updateReturnCustomsTotal(); saveReturnFormState();"/></td>
-            <td><input type="number" class="sd-input ret-item-val" min="1" step="0.5" value="${it.unitValue || 50}" style="height:32px;font-size:12px;text-align:right" oninput="updateReturnCustomsTotal(); saveReturnFormState();"/></td>
-            <td><input type="text" class="sd-input ret-item-origin" value="${esc(it.originCountry || 'GB')}" maxlength="2" style="height:32px;font-size:12px;text-align:center;text-transform:uppercase" oninput="saveReturnFormState()"/></td>
-            <td><button type="button" onclick="removeReturnItemRow(this)" style="background:transparent;border:0;color:#ef4444;font-size:16px;cursor:pointer">&times;</button></td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-    }
-  } catch (_) {}
+  if ($('retServicesContainer')) $('retServicesContainer').style.display = 'none';
+  if ($('retServicesPlaceholder')) {
+    $('retServicesPlaceholder').style.display = 'block';
+    $('retServicesPlaceholder').innerHTML = '<div style="font-size:26px;margin-bottom:8px">📦 ⇄ 🚚</div><div style="font-weight:800;color:var(--mv-ink);font-size:14px">Ready for New Return</div><div style="font-size:12px;margin-top:4px">Enter the return sender address, set parcel details, and click "Get Live Return Rates".</div>';
+  }
+  const bookBtn = $('btnBookReturnLabel');
+  if (bookBtn) {
+    bookBtn.disabled = true;
+    bookBtn.textContent = '✓ Book Return Shipment';
+  }
+  if ($('retQuoteMsg')) $('retQuoteMsg').textContent = '';
+  currentReturnQuote = null;
+  currentSelectedReturnService = null;
 }
 
 function initReturnsView() {
-  restoreReturnFormState();
+  // Clear any previous form state so new returns start with a fresh blank form
+  try {
+    const token = curToken || location.pathname.split('/').filter(Boolean).pop();
+    if (token) localStorage.removeItem('moov_ret_form_' + token);
+  } catch (_) {}
 
   const initialIso = ($('retSenderCountry') && $('retSenderCountry').value) || 'GR';
   initCountryCombo('ret_countryCombo', 'ret_countryInput', 'ret_countryList', (iso, name) => {
     const hidden = $('retSenderCountry');
     if (hidden) hidden.value = iso;
     handleReturnCountryChange();
-    saveReturnFormState();
   }, initialIso);
 
   const form = $('returnsQuoteForm');
@@ -6353,11 +6363,14 @@ function renderCustomerBookings(shipments) {
 
     if (isSameday) {
       card.innerHTML = `
-        <!-- Same-Day Job Header -->
-        <div style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <!-- Same-Day Job Header (Collapsible Toggle) -->
+        <div class="booking-header-toggle" onclick="toggleShipmentCard('${x.id}', event)" style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="booking-chev" id="bChev_${x.id}" style="font-size:11px;color:var(--muted);font-weight:900">▼</span>
             <span style="background:rgba(29,251,157,0.25);color:var(--mv-green-deep);font-weight:900;font-size:11px;padding:3px 8px;letter-spacing:.06em">⚡ SAME-DAY COURIER</span>
             <span style="font-weight:800;font-size:15px;color:var(--ink)">${esc(x.service_name || 'Dedicated Courier')}</span>
+            <span style="font-size:12.5px;color:var(--muted)">· ${esc(s.city || 'Origin')} → ${esc(r.city || 'Destination')}</span>
+            <span style="font-weight:800;font-size:13px;color:var(--ink)">· £${Number(x.sell_price || 0).toFixed(2)}</span>
             <span>${statusBadge}</span>
           </div>
           <div style="display:flex;align-items:center;gap:12px">
@@ -6365,48 +6378,50 @@ function renderCustomerBookings(shipments) {
           </div>
         </div>
 
-        <!-- Overview Grid -->
-        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:18px;background:#fff">
-          <div>
-            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">1. Collection (Origin)</div>
-            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.company || s.name || 'Origin')}</div>
-            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(s.city || '')} ${esc(s.postcode || '')}</div>
+        <div class="booking-card-body" id="cardBody_${x.id}">
+          <!-- Overview Grid -->
+          <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:18px;background:#fff">
+            <div>
+              <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">1. Collection (Origin)</div>
+              <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.company || s.name || 'Origin')}</div>
+              <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(s.city || '')} ${esc(s.postcode || '')}</div>
+            </div>
+
+            <div>
+              <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">2. Delivery (Destination)</div>
+              <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || r.name || 'Destination')}</div>
+              <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(r.city || '')} ${esc(r.postcode || '')}</div>
+            </div>
+
+            <div>
+              <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Job Reference</div>
+              <div style="font-weight:800;font-family:monospace;font-size:14px;color:var(--brand)">${esc(x.tracking_number || x.id)}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">Vehicle: <b>${esc(x.van_size || 'SWB')} Dedicated Courier</b></div>
+            </div>
+
+            <div>
+              <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">4. Freight &amp; Price</div>
+              <div style="font-weight:800;font-size:15px;color:var(--ink)">£${Number(x.sell_price || 0).toFixed(2)}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(x.item_des || 'General Freight')} (${x.parcels || 1} units)</div>
+            </div>
           </div>
 
-          <div>
-            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">2. Delivery (Destination)</div>
-            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || r.name || 'Destination')}</div>
-            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(r.city || '')} ${esc(r.postcode || '')}</div>
-          </div>
-
-          <div>
-            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Job Reference</div>
-            <div style="font-weight:800;font-family:monospace;font-size:14px;color:var(--brand)">${esc(x.tracking_number || x.id)}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">Vehicle: <b>${esc(x.van_size || 'SWB')} Dedicated Courier</b></div>
-          </div>
-
-          <div>
-            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">4. Freight &amp; Price</div>
-            <div style="font-weight:800;font-size:15px;color:var(--ink)">£${Number(x.sell_price || 0).toFixed(2)}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">${esc(x.item_des || 'General Freight')} (${x.parcels || 1} units)</div>
-          </div>
-        </div>
-
-        <!-- Action Footer -->
-        <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:11.5px;color:var(--muted)">Point-to-point dedicated courier transit</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <button type="button" class="btn-moov-action primary" onclick="openSdCustTrackingModal('${esc(x.tracking_number || x.id)}')" style="padding:0 14px;height:32px;font-size:12px">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span>Track Live Telemetry</span>
-            </button>
-            ${(!isCancelled && !isDelivered) ? `
-              <button type="button" class="btn-moov-action danger" onclick="handleCancelSdCustJob('${esc(x.tracking_number || x.id)}')" style="padding:0 12px;height:32px;font-size:12px">
-                <span>Cancel Run</span>
+          <!-- Action Footer -->
+          <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:11.5px;color:var(--muted)">Point-to-point dedicated courier transit</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <button type="button" class="btn-moov-action primary" onclick="openSdCustTrackingModal('${esc(x.tracking_number || x.id)}')" style="padding:0 14px;height:32px;font-size:12px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Track Live Telemetry</span>
               </button>
-            ` : ''}
+              ${(!isCancelled && !isDelivered) ? `
+                <button type="button" class="btn-moov-action danger" onclick="handleCancelSdCustJob('${esc(x.tracking_number || x.id)}')" style="padding:0 12px;height:32px;font-size:12px">
+                  <span>Cancel Run</span>
+                </button>
+              ` : ''}
+            </div>
           </div>
         </div>
       `;
@@ -6429,11 +6444,14 @@ function renderCustomerBookings(shipments) {
         : '—';
 
       card.innerHTML = `
-        <!-- Return Shipment Header -->
-        <div style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <!-- Return Shipment Header (Collapsible Toggle) -->
+        <div class="booking-header-toggle" onclick="toggleShipmentCard('${x.id}', event)" style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="booking-chev" id="bChev_${x.id}" style="font-size:11px;color:var(--muted);font-weight:900">▼</span>
             <span style="background:${courierBg};color:${courierColor};font-weight:900;font-size:11px;padding:3px 8px;letter-spacing:.06em;border:1px solid ${courierColor}40">📦 RETURN LABEL (${courierName})</span>
             <span style="font-weight:800;font-size:15px;color:var(--ink)">${esc(x.service_name || 'Customer Return')}</span>
+            <span style="font-size:12.5px;color:var(--muted)">· ${esc(s.city || 'Shopper')} → ${esc(r.city || 'Warehouse')}</span>
+            <span style="font-weight:800;font-size:13px;color:var(--ink)">· £${Number(x.sell_price || 0).toFixed(2)}</span>
             <span>${statusBadge}</span>
           </div>
           <div style="display:flex;align-items:center;gap:12px">
@@ -6441,45 +6459,47 @@ function renderCustomerBookings(shipments) {
           </div>
         </div>
 
-        <!-- Overview Grid -->
-        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:18px;background:#fff">
-          <div>
-            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">1. Returned From (Shopper)</div>
-            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.name || s.company || 'Customer')}</div>
-            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(s.city || '')} ${esc(s.postcode || '')}</div>
+        <div class="booking-card-body" id="cardBody_${x.id}">
+          <!-- Overview Grid -->
+          <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:18px;background:#fff">
+            <div>
+              <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">1. Returned From (Shopper)</div>
+              <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.name || s.company || 'Customer')}</div>
+              <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(s.city || '')} ${esc(s.postcode || '')}</div>
+            </div>
+
+            <div>
+              <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">2. Destination (Your Warehouse)</div>
+              <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || r.name || 'Warehouse')}</div>
+              <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(r.city || '')} ${esc(r.postcode || '')}</div>
+            </div>
+
+            <div>
+              <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Return Tracking Reference</div>
+              <div>${returnTrackLink}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">Service: <b>${esc(x.service_code || 'Prepaid Return')}</b></div>
+            </div>
+
+            <div>
+              <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">4. Return Postage</div>
+              <div style="font-weight:800;font-size:15px;color:var(--ink)">£${Number(x.sell_price || 0).toFixed(2)}</div>
+              <div style="font-size:12px;color:var(--muted);margin-top:2px">${totalWeight} kg (${totalParcels} parcel)</div>
+            </div>
           </div>
 
-          <div>
-            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">2. Destination (Your Warehouse)</div>
-            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || r.name || 'Warehouse')}</div>
-            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(r.city || '')} ${esc(r.postcode || '')}</div>
-          </div>
-
-          <div>
-            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Return Tracking Reference</div>
-            <div>${returnTrackLink}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">Service: <b>${esc(x.service_code || 'Prepaid Return')}</b></div>
-          </div>
-
-          <div>
-            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">4. Return Postage</div>
-            <div style="font-weight:800;font-size:15px;color:var(--ink)">£${Number(x.sell_price || 0).toFixed(2)}</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:2px">${totalWeight} kg (${totalParcels} parcel)</div>
-          </div>
-        </div>
-
-        <!-- Action Footer -->
-        <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:11.5px;color:var(--muted)">Prepaid domestic return shipment via ${courierName}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            ${x.label_base64 ? `
-              <button type="button" class="btn-moov-action primary btn-print-single" data-img="${x.label_base64}" style="padding:0 14px;height:32px;font-size:12px">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                <span>Print Return Label</span>
-              </button>
-            ` : ''}
+          <!-- Action Footer -->
+          <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:11.5px;color:var(--muted)">Prepaid domestic return shipment via ${courierName}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              ${x.label_base64 ? `
+                <button type="button" class="btn-moov-action primary btn-print-single" data-img="${x.label_base64}" style="padding:0 14px;height:32px;font-size:12px">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                  <span>Print Return Label</span>
+                </button>
+              ` : ''}
+            </div>
           </div>
         </div>
       `;
@@ -6522,11 +6542,14 @@ function renderCustomerBookings(shipments) {
     }).join('');
 
     card.innerHTML = `
-      <!-- Card Header -->
-      <div style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <!-- Card Header (Collapsible Toggle) -->
+      <div class="booking-header-toggle" onclick="toggleShipmentCard('${x.id}', event)" style="padding:14px 20px;background:#f8fafc;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span class="booking-chev" id="bChev_${x.id}" style="font-size:11px;color:var(--muted);font-weight:900">▼</span>
           <img src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS" style="height:22px;width:auto;object-fit:contain;vertical-align:middle"/>
           <span style="font-weight:800;font-size:15px;color:var(--ink)">${esc(x.service_name || 'UPS Service')}</span>
+          <span style="font-size:12.5px;color:var(--muted)">· ${esc(s.city || 'Origin')}, ${esc(s.country || '')} → ${esc(r.city || 'UK')}</span>
+          <span style="font-weight:800;font-size:13px;color:var(--ink)">· £${Number(x.sell_price || 0).toFixed(2)}</span>
           <span id="custShipBadge_${x.id}">${statusBadge}</span>
         </div>
         <div style="display:flex;align-items:center;gap:12px">
@@ -6534,217 +6557,222 @@ function renderCustomerBookings(shipments) {
         </div>
       </div>
 
-      ${!isCancelled ? `
-        <!-- Connected Courier Timeline -->
-        <div style="padding:16px 20px 14px;background:#ffffff;border-bottom:1px solid var(--line)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Courier Journey</span>
-              <span id="custJourneySub_${x.id}" style="font-size:11.5px;color:var(--muted)"></span>
-            </div>
-            <button type="button" class="btn-moov-action secondary btn-cust-track-live" data-tracking="${esc(x.tracking_number || '')}" style="height:28px;padding:0 10px;font-size:11.5px">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-              <span>Track Live</span>
-            </button>
-          </div>
-
-          <div class="moov-timeline-wrap" id="custTimelineWrap_${x.id}">
-            ${renderStages(currentStageIdx)}
-          </div>
-        </div>
-      ` : ''}
-
-      <!-- Overview Grid -->
-      <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:18px;background:#fff">
-        <div>
-          <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">1. Supplier Collection</div>
-          <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.company || s.name || 'Supplier')}</div>
-          <div style="font-size:12.5px;color:var(--muted),margin-top:2px">${esc(s.city || 'Origin')}, ${esc(s.country || '')}</div>
-        </div>
-
-        <div>
-          <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">2. UK Delivery</div>
-          <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || r.name || 'Customer')}</div>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(r.city || 'Destination')}, ${esc(r.postcode || '')} ${esc(r.country || 'GB')}</div>
-        </div>
-
-        <div>
-          <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Shipment Details</div>
-          <div style="font-weight:700;font-size:13px;color:var(--ink)">${trackLink}</div>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span>Value: <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b></span>
-            <span>·</span>
-            ${hasDocs ? '<b style="color:#059669">✓ Electronic Docs</b>' : '<span style="color:#b45309">No docs uploaded</span>'}
-            <button type="button" class="btn-micro-pill btn-upload-doc" data-id="${x.id}" title="${hasDocs ? 'Update Customs Invoice' : 'Attach Commercial Invoice'}">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line></svg>
-              <span>${hasDocs ? 'Update' : 'Attach'}</span>
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">4. Size &amp; Weight</div>
-          <div style="font-weight:800;font-size:15px;color:var(--ink)">${totalWeight} kg</div>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${totalParcels} parcel${totalParcels === 1 ? '' : 's'}</div>
-        </div>
-      </div>
-
-      <!-- Action Footer (Two-Zone Structured Toolbar) -->
-      <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid var(--line);display:grid;grid-template-columns:minmax(280px, auto) 1fr;gap:20px;align-items:end">
-        <!-- Zone 1: Courier Collection -->
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-ink-55);display:flex;align-items:center;gap:5px">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-            <span>Courier Collection</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            ${prnBadge}
-            ${(!x.prn && !isCancelled) ? `
-              <button type="button" class="btn-moov-action secondary btn-cust-book-pickup" style="padding:0 10px">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-                <span>Book Pickup</span>
-              </button>
-            ` : ''}
-            ${(x.prn && !isCancelled) ? `
-              <button type="button" class="btn-moov-action secondary btn-cust-resched" data-prn="${esc(x.prn)}" style="padding:0 10px">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-                <span>Amend</span>
-              </button>
-              <button type="button" class="btn-moov-action danger btn-cust-cancel-pickup" data-prn="${esc(x.prn)}" style="padding:0 10px" title="Cancel driver collection only (keeps shipment active)">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                <span>Cancel Pickup</span>
-              </button>
-            ` : ''}
-          </div>
-        </div>
-
-        <!-- Zone 2: Labels & Documentation -->
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
-          <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-ink-55);display:flex;align-items:center;gap:5px">
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-            <span>Labels &amp; Shipment Actions</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">
-            ${!isCancelled ? `
-              <button type="button" class="btn-moov-action secondary btn-upload-doc" data-id="${x.id}" style="padding:0 11px">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                <span>${hasDocs ? 'Customs Docs' : 'Attach Invoice'}</span>
-              </button>
-              <button type="button" class="btn-moov-action secondary btn-email-labels" data-id="${x.id}" style="padding:0 11px;color:var(--mv-purple);border-color:var(--mv-purple)">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-                <span>Email Labels</span>
-              </button>
-
-              <!-- Consolidated Print Labels Dropdown -->
-              <div class="moov-dropdown-wrap">
-                <button type="button" class="btn-moov-action primary btn-print-format-toggle" data-id="${x.id}" style="padding:0 12px">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                  <span>Print Labels</span>
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:2px"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-                <div class="moov-dropdown-menu" id="printMenu_${x.id}" style="display:none">
-                  <button type="button" class="moov-menu-item btn-print-batch-thermal" data-id="${x.id}">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                    <div>
-                      <div style="font-weight:700">Thermal (4" × 6")</div>
-                      <div style="font-size:10px;color:var(--mv-ink-55)">Direct label roll printer</div>
-                    </div>
-                  </button>
-                  <button type="button" class="moov-menu-item btn-print-batch-a4" data-id="${x.id}">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                    <div>
-                      <div style="font-weight:700">Standard Paper (A4)</div>
-                      <div style="font-size:10px;color:var(--mv-ink-55)">Standard desktop printer sheet</div>
-                    </div>
-                  </button>
-                </div>
+      <div class="booking-card-body" id="cardBody_${x.id}">
+        ${!isCancelled ? `
+          <!-- Connected Courier Timeline Section (Collapsible) -->
+          <div style="background:#ffffff;border-bottom:1px solid var(--line)">
+            <div class="journey-toggle-bar" onclick="toggleJourneySection('${x.id}', event)" style="padding:12px 20px;display:flex;justify-content:space-between;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="journey-chev" id="jChev_${x.id}" style="font-size:10px;color:var(--muted);font-weight:900">▼</span>
+                <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Courier Journey</span>
+                <span id="custJourneySub_${x.id}" style="font-size:11.5px;color:var(--muted)"></span>
               </div>
-
-              <button type="button" class="btn-moov-action danger btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}" style="padding:0 10px" title="Void shipment with UPS">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                <span>Cancel Order</span>
+              <button type="button" class="btn-moov-action secondary btn-cust-track-live" data-tracking="${esc(x.tracking_number || '')}" onclick="event.stopPropagation()" style="height:26px;padding:0 10px;font-size:11px">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Track Live</span>
               </button>
-            ` : `
-              <button type="button" class="btn-moov-action secondary btn-cust-restore-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}" style="padding:0 11px;color:#059669;border-color:#059669">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
-                <span>Restore Order</span>
-              </button>
-              <button type="button" class="btn-moov-action danger btn-cust-delete-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}" style="padding:0 10px">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                <span>Remove</span>
-              </button>
-            `}
-
-            <button type="button" class="btn-moov-action secondary btn-toggle-explode" data-id="${x.id}" style="padding:0 10px">
-              <span>Details</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Exploded Specs Drawer -->
-      <div id="explode_${x.id}" style="display:none;padding:22px;border-top:1px dashed var(--line-strong);background:#fafafa">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:16px;margin-bottom:20px">
-          <div style="background:#fff;border:1px solid var(--line);padding:16px">
-            <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Supplier / Collection Address</div>
-            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.company || '')}</div>
-            <div style="font-size:13px;color:var(--ink)">Contact: ${esc(s.name || '—')}</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5">
-              ${esc(s.line1 || '')}${s.line2 ? (', ' + esc(s.line2)) : ''}<br>
-              ${esc(s.city || '')} ${esc(s.postcode || '')}<br>
-              ${esc(s.country || '')}
             </div>
-            ${s.phone ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px">Tel: ${esc(s.phone)}</div>` : ''}
-            ${s.email ? `<div style="font-size:12.5px;color:var(--muted)">Email: ${esc(s.email)}</div>` : ''}
-          </div>
 
-          <div style="background:#fff;border:1px solid var(--line);padding:16px">
-            <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Receiver / UK Delivery Address</div>
-            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || '')}</div>
-            <div style="font-size:13px;color:var(--ink)">Contact: ${esc(r.name || '—')}</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5">
-              ${esc(r.line1 || '')}${r.line2 ? (', ' + esc(r.line2)) : ''}<br>
-              ${esc(r.city || '')} ${esc(r.postcode || '')}<br>
-              ${esc(r.country || 'GB')}
+            <div id="journeyBody_${x.id}" style="padding:0 20px 16px">
+              <div class="moov-timeline-wrap" id="custTimelineWrap_${x.id}">
+                ${renderStages(currentStageIdx)}
+              </div>
             </div>
-            ${r.phone ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px">Tel: ${esc(r.phone)}</div>` : ''}
-            ${r.email ? `<div style="font-size:12.5px;color:var(--muted)">Email: ${esc(r.email)}</div>` : ''}
+          </div>
+        ` : ''}
+
+        <!-- Overview Grid -->
+        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:18px;background:#fff">
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">1. Supplier Collection</div>
+            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.company || s.name || 'Supplier')}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(s.city || 'Origin')}, ${esc(s.country || '')}</div>
+          </div>
+
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">2. UK Delivery</div>
+            <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || r.name || 'Customer')}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${esc(r.city || 'Destination')}, ${esc(r.postcode || '')} ${esc(r.country || 'GB')}</div>
+          </div>
+
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Shipment Details</div>
+            <div style="font-weight:700;font-size:13px;color:var(--ink)">${trackLink}</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <span>Value: <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b></span>
+              <span>·</span>
+              ${hasDocs ? '<b style="color:#059669">✓ Electronic Docs</b>' : '<span style="color:#b45309">No docs uploaded</span>'}
+              <button type="button" class="btn-micro-pill btn-upload-doc" data-id="${x.id}" title="${hasDocs ? 'Update Customs Invoice' : 'Attach Commercial Invoice'}">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line></svg>
+                <span>${hasDocs ? 'Update' : 'Attach'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">4. Size &amp; Weight</div>
+            <div style="font-weight:800;font-size:15px;color:var(--ink)">${totalWeight} kg</div>
+            <div style="font-size:12.5px;color:var(--muted);margin-top:2px">${totalParcels} parcel${totalParcels === 1 ? '' : 's'}</div>
           </div>
         </div>
 
-        <div style="background:#fff;border:1px solid var(--line);padding:16px;margin-bottom:16px">
-          <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Package Specifications &amp; Live Tracking (${pkgs.length} Pieces)</div>
-          <table style="width:100%;border-collapse:collapse;font-size:13px">
-            <thead>
-              <tr style="background:#f8fafc;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;color:var(--muted)">
-                <th style="padding:9px 12px;text-align:left">Package</th>
-                <th style="padding:9px 12px;text-align:left">Tracking #</th>
-                <th style="padding:9px 12px;text-align:left">Type &amp; Dimensions</th>
-                <th style="padding:9px 12px;text-align:right">Weight</th>
-                <th style="padding:9px 12px;text-align:left">Latest Scan &amp; Time</th>
-                <th style="padding:9px 12px;text-align:center">Status</th>
-                <th style="padding:9px 12px;text-align:right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${pkgRowsHtml || '<tr><td colspan="7" style="padding:12px;text-align:center;color:var(--muted)">1 package</td></tr>'}
-            </tbody>
-          </table>
+        <!-- Action Footer (Two-Zone Structured Toolbar) -->
+        <div style="padding:14px 20px;background:#f8fafc;border-top:1px solid var(--line);display:grid;grid-template-columns:minmax(280px, auto) 1fr;gap:20px;align-items:end">
+          <!-- Zone 1: Courier Collection -->
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-ink-55);display:flex;align-items:center;gap:5px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+              <span>Courier Collection</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              ${prnBadge}
+              ${(!x.prn && !isCancelled) ? `
+                <button type="button" class="btn-moov-action secondary btn-cust-book-pickup" style="padding:0 10px">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                  <span>Book Pickup</span>
+                </button>
+              ` : ''}
+              ${(x.prn && !isCancelled) ? `
+                <button type="button" class="btn-moov-action secondary btn-cust-resched" data-prn="${esc(x.prn)}" style="padding:0 10px">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  <span>Amend</span>
+                </button>
+                <button type="button" class="btn-moov-action danger btn-cust-cancel-pickup" data-prn="${esc(x.prn)}" style="padding:0 10px" title="Cancel driver collection only (keeps shipment active)">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  <span>Cancel Pickup</span>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <!-- Zone 2: Labels & Documentation -->
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <div style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:var(--mv-ink-55);display:flex;align-items:center;gap:5px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <span>Labels &amp; Shipment Actions</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+              ${!isCancelled ? `
+                <button type="button" class="btn-moov-action secondary btn-upload-doc" data-id="${x.id}" style="padding:0 11px">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                  <span>${hasDocs ? 'Customs Docs' : 'Attach Invoice'}</span>
+                </button>
+                <button type="button" class="btn-moov-action secondary btn-email-labels" data-id="${x.id}" style="padding:0 11px;color:var(--mv-purple);border-color:var(--mv-purple)">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                  <span>Email Labels</span>
+                </button>
+
+                <!-- Consolidated Print Labels Dropdown -->
+                <div class="moov-dropdown-wrap">
+                  <button type="button" class="btn-moov-action primary btn-print-format-toggle" data-id="${x.id}" style="padding:0 12px">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>Print Labels</span>
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:2px"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </button>
+                  <div class="moov-dropdown-menu" id="printMenu_${x.id}" style="display:none">
+                    <button type="button" class="moov-menu-item btn-print-batch-thermal" data-id="${x.id}">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                      <div>
+                        <div style="font-weight:700">Thermal (4" × 6")</div>
+                        <div style="font-size:10px;color:var(--mv-ink-55)">Direct label roll printer</div>
+                      </div>
+                    </button>
+                    <button type="button" class="moov-menu-item btn-print-batch-a4" data-id="${x.id}">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                      <div>
+                        <div style="font-weight:700">Standard Paper (A4)</div>
+                        <div style="font-size:10px;color:var(--mv-ink-55)">Standard desktop printer sheet</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                <button type="button" class="btn-moov-action danger btn-cust-cancel-shipment" data-tracking="${esc(x.tracking_number || '')}" data-shipmentid="${esc(x.shipment_id || x.id || '')}" data-prn="${esc(x.prn || '')}" style="padding:0 10px" title="Void shipment with UPS">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  <span>Cancel Order</span>
+                </button>
+              ` : `
+                <button type="button" class="btn-moov-action secondary btn-cust-restore-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}" style="padding:0 11px;color:#059669;border-color:#059669">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                  <span>Restore Order</span>
+                </button>
+                <button type="button" class="btn-moov-action danger btn-cust-delete-shipment" data-id="${x.id}" data-tracking="${esc(x.tracking_number || '')}" style="padding:0 10px">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  <span>Remove</span>
+                </button>
+              `}
+
+              <button type="button" class="btn-moov-action secondary btn-toggle-explode" data-id="${x.id}" style="padding:0 10px">
+                <span>Details</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div style="background:#fff;border:1px solid var(--line);padding:16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;font-size:13px">
-          <div>
-            <span style="color:var(--muted)">Customs Manifest Value:</span>
-            <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b>
+        <!-- Exploded Specs Drawer -->
+        <div id="explode_${x.id}" style="display:none;padding:22px;border-top:1px dashed var(--line-strong);background:#fafafa">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:16px;margin-bottom:20px">
+            <div style="background:#fff;border:1px solid var(--line);padding:16px">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Supplier / Collection Address</div>
+              <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(s.company || '')}</div>
+              <div style="font-size:13px;color:var(--ink)">Contact: ${esc(s.name || '—')}</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5">
+                ${esc(s.line1 || '')}${s.line2 ? (', ' + esc(s.line2)) : ''}<br>
+                ${esc(s.city || '')} ${esc(s.postcode || '')}<br>
+                ${esc(s.country || '')}
+              </div>
+              ${s.phone ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px">Tel: ${esc(s.phone)}</div>` : ''}
+              ${s.email ? `<div style="font-size:12.5px;color:var(--muted)">Email: ${esc(s.email)}</div>` : ''}
+            </div>
+
+            <div style="background:#fff;border:1px solid var(--line);padding:16px">
+              <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Receiver / UK Delivery Address</div>
+              <div style="font-weight:800;font-size:14px;color:var(--ink)">${esc(r.company || '')}</div>
+              <div style="font-size:13px;color:var(--ink)">Contact: ${esc(r.name || '—')}</div>
+              <div style="font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5">
+                ${esc(r.line1 || '')}${r.line2 ? (', ' + esc(r.line2)) : ''}<br>
+                ${esc(r.city || '')} ${esc(r.postcode || '')}<br>
+                ${esc(r.country || 'GB')}
+              </div>
+              ${r.phone ? `<div style="font-size:12.5px;color:var(--muted);margin-top:6px">Tel: ${esc(r.phone)}</div>` : ''}
+              ${r.email ? `<div style="font-size:12.5px;color:var(--muted)">Email: ${esc(r.email)}</div>` : ''}
+            </div>
           </div>
-          <div>
-            <span style="color:var(--muted)">Commercial Invoice:</span>
-            <b>${docs.invoice ? '✓ Electronic (002 attached)' : 'Paper required'}</b>
+
+          <div style="background:#fff;border:1px solid var(--line);padding:16px;margin-bottom:16px">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Package Specifications &amp; Live Tracking (${pkgs.length} Pieces)</div>
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead>
+                <tr style="background:#f8fafc;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;color:var(--muted)">
+                  <th style="padding:9px 12px;text-align:left">Package</th>
+                  <th style="padding:9px 12px;text-align:left">Tracking #</th>
+                  <th style="padding:9px 12px;text-align:left">Type &amp; Dimensions</th>
+                  <th style="padding:9px 12px;text-align:right">Weight</th>
+                  <th style="padding:9px 12px;text-align:left">Latest Scan &amp; Time</th>
+                  <th style="padding:9px 12px;text-align:center">Status</th>
+                  <th style="padding:9px 12px;text-align:right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${pkgRowsHtml || '<tr><td colspan="7" style="padding:12px;text-align:center;color:var(--muted)">1 package</td></tr>'}
+              </tbody>
+            </table>
           </div>
-          <div>
-            <span style="color:var(--muted)">Packing Slip:</span>
-            <b>${docs.packingSlip ? '✓ Electronic (004 attached)' : 'None'}</b>
+
+          <div style="background:#fff;border:1px solid var(--line);padding:16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;font-size:13px">
+            <div>
+              <span style="color:var(--muted)">Customs Manifest Value:</span>
+              <b>${x.goods_value ? ('£' + Number(x.goods_value).toFixed(2)) : '—'}</b>
+            </div>
+            <div>
+              <span style="color:var(--muted)">Commercial Invoice:</span>
+              <b>${docs.invoice ? '✓ Electronic (002 attached)' : 'Paper required'}</b>
+            </div>
+            <div>
+              <span style="color:var(--muted)">Packing Slip:</span>
+              <b>${docs.packingSlip ? '✓ Electronic (004 attached)' : 'None'}</b>
+            </div>
           </div>
         </div>
       </div>
@@ -6808,6 +6836,52 @@ function renderCustomerBookings(shipments) {
         } catch (_) {}
       }, 200);
     }
+  });
+}
+
+let allBookingsCollapsed = false;
+
+function toggleShipmentCard(id, event) {
+  if (event) {
+    if (event.target.closest('button, a, input, select')) return;
+  }
+  const body = $('cardBody_' + id);
+  const chev = $('bChev_' + id);
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if (chev) {
+    if (isHidden) chev.classList.remove('collapsed');
+    else chev.classList.add('collapsed');
+  }
+}
+
+function toggleJourneySection(id, event) {
+  if (event) {
+    if (event.target.closest('button, a, input, select')) return;
+  }
+  const jBody = $('journeyBody_' + id);
+  const chev = $('jChev_' + id);
+  if (!jBody) return;
+  const isHidden = jBody.style.display === 'none';
+  jBody.style.display = isHidden ? 'block' : 'none';
+  if (chev) {
+    if (isHidden) chev.classList.remove('collapsed');
+    else chev.classList.add('collapsed');
+  }
+}
+
+function toggleCollapseAllBookings() {
+  allBookingsCollapsed = !allBookingsCollapsed;
+  const btnText = $('collapseAllBtnText');
+  if (btnText) btnText.textContent = allBookingsCollapsed ? 'Expand All' : 'Collapse All';
+  
+  document.querySelectorAll('.booking-card-body').forEach(b => {
+    b.style.display = allBookingsCollapsed ? 'none' : 'block';
+  });
+  document.querySelectorAll('.booking-chev').forEach(c => {
+    if (allBookingsCollapsed) c.classList.add('collapsed');
+    else c.classList.remove('collapsed');
   });
 }
 
