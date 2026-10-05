@@ -214,6 +214,12 @@ function addressOf(a, fallbackCountry) {
   return { Address: addr };
 }
 
+const IMPERIAL_ORIGINS = new Set(['US', 'PR', 'VI', 'GU', 'AS', 'MP', 'UM']);
+
+function isImperialCountry(countryCode) {
+  return IMPERIAL_ORIGINS.has(String(countryCode || '').trim().toUpperCase());
+}
+
 // Build the RateRequest from the import/export form payload.
 // Import: goods come from sender (overseas) to receiver (home/GB). Export: reversed.
 // Shipper is always the account holder (for negotiated rates).
@@ -225,11 +231,10 @@ function buildRateRequest(p) {
   const shipFrom = Object.assign({ Name: S(sender.name || sender.company || 'Sender') }, addressOf(sender, ''));
   const shipTo = Object.assign({ Name: S(receiver.name || receiver.company || 'Receiver') }, addressOf(receiver, homeCountry));
 
-  // Weight is at least 0.1 kg per parcel and formatted to one decimal — UPS rejects
-  // integer-only or zero weights on international time-in-transit lanes (error 111546).
-  const wStr = (n) => (Math.max(0.1, Number(n) || 0.1)).toFixed(1);
-  const KG = { Code: 'KGS', Description: 'Kilograms' };
-  const CM = { Code: 'CM', Description: 'Centimeters' };
+  const originCountry = (shipFrom.Address && shipFrom.Address.CountryCode) || (sender && sender.country) || 'GB';
+  const isImperial = isImperialCountry(originCountry);
+  const UOM_WEIGHT = isImperial ? { Code: 'LBS', Description: 'Pounds' } : { Code: 'KGS', Description: 'Kilograms' };
+  const UOM_DIM = isImperial ? { Code: 'IN', Description: 'Inches' } : { Code: 'CM', Description: 'Centimeters' };
 
   // UPS packaging-type codes: 02 customer-supplied, 03 tube, 21 UPS Express Box, 30 pallet.
   const PKG = { mine: '02', tube: '03', expressbox: '21', pallet: '30' };
@@ -239,17 +244,37 @@ function buildRateRequest(p) {
     const qty = Math.max(1, Math.floor(Number(pk.qty) || 1));
     const rawW = Number(pk.weight) || 1.0;
     const l = Number(pk.l) || 0, w = Number(pk.w) || 0, h = Number(pk.h) || 0;
-    const volW = (l > 0 && w > 0 && h > 0) ? (l * w * h / 5000) : 0;
-    const effectiveW = Math.max(rawW, volW);
-    const wStrVal = (Math.max(0.1, effectiveW)).toFixed(1);
-    const one = { PackagingType: { Code: PKG[pk.packaging] || '02' }, PackageWeight: { UnitOfMeasurement: KG, Weight: wStrVal } };
-    if (l > 0 && w > 0 && h > 0) {
-      one.Dimensions = { UnitOfMeasurement: CM, Length: String(Math.round(l)), Width: String(Math.round(w)), Height: String(Math.round(h)) };
+
+    // Convert UI metric inputs (kg, cm) to imperial (lbs, in) if origin country requires it (e.g. US)
+    const weightVal = isImperial ? Math.max(0.1, rawW * 2.20462262) : Math.max(0.1, rawW);
+    const dimL = (l > 0) ? (isImperial ? Math.max(1, Math.round(l / 2.54)) : Math.max(1, Math.round(l))) : 0;
+    const dimW = (w > 0) ? (isImperial ? Math.max(1, Math.round(w / 2.54)) : Math.max(1, Math.round(w))) : 0;
+    const dimH = (h > 0) ? (isImperial ? Math.max(1, Math.round(h / 2.54)) : Math.max(1, Math.round(h))) : 0;
+
+    const wStrVal = weightVal.toFixed(1);
+    const one = {
+      PackagingType: { Code: PKG[pk.packaging] || '02' },
+      PackageWeight: { UnitOfMeasurement: UOM_WEIGHT, Weight: wStrVal }
+    };
+    if (dimL > 0 && dimW > 0 && dimH > 0) {
+      one.Dimensions = {
+        UnitOfMeasurement: UOM_DIM,
+        Length: String(dimL),
+        Width: String(dimW),
+        Height: String(dimH)
+      };
     }
-    for (let i = 0; i < qty; i++) { Package.push(JSON.parse(JSON.stringify(one))); totalWeight += Number(wStrVal); }
+    for (let i = 0; i < qty; i++) {
+      Package.push(JSON.parse(JSON.stringify(one)));
+      totalWeight += Number(wStrVal);
+    }
   });
-  if (!Package.length) { Package.push({ PackagingType: { Code: '02' }, PackageWeight: { UnitOfMeasurement: KG, Weight: '1.0' } }); totalWeight = 1; }
-  const ShipmentTotalWeight = { UnitOfMeasurement: KG, Weight: (Math.round(totalWeight * 10) / 10).toFixed(1) };
+  if (!Package.length) {
+    const fallbackW = isImperial ? '2.2' : '1.0';
+    Package.push({ PackagingType: { Code: '02' }, PackageWeight: { UnitOfMeasurement: UOM_WEIGHT, Weight: fallbackW } });
+    totalWeight = Number(fallbackW);
+  }
+  const ShipmentTotalWeight = { UnitOfMeasurement: UOM_WEIGHT, Weight: (Math.round(totalWeight * 10) / 10).toFixed(1) };
 
   // International shipments must declare the value of the goods (the "shipment contents
   // value"). UPS rejects the rate request without it (error 111549). Use the value the
@@ -651,6 +676,11 @@ function buildPickupRequest(p) {
     state = caPostcodeToProvince(p.postalCode || p.postcode);
   }
 
+  const isImperial = isImperialCountry(originCountry);
+  const rawWeight = Math.max(0.5, Number(p.totalWeight || p.weight) || (parcels * 1.5));
+  const finalWeight = isImperial ? Math.max(1.0, rawWeight * 2.20462262) : rawWeight;
+  const pickupUom = isImperial ? 'LBS' : 'KGS';
+
   const req = {
     PickupCreationRequest: {
       RatePickupIndicator: 'N',
@@ -688,8 +718,8 @@ function buildPickupRequest(p) {
         },
       ],
       TotalWeight: {
-        Weight: weight.toFixed(1),
-        UnitOfMeasurement: 'KGS',
+        Weight: finalWeight.toFixed(1),
+        UnitOfMeasurement: pickupUom,
       },
       OverweightIndicator: 'N',
       PaymentMethod: '01',
@@ -820,26 +850,36 @@ function buildShipmentRequest(p) {
 
   const senderAddr = addressOf(sender, '');
   const receiverAddr = addressOf(receiver, 'GB');
+  const originCountry = (senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'GB';
+  const isImperial = isImperialCountry(originCountry);
+  const UOM_WEIGHT = isImperial ? { Code: 'LBS', Description: 'Pounds' } : { Code: 'KGS', Description: 'Kilograms' };
+  const UOM_DIM = isImperial ? { Code: 'IN', Description: 'Inches' } : { Code: 'CM', Description: 'Centimeters' };
 
   const packagesArray = [];
   pkgs.forEach((pkg) => {
     const q = Math.max(1, parseInt(pkg.qty, 10) || 1);
-    const wt = Math.max(0.1, Number(pkg.weight) || 1);
-    const l = Math.max(1, Number(pkg.l) || 10);
-    const w = Math.max(1, Number(pkg.w) || 10);
-    const h = Math.max(1, Number(pkg.h) || 10);
+    const rawW = Math.max(0.1, Number(pkg.weight) || 1);
+    const rawL = Math.max(1, Number(pkg.l) || 10);
+    const rawW_dim = Math.max(1, Number(pkg.w) || 10);
+    const rawH = Math.max(1, Number(pkg.h) || 10);
+
+    const wt = isImperial ? Math.max(0.1, rawW * 2.20462262) : rawW;
+    const l = isImperial ? Math.max(1, Math.round(rawL / 2.54)) : Math.round(rawL);
+    const w = isImperial ? Math.max(1, Math.round(rawW_dim / 2.54)) : Math.round(rawW_dim);
+    const h = isImperial ? Math.max(1, Math.round(rawH / 2.54)) : Math.round(rawH);
+
     for (let i = 0; i < q; i++) {
       packagesArray.push({
         Description: S(pkg.description || p.description || 'Commercial Goods').slice(0, 35),
         Packaging: { Code: '02', Description: 'Customer Supplied Package' },
         Dimensions: {
-          UnitOfMeasurement: { Code: 'CM', Description: 'Centimeters' },
-          Length: String(Math.round(l)),
-          Width: String(Math.round(w)),
-          Height: String(Math.round(h)),
+          UnitOfMeasurement: UOM_DIM,
+          Length: String(l),
+          Width: String(w),
+          Height: String(h),
         },
         PackageWeight: {
-          UnitOfMeasurement: { Code: 'KGS', Description: 'Kilograms' },
+          UnitOfMeasurement: UOM_WEIGHT,
           Weight: String(wt.toFixed(1)),
         },
       });
