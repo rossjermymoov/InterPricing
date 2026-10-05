@@ -2774,19 +2774,23 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
             </div>
 
             <div class="calc-grid" style="margin-top:12px">
-              <div class="f" style="flex:1.5 1 160px">
+              <div class="f" style="flex:1.5 1 150px">
                 <label>Town / City *</label>
                 <input type="text" id="retSenderCity" placeholder="City" required/>
               </div>
-              <div class="f" style="flex:1 1 130px">
-                <label>Postcode / ZIP *</label>
-                <input type="text" id="retSenderPostcode" placeholder="e.g. 90210" style="text-transform:uppercase" required/>
+              <div class="f" style="flex:1 1 110px">
+                <label>State / Province</label>
+                <input type="text" id="retSenderState" placeholder="e.g. CT, NY, CA" style="text-transform:uppercase"/>
               </div>
-              <div class="f" style="flex:1 1 160px">
+              <div class="f" style="flex:1 1 120px">
+                <label>Postcode / ZIP *</label>
+                <input type="text" id="retSenderPostcode" placeholder="e.g. 06853" style="text-transform:uppercase" required/>
+              </div>
+              <div class="f" style="flex:1 1 140px">
                 <label>Contact Phone</label>
                 <input type="tel" id="retSenderPhone" placeholder="Mobile / telephone"/>
               </div>
-              <div class="f" style="flex:1.5 1 180px">
+              <div class="f" style="flex:1.5 1 160px">
                 <label>Contact Email</label>
                 <input type="email" id="retSenderEmail" placeholder="shopper@example.com"/>
               </div>
@@ -4608,7 +4612,7 @@ function initReturnsView() {
     if (token) localStorage.removeItem('moov_ret_form_' + token);
   } catch (_) {}
 
-  const initialIso = ($('retSenderCountry') && $('retSenderCountry').value) || 'GR';
+  const initialIso = ($('retSenderCountry') && $('retSenderCountry').value) || 'US';
   initCountryCombo('ret_countryCombo', 'ret_countryInput', 'ret_countryList', (iso, name) => {
     const hidden = $('retSenderCountry');
     if (hidden) hidden.value = iso;
@@ -4622,15 +4626,92 @@ function initReturnsView() {
     form.dataset.boundStorage = 'true';
   }
 
-  const rc = (RC && (RC.receiver || RC.deliveryAddress)) || null;
-  const company = (RC && RC.customer) || (rc && rc.company) || 'Your Registered Warehouse';
+  // Auto-fill state code when US ZIP is entered
+  const pcInput = $('retSenderPostcode');
+  if (pcInput && !pcInput.dataset.boundState) {
+    pcInput.addEventListener('input', () => {
+      const c = ($('retSenderCountry') && $('retSenderCountry').value) || '';
+      const stEl = $('retSenderState');
+      if ((c === 'US' || !c) && stEl && !stEl.value) {
+        const val = pcInput.value.replace(/[^\d]/g, '');
+        if (val.length >= 3) {
+          const p = parseInt(val.slice(0, 3), 10);
+          let derived = '';
+          if (p >= 5 && p <= 9) derived = 'PR';
+          else if (p >= 10 && p <= 27) derived = 'MA';
+          else if (p >= 28 && p <= 29) derived = 'RI';
+          else if (p >= 30 && p <= 38) derived = 'NH';
+          else if (p >= 39 && p <= 49) derived = 'ME';
+          else if (p >= 50 && p <= 59) derived = 'VT';
+          else if (p >= 60 && p <= 69) derived = 'CT';
+          else if (p >= 70 && p <= 89) derived = 'NJ';
+          else if (p >= 100 && p <= 149) derived = 'NY';
+          else if (p >= 150 && p <= 196) derived = 'PA';
+          else if (p >= 197 && p <= 199) derived = 'DE';
+          else if (p >= 200 && p <= 205) derived = 'DC';
+          else if (p >= 206 && p <= 219) derived = 'MD';
+          else if (p >= 220 && p <= 246) derived = 'VA';
+          else if (p >= 247 && p <= 268) derived = 'WV';
+          else if (p >= 270 && p <= 289) derived = 'NC';
+          else if (p >= 290 && p <= 299) derived = 'SC';
+          else if (p >= 300 && p <= 319) derived = 'GA';
+          else if (p >= 320 && p <= 349) derived = 'FL';
+          else if (p >= 350 && p <= 369) derived = 'AL';
+          else if (p >= 370 && p <= 385) derived = 'TN';
+          else if (p >= 386 && p <= 397) derived = 'MS';
+          else if (p >= 400 && p <= 427) derived = 'KY';
+          else if (p >= 430 && p <= 459) derived = 'OH';
+          else if (p >= 460 && p <= 479) derived = 'IN';
+          else if (p >= 480 && p <= 499) derived = 'MI';
+          else if (p >= 500 && p <= 528) derived = 'IA';
+          else if (p >= 530 && p <= 549) derived = 'WI';
+          else if (p >= 550 && p <= 567) derived = 'MN';
+          else if (p >= 570 && p <= 577) derived = 'SD';
+          else if (p >= 580 && p <= 588) derived = 'ND';
+          else if (p >= 590 && p <= 599) derived = 'MT';
+          else if (p >= 600 && p <= 629) derived = 'IL';
+          else if (p >= 630 && p <= 658) derived = 'MO';
+          else if (p >= 660 && p <= 679) derived = 'KS';
+          else if (p >= 680 && p <= 693) derived = 'NE';
+          else if (p >= 700 && p <= 714) derived = 'LA';
+          else if (p >= 716 && p <= 729) derived = 'AR';
+          else if (p >= 730 && p <= 749) derived = 'OK';
+          else if (p >= 750 && p <= 799) derived = 'TX';
+          else if (p >= 800 && p <= 816) derived = 'CO';
+          else if (p >= 820 && p <= 831) derived = 'WY';
+          else if (p >= 832 && p <= 838) derived = 'ID';
+          else if (p >= 840 && p <= 847) derived = 'UT';
+          else if (p >= 850 && p <= 865) derived = 'AZ';
+          else if (p >= 870 && p <= 884) derived = 'NM';
+          else if (p >= 889 && p <= 898) derived = 'NV';
+          else if (p >= 900 && p <= 961) derived = 'CA';
+          else if (p >= 967 && p <= 968) derived = 'HI';
+          else if (p >= 970 && p <= 979) derived = 'OR';
+          else if (p >= 980 && p <= 994) derived = 'WA';
+          else if (p >= 995 && p <= 999) derived = 'AK';
+          if (derived) stEl.value = derived;
+        }
+      }
+    });
+    pcInput.dataset.boundState = 'true';
+  }
+
+  const rc = (RC && (RC.receiver || RC.deliveryAddress)) || {};
+  const company = (RC && RC.customer) || rc.company || 'Your Registered Warehouse';
   const cEl = $('retDestCompany');
   const aEl = $('retDestAddress');
   if (cEl) cEl.textContent = company;
-  if (aEl && rc) {
-    const parts = [rc.name || rc.contactName, rc.line1, rc.line2, rc.city, rc.postcode, 'United Kingdom'].filter(Boolean);
+  if (aEl) {
+    const parts = [
+      rc.name || rc.contactName || 'Returns Department',
+      rc.line1 || 'Unit 1-3, Central Trading Estate',
+      rc.line2 || '',
+      rc.city || 'Birmingham',
+      rc.postcode || 'B66 1BY',
+      'United Kingdom'
+    ].filter(Boolean);
     const taxParts = [
-      (rc.eoriNumber || (RC && RC.eoriNumber)) ? `EORI: ${rc.eoriNumber || RC.eoriNumber}` : '',
+      (rc.eoriNumber || (RC && RC.eoriNumber)) ? `EORI: ${rc.eoriNumber || RC.eoriNumber}` : 'EORI: GB446867375',
       (rc.vatNumber || (RC && RC.vatNumber)) ? `VAT: ${rc.vatNumber || RC.vatNumber}` : ''
     ].filter(Boolean);
     let addrText = parts.join(', ');
@@ -4748,7 +4829,17 @@ async function handleReturnsQuoteSubmit(e) {
   }
   if (btn) btn.disabled = true;
 
-  const country = $('retSenderCountry').value || 'US';
+  let country = ($('retSenderCountry') && $('retSenderCountry').value) || '';
+  const textCountry = ($('ret_countryInput') && $('ret_countryInput').value.trim()) || '';
+  if (textCountry) {
+    const matched = WORLD_COUNTRIES.find(o => o.n.toLowerCase() === textCountry.toLowerCase() || o.c.toLowerCase() === textCountry.toLowerCase());
+    if (matched) {
+      country = matched.c;
+      if ($('retSenderCountry')) $('retSenderCountry').value = matched.c;
+    }
+  }
+  if (!country) country = 'US';
+
   const isDomestic = country === 'GB';
   const lineItems = isDomestic ? [] : getReturnLineItems();
   const totalVal = lineItems.reduce((sum, it) => sum + (it.qty * it.unitValue), 0) || 50;
@@ -4759,6 +4850,7 @@ async function handleReturnsQuoteSubmit(e) {
     line1: $('retSenderLine1').value.trim(),
     line2: $('retSenderLine2').value.trim(),
     city: $('retSenderCity').value.trim(),
+    state: ($('retSenderState') ? $('retSenderState').value.trim().toUpperCase() : ''),
     postcode: $('retSenderPostcode').value.trim().toUpperCase(),
     phone: $('retSenderPhone').value.trim(),
     email: $('retSenderEmail').value.trim(),
@@ -4795,8 +4887,13 @@ async function handleReturnsQuoteSubmit(e) {
     renderReturnServices(d);
 
     if (msg) {
-      msg.style.color = 'var(--mv-green-deep)';
-      msg.textContent = `✓ Live return rates fetched for ${country}! Choose your preferred service on the right.`;
+      if (d.services && d.services.length) {
+        msg.style.color = 'var(--mv-green-deep)';
+        msg.textContent = `✓ Live return rates fetched for ${country}! Choose your preferred service on the right.`;
+      } else {
+        msg.style.color = '#ef4444';
+        msg.textContent = d.upsError ? ('Notice: ' + d.upsError) : 'No live return rates returned for this route.';
+      }
     }
   } catch (err) {
     if (msg) {
@@ -4817,7 +4914,8 @@ function renderReturnServices(data) {
   if (!services.length) {
     if (placeholder) {
       placeholder.style.display = 'block';
-      placeholder.innerHTML = '<div style="color:#ef4444;font-weight:700">No return quotes available for this route. Please check destination details.</div>';
+      const detailErr = data.upsError ? `<div style="font-size:12px;color:#dc2626;margin-top:6px;background:#fef2f2;border:1px solid #fecaca;padding:8px 12px;border-radius:4px;text-align:left"><b>UPS Notice:</b> ${esc(data.upsError)}</div>` : '';
+      placeholder.innerHTML = `<div style="color:#ef4444;font-weight:700;font-size:14px">No return quotes available for this route.</div>${detailErr}<div style="font-size:12px;color:var(--muted);margin-top:6px">Please verify the sender address, state and postcode.</div>`;
     }
     container.style.display = 'none';
     return;
@@ -4940,7 +5038,17 @@ async function handleBookReturnLabel() {
   btn.disabled = true;
   btn.textContent = 'Booking return with UPS & transmitting customs…';
 
-  const country = $('retSenderCountry').value || 'US';
+  let country = ($('retSenderCountry') && $('retSenderCountry').value) || '';
+  const textCountry = ($('ret_countryInput') && $('ret_countryInput').value.trim()) || '';
+  if (textCountry) {
+    const matched = WORLD_COUNTRIES.find(o => o.n.toLowerCase() === textCountry.toLowerCase() || o.c.toLowerCase() === textCountry.toLowerCase());
+    if (matched) {
+      country = matched.c;
+      if ($('retSenderCountry')) $('retSenderCountry').value = matched.c;
+    }
+  }
+  if (!country) country = 'US';
+
   const isDomestic = country === 'GB';
   const lineItems = isDomestic ? [] : getReturnLineItems();
   const totalVal = lineItems.reduce((sum, it) => sum + (it.qty * it.unitValue), 0) || 50;
@@ -4951,6 +5059,7 @@ async function handleBookReturnLabel() {
     line1: $('retSenderLine1').value.trim(),
     line2: $('retSenderLine2').value.trim(),
     city: $('retSenderCity').value.trim(),
+    state: ($('retSenderState') ? $('retSenderState').value.trim().toUpperCase() : ''),
     postcode: $('retSenderPostcode').value.trim().toUpperCase(),
     phone: $('retSenderPhone').value.trim(),
     email: $('retSenderEmail').value.trim(),

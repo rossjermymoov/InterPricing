@@ -342,6 +342,7 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
     const isInternational = originCountry !== 'GB' || (req.body && req.body.courier === 'UPS');
 
     let upsServices = [];
+    let upsError = null;
     if (isInternational || originCountry !== 'GB' || req.body.includeUps) {
       try {
         const r = await ups.quoteRates({
@@ -427,8 +428,11 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
                 returnServiceType: returnServiceType || 'driver_brings_label',
               };
             });
+        } else if (r && !r.enabled) {
+          upsError = r.error || 'UPS returned no available services for this route';
         }
       } catch (upsErr) {
+        upsError = upsErr.message;
         console.warn('[returns/quote UPS error]', upsErr.message);
       }
     }
@@ -462,6 +466,7 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
       ok: true,
       services: allServices,
       ups: upsServices,
+      upsError,
       dpd: dpdRes,
       yodel: yodelRes,
       destination: shipTo,
@@ -724,12 +729,12 @@ app.get('/api/ups/callback', (req, res) => {
     + '</p></body>');
 });
 
-// Allowed UPS Services across export and import quoting:
+// Allowed UPS Services across export, import and return quoting:
 // - UPS Standard ('11')
 // - UPS Worldwide Saver ('65')
 // - UPS Worldwide Express ('07' / '7')
-// Excluded / Ignored: Worldwide Express Plus ('54') and Worldwide Expedited ('08')
-const ALLOWED_UPS_CODES = new Set(['11', '65', '07', '7', '011', '065', '007']);
+// - UPS Worldwide Expedited ('08' / '8')
+const ALLOWED_UPS_CODES = new Set(['11', '65', '07', '7', '08', '8', '011', '065', '007', '008']);
 
 // PUBLIC: live import/export quotes via UPS. Returns marked-up sell prices only (never cost).
 app.post('/api/import-quote', async (req, res) => {

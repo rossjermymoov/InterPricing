@@ -176,6 +176,12 @@ function addressOf(a, fallbackCountry) {
     city = def.city || '';
   }
 
+  // Clean US zip code if it has extra text
+  if (c.toUpperCase() === 'US' && postcode) {
+    const zipMatch = postcode.match(/\b\d{5}(?:-\d{4})?\b/);
+    if (zipMatch) postcode = zipMatch[0];
+  }
+
   const addr = {
     AddressLine: lines.length ? lines : ['1 Main Street'],
     CountryCode: c.toUpperCase(),
@@ -189,6 +195,17 @@ function addressOf(a, fallbackCountry) {
   } else if (!state && c.toUpperCase() === 'CA' && postcode) {
     state = caPostcodeToProvince(postcode);
   }
+
+  // Extract state if appended in city (e.g. "Miami, FL" or "Los Angeles, CA")
+  if (!state && c.toUpperCase() === 'US' && city) {
+    const stateMatch = city.match(/,\s*([A-Za-z]{2})\b/);
+    if (stateMatch) {
+      state = stateMatch[1].toUpperCase();
+      city = city.replace(/,\s*[A-Za-z]{2}\b/, '').trim();
+      addr.City = city;
+    }
+  }
+
   if (state) addr.StateProvinceCode = String(state).trim().toUpperCase();
 
   if (a.residential) {
@@ -501,12 +518,15 @@ async function callRate(payload) {
   let text = await res.text();
   let json = null; try { json = JSON.parse(text); } catch (_) {}
 
-  // If Shoptimeintransit returns non-200, try standard /Shop endpoint
+  // If Shoptimeintransit returns non-200, try standard /Shop endpoint and /Rate endpoint
   if (!res.ok) {
     try {
       const fallbackReq = JSON.parse(JSON.stringify(reqBody));
       if (fallbackReq.RateRequest && fallbackReq.RateRequest.Shipment) {
         delete fallbackReq.RateRequest.Shipment.DeliveryTimeInformation;
+      }
+      if (fallbackReq.RateRequest && fallbackReq.RateRequest.Request) {
+        fallbackReq.RateRequest.Request.RequestOption = 'Shop';
       }
       const resFallback = await fetch(base() + '/api/rating/' + ver() + '/Shop', {
         method: 'POST',
@@ -518,6 +538,19 @@ async function callRate(payload) {
         text = await resFallback.text();
         try { json = JSON.parse(text); } catch (_) {}
         return { ok: true, status: resFallback.status, json, text };
+      }
+
+      // Also try /Rate endpoint
+      const resFallback2 = await fetch(base() + '/api/rating/' + ver() + '/Rate', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(fallbackReq),
+        signal: AbortSignal.timeout(6500),
+      });
+      if (resFallback2.ok) {
+        text = await resFallback2.text();
+        try { json = JSON.parse(text); } catch (_) {}
+        return { ok: true, status: resFallback2.status, json, text };
       }
     } catch (_) {}
   }
