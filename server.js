@@ -317,14 +317,28 @@ function resolveCardMarkup(card, serviceCode, originCountry, st) {
     if (m.import != null && isFinite(Number(m.import))) return Number(m.import);
     if (m.return != null && isFinite(Number(m.return))) return Number(m.return);
     
-    const euCountries = (st && st.regions && st.regions.eu) || [];
-    const isEu = originCountry && (euCountries.includes(originCountry) || euCountries.includes(countries.nameToIso(originCountry)));
-    const svcKey = ['11', '011', '03'].includes(String(serviceCode)) ? 'us' : 'ux';
+    const euNames = (st && st.regions && st.regions.eu) || [];
+    const targetIso = (countries.nameToIso(originCountry) || (/^[A-Za-z]{2}$/.test(originCountry) ? originCountry.toUpperCase() : null));
+    const isEu = euNames.some(euName => {
+      const euIso = countries.nameToIso(euName);
+      return (targetIso && euIso === targetIso) || (originCountry && euName.toLowerCase() === String(originCountry).toLowerCase());
+    });
+
+    const isStandard = ['11', '011', '03'].includes(String(serviceCode));
+    const svcKey = isStandard ? 'us' : 'ux';
     const regKey = isEu ? svcKey + '_eu' : svcKey + '_row';
 
     if (m[regKey] != null && isFinite(Number(m[regKey]))) return Number(m[regKey]);
+    if (isEu && m[svcKey + '_eu'] != null && isFinite(Number(m[svcKey + '_eu']))) return Number(m[svcKey + '_eu']);
+    if (isEu && m.eu != null && isFinite(Number(m.eu))) return Number(m.eu);
+    if (!isEu && m.row != null && isFinite(Number(m.row))) return Number(m.row);
     if (m[svcKey] != null && isFinite(Number(m[svcKey]))) return Number(m[svcKey]);
+    if (m.ux != null && isFinite(Number(m.ux))) return Number(m.ux);
+    if (m.us != null && isFinite(Number(m.us))) return Number(m.us);
     if (m.default != null && isFinite(Number(m.default))) return Number(m.default);
+
+    const vals = Object.values(m).map(Number).filter(isFinite);
+    if (vals.length) return vals[0];
   }
 
   // 3. Fallback to global settings
@@ -2364,7 +2378,12 @@ app.post('/api/ups-test', auth.requireAdmin, async (req, res) => {
 app.get('/import', (req, res) => res.sendFile(path.join(__dirname, 'public', 'import-quote.html')));
 
 // PUBLIC: branded card page.
-app.get('/card/:token', (req, res) => res.sendFile(path.join(__dirname, 'public', 'card.html')));
+app.get('/card/:token', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.sendFile(path.join(__dirname, 'public', 'card.html'));
+});
 
 // ==========================================
 // REAL-TIME SSE STREAM
