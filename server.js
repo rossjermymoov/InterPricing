@@ -319,20 +319,20 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
     if (!origin.country) origin.country = 'GB';
     const originCountry = (countries.nameToIso(origin.country) || (/^[A-Za-z]{2}$/.test(origin.country) ? String(origin.country).toUpperCase() : 'GB'));
     
-    const da = cfg.deliveryAddress || {};
+    const da = cfg.deliveryAddress || cfg.receiver || {};
     const shipTo = {
-      name: (receiver && (receiver.name || receiver.contactName)) || da.name || cfg.contactName || 'Returns Department',
-      company: (receiver && receiver.company) || card.customer || da.company || 'Warehouse',
-      line1: (receiver && receiver.line1) || da.line1 || 'Main Warehouse',
-      line2: (receiver && receiver.line2) || da.line2 || '',
-      city: (receiver && receiver.city) || da.city || 'Birmingham',
-      postcode: (receiver && receiver.postcode) || da.postcode || 'B66 1BY',
-      county: (receiver && receiver.county) || da.county || '',
-      country: (receiver && receiver.country) || da.country || 'GB',
+      name: (receiver && (receiver.name || receiver.contactName)) || da.name || cfg.contactName || cfg.name || 'Returns Department',
+      company: (receiver && receiver.company) || da.company || cfg.customer || card.customer || 'Warehouse',
+      line1: (receiver && receiver.line1) || da.line1 || cfg.line1 || cfg.address || '',
+      line2: (receiver && receiver.line2) || da.line2 || cfg.line2 || '',
+      city: (receiver && receiver.city) || da.city || cfg.city || '',
+      postcode: (receiver && receiver.postcode) || da.postcode || cfg.postcode || '',
+      county: (receiver && receiver.county) || da.county || cfg.county || '',
+      country: (receiver && receiver.country) || da.country || cfg.country || 'GB',
       phone: (receiver && receiver.phone) || da.phone || cfg.phone || '',
       email: (receiver && receiver.email) || da.email || cfg.email || '',
-      vatNumber: (receiver && receiver.vatNumber) || da.vatNumber || cfg.vatNumber || '',
-      eoriNumber: (receiver && receiver.eoriNumber) || da.eoriNumber || cfg.eoriNumber || '',
+      vatNumber: (receiver && receiver.vatNumber) || da.vatNumber || cfg.vatNumber || cfg.vat || '',
+      eoriNumber: (receiver && receiver.eoriNumber) || da.eoriNumber || cfg.eoriNumber || cfg.eori || '',
     };
 
     const pkgs = (Array.isArray(packages) && packages.length) ? packages : ((Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15, qty: 1 }]);

@@ -2728,8 +2728,8 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
             </div>
           </div>
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid var(--moov-green);padding:12px 16px;margin-bottom:18px;border-radius:6px">
-            <div style="font-weight:800;font-size:14px;color:var(--mv-ink)" id="retDestCompany">Your Registered UK Warehouse</div>
-            <div style="font-size:12.5px;color:var(--mv-ink-55);margin-top:2px" id="retDestAddress">Returns Department, Unit 1-3, Central Trading Estate, Birmingham, B66 1BY, United Kingdom (EORI: GB446867375)</div>
+            <div style="font-weight:800;font-size:14px;color:var(--mv-ink)" id="retDestCompany">Registered Customer Warehouse</div>
+            <div style="font-size:12.5px;color:var(--mv-ink-55);margin-top:2px" id="retDestAddress">Loading rate card address…</div>
             <div style="font-size:11px;color:var(--mv-green-deep);font-weight:700;margin-top:4px">✓ Address verified from customer rate card</div>
           </div>
 
@@ -4697,26 +4697,26 @@ function initReturnsView() {
   }
 
   const rc = (RC && (RC.receiver || RC.deliveryAddress)) || {};
-  const company = (RC && RC.customer) || rc.company || 'Your Registered Warehouse';
+  const company = (RC && RC.customer) || rc.company || 'Customer Warehouse';
   const cEl = $('retDestCompany');
   const aEl = $('retDestAddress');
   if (cEl) cEl.textContent = company;
   if (aEl) {
     const parts = [
-      rc.name || rc.contactName || 'Returns Department',
-      rc.line1 || 'Unit 1-3, Central Trading Estate',
-      rc.line2 || '',
-      rc.city || 'Birmingham',
-      rc.postcode || 'B66 1BY',
-      'United Kingdom'
+      rc.name || rc.contactName,
+      rc.line1 || rc.address,
+      rc.line2,
+      rc.city,
+      rc.postcode,
+      rc.country === 'GB' ? 'United Kingdom' : (rc.country || 'United Kingdom')
     ].filter(Boolean);
     const taxParts = [
-      (rc.eoriNumber || (RC && RC.eoriNumber)) ? `EORI: ${rc.eoriNumber || RC.eoriNumber}` : 'EORI: GB446867375',
+      (rc.eoriNumber || (RC && RC.eoriNumber)) ? `EORI: ${rc.eoriNumber || RC.eoriNumber}` : '',
       (rc.vatNumber || (RC && RC.vatNumber)) ? `VAT: ${rc.vatNumber || RC.vatNumber}` : ''
     ].filter(Boolean);
     let addrText = parts.join(', ');
     if (taxParts.length) addrText += ' (' + taxParts.join(' • ') + ')';
-    aEl.textContent = addrText;
+    aEl.textContent = addrText || '—';
   }
 
   const hardcodedEori = (RC && (RC.eoriNumber || (RC.receiver && RC.receiver.eoriNumber) || (RC.deliveryAddress && RC.deliveryAddress.eoriNumber))) || 'GB446867375';
