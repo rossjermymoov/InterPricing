@@ -307,6 +307,7 @@ function resolveCardMarkup(card, serviceCode, originCountry, st) {
 // PUBLIC: Live quote for customer returns (UPS International Returns with Returns Plus & DPD/Yodel domestic)
 app.post('/api/card/:token/returns/quote', async (req, res) => {
   try {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
     const card = await db.getCardByToken(req.params.token);
     if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available.' });
