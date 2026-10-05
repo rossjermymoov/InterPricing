@@ -4635,6 +4635,12 @@ function initReturnsView() {
 
   handleReturnCountryChange();
   updateReturnCustomsTotal();
+
+  if ($('retSenderName') && $('retSenderName').value.trim() && $('retSenderAddress') && $('retSenderAddress').value.trim()) {
+    setTimeout(() => {
+      handleReturnsQuoteSubmit();
+    }, 300);
+  }
 }
 
 function handleReturnCountryChange() {

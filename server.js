@@ -297,31 +297,25 @@ app.put('/api/card/:token/addressbook', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-const EU_ISO_SET = new Set([
-  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'EL',
-  'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'
-]);
-
 function resolveCardMarkup(card, serviceCode, originCountry, st) {
   const cfg = card ? ((typeof card.config === 'string') ? JSON.parse(card.config || '{}') : (card.config || {})) : {};
   const m = cfg.markup != null ? cfg.markup : (card && card.markup);
 
-  // 1. Dedicated Customer Import / Return Markup (70% import rate)
+  // 1. Dedicated Customer Import / Return Markup
   const rawImp = cfg.importMarkupPct != null ? cfg.importMarkupPct : (cfg.importMarkup != null ? cfg.importMarkup : (cfg.returnMarkupPct != null ? cfg.returnMarkupPct : (cfg.returnMarkup != null ? cfg.returnMarkup : (m && m.import))));
   if (rawImp != null && isFinite(Number(rawImp))) {
-    const numImp = Number(rawImp);
-    // If it was the old 10% bug/default or 0, treat as 70%
-    if (numImp > 10) return numImp;
-    if (numImp === 10) return 70;
-    return numImp > 0 ? numImp : 70;
+    const val = Number(rawImp);
+    if (val >= 70) return val;
+    if (val > 10) return val;
   }
 
-  // 2. Default import markup for all returns/inbound is 70%
-  const stImp = Number(st && st.importMarkupPct);
-  if (isFinite(stImp) && stImp > 10) return stImp;
-  const envImp = Number(process.env.UPS_IMPORT_MARKUP);
-  if (isFinite(envImp) && envImp > 0) return envImp;
+  // 2. Rate card markup object check
+  if (m && typeof m === 'object') {
+    if (m.ux_eu && Number(m.ux_eu) >= 70) return Number(m.ux_eu);
+    if (m.default && Number(m.default) >= 70) return Number(m.default);
+  }
 
+  // Default to 70% markup for all inbound customer returns
   return 70;
 }
 
