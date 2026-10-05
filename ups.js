@@ -884,12 +884,36 @@ function buildShipmentRequest(p) {
     RatingMethodRequestedIndicator: '',
   };
 
-  if (isImport) {
+  const isReturn = !!(p.isReturn || p.mode === 'return' || p.mode === 'intl_return');
+  const retServiceType = p.returnServiceType || p.returnService;
+  let retCode = p.returnServiceCode;
+  if (!retCode) {
+    if (retServiceType === 'driver_brings_label' || retServiceType === '1_attempt' || retServiceType === '3') {
+      retCode = '3'; // UPS Return Service 1-Attempt (UPS Returns Plus - Driver brings label)
+    } else if (retServiceType === '3_attempts' || retServiceType === '5') {
+      retCode = '5'; // UPS Return Service 3-Attempt
+    } else if (retServiceType === 'electronic_label' || retServiceType === 'erl' || retServiceType === '8') {
+      retCode = '8'; // UPS Electronic Return Label (ERL - email link)
+    } else if (isImport || isReturn || retServiceType === 'print_label' || retServiceType === '9') {
+      retCode = '9'; // UPS Print Return Label
+    }
+  }
+
+  if (retCode) {
+    const descMap = {
+      '2': 'UPS Print and Mail',
+      '3': 'UPS Return Service 1-Attempt (Driver Brings Label)',
+      '5': 'UPS Return Service 3-Attempt',
+      '8': 'UPS Electronic Return Label',
+      '9': 'UPS Print Return Label',
+    };
     shipmentObj.ReturnService = {
-      Code: '9', // UPS Print Return Label
-      Description: 'UPS Print Return Label',
+      Code: String(retCode),
+      Description: descMap[String(retCode)] || 'UPS Return Service',
     };
   }
+
+  const reasonForExport = String(p.reasonForExport || (isReturn ? 'RETURN' : 'SALE')).toUpperCase();
 
   // Attach Paperless Documents (Commercial Invoice / Packing Slip) via Base64 UserCreatedForm
   const forms = [];
@@ -912,33 +936,62 @@ function buildShipmentRequest(p) {
     });
   }
 
+  // Build product line items for customs declaration (commercial invoice)
+  const rawItems = Array.isArray(p.lineItems) && p.lineItems.length ? p.lineItems : (Array.isArray(p.items) && p.items.length ? p.items : []);
+  const productList = rawItems.map((item) => ({
+    Description: S(item.description || item.name || 'Returned Merchandise').slice(0, 35),
+    Unit: {
+      Number: String(item.qty || item.quantity || 1),
+      Value: String(Number(item.unitValue || item.value || 10).toFixed(2)),
+      UnitOfMeasurement: {
+        Code: 'PCS',
+        Description: 'Pieces',
+      },
+    },
+    CommodityCode: S(item.hsCode || item.tariffCode || '6204.62').replace(/[^0-9.]/g, '').slice(0, 10),
+    PartNumber: S(item.sku || item.partNumber || '').slice(0, 35),
+    OriginCountryCode: toIso(item.originCountry || item.origin || 'GB'),
+    JointFirmRegistrationIndicator: '',
+  }));
+
+  const invoiceNumber = S(p.invoiceNumber || p.originalOrderRef || ('RET-' + Date.now().toString().slice(-6)));
+  const purchaseOrderNumber = S(p.reference || p.originalOrderRef || ('MOOV-' + Date.now().toString().slice(-6)));
+
   if (forms.length > 0) {
     const intlForms = {
       FormType: ['01'],
       UserCreatedForm: forms,
-      ReasonForExport: 'SALE',
+      ReasonForExport: reasonForExport,
       TermsOfSale: incoTerms,
-      InvoiceNumber: S(p.invoiceNumber || ('INV-' + Date.now().toString().slice(-6))),
+      InvoiceNumber: invoiceNumber,
       InvoiceDate: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-      PurchaseOrderNumber: S(p.reference || ('MOOV-' + Date.now().toString().slice(-6))),
+      PurchaseOrderNumber: purchaseOrderNumber,
       CurrencyCode: p.currency || 'GBP',
     };
+    if (productList.length > 0) {
+      intlForms.Product = productList;
+    }
     shipmentObj.InternationalForms = intlForms;
     shipmentObj.ShipmentServiceOptions = {
       InternationalForms: intlForms,
     };
-  } else if (isImport || ((senderAddr.Address.CountryCode || '').toUpperCase() !== (receiverAddr.Address.CountryCode || '').toUpperCase())) {
-    // Cross-border shipment without digital upload: declare hardcopy commercial invoice for pickup -> generates "INV" label indicator
-    shipmentObj.InternationalForms = {
+  } else if (isImport || isReturn || ((senderAddr.Address.CountryCode || '').toUpperCase() !== (receiverAddr.Address.CountryCode || '').toUpperCase())) {
+    // Cross-border shipment or international return: build full electronic commercial invoice
+    const intlForms = {
       FormType: ['01'],
-      ReasonForExport: 'SALE',
+      ReasonForExport: reasonForExport,
       TermsOfSale: incoTerms,
-      InvoiceNumber: S(p.invoiceNumber || ('INV-' + Date.now().toString().slice(-6))),
+      InvoiceNumber: invoiceNumber,
       InvoiceDate: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
-      PurchaseOrderNumber: S(p.reference || ('MOOV-' + Date.now().toString().slice(-6))),
+      PurchaseOrderNumber: purchaseOrderNumber,
       CurrencyCode: p.currency || 'GBP',
-      Comments: 'Commercial Invoices (3 copies) provided by Shipper at pickup',
+      DeclarationStatement: isReturn ? 'Returned goods being returned to the United Kingdom. Relief from import duty and VAT claimed.' : 'I hereby declare that the information in this invoice is true and correct.',
+      Comments: isReturn ? 'Customer Return / Repatriation of goods to UK' : 'Commercial Invoices provided for customs clearance',
     };
+    if (productList.length > 0) {
+      intlForms.Product = productList;
+    }
+    shipmentObj.InternationalForms = intlForms;
   }
 
   return {

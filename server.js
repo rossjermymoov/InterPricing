@@ -297,6 +297,7 @@ app.put('/api/card/:token/addressbook', async (req, res) => {
 });
 
 // PUBLIC: Live quote for customer returns using Billing API (DPD & Yodel)
+// PUBLIC: Live quote for customer returns (UPS International Returns with Returns Plus & DPD/Yodel domestic)
 app.post('/api/card/:token/returns/quote', async (req, res) => {
   try {
     if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
@@ -304,41 +305,155 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
     if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available.' });
 
     const cfg = card.config || {};
-    const { shipFrom, parcels } = req.body || {};
-    if (!shipFrom || !shipFrom.postcode) {
-      return res.status(400).json({ error: 'Origin sender postcode is required' });
-    }
-
+    const { shipFrom, sender, receiver, parcels, packages, returnServiceType, goodsValue, value, currency, hsLines, lineItems, reasonForExport, orderRef } = req.body || {};
+    
+    const origin = sender || shipFrom || {};
+    if (!origin.country) origin.country = 'GB';
+    const originCountry = (countries.nameToIso(origin.country) || (/^[A-Za-z]{2}$/.test(origin.country) ? String(origin.country).toUpperCase() : 'GB'));
+    
     const da = cfg.deliveryAddress || {};
     const shipTo = {
-      name: da.name || cfg.contactName || 'Returns Department',
-      company: card.customer || da.company || 'Warehouse',
-      line1: da.line1 || 'Main Warehouse',
-      line2: da.line2 || '',
-      city: da.city || 'Birmingham',
-      postcode: da.postcode || 'B66 1BY',
-      county: da.county || '',
-      country: da.country || 'GB',
-      phone: da.phone || cfg.phone || '',
-      email: da.email || cfg.email || '',
+      name: (receiver && (receiver.name || receiver.contactName)) || da.name || cfg.contactName || 'Returns Department',
+      company: (receiver && receiver.company) || card.customer || da.company || 'Warehouse',
+      line1: (receiver && receiver.line1) || da.line1 || 'Main Warehouse',
+      line2: (receiver && receiver.line2) || da.line2 || '',
+      city: (receiver && receiver.city) || da.city || 'Birmingham',
+      postcode: (receiver && receiver.postcode) || da.postcode || 'B66 1BY',
+      county: (receiver && receiver.county) || da.county || '',
+      country: (receiver && receiver.country) || da.country || 'GB',
+      phone: (receiver && receiver.phone) || da.phone || cfg.phone || '',
+      email: (receiver && receiver.email) || da.email || cfg.email || '',
     };
 
-    const quoteRes = await billing.fetchBillingQuote({
-      clientName: 'Moov Parcel',
-      customerDcId: cfg.billingCustomerDcId || process.env.BILLING_CUSTOMER_DC_ID,
-      customerKey: cfg.billingCustomerKey || process.env.BILLING_CUSTOMER_KEY,
-      authCompany: cfg.voilaAuthCompany || process.env.VOILA_AUTH_COMPANY,
-      shipFrom,
-      shipTo,
-      parcels: (Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15 }],
-    });
+    const pkgs = (Array.isArray(packages) && packages.length) ? packages : ((Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15, qty: 1 }]);
+    const totalVal = Number(goodsValue != null ? goodsValue : (value != null ? value : 50));
+
+    // Determine if International UPS Return vs Domestic Return
+    const isInternational = originCountry !== 'GB' || (req.body && req.body.courier === 'UPS');
+
+    let upsServices = [];
+    if (isInternational || originCountry !== 'GB' || req.body.includeUps) {
+      try {
+        const r = await ups.quoteRates({
+          mode: 'intl_return',
+          sender: { ...origin, country: originCountry },
+          receiver: shipTo,
+          packages: pkgs,
+          value: totalVal,
+          currency: currency || 'GBP',
+          returnServiceType: returnServiceType || 'driver_brings_label',
+        });
+
+        if (r && r.enabled && Array.isArray(r.services) && r.services.length) {
+          const cm = cfg.importMarkupPct != null ? Number(cfg.importMarkupPct) : (cfg.returnMarkupPct != null ? Number(cfg.returnMarkupPct) : 10);
+          const markup = isFinite(cm) ? cm : 10;
+
+          // Extra surcharge if Driver Brings Label (UPS Returns Plus 1 Attempt) is requested (~£4.25 list)
+          let returnsPlusFee = 0;
+          if (returnServiceType === 'driver_brings_label' || returnServiceType === '1_attempt') {
+            returnsPlusFee = 4.25;
+          } else if (returnServiceType === '3_attempts') {
+            returnsPlusFee = 6.50;
+          }
+
+          const st = (await db.getConfig()).settings || {};
+          const hsFree = Number.isFinite(Number(st.hsFreeLines)) ? Number(st.hsFreeLines) : 5;
+          const hsPerLine = Number.isFinite(Number(st.hsLineCharge)) ? Number(st.hsLineCharge) : 2.95;
+          const linesReq = Array.isArray(lineItems) ? lineItems.length : Math.max(0, Math.floor(Number(hsLines) || 1));
+          const hsExtra = Math.max(0, linesReq - hsFree);
+          const hsCharge = Math.round(hsExtra * hsPerLine * 100) / 100;
+
+          upsServices = r.services
+            .filter((s) => ALLOWED_UPS_CODES.has(String(s.code)))
+            .map((s) => {
+              const bd = s.breakdown || {};
+              const factor = 1 + markup / 100;
+              const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
+              const liveAcc = (bd.accessorials || []).map((a) => ({
+                code: a.code,
+                name: a.name,
+                amt: Math.round((a.amt || 0) * 100) / 100,
+                remote: !!a.remote,
+              })).filter((a) => a.amt > 0);
+
+              if (returnsPlusFee > 0) {
+                liveAcc.push({
+                  code: 'RPLUS',
+                  name: returnServiceType === '3_attempts' ? 'UPS Returns Plus (3-Attempt)' : 'UPS Returns Plus (Driver Brings Label)',
+                  amt: returnsPlusFee,
+                });
+              }
+
+              if (hsCharge > 0) {
+                liveAcc.push({
+                  key: 'hs',
+                  name: 'HS Customs Entry (' + hsExtra + ' extra line' + (hsExtra === 1 ? '' : 's') + ')',
+                  amt: hsCharge,
+                });
+              }
+
+              const surchargesTotal = liveAcc.reduce((t, x) => t + x.amt, 0);
+              const fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0.15;
+              const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
+              const finalPrice = Math.round((baseMarkedUp + fuelAmount + surchargesTotal) * 100) / 100;
+
+              return {
+                code: s.code,
+                name: s.name + ' Return',
+                carrier: 'UPS',
+                days: s.days || 2,
+                currency: s.currency || 'GBP',
+                price: finalPrice,
+                breakdown: {
+                  base: baseMarkedUp,
+                  fuel: fuelAmount,
+                  surcharges: surchargesTotal,
+                  returnsPlusFee: returnsPlusFee,
+                  accessorials: liveAcc,
+                },
+                returnServiceType: returnServiceType || 'driver_brings_label',
+              };
+            });
+        }
+      } catch (upsErr) {
+        console.warn('[returns/quote UPS error]', upsErr.message);
+      }
+    }
+
+    // If domestic UK origin, also check billing quotes (DPD & Yodel)
+    let domesticServices = [];
+    let dpdRes = null;
+    let yodelRes = null;
+    if (originCountry === 'GB' && origin.postcode) {
+      try {
+        const quoteRes = await billing.fetchBillingQuote({
+          clientName: 'Moov Parcel',
+          customerDcId: cfg.billingCustomerDcId || process.env.BILLING_CUSTOMER_DC_ID,
+          customerKey: cfg.billingCustomerKey || process.env.BILLING_CUSTOMER_KEY,
+          authCompany: cfg.voilaAuthCompany || process.env.VOILA_AUTH_COMPANY,
+          shipFrom: origin,
+          shipTo,
+          parcels: pkgs,
+        });
+        domesticServices = quoteRes.services || [];
+        dpdRes = quoteRes.dpd;
+        yodelRes = quoteRes.yodel;
+      } catch (domErr) {
+        console.warn('[returns/quote domestic billing error]', domErr.message);
+      }
+    }
+
+    const allServices = [...upsServices, ...domesticServices];
 
     res.json({
       ok: true,
-      services: quoteRes.services,
-      dpd: quoteRes.dpd,
-      yodel: quoteRes.yodel,
+      services: allServices,
+      ups: upsServices,
+      dpd: dpdRes,
+      yodel: yodelRes,
       destination: shipTo,
+      isInternational,
+      originCountry,
     });
   } catch (err) {
     console.error('[returns/quote error]', err.message);
@@ -346,7 +461,7 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
   }
 });
 
-// PUBLIC: Book a return label (DPD-12DROPQR or YODC2C)
+// PUBLIC: Book an International or Domestic Return Label
 app.post('/api/card/:token/returns/book', async (req, res) => {
   try {
     if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
@@ -354,40 +469,151 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
     if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available.' });
 
     const cfg = card.config || {};
-    const { courier, serviceCode, serviceName, sellPrice, costPrice, sender, parcels, rawQrImage, rawLabelImage } = req.body || {};
+    const {
+      courier, serviceCode, serviceName, sellPrice, costPrice,
+      sender, receiver, parcels, packages, returnServiceType,
+      lineItems, reasonForExport, orderRef, declarationStatement, goodsValue,
+      rawQrImage, rawLabelImage
+    } = req.body || {};
 
     const da = cfg.deliveryAddress || {};
-    const receiver = {
-      name: da.name || cfg.contactName || 'Returns Department',
-      company: card.customer || da.company || 'Warehouse',
-      line1: da.line1 || 'Main Warehouse',
-      line2: da.line2 || '',
-      city: da.city || 'Birmingham',
-      postcode: da.postcode || 'B66 1BY',
-      county: da.county || '',
-      country: da.country || 'GB',
-      phone: da.phone || cfg.phone || '',
-      email: da.email || cfg.email || '',
+    const shipTo = {
+      name: (receiver && (receiver.name || receiver.contactName)) || da.name || cfg.contactName || 'Returns Department',
+      company: (receiver && receiver.company) || card.customer || da.company || 'Warehouse',
+      line1: (receiver && receiver.line1) || da.line1 || 'Main Warehouse',
+      line2: (receiver && receiver.line2) || da.line2 || '',
+      city: (receiver && receiver.city) || da.city || 'Birmingham',
+      postcode: (receiver && receiver.postcode) || da.postcode || 'B66 1BY',
+      county: (receiver && receiver.county) || da.county || '',
+      country: (receiver && receiver.country) || da.country || 'GB',
+      phone: (receiver && receiver.phone) || da.phone || cfg.phone || '',
+      email: (receiver && receiver.email) || da.email || cfg.email || '',
     };
 
+    const origin = sender || {};
+    const originCountry = (countries.nameToIso(origin.country) || (/^[A-Za-z]{2}$/.test(origin.country) ? String(origin.country).toUpperCase() : 'GB'));
+    const pkgs = (Array.isArray(packages) && packages.length) ? packages : ((Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15, qty: 1 }]);
+    const isUpsCourier = String(courier || '').toUpperCase() === 'UPS' || originCountry !== 'GB';
+
+    if (isUpsCourier) {
+      // 1. Book via UPS Shipping API with ReturnService & Paperless Commercial Invoice
+      const retType = returnServiceType || 'driver_brings_label';
+      const actualSvcCode = serviceCode || '65';
+
+      const shipResult = await ups.bookShipment({
+        sender: { ...origin, country: originCountry },
+        receiver: shipTo,
+        packages: pkgs,
+        serviceCode: actualSvcCode,
+        isReturn: true,
+        returnServiceType: retType,
+        reasonForExport: reasonForExport || 'RETURN',
+        lineItems: Array.isArray(lineItems) ? lineItems : [],
+        originalOrderRef: orderRef || '',
+        declarationStatement: declarationStatement || 'Returned merchandise being returned to the United Kingdom for refund/repair.',
+        goodsValue: Number(goodsValue) || 50,
+      });
+
+      if (!shipResult.ok) {
+        return res.status(400).json({
+          ok: false,
+          error: shipResult.error || 'UPS failed to book international return shipment.',
+          raw: shipResult.raw,
+          request: shipResult.request,
+        });
+      }
+
+      const trackingNumber = shipResult.trackingNumber;
+      const driverDispatched = retType === 'driver_brings_label' || retType === '1_attempt' || retType === '3_attempts';
+      const totalWeight = pkgs.reduce((sum, p) => sum + (Math.max(1, parseInt(p.qty, 10) || 1) * (Number(p.weight) || 1.5)), 0);
+
+      const compiledPackages = (shipResult.packages || []).map((sp, idx) => {
+        const orig = pkgs[idx] || pkgs[0] || {};
+        return {
+          trackingNumber: sp.trackingNumber,
+          labelGraphic: sp.labelGraphic,
+          htmlImage: sp.htmlImage,
+          weight: orig.weight || 1.5,
+          l: orig.l || 30,
+          w: orig.w || 20,
+          h: orig.h || 15,
+          packaging: 'custom',
+        };
+      });
+
+      const labelBase64 = (shipResult.packages && shipResult.packages[0] && shipResult.packages[0].labelGraphic) || null;
+
+      const shipmentRecord = {
+        shipment_id: shipResult.shipmentId || ('ret_' + Date.now().toString(36)),
+        tracking_number: trackingNumber,
+        status: 'booked',
+        mode: 'return',
+        carrier: 'UPS',
+        service_code: actualSvcCode,
+        service_name: serviceName || ups.svcName(actualSvcCode) + ' Return',
+        card_id: card.id,
+        customer: card.customer,
+        token: card.token,
+        sender: origin,
+        receiver: shipTo,
+        packages: compiledPackages.length ? compiledPackages : pkgs,
+        total_weight_kg: Math.round(totalWeight * 10) / 10,
+        goods_value: Number(goodsValue) || 0,
+        cost_price: shipResult.totalCost || Number(costPrice) || 0,
+        sell_price: Number(sellPrice) || null,
+        prn: null,
+        label_base64: labelBase64,
+        documents_attached: {
+          commercialInvoice: true,
+          reasonForExport: reasonForExport || 'RETURN',
+          orderRef: orderRef || '',
+          driverBringsLabel: driverDispatched,
+          returnServiceType: retType,
+        },
+        response: {
+          courier: 'UPS',
+          serviceCode: actualSvcCode,
+          serviceName: serviceName || ups.svcName(actualSvcCode) + ' Return',
+          trackingNumber,
+          returnServiceType: retType,
+          driverDispatched,
+          shipmentId: shipResult.shipmentId,
+          created_at: new Date().toISOString(),
+        },
+        created_by: card.created_by || null,
+      };
+
+      const saved = await db.createShipmentRecord(shipmentRecord);
+      sse.broadcast('shipment_booked', saved || shipmentRecord);
+
+      return res.json({
+        ok: true,
+        shipment: saved || shipmentRecord,
+        trackingNumber,
+        shipmentId: shipResult.shipmentId,
+        labelBase64,
+        packages: compiledPackages,
+        driverDispatched,
+        returnServiceType: retType,
+      });
+    }
+
+    // 2. Domestic UK DPD / Yodel Return Fallback
     const isDpd = String(courier).toUpperCase() === 'DPD';
     const cName = isDpd ? 'DPD' : 'YODEL';
     const actualCode = isDpd ? (serviceCode || 'DPD-12DROPQR') : (serviceCode || 'YODC2C');
     const actualName = serviceName || (isDpd ? 'DPD Drop Off Next Day (QR & Label)' : 'Yodel Direct Return (C2C)');
 
     const trackingNumber = returnLabel.generateReturnTrackingNumber(cName);
-
-    const pkgs = (Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15 }];
     const totalWeight = pkgs.reduce((sum, p) => sum + (Number(p.weight || p.weightKg) || 1.5), 0);
 
-    // Generate bespoke Moov Parcel return label SVG
     const labelSvg = returnLabel.generateReturnLabelSvg({
       courier: cName,
       trackingNumber,
       serviceName: actualName,
       serviceCode: actualCode,
-      sender: sender || {},
-      receiver,
+      sender: origin || {},
+      receiver: shipTo,
       weightKg: totalWeight,
       piece: 1,
       totalPieces: pkgs.length,
@@ -408,8 +634,8 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
       card_id: card.id,
       customer: card.customer,
       token: card.token,
-      sender: sender || {},
-      receiver,
+      sender: origin || {},
+      receiver: shipTo,
       packages: pkgs.map((p, idx) => ({
         trackingNumber: trackingNumber,
         labelGraphic: labelBase64,
@@ -438,6 +664,7 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
     };
 
     const saved = await db.createShipmentRecord(shipmentRecord);
+    sse.broadcast('shipment_booked', saved || shipmentRecord);
 
     res.json({
       ok: true,
