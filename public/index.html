@@ -4734,10 +4734,11 @@ function openEditCardModal(cardId) {
 
   $('editCustContact').value = cfg.contactName || '';
   $('editCustPhone').value = cfg.phone || '';
+  $('editCustEmail').value = cfg.email || '';
   const mk = cfg.markup || {};
   const globalMk = (typeof mk === 'number') ? mk : (mk.default != null ? mk.default : 10);
   $('editCustMkGlobal').value = globalMk;
-  $('editCustImportMarkup').value = (cfg.importMarkupPct != null ? cfg.importMarkupPct : globalMk);
+  $('editCustImportMarkup').value = (cfg.importMarkupPct != null ? cfg.importMarkupPct : (cfg.importMarkup != null ? cfg.importMarkup : 70));
   if ($('editCustSamedayMarkup')) $('editCustSamedayMarkup').value = (cfg.samedayMarkupPct != null ? cfg.samedayMarkupPct : 15);
   if ($('editRcSamedayEnabled')) $('editRcSamedayEnabled').checked = (cfg.samedayEnabled !== false);
   if ($('editRcReturnsEnabled')) $('editRcReturnsEnabled').checked = (cfg.returnsEnabled !== false);

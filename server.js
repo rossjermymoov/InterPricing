@@ -305,10 +305,19 @@ const EU_ISO_SET = new Set([
 function resolveCardMarkup(card, serviceCode, originCountry, st) {
   if (!card) return Number(st && st.importMarkupPct) || 0;
   const cfg = (typeof card.config === 'string') ? JSON.parse(card.config || '{}') : (card.config || {});
-
   const m = cfg.markup != null ? cfg.markup : card.markup;
 
-  // 1. Rate card service/regional markup matrix or card global markup (primary source of truth)
+  // 1. Dedicated Customer Import / Return Markup (70% import rate)
+  if (cfg.importMarkupPct != null && isFinite(Number(cfg.importMarkupPct))) return Number(cfg.importMarkupPct);
+  if (cfg.importMarkup != null && isFinite(Number(cfg.importMarkup))) return Number(cfg.importMarkup);
+  if (cfg.returnMarkupPct != null && isFinite(Number(cfg.returnMarkupPct))) return Number(cfg.returnMarkupPct);
+  if (cfg.returnMarkup != null && isFinite(Number(cfg.returnMarkup))) return Number(cfg.returnMarkup);
+  if (m && typeof m === 'object') {
+    if (m.import != null && isFinite(Number(m.import))) return Number(m.import);
+    if (m.return != null && isFinite(Number(m.return))) return Number(m.return);
+  }
+
+  // 2. Fallback to Rate card service/regional markup matrix or card global markup
   if (typeof m === 'number' && isFinite(m)) return m;
   if (typeof m === 'string' && isFinite(Number(m))) return Number(m);
 
@@ -338,11 +347,6 @@ function resolveCardMarkup(card, serviceCode, originCountry, st) {
     if (vals.length) return vals[0];
   }
 
-  // 2. Direct explicit import/return keys on card config (secondary fallback)
-  if (cfg.importMarkupPct != null && isFinite(Number(cfg.importMarkupPct))) return Number(cfg.importMarkupPct);
-  if (cfg.importMarkup != null && isFinite(Number(cfg.importMarkup))) return Number(cfg.importMarkup);
-  if (cfg.returnMarkupPct != null && isFinite(Number(cfg.returnMarkupPct))) return Number(cfg.returnMarkupPct);
-  if (cfg.returnMarkup != null && isFinite(Number(cfg.returnMarkup))) return Number(cfg.returnMarkup);
   if (cfg.markupPct != null && isFinite(Number(cfg.markupPct))) return Number(cfg.markupPct);
 
   // 3. Fallback to global settings
