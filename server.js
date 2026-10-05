@@ -345,8 +345,18 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
         });
 
         if (r && r.enabled && Array.isArray(r.services) && r.services.length) {
-          const cm = cfg.importMarkupPct != null ? Number(cfg.importMarkupPct) : (cfg.returnMarkupPct != null ? Number(cfg.returnMarkupPct) : 10);
-          const markup = isFinite(cm) ? cm : 10;
+          const globalCfg = await db.getConfig();
+          const st = globalCfg.settings || {};
+          
+          // Exact same markup hierarchy as Import: customer card importMarkupPct -> global settings importMarkupPct -> env -> 0
+          let markup = null;
+          const cm = cfg.importMarkupPct != null ? cfg.importMarkupPct : cfg.returnMarkupPct;
+          if (cm != null && isFinite(Number(cm))) {
+            markup = Number(cm);
+          } else {
+            const p = Number(st.importMarkupPct);
+            markup = isFinite(p) ? p : (Number(process.env.UPS_IMPORT_MARKUP) || 0);
+          }
 
           // Extra surcharge if Driver Brings Label (UPS Returns Plus 1 Attempt) is requested (~£4.25 list)
           let returnsPlusFee = 0;
@@ -356,7 +366,6 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
             returnsPlusFee = 6.50;
           }
 
-          const st = (await db.getConfig()).settings || {};
           const hsFree = Number.isFinite(Number(st.hsFreeLines)) ? Number(st.hsFreeLines) : 5;
           const hsPerLine = Number.isFinite(Number(st.hsLineCharge)) ? Number(st.hsLineCharge) : 2.95;
           const linesReq = Array.isArray(lineItems) ? lineItems.length : Math.max(0, Math.floor(Number(hsLines) || 1));
@@ -393,7 +402,7 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
               }
 
               const surchargesTotal = liveAcc.reduce((t, x) => t + x.amt, 0);
-              const fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0.15;
+              const fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0;
               const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
               const finalPrice = Math.round((baseMarkedUp + fuelAmount + surchargesTotal) * 100) / 100;
 
