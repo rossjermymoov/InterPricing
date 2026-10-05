@@ -2707,32 +2707,11 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
             <div class="calc-grid">
               <div class="f" style="flex:1.5 1 200px">
                 <label>Country *</label>
-                <select id="retSenderCountry" onchange="handleReturnCountryChange()" required>
-                  <optgroup label="Popular Origins">
-                    <option value="GR" selected>🇬🇷 Greece (GR)</option>
-                    <option value="US">🇺🇸 United States (US)</option>
-                    <option value="DE">🇩🇪 Germany (DE)</option>
-                    <option value="FR">🇫🇷 France (FR)</option>
-                    <option value="IT">🇮🇹 Italy (IT)</option>
-                    <option value="ES">🇪🇸 Spain (ES)</option>
-                    <option value="IE">🇮🇪 Ireland (IE)</option>
-                    <option value="NL">🇳🇱 Netherlands (NL)</option>
-                    <option value="BE">🇧🇪 Belgium (BE)</option>
-                    <option value="CY">🇨🇾 Cyprus (CY)</option>
-                    <option value="CA">🇨🇦 Canada (CA)</option>
-                    <option value="AU">🇦🇺 Australia (AU)</option>
-                    <option value="CH">🇨🇭 Switzerland (CH)</option>
-                    <option value="AT">🇦🇹 Austria (AT)</option>
-                    <option value="SE">🇸🇪 Sweden (SE)</option>
-                    <option value="DK">🇩🇰 Denmark (DK)</option>
-                    <option value="PL">🇵🇱 Poland (PL)</option>
-                    <option value="PT">🇵🇹 Portugal (PT)</option>
-                    <option value="CN">🇨🇳 China (CN)</option>
-                    <option value="HK">🇭🇰 Hong Kong (HK)</option>
-                    <option value="JP">🇯🇵 Japan (JP)</option>
-                    <option value="GB">🇬🇧 United Kingdom (GB - Domestic)</option>
-                  </optgroup>
-                </select>
+                <div class="combo" id="ret_countryCombo" style="width:100%">
+                  <input id="ret_countryInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search any country (e.g. Greece, United States, Germany)..." role="combobox" aria-expanded="false" aria-autocomplete="list" required style="font-weight:600"/>
+                  <div class="comboList" id="ret_countryList" role="listbox"></div>
+                </div>
+                <input type="hidden" id="retSenderCountry" value="GR"/>
               </div>
               <div class="f" style="flex:1.5 1 180px">
                 <label>Shopper / Contact Name *</label>
@@ -4425,19 +4404,26 @@ const WORLD_COUNTRIES = [
   { n: "Zimbabwe", c: "ZW" }
 ];
 
-function initCountryCombo(boxId, inputId, menuId, onPick) {
+function initCountryCombo(boxId, inputId, menuId, onPick, initialIso) {
   const box = $(boxId), inp = $(inputId), menu = $(menuId);
+  if (!box || !inp || !menu) return;
   let items = WORLD_COUNTRIES.slice(), active = -1, curLabel = '';
   const open = () => { box.classList.add('open'); inp.setAttribute('aria-expanded', 'true'); };
   const close = () => { box.classList.remove('open'); inp.setAttribute('aria-expanded', 'false'); active = -1; };
-  const pick = (o) => { curLabel = o.n; inp.value = o.n; onPick(o.c, o.n); close(); };
+  const pick = (o) => {
+    if (!o) return;
+    curLabel = o.n;
+    inp.value = o.n;
+    onPick(o.c, o.n);
+    close();
+  };
 
   function render(q) {
     const s = (q || '').trim().toLowerCase();
     const matches = !s ? WORLD_COUNTRIES : WORLD_COUNTRIES.filter(o => o.n.toLowerCase().includes(s) || o.c.toLowerCase() === s);
     items = matches;
     if (!matches.length) { menu.innerHTML = '<div class="comboEmpty">No matching country</div>'; return; }
-    menu.innerHTML = matches.slice(0, 320).map((o, i) => '<div class="comboOpt" role="option" data-i="' + i + '"' + (o.n === curLabel ? ' aria-selected="true"' : '') + '>' + esc(o.n) + '</div>').join('');
+    menu.innerHTML = matches.slice(0, 320).map((o, i) => '<div class="comboOpt" role="option" data-i="' + i + '"' + (o.n === curLabel ? ' aria-selected="true"' : '') + '>' + esc(o.n) + ' <span style="font-size:11px;color:#94a3b8;margin-left:4px">(' + esc(o.c) + ')</span></div>').join('');
     menu.querySelectorAll('.comboOpt').forEach(el => {
       el.addEventListener('mousedown', ev => { ev.preventDefault(); pick(items[+el.dataset.i]); });
     });
@@ -4452,13 +4438,46 @@ function initCountryCombo(boxId, inputId, menuId, onPick) {
   inp.addEventListener('focus', () => { render(''); open(); });
   inp.addEventListener('input', () => { active = -1; render(inp.value); open(); });
   inp.addEventListener('keydown', e => {
-    if (e.key === 'ArrowDown') { e.preventDefault(); if (!box.classList.contains('open')) { render(''); open(); } active = Math.min(active + 1, items.length - 1); highlight(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); highlight(); }
-    else if (e.key === 'Enter') { e.preventDefault(); if (active >= 0 && items[active]) pick(items[active]); }
-    else if (e.key === 'Escape') { close(); }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!box.classList.contains('open')) { render(''); open(); }
+      active = Math.min(active + 1, items.length - 1);
+      highlight();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      active = Math.max(active - 1, 0);
+      highlight();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (active >= 0 && items[active]) pick(items[active]);
+      else if (items.length >= 1) pick(items[0]);
+    } else if (e.key === 'Escape') {
+      close();
+      if (curLabel) inp.value = curLabel;
+    }
   });
-  inp.addEventListener('blur', () => { setTimeout(() => { close(); }, 120); });
+  inp.addEventListener('blur', () => {
+    setTimeout(() => {
+      close();
+      if (inp.value && !curLabel) {
+        const match = WORLD_COUNTRIES.find(o => o.n.toLowerCase() === inp.value.trim().toLowerCase() || o.c.toLowerCase() === inp.value.trim().toLowerCase());
+        if (match) pick(match);
+        else if (items.length === 1) pick(items[0]);
+      } else if (!inp.value && curLabel) {
+        inp.value = curLabel;
+      }
+    }, 150);
+  });
   document.addEventListener('click', e => { if (!box.contains(e.target)) close(); });
+
+  if (initialIso) {
+    const found = WORLD_COUNTRIES.find(o => o.c === initialIso || o.n.toLowerCase() === initialIso.toLowerCase());
+    if (found) {
+      curLabel = found.n;
+      inp.value = found.n;
+      onPick(found.c, found.n);
+    }
+  }
 }
 
 function triggerCreateNav(view) {
@@ -4477,32 +4496,13 @@ let currentSelectedReturnService = null;
 let currentReturnMethod = 'driver_brings_label';
 let latestBookedReturn = null;
 
-function populateReturnCountries() {
-  const sel = $('retSenderCountry');
-  if (!sel || sel.dataset.populated === 'true') return;
-  const curVal = sel.value || 'GR';
-  const popularCodes = ['GR', 'US', 'DE', 'FR', 'IT', 'ES', 'IE', 'NL', 'BE', 'CY', 'AU', 'CA', 'CH', 'AT', 'SE', 'DK', 'PL', 'PT', 'CN', 'HK', 'JP', 'GB'];
-  const allList = (typeof WORLD_COUNTRIES !== 'undefined') ? WORLD_COUNTRIES : [];
-
-  let html = '<optgroup label="Popular Return Origins">';
-  popularCodes.forEach(code => {
-    const found = allList.find(x => x.c === code);
-    if (found) {
-      html += `<option value="${found.c}">${esc(found.n)} (${found.c})</option>`;
-    }
-  });
-  html += '</optgroup><optgroup label="All Countries A-Z">';
-  allList.forEach(item => {
-    html += `<option value="${item.c}">${esc(item.n)} (${item.c})</option>`;
-  });
-  html += '</optgroup>';
-  sel.innerHTML = html;
-  sel.value = curVal;
-  sel.dataset.populated = 'true';
-}
-
 function initReturnsView() {
-  populateReturnCountries();
+  initCountryCombo('ret_countryCombo', 'ret_countryInput', 'ret_countryList', (iso, name) => {
+    const hidden = $('retSenderCountry');
+    if (hidden) hidden.value = iso;
+    handleReturnCountryChange();
+  }, ($('retSenderCountry') && $('retSenderCountry').value) || 'GR');
+
   const rc = (RC && (RC.receiver || RC.deliveryAddress)) || null;
   const company = (RC && RC.customer) || (rc && rc.company) || 'Your Registered Warehouse';
   const cEl = $('retDestCompany');
