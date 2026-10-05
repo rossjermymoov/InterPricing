@@ -4508,12 +4508,106 @@ let currentSelectedReturnService = null;
 let currentReturnMethod = 'driver_brings_label';
 let latestBookedReturn = null;
 
+function saveReturnFormState() {
+  try {
+    if (!curToken) return;
+    const lineItems = getReturnLineItems();
+    const data = {
+      name: $('retSenderName')?.value || '',
+      company: $('retSenderCompany')?.value || '',
+      line1: $('retSenderLine1')?.value || '',
+      line2: $('retSenderLine2')?.value || '',
+      city: $('retSenderCity')?.value || '',
+      postcode: $('retSenderPostcode')?.value || '',
+      phone: $('retSenderPhone')?.value || '',
+      email: $('retSenderEmail')?.value || '',
+      country: $('retSenderCountry')?.value || 'GR',
+      countryInput: $('ret_countryInput')?.value || '',
+      orderRef: $('retOrderRef')?.value || '',
+      ukEori: $('retUkEori')?.value || '',
+      senderTaxId: $('retSenderTaxId')?.value || '',
+      reason: $('retReasonForExport')?.value || 'RETURN',
+      terms: $('retTermsOfSale')?.value || 'DDP',
+      method: currentReturnMethod,
+      weight: $('retPkgWeight')?.value || '1.5',
+      l: $('retPkgL')?.value || '30',
+      w: $('retPkgW')?.value || '20',
+      h: $('retPkgH')?.value || '15',
+      items: lineItems,
+    };
+    localStorage.setItem('moov_ret_form_' + curToken, JSON.stringify(data));
+  } catch (_) {}
+}
+
+function restoreReturnFormState() {
+  try {
+    if (!curToken) return;
+    const raw = localStorage.getItem('moov_ret_form_' + curToken);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!d) return;
+
+    if (d.name && $('retSenderName')) $('retSenderName').value = d.name;
+    if (d.company && $('retSenderCompany')) $('retSenderCompany').value = d.company;
+    if (d.line1 && $('retSenderLine1')) $('retSenderLine1').value = d.line1;
+    if (d.line2 && $('retSenderLine2')) $('retSenderLine2').value = d.line2;
+    if (d.city && $('retSenderCity')) $('retSenderCity').value = d.city;
+    if (d.postcode && $('retSenderPostcode')) $('retSenderPostcode').value = d.postcode;
+    if (d.phone && $('retSenderPhone')) $('retSenderPhone').value = d.phone;
+    if (d.email && $('retSenderEmail')) $('retSenderEmail').value = d.email;
+    if (d.orderRef && $('retOrderRef')) $('retOrderRef').value = d.orderRef;
+    if (d.ukEori && $('retUkEori')) $('retUkEori').value = d.ukEori;
+    if (d.senderTaxId && $('retSenderTaxId')) $('retSenderTaxId').value = d.senderTaxId;
+    if (d.reason && $('retReasonForExport')) $('retReasonForExport').value = d.reason;
+    if (d.terms && $('retTermsOfSale')) $('retTermsOfSale').value = d.terms;
+    if (d.weight && $('retPkgWeight')) $('retPkgWeight').value = d.weight;
+    if (d.l && $('retPkgL')) $('retPkgL').value = d.l;
+    if (d.w && $('retPkgW')) $('retPkgW').value = d.w;
+    if (d.h && $('retPkgH')) $('retPkgH').value = d.h;
+    if (d.country && $('retSenderCountry')) {
+      $('retSenderCountry').value = d.country;
+      if ($('ret_countryInput') && d.countryInput) $('ret_countryInput').value = d.countryInput;
+    }
+    if (d.method) setReturnMethod(d.method);
+
+    if (Array.isArray(d.items) && d.items.length) {
+      const tbody = $('retItemsBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        d.items.forEach(it => {
+          const tr = document.createElement('tr');
+          tr.className = 'ret-item-row';
+          tr.innerHTML = `
+            <td><input type="text" class="sd-input ret-item-desc" placeholder="e.g. Silk Blouse" value="${esc(it.description || 'Merchandise Return')}" required style="height:32px;font-size:12px" oninput="saveReturnFormState()"/></td>
+            <td><input type="text" class="sd-input ret-item-hs" placeholder="e.g. 6205.20" value="${esc(it.hsCode || '6205.20')}" style="height:32px;font-size:12px" oninput="saveReturnFormState()"/></td>
+            <td><input type="number" class="sd-input ret-item-qty" min="1" value="${it.qty || 1}" style="height:32px;font-size:12px;text-align:center" oninput="updateReturnCustomsTotal(); saveReturnFormState();"/></td>
+            <td><input type="number" class="sd-input ret-item-val" min="1" step="0.5" value="${it.unitValue || 50}" style="height:32px;font-size:12px;text-align:right" oninput="updateReturnCustomsTotal(); saveReturnFormState();"/></td>
+            <td><input type="text" class="sd-input ret-item-origin" value="${esc(it.originCountry || 'GB')}" maxlength="2" style="height:32px;font-size:12px;text-align:center;text-transform:uppercase" oninput="saveReturnFormState()"/></td>
+            <td><button type="button" onclick="removeReturnItemRow(this)" style="background:transparent;border:0;color:#ef4444;font-size:16px;cursor:pointer">&times;</button></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    }
+  } catch (_) {}
+}
+
 function initReturnsView() {
   initCountryCombo('ret_countryCombo', 'ret_countryInput', 'ret_countryList', (iso, name) => {
     const hidden = $('retSenderCountry');
     if (hidden) hidden.value = iso;
     handleReturnCountryChange();
+    saveReturnFormState();
   }, ($('retSenderCountry') && $('retSenderCountry').value) || 'GR');
+
+  restoreReturnFormState();
+
+  const form = $('returnsQuoteForm');
+  if (form && !form.dataset.boundStorage) {
+    form.addEventListener('input', saveReturnFormState);
+    form.addEventListener('change', saveReturnFormState);
+    form.dataset.boundStorage = 'true';
+  }
 
   const rc = (RC && (RC.receiver || RC.deliveryAddress)) || null;
   const company = (RC && RC.customer) || (rc && rc.company) || 'Your Registered Warehouse';
