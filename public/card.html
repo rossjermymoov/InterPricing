@@ -4696,28 +4696,7 @@ function initReturnsView() {
     pcInput.dataset.boundState = 'true';
   }
 
-  const rc = (RC && (RC.receiver || RC.deliveryAddress)) || {};
-  const company = (RC && RC.customer) || rc.company || 'Customer Warehouse';
-  const cEl = $('retDestCompany');
-  const aEl = $('retDestAddress');
-  if (cEl) cEl.textContent = company;
-  if (aEl) {
-    const parts = [
-      rc.name || rc.contactName,
-      rc.line1 || rc.address,
-      rc.line2,
-      rc.city,
-      rc.postcode,
-      rc.country === 'GB' ? 'United Kingdom' : (rc.country || 'United Kingdom')
-    ].filter(Boolean);
-    const taxParts = [
-      (rc.eoriNumber || (RC && RC.eoriNumber)) ? `EORI: ${rc.eoriNumber || RC.eoriNumber}` : '',
-      (rc.vatNumber || (RC && RC.vatNumber)) ? `VAT: ${rc.vatNumber || RC.vatNumber}` : ''
-    ].filter(Boolean);
-    let addrText = parts.join(', ');
-    if (taxParts.length) addrText += ' (' + taxParts.join(' • ') + ')';
-    aEl.textContent = addrText || '—';
-  }
+  renderReturnsDestAddress();
 
   const hardcodedEori = (RC && (RC.eoriNumber || (RC.receiver && RC.receiver.eoriNumber) || (RC.deliveryAddress && RC.deliveryAddress.eoriNumber))) || 'GB446867375';
   if ($('retUkEori')) {
@@ -4729,6 +4708,32 @@ function initReturnsView() {
 
   handleReturnCountryChange();
   updateReturnCustomsTotal();
+}
+
+function renderReturnsDestAddress() {
+  const rc = (RC && (RC.receiver || RC.deliveryAddress)) || {};
+  const da = (RC && RC.deliveryAddress) || {};
+  const company = (RC && RC.customer) || rc.company || rc.name || 'Customer Warehouse';
+  const cEl = $('retDestCompany');
+  const aEl = $('retDestAddress');
+  if (cEl) cEl.textContent = company;
+  if (aEl) {
+    const parts = [
+      rc.name || rc.contactName || (RC && RC.contactName),
+      rc.line1 || rc.address || rc.addressLine1 || da.line1 || (RC && RC.address),
+      rc.line2 || rc.addressLine2 || da.line2,
+      rc.city || da.city,
+      rc.postcode || rc.postalCode || da.postcode || (RC && RC.postcode),
+      (rc.country || da.country || (RC && RC.country) === 'GB') ? 'United Kingdom' : (rc.country || da.country || 'United Kingdom')
+    ].filter(Boolean);
+    const taxParts = [
+      (rc.eoriNumber || da.eoriNumber || (RC && RC.eoriNumber)) ? `EORI: ${rc.eoriNumber || da.eoriNumber || RC.eoriNumber}` : '',
+      (rc.vatNumber || da.vatNumber || (RC && RC.vatNumber)) ? `VAT: ${rc.vatNumber || da.vatNumber || RC.vatNumber}` : ''
+    ].filter(Boolean);
+    let addrText = parts.join(', ');
+    if (taxParts.length) addrText += ' (' + taxParts.join(' • ') + ')';
+    aEl.textContent = addrText || (RC && RC.address ? RC.address : 'Registered Rate Card Warehouse');
+  }
 }
 
 function handleReturnCountryChange() {
@@ -7903,6 +7908,7 @@ async function boot() {
     const res = await fetch('/api/card/' + encodeURIComponent(token));
     if (!res.ok) { $('state').textContent = 'This rate card link is not available.'; return; }
     RC = await res.json();
+    try { renderReturnsDestAddress(); } catch (_) {}
   } catch (e) {
     $('state').textContent = 'Could not load this rate card.';
     return;
