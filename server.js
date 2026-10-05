@@ -439,18 +439,11 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
                 days: s.days || 2,
                 currency: s.currency || 'GBP',
                 price: finalPrice,
-                breakdown: {
-                  rawBaseCost: bd.base || 0,
-                  markupPct: markup,
-                  markupAmount: Math.round((baseMarkedUp - (bd.base || 0)) * 100) / 100,
-                  base: baseMarkedUp,
-                  fuel: fuelAmount,
-                  fuelRatePct: Math.round(fuelRate * 1000) / 10,
-                  surcharges: surchargesTotal,
-                  returnsPlusFee: returnsPlusFee,
-                  accessorials: liveAcc,
-                  totalSellPrice: finalPrice,
-                },
+                base: baseMarkedUp,
+                fuel: fuelAmount,
+                surcharges: surchargesTotal,
+                returnsPlusFee: returnsPlusFee,
+                accessorials: liveAcc,
                 returnServiceType: returnServiceType || 'driver_brings_label',
               };
             });

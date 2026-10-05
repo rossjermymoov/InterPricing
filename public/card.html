@@ -4760,35 +4760,6 @@ function renderReturnServices(data) {
         ${isUps ? rPlusDesc : '🚀 Drop off at local pickup shop or scheduled drop point.'}
       </div>
 
-      <!-- Live Pricing & Markup Breakdown -->
-      <div style="margin-top:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;font-size:11px;color:#475569">
-        <div style="font-weight:800;font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mv-purple);margin-bottom:4px">
-          Live Pricing &amp; Markup Breakdown
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:1px 0">
-          <span>UPS Inbound Base Cost:</span>
-          <b>£${rawCost.toFixed(2)}</b>
-        </div>
-        ${markupPct > 0 ? `
-        <div style="display:flex;justify-content:space-between;padding:1px 0;color:var(--mv-purple)">
-          <span>Applied Rate Card Markup (+${markupPct}%):</span>
-          <b>+£${markupAmt.toFixed(2)}</b>
-        </div>` : ''}
-        ${retPlusFee > 0 ? `
-        <div style="display:flex;justify-content:space-between;padding:1px 0;color:#0284c7">
-          <span>UPS Returns Plus (Driver Brings Label):</span>
-          <b>+£${retPlusFee.toFixed(2)}</b>
-        </div>` : ''}
-        <div style="display:flex;justify-content:space-between;padding:1px 0">
-          <span>Fuel Surcharge (~${fuelPct}%):</span>
-          <b>+£${fuelAmt.toFixed(2)}</b>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding-top:4px;margin-top:4px;border-top:1px solid #cbd5e1;font-weight:800;color:var(--mv-ink)">
-          <span>Total Client Sell Price:</span>
-          <span>£${priceNum.toFixed(2)}</span>
-        </div>
-      </div>
-
       <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:11px;font-weight:700;color:var(--moov-green-deep);display:flex;align-items:center;gap:4px">
           <span>✓</span><span>Includes DDP &amp; Electronic Customs</span>
