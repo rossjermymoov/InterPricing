@@ -4736,12 +4736,39 @@ function renderReturnsDestAddress() {
   }
 }
 
+const UPS_RETURNS_PLUS_COUNTRIES = new Set([
+  'GB', 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE',
+  'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO',
+  'SK', 'SI', 'ES', 'SE', 'NO', 'CH', 'MC', 'SM', 'VA', 'AD', 'LI'
+]);
+
 function handleReturnCountryChange() {
-  const country = ($('retSenderCountry') && $('retSenderCountry').value) || 'US';
+  const rawCountry = ($('retSenderCountry') && $('retSenderCountry').value) || '';
+  const textVal = ($('ret_countryInput') && $('ret_countryInput').value.trim()) || '';
+  let country = rawCountry;
+  if (!country && textVal) {
+    const m = WORLD_COUNTRIES.find(o => o.n.toLowerCase() === textVal.toLowerCase() || o.c.toLowerCase() === textVal.toLowerCase());
+    if (m) country = m.c;
+  }
+  if (!country) country = 'US';
+  country = country.toUpperCase();
+
   const isDomestic = country === 'GB';
   const customsSec = $('retCustomsSection');
   if (customsSec) {
     customsSec.style.display = isDomestic ? 'none' : 'block';
+  }
+
+  const supportsDriverReturns = UPS_RETURNS_PLUS_COUNTRIES.has(country);
+  const mDriver = $('retMethodDriver');
+  if (mDriver) {
+    mDriver.style.display = supportsDriverReturns ? '' : 'none';
+  }
+
+  // If driver_brings_label is currently selected but this country does not support UPS Returns Plus (e.g. US),
+  // automatically switch to print_label
+  if (!supportsDriverReturns && currentReturnMethod === 'driver_brings_label') {
+    setReturnMethod('print_label');
   }
 }
 
@@ -4763,6 +4790,7 @@ function setReturnMethod(method) {
 function addReturnItemRow() {
   const tbody = $('retItemsBody');
   if (!tbody) return;
+  const country = ($('retSenderCountry') && $('retSenderCountry').value) || 'GB';
   const tr = document.createElement('tr');
   tr.className = 'ret-item-row';
   tr.innerHTML = `
@@ -4770,7 +4798,7 @@ function addReturnItemRow() {
     <td><input type="text" class="sd-input ret-item-hs" placeholder="e.g. 6206.10" value="6206.10" style="height:32px;font-size:12px"/></td>
     <td><input type="number" class="sd-input ret-item-qty" min="1" value="1" style="height:32px;font-size:12px;text-align:center" oninput="updateReturnCustomsTotal()"/></td>
     <td><input type="number" class="sd-input ret-item-val" min="1" step="0.5" value="40" style="height:32px;font-size:12px;text-align:right" oninput="updateReturnCustomsTotal()"/></td>
-    <td><input type="text" class="sd-input ret-item-origin" value="GB" maxlength="2" style="height:32px;font-size:12px;text-align:center;text-transform:uppercase"/></td>
+    <td><input type="text" class="sd-input ret-item-origin" value="${esc(country)}" maxlength="2" style="height:32px;font-size:12px;text-align:center;text-transform:uppercase"/></td>
     <td><button type="button" onclick="removeReturnItemRow(this)" style="background:transparent;border:0;color:#ef4444;font-size:16px;cursor:pointer">&times;</button></td>
   `;
   tbody.appendChild(tr);
@@ -4805,14 +4833,23 @@ function updateReturnCustomsTotal() {
 
 function getReturnLineItems() {
   const tbody = $('retItemsBody');
-  if (!tbody) return [];
+  const country = ($('retSenderCountry') && $('retSenderCountry').value) || 'GB';
+  if (!tbody) {
+    return [{
+      description: 'Merchandise Return',
+      hsCode: '6204.62',
+      qty: 1,
+      unitValue: 50,
+      originCountry: country.toUpperCase(),
+    }];
+  }
   const items = [];
   tbody.querySelectorAll('.ret-item-row').forEach(row => {
     const desc = row.querySelector('.ret-item-desc')?.value.trim() || 'Merchandise Return';
     const hs = row.querySelector('.ret-item-hs')?.value.trim() || '6204.62';
     const qty = Number(row.querySelector('.ret-item-qty')?.value) || 1;
     const unitVal = Number(row.querySelector('.ret-item-val')?.value) || 50;
-    const origin = (row.querySelector('.ret-item-origin')?.value.trim() || 'GB').toUpperCase();
+    const origin = (row.querySelector('.ret-item-origin')?.value.trim() || country || 'GB').toUpperCase();
     items.push({
       description: desc,
       hsCode: hs,
@@ -4821,6 +4858,15 @@ function getReturnLineItems() {
       originCountry: origin,
     });
   });
+  if (!items.length) {
+    items.push({
+      description: 'Merchandise Return',
+      hsCode: '6204.62',
+      qty: 1,
+      unitValue: 50,
+      originCountry: country.toUpperCase(),
+    });
+  }
   return items;
 }
 
