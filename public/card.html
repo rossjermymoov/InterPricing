@@ -4510,7 +4510,8 @@ let latestBookedReturn = null;
 
 function saveReturnFormState() {
   try {
-    if (!curToken) return;
+    const token = curToken || location.pathname.split('/').filter(Boolean).pop();
+    if (!token) return;
     const lineItems = getReturnLineItems();
     const data = {
       name: $('retSenderName')?.value || '',
@@ -4535,14 +4536,15 @@ function saveReturnFormState() {
       h: $('retPkgH')?.value || '15',
       items: lineItems,
     };
-    localStorage.setItem('moov_ret_form_' + curToken, JSON.stringify(data));
+    localStorage.setItem('moov_ret_form_' + token, JSON.stringify(data));
   } catch (_) {}
 }
 
 function restoreReturnFormState() {
   try {
-    if (!curToken) return;
-    const raw = localStorage.getItem('moov_ret_form_' + curToken);
+    const token = curToken || location.pathname.split('/').filter(Boolean).pop();
+    if (!token) return;
+    const raw = localStorage.getItem('moov_ret_form_' + token);
     if (!raw) return;
     const d = JSON.parse(raw);
     if (!d) return;
@@ -4593,14 +4595,15 @@ function restoreReturnFormState() {
 }
 
 function initReturnsView() {
+  restoreReturnFormState();
+
+  const initialIso = ($('retSenderCountry') && $('retSenderCountry').value) || 'GR';
   initCountryCombo('ret_countryCombo', 'ret_countryInput', 'ret_countryList', (iso, name) => {
     const hidden = $('retSenderCountry');
     if (hidden) hidden.value = iso;
     handleReturnCountryChange();
     saveReturnFormState();
-  }, ($('retSenderCountry') && $('retSenderCountry').value) || 'GR');
-
-  restoreReturnFormState();
+  }, initialIso);
 
   const form = $('returnsQuoteForm');
   if (form && !form.dataset.boundStorage) {
@@ -4635,12 +4638,6 @@ function initReturnsView() {
 
   handleReturnCountryChange();
   updateReturnCustomsTotal();
-
-  if ($('retSenderName') && $('retSenderName').value.trim() && $('retSenderAddress') && $('retSenderAddress').value.trim()) {
-    setTimeout(() => {
-      handleReturnsQuoteSubmit();
-    }, 300);
-  }
 }
 
 function handleReturnCountryChange() {
