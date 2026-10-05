@@ -983,20 +983,26 @@ function buildShipmentRequest(p) {
 
   const isReturn = !!(p.isReturn || p.mode === 'return' || p.mode === 'intl_return');
   const retServiceType = p.returnServiceType || p.returnService;
+  const isCrossBorder = (originCountry || '').toUpperCase() !== ((receiverAddr.Address && receiverAddr.Address.CountryCode) || 'GB').toUpperCase();
+
   let retCode = p.returnServiceCode;
   if (!retCode) {
-    if (retServiceType === 'driver_brings_label' || retServiceType === '1_attempt' || retServiceType === '3') {
-      retCode = '3'; // UPS Return Service 1-Attempt (UPS Returns Plus - Driver brings label)
-    } else if (retServiceType === '3_attempts' || retServiceType === '5') {
-      retCode = '5'; // UPS Return Service 3-Attempt
-    } else if (retServiceType === 'electronic_label' || retServiceType === 'erl' || retServiceType === '8') {
+    if (retServiceType === 'electronic_label' || retServiceType === 'erl' || retServiceType === '8') {
       retCode = '8'; // UPS Electronic Return Label (ERL - email link)
-    } else if (isImport || isReturn || retServiceType === 'print_label' || retServiceType === '9') {
-      retCode = '9'; // UPS Print Return Label
+    } else if (isCrossBorder || isImport || retServiceType === 'print_label' || retServiceType === '9') {
+      // For cross-border / international returns (e.g. US -> GB), UPS Returns Plus (driver brings label 3/5) is an
+      // invalid accessory option. UPS requires Code 9 (Print Return Label) or Code 8 (Electronic Return Label).
+      retCode = '9';
+    } else if (retServiceType === 'driver_brings_label' || retServiceType === '1_attempt' || retServiceType === '3') {
+      retCode = '3'; // UPS Return Service 1-Attempt (domestic only)
+    } else if (retServiceType === '3_attempts' || retServiceType === '5') {
+      retCode = '5'; // UPS Return Service 3-Attempt (domestic only)
+    } else if (isReturn) {
+      retCode = '9';
     }
   }
 
-  if (retCode) {
+  if (retCode && retCode !== 'NONE') {
     const descMap = {
       '2': 'UPS Print and Mail',
       '3': 'UPS Return Service 1-Attempt (Driver Brings Label)',
@@ -1163,6 +1169,13 @@ async function bookShipment(payload, retryCount = 0) {
     if (retryCount === 0 && (errMsg.toLowerCase().includes('measurement system') || errMsg.toLowerCase().includes('unit of measurement'))) {
       console.warn('[bookShipment] Retrying booking with toggled measurement system...');
       return bookShipment({ ...payload, forceImperial: !payload.forceImperial }, 1);
+    }
+
+    // Auto-retry with Print Return Label (Code 9) or without ReturnService container if accessory option was rejected
+    if (retryCount < 2 && (errMsg.toLowerCase().includes('accessory option') || errMsg.toLowerCase().includes('returnservice') || errMsg.toLowerCase().includes('return service'))) {
+      const nextCode = (payload.returnServiceCode === '9' || !payload.returnServiceCode) ? 'NONE' : '9';
+      console.warn('[bookShipment] Retrying booking with returnServiceCode:', nextCode);
+      return bookShipment({ ...payload, returnServiceCode: nextCode }, retryCount + 1);
     }
 
     return { ok: false, status: res.status, error: errMsg, raw: text, request: reqBody };
