@@ -629,6 +629,13 @@ function buildPickupRequest(p) {
   const serviceCode = rawSvc.padStart(3, '0');
   const trackingNumber = p.trackingNumber ? String(p.trackingNumber).trim() : null;
 
+  let state = p.state || p.stateProvinceCode || '';
+  if (!state && originCountry.toUpperCase() === 'US' && (p.postalCode || p.postcode)) {
+    state = usZipToState(p.postalCode || p.postcode);
+  } else if (!state && originCountry.toUpperCase() === 'CA' && (p.postalCode || p.postcode)) {
+    state = caPostcodeToProvince(p.postalCode || p.postcode);
+  }
+
   const req = {
     PickupCreationRequest: {
       RatePickupIndicator: 'N',
@@ -649,6 +656,7 @@ function buildPickupRequest(p) {
         AddressLine: addrLines,
         City: S(p.city),
         PostalCode: S(p.postalCode || p.postcode),
+        ...(state ? { StateProvinceCode: String(state).trim().toUpperCase() } : {}),
         CountryCode: originCountry || 'GB',
         ResidentialIndicator: p.residential ? 'Y' : 'N',
         Phone: {
