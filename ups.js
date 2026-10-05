@@ -414,6 +414,8 @@ function breakdownOf(rs) {
 
   return {
     base: baseVal != null ? Math.round(baseVal * 100) / 100 : null,
+    pubBase: pubBase != null ? Math.round(pubBase * 100) / 100 : null,
+    negBase: negBase != null ? Math.round(negBase * 100) / 100 : null,
     fuel: Math.round(fuel * 100) / 100,
     accessorials: acc,
     pubTotal,

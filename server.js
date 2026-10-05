@@ -378,7 +378,7 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
               const bd = s.breakdown || {};
               const markup = resolveCardMarkup(card, s.code, originCountry, st);
               const factor = 1 + markup / 100;
-              const rawBase = Number((bd.base != null && bd.base > 0) ? bd.base : (s.cost || 0));
+              const rawBase = Number((bd.pubBase != null && bd.pubBase > 0) ? bd.pubBase : ((bd.base != null && bd.base > 0) ? bd.base : (s.cost || 0)));
               const baseMarkedUp = Math.round(rawBase * factor * 100) / 100;
               const liveAcc = (bd.accessorials || []).map((a) => ({
                 code: a.code,
@@ -793,7 +793,8 @@ app.post('/api/import-quote', async (req, res) => {
       const bd = s.breakdown || {};
       const markup = resolveCardMarkup(card, s.code, sender && sender.country, st);
       const factor = 1 + markup / 100;
-      const baseMarkedUp = Math.round(bd.base * factor * 100) / 100;
+      const rawBase = Number((bd.pubBase != null && bd.pubBase > 0) ? bd.pubBase : ((bd.base != null && bd.base > 0) ? bd.base : (s.cost || 0)));
+      const baseMarkedUp = Math.round(rawBase * factor * 100) / 100;
       const liveAcc = (bd.accessorials || []).map((a) => ({
         code: a.code,
         name: a.name,
