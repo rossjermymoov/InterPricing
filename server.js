@@ -297,31 +297,28 @@ app.put('/api/card/:token/addressbook', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+const EU_ISO_SET = new Set([
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'EL',
+  'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'
+]);
+
 function resolveCardMarkup(card, serviceCode, originCountry, st) {
   if (!card) return Number(st && st.importMarkupPct) || 0;
-  const cfg = card.config || {};
-  
-  // 1. Direct explicit import/return keys on card config
-  if (cfg.importMarkupPct != null && isFinite(Number(cfg.importMarkupPct))) return Number(cfg.importMarkupPct);
-  if (cfg.importMarkup != null && isFinite(Number(cfg.importMarkup))) return Number(cfg.importMarkup);
-  if (cfg.returnMarkupPct != null && isFinite(Number(cfg.returnMarkupPct))) return Number(cfg.returnMarkupPct);
-  if (cfg.returnMarkup != null && isFinite(Number(cfg.returnMarkup))) return Number(cfg.returnMarkup);
-  if (cfg.markupPct != null && isFinite(Number(cfg.markupPct))) return Number(cfg.markupPct);
+  const cfg = (typeof card.config === 'string') ? JSON.parse(card.config || '{}') : (card.config || {});
 
-  // 2. card.config.markup (can be a number or an object)
   const m = cfg.markup != null ? cfg.markup : card.markup;
+
+  // 1. Rate card service/regional markup matrix or card global markup (primary source of truth)
   if (typeof m === 'number' && isFinite(m)) return m;
   if (typeof m === 'string' && isFinite(Number(m))) return Number(m);
 
   if (m && typeof m === 'object') {
-    if (m.import != null && isFinite(Number(m.import))) return Number(m.import);
-    if (m.return != null && isFinite(Number(m.return))) return Number(m.return);
-    
+    const rawCountry = String(originCountry || '').trim();
+    const targetIso = (countries.nameToIso(rawCountry) || (/^[A-Za-z]{2}$/.test(rawCountry) ? rawCountry.toUpperCase() : ''));
     const euNames = (st && st.regions && st.regions.eu) || [];
-    const targetIso = (countries.nameToIso(originCountry) || (/^[A-Za-z]{2}$/.test(originCountry) ? originCountry.toUpperCase() : null));
-    const isEu = euNames.some(euName => {
+    const isEu = EU_ISO_SET.has(targetIso) || euNames.some(euName => {
       const euIso = countries.nameToIso(euName);
-      return (targetIso && euIso === targetIso) || (originCountry && euName.toLowerCase() === String(originCountry).toLowerCase());
+      return (targetIso && euIso === targetIso) || (rawCountry && euName.toLowerCase() === rawCountry.toLowerCase());
     });
 
     const isStandard = ['11', '011', '03'].includes(String(serviceCode));
@@ -340,6 +337,13 @@ function resolveCardMarkup(card, serviceCode, originCountry, st) {
     const vals = Object.values(m).map(Number).filter(isFinite);
     if (vals.length) return vals[0];
   }
+
+  // 2. Direct explicit import/return keys on card config (secondary fallback)
+  if (cfg.importMarkupPct != null && isFinite(Number(cfg.importMarkupPct))) return Number(cfg.importMarkupPct);
+  if (cfg.importMarkup != null && isFinite(Number(cfg.importMarkup))) return Number(cfg.importMarkup);
+  if (cfg.returnMarkupPct != null && isFinite(Number(cfg.returnMarkupPct))) return Number(cfg.returnMarkupPct);
+  if (cfg.returnMarkup != null && isFinite(Number(cfg.returnMarkup))) return Number(cfg.returnMarkup);
+  if (cfg.markupPct != null && isFinite(Number(cfg.markupPct))) return Number(cfg.markupPct);
 
   // 3. Fallback to global settings
   const p = Number(st && st.importMarkupPct);

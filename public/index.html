@@ -3468,6 +3468,7 @@ function applyCustGlobalMarkup(){
     const el=$('cust_mk_'+svc.key);
     if(el) el.value=g;
   });
+  if ($('custImportMarkup')) $('custImportMarkup').value = g;
   syncCustVolTabs();
 }
 
@@ -3477,6 +3478,7 @@ function applyEditCustGlobalMarkup(){
     const el=$('edit_cust_mk_'+svc.key);
     if(el) el.value=g;
   });
+  if ($('editCustImportMarkup')) $('editCustImportMarkup').value = g;
   syncEditCustVolTabs();
 }
 
@@ -4732,8 +4734,10 @@ function openEditCardModal(cardId) {
 
   $('editCustContact').value = cfg.contactName || '';
   $('editCustPhone').value = cfg.phone || '';
-  $('editCustEmail').value = cfg.email || '';
-  $('editCustImportMarkup').value = (cfg.importMarkupPct != null ? cfg.importMarkupPct : 25);
+  const mk = cfg.markup || {};
+  const globalMk = (typeof mk === 'number') ? mk : (mk.default != null ? mk.default : 10);
+  $('editCustMkGlobal').value = globalMk;
+  $('editCustImportMarkup').value = (cfg.importMarkupPct != null ? cfg.importMarkupPct : globalMk);
   if ($('editCustSamedayMarkup')) $('editCustSamedayMarkup').value = (cfg.samedayMarkupPct != null ? cfg.samedayMarkupPct : 15);
   if ($('editRcSamedayEnabled')) $('editRcSamedayEnabled').checked = (cfg.samedayEnabled !== false);
   if ($('editRcReturnsEnabled')) $('editRcReturnsEnabled').checked = (cfg.returnsEnabled !== false);
