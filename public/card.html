@@ -4709,20 +4709,26 @@ function renderReturnServices(data) {
     card.dataset.price = priceNum;
     card.dataset.cost = s.breakdown?.base || s.costPrice || priceNum;
 
-    let badgeColor = '#121624';
-    let badgeText = carrierName;
-    if (isDpd) badgeColor = '#DC2626';
-    if (isYodel) badgeColor = '#059669';
+    let logoHtml = '<img src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS" style="height:26px;width:auto;border-radius:4px;object-fit:contain;box-shadow:0 1px 3px rgba(0,0,0,0.1)"/>';
+    if (isDpd) {
+      logoHtml = '<img src="https://app.heyvoila.io/courier-service-logos/dpd.jpg" alt="DPD" style="height:24px;width:auto;border-radius:4px;object-fit:contain"/>';
+    } else if (isYodel) {
+      logoHtml = '<span style="background:#059669;color:#fff;font-weight:900;font-size:11px;padding:3px 8px;border-radius:4px">YODEL</span>';
+    }
 
-    const rPlusDesc = currentReturnMethod === 'driver_brings_label' ? '🚚 <b>UPS Returns Plus:</b> Driver dispatches to pickup site with pre-printed label in hand.' : (currentReturnMethod === 'electronic_label' ? '📧 <b>Electronic Return:</b> Barcode link automatically emailed to customer.' : '📄 <b>Prepaid Return:</b> Downloadable PDF/thermal label generated instantly.');
+    // Clean up service name to remove redundant "Return" or raw codes
+    let cleanName = String(s.name || 'UPS Standard').replace(/\bReturn\b/gi, '').trim();
+    if (!cleanName.toLowerCase().startsWith('ups') && isUps) cleanName = 'UPS ' + cleanName;
+
+    const rPlusDesc = currentReturnMethod === 'driver_brings_label' ? '🚚 <b>UPS Returns Plus (1 Attempt):</b> Driver arrives with pre-printed label in hand.' : (currentReturnMethod === 'electronic_label' ? '📧 <b>Electronic Return:</b> Barcode link emailed automatically.' : '📄 <b>Prepaid Return:</b> Downloadable instant PDF/thermal label.');
 
     card.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="background:${badgeColor};color:#fff;font-weight:900;font-size:12px;padding:3px 8px;border-radius:4px;letter-spacing:.05em">${badgeText}</div>
+          ${logoHtml}
           <div>
-            <div style="font-weight:800;font-size:14.5px;color:var(--mv-ink)">${s.name}</div>
-            <div style="font-size:11px;color:#64748b">${s.days ? s.days + ' Business Day' + (s.days === 1 ? '' : 's') + ' Transit' : 'Express Return'}</div>
+            <div style="font-weight:800;font-size:14.5px;color:var(--mv-ink)">${esc(cleanName)}</div>
+            <div style="font-size:11px;color:#64748b">${s.days ? s.days + ' Business Day' + (s.days === 1 ? '' : 's') + ' Transit' : 'Express Inbound Return'}</div>
           </div>
         </div>
         <div style="text-align:right">
@@ -4734,7 +4740,9 @@ function renderReturnServices(data) {
         ${isUps ? rPlusDesc : '🚀 Drop off at local pickup shop or scheduled drop point.'}
       </div>
       <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:10.5px;color:#64748b;font-family:monospace">Code: ${svcCode}</span>
+        <span style="font-size:11px;font-weight:700;color:var(--moov-green-deep);display:flex;align-items:center;gap:4px">
+          <span>✓</span><span>Includes DDP &amp; Customs Transit</span>
+        </span>
         <span class="return-select-badge">${idx === 0 ? '✓ Selected' : 'Select'}</span>
       </div>
     `;

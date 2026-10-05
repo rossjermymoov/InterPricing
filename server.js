@@ -409,7 +409,7 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
 
               return {
                 code: s.code,
-                name: s.name + ' Return',
+                name: s.name,
                 carrier: 'UPS',
                 days: s.days || 2,
                 currency: s.currency || 'GBP',
