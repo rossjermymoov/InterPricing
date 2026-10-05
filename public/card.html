@@ -4764,7 +4764,7 @@ async function handleReturnsQuoteSubmit(e) {
   }];
 
   try {
-    const res = await fetch('/api/card/' + encodeURIComponent(curToken) + '/returns/quote', {
+    const res = await fetch('/api/card/' + encodeURIComponent(curToken) + '/returns/quote?_t=' + Date.now(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
