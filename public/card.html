@@ -4616,8 +4616,23 @@ function initReturnsView() {
   if (cEl) cEl.textContent = company;
   if (aEl && rc) {
     const parts = [rc.name || rc.contactName, rc.line1, rc.line2, rc.city, rc.postcode, 'United Kingdom'].filter(Boolean);
-    aEl.textContent = parts.join(', ');
+    const taxParts = [
+      (rc.eoriNumber || (RC && RC.eoriNumber)) ? `EORI: ${rc.eoriNumber || RC.eoriNumber}` : '',
+      (rc.vatNumber || (RC && RC.vatNumber)) ? `VAT: ${rc.vatNumber || RC.vatNumber}` : ''
+    ].filter(Boolean);
+    let addrText = parts.join(', ');
+    if (taxParts.length) addrText += ' (' + taxParts.join(' • ') + ')';
+    aEl.textContent = addrText;
   }
+
+  const hardcodedEori = (RC && (RC.eoriNumber || (RC.receiver && RC.receiver.eoriNumber) || (RC.deliveryAddress && RC.deliveryAddress.eoriNumber))) || 'GB446867375';
+  if ($('retUkEori')) {
+    const curVal = $('retUkEori').value.trim();
+    if (!curVal || curVal === 'GB446867375') {
+      $('retUkEori').value = hardcodedEori;
+    }
+  }
+
   handleReturnCountryChange();
   updateReturnCustomsTotal();
 }

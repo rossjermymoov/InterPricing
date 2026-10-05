@@ -1792,6 +1792,10 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               </select>
             </div>
           </div>
+          <div class="ds-grid ds-grid-2" style="margin-top:12px">
+            <div class="ds-field-wrap"><label class="ds-label">UK VAT Number</label><input id="editCustVatNumber" type="text" class="ds-input" placeholder="e.g. GB446867375"/></div>
+            <div class="ds-field-wrap"><label class="ds-label">UK EORI Number</label><input id="editCustEoriNumber" type="text" class="ds-input" placeholder="e.g. GB446867375000"/></div>
+          </div>
 
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin:20px 0 8px">3. PRICING MARKUPS FOR THIS CUSTOMER</div>
           <div style="display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap">
@@ -2640,6 +2644,16 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                   <option value="DE">Germany</option>
                   <option value="FR">France</option>
                 </select>
+              </div>
+            </div>
+            <div class="ds-grid ds-grid-2" style="margin-top:12px">
+              <div class="ds-field-wrap">
+                <label class="ds-label">UK VAT Number</label>
+                <input id="custVatNumber" type="text" class="ds-input" placeholder="e.g. GB446867375"/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">UK EORI Number</label>
+                <input id="custEoriNumber" type="text" class="ds-input" placeholder="e.g. GB446867375000"/>
               </div>
             </div>
           </div>
@@ -4732,6 +4746,8 @@ function openEditCardModal(cardId) {
   $('editCustCity').value = da.city || '';
   $('editCustPostcode').value = da.postcode || '';
   if ($('editCustCountry')) $('editCustCountry').value = da.country || 'GB';
+  if ($('editCustVatNumber')) $('editCustVatNumber').value = da.vatNumber || cfg.vatNumber || '';
+  if ($('editCustEoriNumber')) $('editCustEoriNumber').value = da.eoriNumber || cfg.eoriNumber || '';
 
   $('editRcNotes').value = cfg.notes || '';
   $('editRcSur').checked = (cfg.showSurcharges !== false);
@@ -4767,17 +4783,24 @@ $('editCardSave').onclick = async () => {
     incServices.push(cb.dataset.svc);
   });
 
+  const vatNum = $('editCustVatNumber') ? $('editCustVatNumber').value.trim() : '';
+  const eoriNum = $('editCustEoriNumber') ? $('editCustEoriNumber').value.trim() : '';
+
   const da = {
     line1: $('editCustLine1').value.trim(),
     city: $('editCustCity').value.trim(),
     postcode: $('editCustPostcode').value.trim(),
     country: $('editCustCountry').value,
+    vatNumber: vatNum,
+    eoriNumber: eoriNum,
   };
 
   const cfg = {
     contactName: $('editCustContact').value.trim(),
     phone: $('editCustPhone').value.trim(),
     email: $('editCustEmail').value.trim(),
+    vatNumber: vatNum,
+    eoriNumber: eoriNum,
     importMarkupPct: num('editCustImportMarkup'),
     samedayMarkupPct: $('editCustSamedayMarkup') ? num('editCustSamedayMarkup') : 15,
     samedayEnabled: $('editRcSamedayEnabled') ? $('editRcSamedayEnabled').checked : true,
@@ -4836,10 +4859,15 @@ $('custCreateBtn').onclick = async () => {
     incServices.push(cb.dataset.svc);
   });
 
+  const vatNum = $('custVatNumber') ? $('custVatNumber').value.trim() : '';
+  const eoriNum = $('custEoriNumber') ? $('custEoriNumber').value.trim() : '';
+
   const cfg = {
     contactName: $('custContact').value.trim(),
     phone: $('custPhone').value.trim(),
     email: $('custEmail').value.trim(),
+    vatNumber: vatNum,
+    eoriNumber: eoriNum,
     importMarkupPct: num('custImportMarkup'),
     samedayMarkupPct: $('custSamedayMarkup') ? num('custSamedayMarkup') : 15,
     samedayEnabled: $('rcSamedayEnabled') ? $('rcSamedayEnabled').checked : true,
@@ -4861,6 +4889,8 @@ $('custCreateBtn').onclick = async () => {
       city: $('custCity').value.trim(),
       postcode: $('custPostcode').value.trim(),
       country: $('custCountry').value,
+      vatNumber: vatNum,
+      eoriNumber: eoriNum,
     }
   };
 

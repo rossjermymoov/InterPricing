@@ -160,7 +160,11 @@ function buildCardPayload(cfg, card) {
       country: (conf.deliveryAddress && conf.deliveryAddress.country) || 'GB',
       phone: conf.phone || '',
       email: conf.email || '',
+      vatNumber: (conf.deliveryAddress && conf.deliveryAddress.vatNumber) || conf.vatNumber || '',
+      eoriNumber: (conf.deliveryAddress && conf.deliveryAddress.eoriNumber) || conf.eoriNumber || '',
     },
+    vatNumber: (conf.deliveryAddress && conf.deliveryAddress.vatNumber) || conf.vatNumber || '',
+    eoriNumber: (conf.deliveryAddress && conf.deliveryAddress.eoriNumber) || conf.eoriNumber || '',
     deliveryAddress: conf.deliveryAddress || null,
     addressBook: Array.isArray(conf.addressBook) ? conf.addressBook : [], // saved sender/supplier addresses
     samedayEnabled: conf.samedayEnabled !== false,

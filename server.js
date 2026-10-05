@@ -372,6 +372,8 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
       country: (receiver && receiver.country) || da.country || 'GB',
       phone: (receiver && receiver.phone) || da.phone || cfg.phone || '',
       email: (receiver && receiver.email) || da.email || cfg.email || '',
+      vatNumber: (receiver && receiver.vatNumber) || da.vatNumber || cfg.vatNumber || '',
+      eoriNumber: (receiver && receiver.eoriNumber) || da.eoriNumber || cfg.eoriNumber || '',
     };
 
     const pkgs = (Array.isArray(packages) && packages.length) ? packages : ((Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15, qty: 1 }]);
@@ -535,6 +537,8 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
       country: (receiver && receiver.country) || da.country || 'GB',
       phone: (receiver && receiver.phone) || da.phone || cfg.phone || '',
       email: (receiver && receiver.email) || da.email || cfg.email || '',
+      vatNumber: (receiver && receiver.vatNumber) || da.vatNumber || cfg.vatNumber || '',
+      eoriNumber: (receiver && receiver.eoriNumber) || da.eoriNumber || cfg.eoriNumber || '',
     };
 
     const origin = sender || {};
@@ -560,7 +564,8 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
         declarationStatement: declarationStatement || 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty claimed (RGR CPC 61 23).',
         termsOfSale: req.body.termsOfSale || req.body.incoterms || 'DDP',
         incoterms: req.body.incoterms || req.body.termsOfSale || 'DDP',
-        ukEori: req.body.ukEori || cfg.eori || cfg.eoriNumber || 'GB446867375',
+        ukEori: req.body.ukEori || (receiver && receiver.eoriNumber) || da.eoriNumber || cfg.eoriNumber || cfg.eori || 'GB446867375',
+        ukVat: req.body.ukVat || (receiver && receiver.vatNumber) || da.vatNumber || cfg.vatNumber || cfg.vat || '',
         senderTaxId: req.body.senderTaxId || '',
       });
 
