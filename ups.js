@@ -220,10 +220,16 @@ function buildRateRequest(p) {
   let totalWeight = 0;
   (p.packages || []).forEach((pk) => {
     const qty = Math.max(1, Math.floor(Number(pk.qty) || 1));
-    const w = wStr(pk.weight);
-    const one = { PackagingType: { Code: PKG[pk.packaging] || '02' }, PackageWeight: { UnitOfMeasurement: KG, Weight: w } };
-    if (num(pk.l) && num(pk.w) && num(pk.h)) one.Dimensions = { UnitOfMeasurement: CM, Length: S(pk.l), Width: S(pk.w), Height: S(pk.h) };
-    for (let i = 0; i < qty; i++) { Package.push(JSON.parse(JSON.stringify(one))); totalWeight += Number(w); }
+    const rawW = Number(pk.weight) || 1.0;
+    const l = Number(pk.l) || 0, w = Number(pk.w) || 0, h = Number(pk.h) || 0;
+    const volW = (l > 0 && w > 0 && h > 0) ? (l * w * h / 5000) : 0;
+    const effectiveW = Math.max(rawW, volW);
+    const wStrVal = (Math.max(0.1, effectiveW)).toFixed(1);
+    const one = { PackagingType: { Code: PKG[pk.packaging] || '02' }, PackageWeight: { UnitOfMeasurement: KG, Weight: wStrVal } };
+    if (l > 0 && w > 0 && h > 0) {
+      one.Dimensions = { UnitOfMeasurement: CM, Length: String(Math.round(l)), Width: String(Math.round(w)), Height: String(Math.round(h)) };
+    }
+    for (let i = 0; i < qty; i++) { Package.push(JSON.parse(JSON.stringify(one))); totalWeight += Number(wStrVal); }
   });
   if (!Package.length) { Package.push({ PackagingType: { Code: '02' }, PackageWeight: { UnitOfMeasurement: KG, Weight: '1.0' } }); totalWeight = 1; }
   const ShipmentTotalWeight = { UnitOfMeasurement: KG, Weight: (Math.round(totalWeight * 10) / 10).toFixed(1) };
