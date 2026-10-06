@@ -1123,6 +1123,9 @@ function buildShipmentRequest(p) {
       intlForms.Product = productList;
     }
     shipmentObj.InternationalForms = intlForms;
+    shipmentObj.ShipmentServiceOptions = {
+      InternationalForms: intlForms,
+    };
   }
 
   return {
