@@ -5185,7 +5185,12 @@ async function handleBookReturnLabel() {
       if (d.labelSvg) {
         preview.innerHTML = d.labelSvg;
       } else if (d.labelBase64) {
-        preview.innerHTML = `<img src="data:image/gif;base64,${d.labelBase64}" style="max-width:100%;max-height:320px;object-fit:contain"/>`;
+        try {
+          const uprightPng = await rotateLabelUpright(d.labelBase64);
+          preview.innerHTML = `<img src="${uprightPng}" style="max-width:100%;max-height:320px;object-fit:contain;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1)"/>`;
+        } catch (_) {
+          preview.innerHTML = `<img src="data:image/gif;base64,${d.labelBase64}" style="max-width:100%;max-height:320px;object-fit:contain"/>`;
+        }
       } else {
         preview.innerHTML = `
           <div style="text-align:center;padding:24px">
@@ -5227,15 +5232,7 @@ async function printCurrentReturnLabel(format = 'thermal') {
   }
 
   if (labelB64 && !svgString) {
-    const isA4 = format === 'a4';
-    const w = window.open('');
-    w.document.write(`
-      <html><head><title>Print Return Label ${trackingNumber}</title></head>
-      <body style="margin:0;padding:20px;display:flex;justify-content:center;align-items:center">
-        <img src="data:image/gif;base64,${labelB64}" style="max-width:${isA4 ? '65%' : '95%'};height:auto" onload="window.print()"/>
-      </body></html>
-    `);
-    w.document.close();
+    await printAllShipmentLabels([{ labelGraphic: labelB64, trackingNumber }], format);
     return;
   }
 
@@ -5244,7 +5241,7 @@ async function printCurrentReturnLabel(format = 'thermal') {
   const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(svgBlob);
 
-  img.onload = () => {
+  img.onload = async () => {
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
     canvas.height = 1800;
@@ -5252,37 +5249,8 @@ async function printCurrentReturnLabel(format = 'thermal') {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, 1200, 1800);
-    const pngUrl = canvas.toDataURL('image/png', 1.0);
-    URL.revokeObjectURL(url);
-
-    if (window.jspdf && window.jspdf.jsPDF) {
-      const isA4 = format === 'a4';
-      let doc;
-      if (isA4) {
-        doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-        doc.addImage(pngUrl, 'PNG', 35, 15, 140, 220);
-        doc.setFontSize(9);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Moov Parcel Returns — Tracking: ${trackingNumber} — Prepaid Return Shipping`, 105, 245, { align: 'center' });
-      } else {
-        doc = new window.jspdf.jsPDF({ orientation: 'portrait', unit: 'in', format: [4, 6] });
-        doc.addImage(pngUrl, 'PNG', 0.08, 0.08, 3.84, 5.84);
-      }
-      const pdfBlob = doc.output('blob');
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      const w = window.open(pdfUrl, '_blank');
-      if (!w) {
-        const a = document.createElement('a');
-        a.href = pdfUrl;
-        a.download = `Moov_Return_Label_${trackingNumber}_${isA4 ? 'A4' : '4x6'}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      }
-    } else {
-      const w = window.open('');
-      w.document.write(`<img src="${pngUrl}" style="max-width:100%;height:auto;display:block;margin:auto" onload="window.print()"/>`);
-    }
+    const pngData = canvas.toDataURL('image/png', 1.0);
+    await printAllShipmentLabels([{ labelGraphic: pngData, trackingNumber }], format);
   };
   img.src = url;
 }
