@@ -991,16 +991,15 @@ function buildShipmentRequest(p) {
   if (!retCode) {
     if (retServiceType === 'electronic_label' || retServiceType === 'erl' || retServiceType === '8') {
       retCode = '8'; // UPS Electronic Return Label (ERL - email link)
-    } else if (isCrossBorder || isImport || retServiceType === 'print_label' || retServiceType === '9') {
-      // For cross-border / international returns (e.g. US -> GB), UPS Returns Plus (driver brings label 3/5) is an
-      // invalid accessory option. UPS requires Code 9 (Print Return Label) or Code 8 (Electronic Return Label).
-      retCode = '9';
     } else if (retServiceType === 'driver_brings_label' || retServiceType === '1_attempt' || retServiceType === '3') {
-      retCode = '3'; // UPS Return Service 1-Attempt (domestic only)
+      retCode = '3'; // UPS Return Service 1-Attempt (domestic/EU only)
     } else if (retServiceType === '3_attempts' || retServiceType === '5') {
-      retCode = '5'; // UPS Return Service 3-Attempt (domestic only)
-    } else if (isReturn) {
-      retCode = '9';
+      retCode = '5'; // UPS Return Service 3-Attempt (domestic/EU only)
+    } else {
+      // Standard Customer Prints Label (international or domestic):
+      // Do NOT attach legacy ReturnService container. Standard forward/import shipment format creates
+      // the standard vertical 4"x6" portrait shipping label with clear barcodes (identical to import labels).
+      retCode = null;
     }
   }
 
@@ -1192,9 +1191,9 @@ async function bookShipment(payload, retryCount = 0) {
       return bookShipment({ ...payload, forceImperial: !payload.forceImperial }, 1);
     }
 
-    // Auto-retry with Print Return Label (Code 9) or without ReturnService container if accessory option was rejected
+    // Auto-retry without ReturnService container if accessory option was rejected
     if (retryCount < 2 && (errMsg.toLowerCase().includes('accessory option') || errMsg.toLowerCase().includes('returnservice') || errMsg.toLowerCase().includes('return service'))) {
-      const nextCode = (payload.returnServiceCode === '9' || !payload.returnServiceCode) ? 'NONE' : '9';
+      const nextCode = 'NONE';
       console.warn('[bookShipment] Retrying booking with returnServiceCode:', nextCode);
       return bookShipment({ ...payload, returnServiceCode: nextCode }, retryCount + 1);
     }
