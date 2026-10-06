@@ -1365,7 +1365,7 @@ app.post('/api/collections/create-for-shipment', async (req, res) => {
     const pickupRes = await ups.createPickup({
       companyName: sender.company || sender.name || 'Sender',
       contactName: sender.name || sender.company || 'Sender',
-      phone: sender.phone || '07498991612',
+      phone: sender.phone || '',
       email: sender.email || '',
       addressLine: sender.line1 || '1 Main Street',
       addressLine2: sender.line2 || '',
@@ -1504,7 +1504,7 @@ app.post('/api/book-import', async (req, res) => {
         pickupResult = await ups.createPickup({
           companyName: sender.company || sender.name || 'Sender',
           contactName: sender.name || sender.company || 'Sender',
-          phone: sender.phone || '07498991612',
+          phone: sender.phone || '',
           email: sender.email || '',
           addressLine: sender.line1 || '1 Main Street',
           addressLine2: sender.line2 || '',

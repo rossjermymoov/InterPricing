@@ -648,8 +648,8 @@ function buildPickupRequest(p) {
   const addrLines = [p.addressLine1 || p.addressLine || p.address, p.addressLine2].map(S).filter(Boolean);
   if (!addrLines.length) addrLines.push(S(p.address || 'Address'));
 
-  let phone = String(p.phone || '').replace(/[^0-9+]/g, '');
-  if (!phone || phone.length < 7) phone = '07498991612';
+  let phone = String(p.phone || (p.sender && p.sender.phone) || (p.receiver && p.receiver.phone) || '').replace(/[^0-9+]/g, '');
+  if (!phone || phone.length < 5) phone = '0000000000';
   const parcels = Math.max(1, Math.floor(Number(p.parcels) || 1));
   const weight = Math.max(0.1, Number(p.weight || p.totalWeight) || 1.0);
   const toIso = (c, fallback = 'GB') => {
@@ -897,11 +897,12 @@ function buildShipmentRequest(p) {
   const ukEoriNumber = S(p.ukEori || p.importerEori || 'GB446867375').slice(0, 18);
   const senderTaxId = S(p.senderTaxId || p.senderVat || (sender && (sender.taxId || sender.vatNumber)) || '').slice(0, 18);
 
+  const shipperPhone = S(process.env.MOOV_PHONE || (sender && sender.phone) || (receiver && receiver.phone) || '').replace(/[^0-9+ ]/g, '').slice(0, 15);
   const shipperObj = {
     Name: 'MOOV Parcel',
     AttentionName: 'Operations',
     TaxIdentificationNumber: ukEoriNumber,
-    Phone: { Number: '07498991612' },
+    Phone: { Number: shipperPhone || '0000000000' },
     ShipperNumber: acct,
     Address: {
       AddressLine: ['1 Mellor Meadows'],
@@ -960,7 +961,7 @@ function buildShipmentRequest(p) {
       Name: S(receiver.company || receiver.name || 'Recipient').slice(0, 35),
       AttentionName: S(receiver.name || receiver.company || 'Recipient').slice(0, 35),
       TaxIdentificationNumber: ukEoriNumber,
-      Phone: { Number: S(receiver.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
+      Phone: { Number: S(receiver.phone || '').replace(/[^0-9+ ]/g, '').slice(0, 15) },
       EMailAddress: S(receiver.email || '').slice(0, 50),
       Address: receiverAddr.Address,
     },
@@ -968,7 +969,7 @@ function buildShipmentRequest(p) {
       Name: S(sender.company || sender.name || 'Sender').slice(0, 35),
       AttentionName: S(sender.name || sender.company || 'Sender').slice(0, 35),
       ...(senderTaxId ? { TaxIdentificationNumber: senderTaxId } : {}),
-      Phone: { Number: S(sender.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
+      Phone: { Number: S(sender.phone || '').replace(/[^0-9+ ]/g, '').slice(0, 15) },
       EMailAddress: S(sender.email || '').slice(0, 50),
       Address: senderAddr.Address,
     },
@@ -1112,7 +1113,7 @@ function buildShipmentRequest(p) {
           Name: S(receiver.company || receiver.name || 'Importer').slice(0, 35),
           AttentionName: S(receiver.name || receiver.company || 'Importer').slice(0, 35),
           TaxIdentificationNumber: ukEoriNumber,
-          Phone: { Number: S(receiver.phone || '07498991612').replace(/[^0-9+ ]/g, '').slice(0, 15) },
+          Phone: { Number: S(receiver.phone || '').replace(/[^0-9+ ]/g, '').slice(0, 15) },
           Address: receiverAddr.Address,
         },
       },

@@ -13,7 +13,7 @@ function buildBody(postcode) {
     testing: false,
     auth_company: AUTH_COMPANY,
     address: {
-      name: 'MOOV Parcel', phone: '07498991612', email: 'ross.jermy@moovparcel.co.uk',
+      name: 'MOOV Parcel', phone: '', email: 'support@moovparcel.co.uk',
       company_name: 'MOOV Parcel', address_1: '1 Mellor Meadows', address_2: '', address_3: '',
       city: 'Whittington', county: '', postcode: postcode, country_iso: 'GB',
     },
