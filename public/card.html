@@ -4605,19 +4605,95 @@ function clearReturnForm() {
   currentSelectedReturnService = null;
 }
 
-function initReturnsView() {
-  // Clear any previous form state so new returns start with a fresh blank form
+function saveReturnFormState() {
+  try {
+    const token = curToken || location.pathname.split('/').filter(Boolean).pop();
+    if (!token) return;
+    const data = {
+      country: $('retSenderCountry')?.value || 'US',
+      countryName: $('ret_countryInput')?.value || 'United States',
+      name: $('retSenderName')?.value || '',
+      company: $('retSenderCompany')?.value || '',
+      line1: $('retSenderLine1')?.value || '',
+      line2: $('retSenderLine2')?.value || '',
+      city: $('retSenderCity')?.value || '',
+      state: $('retSenderState')?.value || '',
+      postcode: $('retSenderPostcode')?.value || '',
+      phone: $('retSenderPhone')?.value || '',
+      email: $('retSenderEmail')?.value || '',
+      taxId: $('retSenderTaxId')?.value || '',
+      weight: $('retWeight')?.value || '1.5',
+      l: $('retL')?.value || '',
+      w: $('retW')?.value || '',
+      h: $('retH')?.value || '',
+      reason: $('retReason')?.value || 'RETURN',
+      orderRef: $('retOrderRef')?.value || '',
+      itemDesc: $('retItemDesc')?.value || '',
+      itemQty: $('retItemQty')?.value || '1',
+      itemVal: $('retItemVal')?.value || '',
+      itemHs: $('retItemHs')?.value || '',
+      itemSku: $('retItemSku')?.value || '',
+      method: currentReturnMethod || 'customer_prints_label',
+    };
+    localStorage.setItem('moov_ret_form_' + token, JSON.stringify(data));
+  } catch (_) {}
+}
+
+function restoreReturnFormState() {
+  try {
+    const token = curToken || location.pathname.split('/').filter(Boolean).pop();
+    if (!token) return;
+    const raw = localStorage.getItem('moov_ret_form_' + token);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!d) return;
+
+    if (d.country && $('retSenderCountry')) {
+      $('retSenderCountry').value = d.country;
+      if ($('ret_countryInput')) $('ret_countryInput').value = d.countryName || d.country;
+    }
+    if (d.name && $('retSenderName')) $('retSenderName').value = d.name;
+    if (d.company && $('retSenderCompany')) $('retSenderCompany').value = d.company;
+    if (d.line1 && $('retSenderLine1')) $('retSenderLine1').value = d.line1;
+    if (d.line2 && $('retSenderLine2')) $('retSenderLine2').value = d.line2;
+    if (d.city && $('retSenderCity')) $('retSenderCity').value = d.city;
+    if (d.state && $('retSenderState')) $('retSenderState').value = d.state;
+    if (d.postcode && $('retSenderPostcode')) $('retSenderPostcode').value = d.postcode;
+    if (d.phone && $('retSenderPhone')) $('retSenderPhone').value = d.phone;
+    if (d.email && $('retSenderEmail')) $('retSenderEmail').value = d.email;
+    if (d.taxId && $('retSenderTaxId')) $('retSenderTaxId').value = d.taxId;
+    if (d.weight && $('retWeight')) $('retWeight').value = d.weight;
+    if (d.l && $('retL')) $('retL').value = d.l;
+    if (d.w && $('retW')) $('retW').value = d.w;
+    if (d.h && $('retH')) $('retH').value = d.h;
+    if (d.reason && $('retReason')) $('retReason').value = d.reason;
+    if (d.orderRef && $('retOrderRef')) $('retOrderRef').value = d.orderRef;
+    if (d.itemDesc && $('retItemDesc')) $('retItemDesc').value = d.itemDesc;
+    if (d.itemQty && $('retItemQty')) $('retItemQty').value = d.itemQty;
+    if (d.itemVal && $('retItemVal')) $('retItemVal').value = d.itemVal;
+    if (d.itemHs && $('retItemHs')) $('retItemHs').value = d.itemHs;
+    if (d.itemSku && $('retItemSku')) $('retItemSku').value = d.itemSku;
+    if (d.method) setReturnMethod(d.method);
+  } catch (_) {}
+}
+
+function clearReturnFormState() {
   try {
     const token = curToken || location.pathname.split('/').filter(Boolean).pop();
     if (token) localStorage.removeItem('moov_ret_form_' + token);
   } catch (_) {}
+}
 
+function initReturnsView() {
   const initialIso = ($('retSenderCountry') && $('retSenderCountry').value) || 'US';
   initCountryCombo('ret_countryCombo', 'ret_countryInput', 'ret_countryList', (iso, name) => {
     const hidden = $('retSenderCountry');
     if (hidden) hidden.value = iso;
     handleReturnCountryChange();
+    saveReturnFormState();
   }, initialIso);
+
+  restoreReturnFormState();
 
   const form = $('returnsQuoteForm');
   if (form && !form.dataset.boundStorage) {
