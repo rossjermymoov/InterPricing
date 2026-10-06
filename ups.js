@@ -848,8 +848,9 @@ function buildShipmentRequest(p) {
   const pkgs = Array.isArray(p.packages) && p.packages.length ? p.packages : [{ weight: p.weight || 1, l: p.l || 10, w: p.w || 10, h: p.h || 10 }];
   const svcCode = String(p.serviceCode || '65').padStart(2, '0'); // default to 65 (Worldwide Saver) or 11 (Standard)
 
-  const senderAddr = addressOf(sender, '');
+  const senderAddr = addressOf(sender, 'US');
   const receiverAddr = addressOf(receiver, 'GB');
+  const originCountry = (senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'US';
   // In UPS Shipping API (/api/shipments/v1/ship), package weights and dimensions are validated
   // against the Shipper's account country (GB = Metric: KGS & CM).
   const isImperial = !!p.forceImperial;
