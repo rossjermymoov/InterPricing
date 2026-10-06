@@ -5262,8 +5262,9 @@ async function handleBookReturnLabel() {
         preview.innerHTML = d.labelSvg;
       } else if (d.labelBase64) {
         try {
-          const uprightPng = await rotateLabelUpright(d.labelBase64);
-          preview.innerHTML = `<img src="${uprightPng}" style="max-width:100%;max-height:320px;object-fit:contain;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1)"/>`;
+          const res = await rotateLabelUpright(d.labelBase64);
+          const imgSrc = (res && res.dataUrl) ? res.dataUrl : ('data:image/gif;base64,' + d.labelBase64);
+          preview.innerHTML = `<img src="${imgSrc}" style="max-width:100%;max-height:320px;object-fit:contain;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.1)"/>`;
         } catch (_) {
           preview.innerHTML = `<img src="data:image/gif;base64,${d.labelBase64}" style="max-width:100%;max-height:320px;object-fit:contain"/>`;
         }
@@ -5300,35 +5301,14 @@ async function printCurrentReturnLabel(format = 'thermal') {
   if (!latestBookedReturn) return;
   const svgString = latestBookedReturn.labelSvg;
   const labelB64 = latestBookedReturn.labelBase64;
-  const trackingNumber = latestBookedReturn.trackingNumber || 'RETURN_LABEL';
 
   if (!svgString && !labelB64) {
     alert('This return was booked with UPS Returns Plus (Driver Brings Label). The driver will bring the physical label upon collection.');
     return;
   }
 
-  if (labelB64 && !svgString) {
-    await printAllShipmentLabels([{ labelGraphic: labelB64, trackingNumber }], format);
-    return;
-  }
-
-  // Render SVG to Image and Print / Export PDF
-  const img = new Image();
-  const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(svgBlob);
-
-  img.onload = async () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 1800;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, 1200, 1800);
-    const pngData = canvas.toDataURL('image/png', 1.0);
-    await printAllShipmentLabels([{ labelGraphic: pngData, trackingNumber }], format);
-  };
-  img.src = url;
+  // Pass latestBookedReturn directly to printAllShipmentLabels which handles format, A4 landscape/portrait, thermal, and PDF
+  await printAllShipmentLabels(latestBookedReturn, format);
 }
 
 function setView(v) {
