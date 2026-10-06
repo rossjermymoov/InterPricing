@@ -4095,9 +4095,9 @@ function handleOpenSdConfirmModal() {
   $('sdConfirmModal').style.display = 'flex';
 }
 
-$('sdConfirmCancel').onclick = () => { $('sdConfirmModal').style.display = 'none'; };
+if ($('sdConfirmCancel')) $('sdConfirmCancel').onclick = () => { $('sdConfirmModal').style.display = 'none'; };
 
-$('sdConfirmExecute').onclick = async () => {
+if ($('sdConfirmExecute')) $('sdConfirmExecute').onclick = async () => {
   if (!currentSdQuote) return;
   const btn = $('sdConfirmExecute');
   btn.disabled = true;
@@ -4241,8 +4241,8 @@ async function handleCancelSdJob(jobRef) {
   }
 }
 
-$('sdTrackClose').onclick = () => { $('sdTrackModal').style.display = 'none'; };
-$('sdTrackCloseBtn').onclick = () => { $('sdTrackModal').style.display = 'none'; };
+if ($('sdTrackClose')) $('sdTrackClose').onclick = () => { $('sdTrackModal').style.display = 'none'; };
+if ($('sdTrackCloseBtn')) $('sdTrackCloseBtn').onclick = () => { $('sdTrackModal').style.display = 'none'; };
 
 // Real-Time SSE Listener
 function connectSse() {
@@ -4757,11 +4757,7 @@ function openEditCardModal(cardId) {
   $('editRcNotes').value = cfg.notes || '';
   $('editRcSur').checked = (cfg.showSurcharges !== false);
   $('editRcCheapest').checked = (cfg.highlightCheapest !== false);
-  $('editRcBreakdown').checked = !!cfg.showBreakdown;
-
-  const mk = cfg.markup || {};
-  const globalMk = (typeof mk === 'number') ? mk : (mk.default != null ? mk.default : 10);
-  $('editCustMkGlobal').value = globalMk;
+  if ($('editRcBreakdown')) $('editRcBreakdown').checked = !!cfg.showBreakdown;
   syncEditCustVolTabs();
 
   renderEditCardMarkup((typeof mk === 'object' ? mk : {}), globalMk);
@@ -4770,11 +4766,11 @@ function openEditCardModal(cardId) {
   $('editCardModal').style.display = 'flex';
 }
 
-$('editCardCancel').onclick = () => {
+if ($('editCardCancel')) $('editCardCancel').onclick = () => {
   $('editCardModal').style.display = 'none';
 };
 
-$('editCardSave').onclick = async () => {
+if ($('editCardSave')) $('editCardSave').onclick = async () => {
   const cardId = $('editCardId').value;
   const name = $('editCustName').value.trim();
   if (!name) { alert('Customer name is required'); return; }
@@ -4848,10 +4844,10 @@ $('editCardSave').onclick = async () => {
   }
 };
 
-$('cardsRefresh').onclick = () => loadCards($('custSearch').value.trim());
-$('custSearch').addEventListener('input', () => loadCards($('custSearch').value.trim()));
+if ($('cardsRefresh')) $('cardsRefresh').onclick = () => loadCards($('custSearch') ? $('custSearch').value.trim() : '');
+if ($('custSearch')) $('custSearch').addEventListener('input', () => loadCards($('custSearch').value.trim()));
 
-$('custCreateBtn').onclick = async () => {
+if ($('custCreateBtn')) $('custCreateBtn').onclick = async () => {
   const name = $('custName').value.trim();
   if (!name) { alert('Please enter a customer name'); return; }
 
@@ -6027,9 +6023,9 @@ if ($('admReschedSubmit')) $('admReschedSubmit').onclick = async () => {
   }
 };
 
-$('colRefresh').onclick = loadCollections;
+if ($('colRefresh')) $('colRefresh').onclick = loadCollections;
 
-$('colSubmit').onclick = async () => {
+if ($('colSubmit')) $('colSubmit').onclick = async () => {
   $('colMsg').className = '';
   $('colMsg').textContent = 'Submitting pickup request to UPS…';
   $('colSubmit').disabled = true;
