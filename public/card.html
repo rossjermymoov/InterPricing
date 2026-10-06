@@ -5899,37 +5899,30 @@ function extractAllLabels(input) {
 
 function rotateLabelUpright(base64Graphic) {
   return new Promise((resolve) => {
-    if (!base64Graphic) { resolve(null); return; }
+    if (!base64Graphic) { resolve({ dataUrl: null, width: 800, height: 1200, isLandscape: false }); return; }
     const src = base64Graphic.startsWith('data:') ? base64Graphic : ('data:image/gif;base64,' + base64Graphic);
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
-        // If image is landscape (width > height), UPS provided it rotated 90° CCW -> rotate 90° CW to stand upright portrait
-        if (img.width > img.height) {
-          canvas.width = img.height;
-          canvas.height = img.width;
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.translate(canvas.width, 0);
-          ctx.rotate((90 * Math.PI) / 180);
-          ctx.drawImage(img, 0, 0);
-        } else {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0);
-        }
-        resolve(canvas.toDataURL('image/png', 1.0));
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        resolve({
+          dataUrl: canvas.toDataURL('image/png', 1.0),
+          width: img.width,
+          height: img.height,
+          isLandscape: img.width > img.height,
+        });
       } catch (e) {
-        resolve(src);
+        resolve({ dataUrl: src, width: img.width || 800, height: img.height || 1200, isLandscape: (img.width || 800) > (img.height || 1200) });
       }
     };
-    img.onerror = () => resolve(src);
+    img.onerror = () => resolve({ dataUrl: src, width: 800, height: 1200, isLandscape: false });
     img.src = src;
   });
 }
@@ -5941,12 +5934,14 @@ async function printAllShipmentLabels(target, format = 'thermal') {
     return;
   }
 
-  // Pre-rotate all sideways labels upright
-  const rotatedItems = await Promise.all(list.map(async (item) => {
-    const uprightPng = await rotateLabelUpright(item.labelGraphic);
+  const labelItems = await Promise.all(list.map(async (item) => {
+    const res = await rotateLabelUpright(item.labelGraphic);
     return {
       trackingNumber: item.trackingNumber,
-      labelGraphic: uprightPng,
+      labelGraphic: (res && res.dataUrl) || item.labelGraphic,
+      isLandscape: !!(res && res.isLandscape),
+      width: (res && res.width) || 800,
+      height: (res && res.height) || 1200,
     };
   }));
 
@@ -5957,30 +5952,43 @@ async function printAllShipmentLabels(target, format = 'thermal') {
     try {
       let doc;
       if (isA4) {
+        const hasLandscape = labelItems.some(p => p.isLandscape);
         doc = new window.jspdf.jsPDF({
-          orientation: 'portrait',
+          orientation: hasLandscape ? 'landscape' : 'portrait',
           unit: 'mm',
           format: 'a4',
         });
-        rotatedItems.forEach((p, idx) => {
-          if (idx > 0) doc.addPage('a4', 'portrait');
-          // Center upright 4x6 label on A4 sheet (210 x 297 mm)
-          doc.addImage(p.labelGraphic, 'PNG', 45, 25, 120, 180);
-          doc.setFontSize(9);
-          doc.setTextColor(120, 120, 120);
-          doc.text(`Parcel ${idx + 1} of ${rotatedItems.length} — Tracking: ${p.trackingNumber || ''}`, 105, 215, { align: 'center' });
+        labelItems.forEach((p, idx) => {
+          if (idx > 0) doc.addPage('a4', p.isLandscape ? 'landscape' : 'portrait');
+          if (p.isLandscape) {
+            // Fill A4 landscape sheet (297 x 210 mm)
+            doc.addImage(p.labelGraphic, 'PNG', 15, 12, 267, 175);
+            doc.setFontSize(9);
+            doc.setTextColor(120, 120, 120);
+            doc.text(`Parcel ${idx + 1} of ${labelItems.length} — Tracking: ${p.trackingNumber || ''}`, 148, 198, { align: 'center' });
+          } else {
+            // Fill A4 portrait sheet (210 x 297 mm)
+            doc.addImage(p.labelGraphic, 'PNG', 35, 20, 140, 210);
+            doc.setFontSize(9);
+            doc.setTextColor(120, 120, 120);
+            doc.text(`Parcel ${idx + 1} of ${labelItems.length} — Tracking: ${p.trackingNumber || ''}`, 105, 245, { align: 'center' });
+          }
         });
       } else {
-        // Thermal 4" x 6"
+        // Thermal 4" x 6" (or 4" x 8" for landscape return slips)
+        const hasLandscape = labelItems.some(p => p.isLandscape);
         doc = new window.jspdf.jsPDF({
-          orientation: 'portrait',
+          orientation: hasLandscape ? 'landscape' : 'portrait',
           unit: 'in',
-          format: [4, 6],
+          format: hasLandscape ? [6, 4] : [4, 6],
         });
-        rotatedItems.forEach((p, idx) => {
-          if (idx > 0) doc.addPage([4, 6], 'portrait');
-          // Fill 4x6 thermal page with slight margin
-          doc.addImage(p.labelGraphic, 'PNG', 0.08, 0.08, 3.84, 5.84);
+        labelItems.forEach((p, idx) => {
+          if (idx > 0) doc.addPage(p.isLandscape ? [6, 4] : [4, 6], p.isLandscape ? 'landscape' : 'portrait');
+          if (p.isLandscape) {
+            doc.addImage(p.labelGraphic, 'PNG', 0.08, 0.08, 5.84, 3.84);
+          } else {
+            doc.addImage(p.labelGraphic, 'PNG', 0.08, 0.08, 3.84, 5.84);
+          }
         });
       }
 
@@ -5991,7 +5999,7 @@ async function printAllShipmentLabels(target, format = 'thermal') {
         // Fallback to direct download if browser blocked popup
         const a = document.createElement('a');
         a.href = pdfUrl;
-        a.download = `UPS_Shipping_Labels_${rotatedItems.length}_Parcels_${isA4 ? 'A4' : 'Thermal_4x6'}.pdf`;
+        a.download = `UPS_Shipping_Labels_${labelItems.length}_Parcels_${isA4 ? 'A4' : 'Thermal'}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -6002,13 +6010,14 @@ async function printAllShipmentLabels(target, format = 'thermal') {
     }
   }
 
-  // 2. Fallback HTML printable view with upright rotated images
+  // 2. Fallback HTML printable view
   const w = window.open('', '_blank');
   if (!w) { alert('Please allow popups to open the printable labels.'); return; }
 
-  const imgs = rotatedItems.map((p, i) => `
-    <div class="label-page ${isA4 ? 'a4' : 'thermal'}">
-      <div class="label-header-info no-print">Piece ${i + 1} of ${rotatedItems.length} — Tracking: <b>${p.trackingNumber || '—'}</b></div>
+  const hasLandscape = labelItems.some(p => p.isLandscape);
+  const imgs = labelItems.map((p, i) => `
+    <div class="label-page ${isA4 ? 'a4' : 'thermal'} ${p.isLandscape ? 'landscape' : 'portrait'}">
+      <div class="label-header-info no-print">Piece ${i + 1} of ${labelItems.length} — Tracking: <b>${p.trackingNumber || '—'}</b></div>
       <img src="${p.labelGraphic}" alt="UPS Label ${i + 1}" />
     </div>
   `).join('');
@@ -6017,27 +6026,27 @@ async function printAllShipmentLabels(target, format = 'thermal') {
     <!DOCTYPE html>
     <html>
     <head>
-      <title>UPS Shipping Labels (${rotatedItems.length} Parcel${rotatedItems.length === 1 ? '' : 's'} — ${isA4 ? 'A4 Paper' : 'Thermal 4"×6"'})</title>
+      <title>UPS Shipping Labels (${labelItems.length} Parcel${labelItems.length === 1 ? '' : 's'} — ${isA4 ? 'A4 Paper' : 'Thermal'})</title>
       <style>
         ${isA4 ? `
-          @page { size: A4 portrait; margin: 10mm; }
+          @page { size: ${hasLandscape ? 'A4 landscape' : 'A4 portrait'}; margin: 10mm; }
           @media print {
             html, body { margin: 0; padding: 0; background: #fff; }
             .no-print { display: none !important; }
-            .label-page { page-break-after: always; break-after: page; width: 100%; max-width: 170mm; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 95vh; }
+            .label-page { page-break-after: always; break-after: page; width: 100%; max-width: ${hasLandscape ? '270mm' : '170mm'}; margin: 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 95vh; }
             .label-page img { max-width: 100%; max-height: 85vh; object-fit: contain; }
           }
         ` : `
-          @page { size: 4in 6in; margin: 0; }
+          @page { size: ${hasLandscape ? '6in 4in' : '4in 6in'}; margin: 0; }
           @media print {
             html, body { margin: 0; padding: 0; background: #fff; }
             .no-print { display: none !important; }
-            .label-page { page-break-after: always; break-after: page; width: 4in; height: 6in; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+            .label-page { page-break-after: always; break-after: page; width: ${hasLandscape ? '6in' : '4in'}; height: ${hasLandscape ? '4in' : '6in'}; display: flex; align-items: center; justify-content: center; overflow: hidden; }
             .label-page img { width: 100%; height: 100%; object-fit: contain; }
           }
         `}
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f3f4f6; margin: 0; padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 24px; }
-        .label-page.thermal { background: #fff; width: 384px; height: 576px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden; }
+        .label-page.thermal { background: #fff; width: ${hasLandscape ? '576px' : '384px'}; height: ${hasLandscape ? '384px' : '576px'}; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; border-radius: 6px; overflow: hidden; }
         .label-page.thermal img { width: 100%; height: 100%; object-fit: contain; }
         .label-page.a4 { background: #fff; width: 595px; height: 842px; box-shadow: 0 4px 14px rgba(0,0,0,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 6px; padding: 20px; box-sizing: border-box; }
         .label-page.a4 img { max-width: 85%; max-height: 85%; object-fit: contain; }

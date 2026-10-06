@@ -995,11 +995,10 @@ function buildShipmentRequest(p) {
       retCode = '3'; // UPS Return Service 1-Attempt (domestic/EU only)
     } else if (retServiceType === '3_attempts' || retServiceType === '5') {
       retCode = '5'; // UPS Return Service 3-Attempt (domestic/EU only)
-    } else {
-      // Standard Customer Prints Label (international or domestic):
-      // Do NOT attach legacy ReturnService container. Standard forward/import shipment format creates
-      // the standard vertical 4"x6" portrait shipping label with clear barcodes (identical to import labels).
-      retCode = null;
+    } else if (isCrossBorder || isReturn) {
+      // For cross-border returns (e.g. US -> GB billed to UK account), UPS requires Code 9 (Print Return Label)
+      // to permit ShipFrom country (US) to differ from Shipper account country (GB).
+      retCode = '9';
     }
   }
 
