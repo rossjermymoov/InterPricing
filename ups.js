@@ -1040,41 +1040,38 @@ function buildShipmentRequest(p) {
   }
 
   // Build product line items for customs declaration (commercial invoice)
-  const defaultOrigin = toIso((senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'GB');
+  const defaultOrigin = toIso((senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'US');
   const rawItems = Array.isArray(p.lineItems) && p.lineItems.length ? p.lineItems : (Array.isArray(p.items) && p.items.length ? p.items : []);
-  const productList = rawItems.map((item, idx) => ({
-    Description: S(item.description || item.name || 'Returned Merchandise').slice(0, 35),
-    Unit: {
-      Number: String(Math.max(1, parseInt(item.qty || item.quantity, 10) || 1)),
-      Value: String(Number(item.unitValue || item.value || 10).toFixed(2)),
-      UnitOfMeasurement: {
-        Code: 'PCS',
-        Description: 'Pieces',
-      },
-    },
-    CommodityCode: S(item.hsCode || item.tariffCode || '6204.62').replace(/[^0-9.]/g, '').slice(0, 10) || '6204.62',
-    PartNumber: S(item.sku || item.partNumber || ('RET-' + (idx + 1))).slice(0, 35),
-    OriginCountryCode: toIso(item.originCountry || item.origin || defaultOrigin),
-    JointFirmRegistrationIndicator: '',
-  }));
+  const sourceItems = rawItems.length ? rawItems : [
+    {
+      description: S(p.description || 'Returned Merchandise').slice(0, 35),
+      qty: 1,
+      unitValue: Number(p.goodsValue || p.value || 50),
+      hsCode: '6204.62',
+      sku: 'RET-01',
+      originCountry: defaultOrigin,
+    }
+  ];
 
-  if (!productList.length && (isImport || isReturn || ((senderAddr.Address.CountryCode || '').toUpperCase() !== (receiverAddr.Address.CountryCode || '').toUpperCase()))) {
-    productList.push({
-      Description: S(p.description || 'Returned Merchandise').slice(0, 35),
+  const productList = sourceItems.map((item, idx) => {
+    const descStr = S(item.description || item.name || 'Returned Merchandise').slice(0, 35) || 'Merchandise';
+    const orig = toIso(item.originCountry || item.origin || defaultOrigin);
+    return {
+      Description: [descStr],
       Unit: {
-        Number: '1',
-        Value: String(Number(p.goodsValue || p.value || 50).toFixed(2)),
+        Number: String(Math.max(1, parseInt(item.qty || item.quantity, 10) || 1)),
+        Value: String(Number(item.unitValue || item.value || 10).toFixed(2)),
         UnitOfMeasurement: {
           Code: 'PCS',
           Description: 'Pieces',
         },
       },
-      CommodityCode: '6204.62',
-      PartNumber: 'RET-01',
-      OriginCountryCode: defaultOrigin,
+      CommodityCode: S(item.hsCode || item.tariffCode || '6204.62').replace(/[^0-9.]/g, '').slice(0, 10) || '6204.62',
+      PartNumber: S(item.sku || item.partNumber || ('RET-' + (idx + 1))).slice(0, 35),
+      OriginCountryCode: orig,
       JointFirmRegistrationIndicator: '',
-    });
-  }
+    };
+  });
 
   const invoiceNumber = S(p.invoiceNumber || p.originalOrderRef || ('RET-' + Date.now().toString().slice(-6)));
   const purchaseOrderNumber = S(p.reference || p.originalOrderRef || ('MOOV-' + Date.now().toString().slice(-6)));
