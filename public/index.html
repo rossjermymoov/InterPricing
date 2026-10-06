@@ -4291,26 +4291,26 @@ async function init(){
   }
 }
 
-$('navCalc').onclick=()=>{screen('app');calc();};
-$('navSameDay').onclick=()=>{screen('sameday');initSdForm();};
-$('navCards').onclick=openCards;
-$('navShipments').onclick=openShipments;
-$('navCollection').onclick=openCollection;
-$('navQuotes').onclick=openQuotes;
-$('navSettings').onclick=openSettings;
+if ($('navCalc')) $('navCalc').onclick=()=>{screen('app');calc();};
+if ($('navSameDay')) $('navSameDay').onclick=()=>{screen('sameday');initSdForm();};
+if ($('navCards')) $('navCards').onclick=openCards;
+if ($('navShipments')) $('navShipments').onclick=openShipments;
+if ($('navCollection')) $('navCollection').onclick=openCollection;
+if ($('navQuotes')) $('navQuotes').onclick=openQuotes;
+if ($('navSettings')) $('navSettings').onclick=openSettings;
 if ($('shipRefresh')) $('shipRefresh').onclick = loadShipments;
 
-$('suBtn').onclick=async()=>{$('suErr').textContent='';
+if ($('suBtn')) $('suBtn').onclick=async()=>{$('suErr').textContent='';
   const r=await jpost('/api/setup',{name:$('suName').value,email:$('suEmail').value,password:$('suPass').value});
   const d=await r.json(); if(!r.ok){$('suErr').textContent=d.error||'Setup failed';return;} current=d.user; await loadConfigAndApp();};
-$('liBtn').onclick=async()=>{$('liErr').textContent='';
+if ($('liBtn')) $('liBtn').onclick=async()=>{$('liErr').textContent='';
   const r=await jpost('/api/login',{email:$('liEmail').value,password:$('liPass').value});
   const d=await r.json(); if(!r.ok){$('liErr').textContent=d.error||'Login failed';return;} current=d.user; await loadConfigAndApp();};
-$('liPass').addEventListener('keydown',e=>{if(e.key==='Enter')$('liBtn').click();});
-$('logoutBtn').onclick=async()=>{await jpost('/api/logout',{});current=null;screen('login');};
-$('pwBtn').onclick=()=>{const p=$('pwPanel');p.style.display=p.style.display==='none'?'flex':'none';$('pwMsg').textContent='';};
-$('pwCancel').onclick=()=>{$('pwPanel').style.display='none';};
-$('pwSave').onclick=async()=>{$('pwMsg').className='ok';$('pwMsg').textContent='';
+if ($('liPass')) $('liPass').addEventListener('keydown',e=>{if(e.key==='Enter'&&$('liBtn'))$('liBtn').click();});
+if ($('logoutBtn')) $('logoutBtn').onclick=async()=>{await jpost('/api/logout',{});current=null;screen('login');};
+if ($('pwBtn')) $('pwBtn').onclick=()=>{const p=$('pwPanel');if(p){p.style.display=p.style.display==='none'?'flex':'none';if($('pwMsg'))$('pwMsg').textContent='';}};
+if ($('pwCancel')) $('pwCancel').onclick=()=>{if($('pwPanel'))$('pwPanel').style.display='none';};
+if ($('pwSave')) $('pwSave').onclick=async()=>{$('pwMsg').className='ok';$('pwMsg').textContent='';
   const r=await jpost('/api/me/password',{current:$('pwCur').value,next:$('pwNew').value});
   const d=await r.json(); if(!r.ok){$('pwMsg').style.color='var(--mv-magenta-deep)';$('pwMsg').textContent=d.error||'Failed';return;}
   $('pwMsg').style.color='var(--mv-green-deep)';$('pwMsg').textContent='Password updated.';$('pwCur').value='';$('pwNew').value='';};
@@ -6310,7 +6310,7 @@ function buildAccTable(filter = 'all') {
   });
 }
 
-$('saveBtn').onclick=async()=>{
+if ($('saveBtn')) $('saveBtn').onclick=async()=>{
   $('saveMsg').style.color='var(--mv-purple)'; $('saveMsg').textContent='Saving…';
   const fbs={}; SERVICES.forEach(s=>{fbs[s.key]={name:s.name,cost:num('fc_'+s.key),sell:num('fs_'+s.key)};});
   const acc=accList().map(a=>({
@@ -6323,23 +6323,23 @@ $('saveBtn').onclick=async()=>{
     sellMin: num('accSellMin_' + a.key),
     sellPct: num('accSellPct_' + a.key)
   }));
-  const euCustomsDuty={enabled:$('euEnabled').checked,eurPerGbp:num('euRate'),perSku:num('euPerSku'),thresholdEur:num('euThresh')};
+  const euCustomsDuty={enabled:$('euEnabled')?$('euEnabled').checked:false,eurPerGbp:num('euRate'),perSku:num('euPerSku'),thresholdEur:num('euThresh')};
   const body={
     fuelByService:fbs, accessorials:acc, euCustomsDuty,
     importMarkupPct:num('upsMarkup'),
-    hsFreeLines:num('hsFreeLines'), hsLineCharge:num('hsLineCharge'), debugRaw:$('debugRaw').checked
+    hsFreeLines:num('hsFreeLines'), hsLineCharge:num('hsLineCharge'), debugRaw:$('debugRaw')?$('debugRaw').checked:false
   };
   const r=await jput('/api/settings',body); const d=await r.json();
-  if(!r.ok){$('saveMsg').style.color='var(--mv-magenta-deep)';$('saveMsg').textContent=d.error||'Failed to save';return;}
-  $('saveMsg').style.color='var(--mv-green-deep)';$('saveMsg').textContent='Settings saved.';
+  if(!r.ok){if($('saveMsg')){$('saveMsg').style.color='var(--mv-magenta-deep)';$('saveMsg').textContent=d.error||'Failed to save';}return;}
+  if($('saveMsg')){$('saveMsg').style.color='var(--mv-green-deep)';$('saveMsg').textContent='Settings saved.';}
   P.settings=Object.assign(P.settings||{},d.settings);
   calc();
 };
 
 async function refreshUsers(){
-  $('usersErr').textContent='';
-  const r=await fetch('/api/users'); if(!r.ok){$('usersErr').textContent='Could not load users';return;}
-  const {users}=await r.json(); const tb=$('usersBody'); tb.innerHTML='';
+  if($('usersErr')) $('usersErr').textContent='';
+  const r=await fetch('/api/users'); if(!r.ok){if($('usersErr'))$('usersErr').textContent='Could not load users';return;}
+  const {users}=await r.json(); const tb=$('usersBody'); if(!tb) return; tb.innerHTML='';
   users.forEach(u=>{
     const tr=document.createElement('tr');const self=current&&u.id===current.id;
     tr.innerHTML='<td>'+(u.name||'—')+'</td><td>'+u.email+'</td>' +
@@ -6350,15 +6350,15 @@ async function refreshUsers(){
   });
 }
 
-$('upsTest').onclick=async()=>{
+if ($('upsTest')) $('upsTest').onclick=async()=>{
   $('upsMsg').style.color='var(--mv-purple)';$('upsMsg').textContent='Testing UPS connection…';
   const sample={mode:'import',sender:{country:'DE',city:'Berlin',postcode:'10115',line1:'Hauptstrasse 1',name:'Test Sender'},
     receiver:{country:'GB',city:'Whittington',postcode:'SY11 4FN',line1:'1 Mellor Meadows',name:'Test Receiver'},
     packages:[{qty:1,weight:5,l:30,w:20,h:15}],value:250,currency:'GBP'};
   const r=await jpost('/api/ups-test',sample);const d=await r.json();
-  if(!r.ok){$('upsMsg').style.color='var(--mv-magenta-deep)';$('upsMsg').textContent='Test failed';return;}
-  $('upsMsg').style.color='var(--mv-green-deep)';$('upsMsg').textContent='Test complete';
-  $('upsResult').innerHTML='Environment: <b>'+d.env+'</b> · Credentials: <b>'+(d.configured?'configured':'missing')+'</b> · Token: <b>'+d.token+'</b> · Services: <b>'+(d.services||[]).length+' returned</b>';
+  if(!r.ok){if($('upsMsg')){$('upsMsg').style.color='var(--mv-magenta-deep)';$('upsMsg').textContent=d.error||'Test failed';}return;}
+  if($('upsMsg')){$('upsMsg').style.color='var(--mv-green-deep)';$('upsMsg').textContent='Test complete';}
+  if($('upsResult')) $('upsResult').innerHTML='Environment: <b>'+d.env+'</b> · Credentials: <b>'+(d.configured?'configured':'missing')+'</b> · Token: <b>'+d.token+'</b> · Services: <b>'+(d.services||[]).length+' returned</b>';
 };
 
 init();
