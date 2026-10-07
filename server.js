@@ -437,10 +437,9 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
       }
     }
 
-    // If domestic UK origin, also check billing quotes (DPD & Yodel)
+    // If domestic UK origin, also check billing quotes (DPD only)
     let domesticServices = [];
     let dpdRes = null;
-    let yodelRes = null;
     if (originCountry === 'GB' && origin.postcode) {
       try {
         const quoteRes = await billing.fetchBillingQuote({
@@ -452,9 +451,8 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
           shipTo,
           parcels: pkgs,
         });
-        domesticServices = quoteRes.services || [];
+        domesticServices = (quoteRes.services || []).filter(s => (s.carrier || s.courier || '').toUpperCase() !== 'YODEL');
         dpdRes = quoteRes.dpd;
-        yodelRes = quoteRes.yodel;
       } catch (domErr) {
         console.warn('[returns/quote domestic billing error]', domErr.message);
       }
@@ -468,7 +466,6 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
       ups: upsServices,
       upsError,
       dpd: dpdRes,
-      yodel: yodelRes,
       destination: shipTo,
       isInternational,
       originCountry,
@@ -622,11 +619,10 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
       });
     }
 
-    // 2. Domestic UK DPD / Yodel Return Fallback
-    const isDpd = String(courier).toUpperCase() === 'DPD';
-    const cName = isDpd ? 'DPD' : 'YODEL';
-    const actualCode = isDpd ? (serviceCode || 'DPD-12DROPQR') : (serviceCode || 'YODC2C');
-    const actualName = serviceName || (isDpd ? 'DPD Drop Off Next Day (QR & Label)' : 'Yodel Direct Return (C2C)');
+    // 2. Domestic UK DPD Return Fallback
+    const cName = 'DPD';
+    const actualCode = serviceCode || 'DPD-12DROPQR';
+    const actualName = serviceName || 'DPD Drop Off Next Day (QR & Label)';
 
     const trackingNumber = returnLabel.generateReturnTrackingNumber(cName);
     const totalWeight = pkgs.reduce((sum, p) => sum + (Number(p.weight || p.weightKg) || 1.5), 0);
