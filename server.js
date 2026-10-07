@@ -591,7 +591,10 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
           orderRef: orderRef || '',
           driverBringsLabel: driverDispatched,
           returnServiceType: retType,
+          items: Array.isArray(lineItems) ? lineItems : [],
+          lineItems: Array.isArray(lineItems) ? lineItems : [],
         },
+        items: Array.isArray(lineItems) ? lineItems : [],
         response: {
           courier: 'UPS',
           serviceCode: actualSvcCode,
@@ -606,6 +609,28 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
       };
 
       const saved = await db.createShipmentRecord(shipmentRecord);
+      
+      // Auto-generate static invoice document directly from exact booking record
+      try {
+        const invHtml = invoiceGenerator.generateCommercialInvoiceHtml({
+          trackingNumber,
+          invoiceNumber: 'INV-' + trackingNumber.slice(-8),
+          orderRef: orderRef || ('RET-' + trackingNumber.slice(-8)),
+          goodsValue: Number(goodsValue) || 0,
+          weight: Math.round(totalWeight * 10) / 10,
+          currency: 'GBP',
+          reasonForExport: reasonForExport || 'RETURN OF GOODS (CUSTOMER RETURN - CPC 61 23)',
+          termsOfSale: 'DDP',
+          sender: origin,
+          receiver: shipTo,
+          items: Array.isArray(lineItems) && lineItems.length ? lineItems : [],
+        });
+        const invDir = path.join(__dirname, 'public', 'invoices');
+        if (!fs.existsSync(invDir)) fs.mkdirSync(invDir, { recursive: true });
+        fs.writeFileSync(path.join(invDir, `${trackingNumber}.html`), invHtml, 'utf8');
+      } catch (invErr) {
+        console.error('[invoice auto-save error]:', invErr.message);
+      }
       sse.broadcast('shipment_booked', saved || shipmentRecord);
 
       return res.json({
