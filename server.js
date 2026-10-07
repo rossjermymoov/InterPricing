@@ -14,6 +14,7 @@ const crownClient = require('./lib/crownsds');
 const sse = require('./lib/sse');
 const billing = require('./lib/billing');
 const returnLabel = require('./lib/returnLabel');
+const invoiceGenerator = require('./lib/invoice');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -860,6 +861,83 @@ app.post('/api/import-quote', async (req, res) => {
     } catch (e) { console.error('[quotelog]', e.message); }
   } catch (e) { res.status(502).json({ error: e.message }); }
 });
+
+// PUBLIC: Generate / download official Commercial Invoice (Customs Proforma Invoice)
+app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (req, res) => {
+  try {
+    const trk = String(req.params.tracking || '').replace(/\s+/g, '').trim();
+    let shipment = null;
+    if (db.hasDb) {
+      try {
+        const { rows } = await db.pool.query('SELECT * FROM shipments WHERE tracking_number = $1 OR shipment_id = $1 LIMIT 1', [trk]);
+        if (rows && rows.length) shipment = rows[0];
+      } catch (err) {
+        console.error('[invoice route query error]:', err.message);
+      }
+    }
+
+    const cfg = await db.getConfig();
+    const da = (cfg && cfg.data && cfg.data.defaultAddress) || {};
+
+    const parseJson = (val, def) => {
+      if (!val) return def;
+      if (typeof val === 'object') return val;
+      try { return JSON.parse(val); } catch (_) { return def; }
+    };
+
+    const sender = (shipment && shipment.sender) ? parseJson(shipment.sender, {}) : {
+      name: 'Customer Return Sender',
+      company: 'Private Individual',
+      line1: 'Bahnhofstrasse 10',
+      city: 'Zurich',
+      state: 'ZH',
+      postcode: '8001',
+      country: 'Switzerland',
+      countryCode: 'CH',
+      phone: '+41 44 123 4567',
+      email: 'returns@moovparcel.com',
+    };
+
+    const receiver = (shipment && shipment.receiver) ? parseJson(shipment.receiver, {}) : {
+      name: 'Returns Processing Hub',
+      company: 'MOOV Parcel Logistics Ltd',
+      line1: da.line1 || '1 Mellor Meadows',
+      city: da.city || 'Whittington',
+      state: da.county || 'Shropshire',
+      postcode: da.postcode || 'SY11 4FN',
+      country: da.country || 'United Kingdom',
+      countryCode: 'GB',
+      phone: da.phone || '+44 1691 654321',
+      email: da.email || 'returns@moovparcel.com',
+      eoriNumber: da.eoriNumber || cfg.eoriNumber || 'GB446867375',
+      vatNumber: da.vatNumber || cfg.vatNumber || 'GB 446 8673 75',
+    };
+
+    const docs = parseJson(shipment && shipment.documents_attached, {});
+    const goodsVal = shipment ? Number(shipment.goods_value || 65.00) : 65.00;
+    const weightVal = shipment ? Number(shipment.total_weight_kg || 1.5) : 1.5;
+
+    const html = invoiceGenerator.generateCommercialInvoiceHtml({
+      trackingNumber: trk,
+      invoiceNumber: 'INV-' + trk.slice(-8),
+      orderRef: docs.orderRef || ('RET-' + trk.slice(-8)),
+      goodsValue: goodsVal,
+      weight: weightVal,
+      currency: 'GBP',
+      reasonForExport: docs.reasonForExport || 'RETURN OF GOODS (CUSTOMER RETURN - CPC 61 23)',
+      termsOfSale: 'DDP',
+      sender,
+      receiver,
+    });
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch (err) {
+    console.error('[invoice generation error]:', err.message);
+    res.status(500).send('<h1>Error generating invoice</h1><p>' + err.message + '</p>');
+  }
+});
+
 // PUBLIC: live outbound (export) UPS pricing for a customer's rate card. Token-authorized;
 // returns the customer's SELL price (their per-service markup applied) plus a markup-scaled
 // charge breakdown — never raw cost. Falls back to enabled:false so the card uses static rates.

@@ -1047,7 +1047,7 @@ function buildShipmentRequest(p) {
       description: S(p.description || 'Returned Merchandise').slice(0, 35),
       qty: 1,
       unitValue: Number(p.goodsValue || p.value || 50),
-      hsCode: '6204.62',
+      hsCode: '620462',
       sku: 'RET-01',
       originCountry: defaultOrigin,
     }
@@ -1056,6 +1056,7 @@ function buildShipmentRequest(p) {
   const productList = sourceItems.map((item, idx) => {
     const descStr = S(item.description || item.name || 'Returned Merchandise').slice(0, 35) || 'Merchandise';
     const orig = toIso(item.originCountry || item.origin || defaultOrigin);
+    const cleanHs = S(item.hsCode || item.tariffCode || '620462').replace(/[^0-9]/g, '').slice(0, 10) || '620462';
     return {
       Description: [descStr],
       Unit: {
@@ -1066,7 +1067,7 @@ function buildShipmentRequest(p) {
           Description: 'Pieces',
         },
       },
-      CommodityCode: S(item.hsCode || item.tariffCode || '6204.62').replace(/[^0-9.]/g, '').slice(0, 10) || '6204.62',
+      CommodityCode: cleanHs,
       PartNumber: S(item.sku || item.partNumber || ('RET-' + (idx + 1))).slice(0, 35),
       OriginCountryCode: orig,
       JointFirmRegistrationIndicator: '',
@@ -1090,7 +1091,6 @@ function buildShipmentRequest(p) {
     if (productList.length > 0) {
       intlForms.Product = productList;
     }
-    shipmentObj.InternationalForms = intlForms;
     shipmentObj.ShipmentServiceOptions = {
       InternationalForms: intlForms,
     };
@@ -1119,7 +1119,6 @@ function buildShipmentRequest(p) {
     if (productList.length > 0) {
       intlForms.Product = productList;
     }
-    shipmentObj.InternationalForms = intlForms;
     shipmentObj.ShipmentServiceOptions = {
       InternationalForms: intlForms,
     };

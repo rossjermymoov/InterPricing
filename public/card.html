@@ -3036,6 +3036,10 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <button type="button" class="btn-moov-action secondary" id="btnPrintA4" style="height:36px;font-size:12.5px" onclick="printCurrentReturnLabel('a4')">
                 📄 Download / Print A4 PDF
               </button>
+              <a href="#" id="btnDownloadInvoice" target="_blank" class="btn-moov-action secondary" style="height:36px;font-size:12.5px;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--mv-purple);border-color:var(--mv-purple)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                <span>Download Customs Invoice (PDF)</span>
+              </a>
               <button type="button" class="btn-moov-action secondary" onclick="viewReturnInBookings()" style="height:36px;font-size:12.5px">
                 📋 View in Bookings History
               </button>
@@ -5339,6 +5343,10 @@ async function handleBookReturnLabel() {
     $('retModalSub').textContent = `${currentSelectedReturnService.name} · Tracking: ${d.trackingNumber}`;
     $('retModalTracking').textContent = d.trackingNumber;
 
+    if ($('btnDownloadInvoice')) {
+      $('btnDownloadInvoice').href = '/api/invoice/' + encodeURIComponent(d.trackingNumber);
+    }
+
     const instr = $('retModalInstructions');
     if (instr) {
       if (isDriver) {
@@ -6920,6 +6928,13 @@ function renderCustomerBookings(shipments) {
                         <div style="font-size:10px;color:var(--mv-ink-55)">Standard desktop printer sheet</div>
                       </div>
                     </button>
+                    <a href="/api/invoice/${encodeURIComponent(x.tracking_number)}" target="_blank" class="moov-menu-item" style="text-decoration:none">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      <div>
+                        <div style="font-weight:700">Commercial Invoice (PDF)</div>
+                        <div style="font-size:10px;color:var(--mv-ink-55)">Swiss &amp; international customs declaration</div>
+                      </div>
+                    </a>
                   </div>
                 </div>
 
