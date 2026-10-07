@@ -3569,6 +3569,11 @@ function renderToggles() {
   if (!box) return;
   box.innerHTML = '';
   const seen = {}, groups = [];
+  
+  // DDP toggle prominent first
+  groups.push({ g: 'ddp', name: 'DDP (Delivered Duty Paid)' });
+  seen['ddp'] = 1;
+
   accList()
     .filter(a => a.cond === 'toggle' && a.key !== 'ddp' && a.group !== 'ddp' && (accAmount(a) > 0 || (a.list > 0 && a.disc < 100)))
     .forEach(a => {
@@ -3659,7 +3664,10 @@ function staticRow(s, c, chg, applicable) {
   const r = priceOf(s, c, chg);
   if (!r.avail || r.p == null) return { s, r, total: null };
   const base = r.p, carr = s.carrier.toLowerCase();
-  const sur = applicable.filter(a => a.carrier.toLowerCase() === carr).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
+  const isDdp = !!($('tg_ddp') && $('tg_ddp').checked);
+  const isUsa = (c === 'USA' || c === 'US' || c === 'United States');
+  const isInternational = (c !== 'United Kingdom' && c !== 'GB');
+  const sur = applicable.filter(a => a.carrier.toLowerCase() === carr || a.carrier === 'ALL').map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
   
   if (carr === 'dpd') {
     const isRoad = ['cp', 'ep'].includes(s.key);
@@ -3669,6 +3677,9 @@ function staticRow(s, c, chg, applicable) {
     } else if (isAir && !sur.some(x => x.name.toLowerCase().includes('admin') || x.name.toLowerCase().includes('air'))) {
       sur.push({ name: 'DPD Air DDP Admin Fee', amt: 5.00 });
     }
+    if (isDdp) {
+      sur.push({ name: 'DDP Duty Forwarding Fee (' + (isUsa ? '1.0% USA' : '2.5% ROW') + ')', amt: 0, forwardingPct: true });
+    }
   }
 
   if (carr === 'ups') {
@@ -3676,9 +3687,21 @@ function staticRow(s, c, chg, applicable) {
     const isResi = !!(resiEl && resiEl.checked);
     const surge = calcSurgeFee(c, chg, s.key, isResi);
     if (surge) sur.push(surge);
+
+    if (isInternational) {
+      if (!sur.some(x => x.name.toLowerCase().includes('processing') || x.name.toLowerCase().includes('ip'))) {
+        sur.push({ name: 'International Processing Fee (IP)', amt: 4.30 });
+      }
+      if (!sur.some(x => x.name.toLowerCase().includes('disbursement'))) {
+        sur.push({ name: 'Disbursement fee', amt: 8.00 });
+      }
+      if (isDdp) {
+        sur.push({ name: 'DDP Forwarding Fee (Included)', amt: 0, ddpIncluded: true });
+      }
+    }
   }
 
-  const surTotal = sur.reduce((t, x) => t + x.amt, 0);
+  const surTotal = sur.reduce((t, x) => t + (Number(x.amt) || 0), 0);
   const fuelRate = (s.fuel || 0) / 100;
   const fuel = Math.round((base + surTotal) * fuelRate * 100) / 100;
   return { s, r, base, fuel, sur, total: Math.round((base + fuel + surTotal) * 100) / 100, days: s.days };
@@ -3716,6 +3739,10 @@ function calc() {
   const c = curCountry, actual = num('wt'), L = num('L'), W = num('W'), H = num('H');
   if (!c) return;
   const isEu = region(c) === 'eu';
+  const isUsa = (c === 'USA' || c === 'US' || c === 'United States');
+  const isInternational = (c !== 'United Kingdom' && c !== 'GB');
+  const isDdp = !!($('tg_ddp') && $('tg_ddp').checked);
+
   const vl = $('vlab'); if (vl) vl.textContent = isEu ? 'Value (€)' : 'Value (£)';
   const vol = (L && W && H) ? (L * W * H) / RC.divisor : 0, chg = Math.max(actual, vol);
   $('volw').textContent = vol ? vol.toFixed(2) + ' kg' : '—';
@@ -3782,7 +3809,20 @@ function calc() {
             return !coveredKeys.has(k);
           }).map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
           const mergedSur = [...liveSur, ...upsCustom];
-          const surTotal = mergedSur.reduce((t, x) => t + x.amt, 0);
+
+          if (isInternational) {
+            if (!mergedSur.some(x => String(x.name || '').toLowerCase().includes('processing') || String(x.name || '').toLowerCase().includes('ip') || String(x.code) === '573')) {
+              mergedSur.push({ name: 'International Processing Fee (IP)', amt: 4.30 });
+            }
+            if (!mergedSur.some(x => String(x.name || '').toLowerCase().includes('disbursement'))) {
+              mergedSur.push({ name: 'Disbursement fee', amt: 8.00 });
+            }
+            if (isDdp) {
+              mergedSur.push({ name: 'DDP Forwarding Fee (Included)', amt: 0, ddpIncluded: true });
+            }
+          }
+
+          const surTotal = mergedSur.reduce((t, x) => t + (Number(x.amt) || 0), 0);
           const fuelRate = (live.base > 0 && live.fuel > 0) ? (live.fuel / live.base) : 0;
           const fuel = Math.round((live.base + surTotal) * fuelRate * 100) / 100;
           const total = Math.round((live.base + fuel + surTotal) * 100) / 100;
@@ -3840,7 +3880,11 @@ function calc() {
   box.innerHTML = '';
   rows.forEach(({ s, r, base, fuel, sur, total, loading, live, days }) => {
     const carr = (s.carrier || '').toUpperCase();
-    const cleanName = (s.name || '').replace(/\s*Live\s*$/i, '').trim();
+    let cleanName = (s.name || '').replace(/\s*Live\s*$/i, '').trim();
+    if (carr === 'DPD') {
+      cleanName = cleanName.replace(/\s*\((DDP|DDU|DAP)\)\s*$/i, '').trim() + (isDdp ? ' (DDP)' : ' (DDU)');
+    }
+
     const road = isRoadService(s.key, cleanName);
     const icon = road ? ICON_LORRY : ICON_PLANE;
     const isEcon = !!(s.isEconomy || s.key === 'edp' || s.key === 'edu');
@@ -3884,32 +3928,47 @@ function calc() {
     d.className = cls;
 
     const bt = live ? null : (typeof (r && r.band) === 'number' ? r.band + ' kg band' : (r && r.band));
-    const isUsa = (c === 'USA' || c === 'US' || c === 'United States');
     const surLines = (sur || []).map(x => {
       let displayName = x.name;
-      if (String(x.name || '').toLowerCase().includes('disbursement')) {
+      let valDisplay = money(x.amt);
+      if (x.ddpIncluded) {
+        displayName = 'DDP Forwarding Fee <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">UPS does not charge an additional duty forwarding percentage fee on DDP shipments (100% discount applied).</span></span>';
+        valDisplay = '<span style="color:#059669;font-weight:700">Included (£0.00)</span>';
+      } else if (x.forwardingPct) {
+        displayName = 'DDP Forwarding Fee (' + (isUsa ? '1.0% USA' : '2.5% ROW') + ') <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">When duties and taxes are assessed at destination, DPD charges ' + (isUsa ? '1.0% (USA)' : '2.5% (ROW)') + ' of forwarded duties/taxes (billed post-clearance).</span></span>';
+        valDisplay = '<span style="font-size:11px;color:var(--mv-ink-55);font-weight:700">' + (isUsa ? '1.0%' : '2.5%') + '</span>';
+      } else if (String(x.name || '').toLowerCase().includes('disbursement')) {
         displayName = 'Disbursement fee <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">Calculated as a minimum of £8.00 or 3% of forwarded customs duties and taxes prepaid upon import.</span></span>';
+      } else if (String(x.name || '').toLowerCase().includes('international processing') || String(x.name || '').toLowerCase().includes('ip fee') || String(x.code) === '573') {
+        displayName = 'International Processing Fee (IP) <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">Standard customs entry and electronic international documentation fee.</span></span>';
       } else if (String(x.name || '').toLowerCase().includes('air ddp admin') || String(x.name || '').toLowerCase().includes('dpd air')) {
         displayName = x.name + ' <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">£5.00 parcel admin fee included. Post-clearance duty forwarding fee is ' + (isUsa ? '1.0% (USA)' : '2.5%') + ' of forwarded duties/taxes.</span></span>';
       } else if (String(x.name || '').toLowerCase().includes('dpd road admin') || String(x.name || '').toLowerCase().includes('road admin')) {
         displayName = x.name + ' <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">£2.50 per shipment admin fee. EU customs fees apply separately.</span></span>';
       }
-      return '<div class="row' + (x.remote ? ' remote' : '') + '"><span>' + displayName + '</span><span>' + money(x.amt) + '</span></div>';
+      return '<div class="row' + (x.remote ? ' remote' : '') + '"><span>' + displayName + '</span><span>' + valDisplay + '</span></div>';
     }).join('');
 
     let dpdInfoBoxHtml = '';
-    if (carr === 'dpd') {
+    if (carr === 'DPD') {
       const isRoad = ['cp', 'ep'].includes(s.key) || road;
-      if (isRoad) {
-        dpdInfoBoxHtml = '<div class="dpd-info-box road">'
-          + '<div class="dpd-info-head"><span>ℹ️</span> DPD Road Classic Customs</div>'
-          + '<div class="dpd-info-body">£2.50 shipment admin fee is included above. EU customs duty applies for orders under €150. Destination duties and local taxes are assessed upon arrival.</div>'
-          + '</div>';
+      if (isDdp) {
+        if (isRoad) {
+          dpdInfoBoxHtml = '<div class="dpd-info-box road">'
+            + '<div class="dpd-info-head"><span>ℹ️</span> DPD Road Classic DDP Terms</div>'
+            + '<div class="dpd-info-body">£2.50 shipment admin fee is included above. When destination duties &amp; taxes are assessed upon arrival, DPD applies a <b>2.5%</b> duty forwarding charge (billed post-clearance). EU customs duty applies for orders under €150.</div>'
+            + '</div>';
+        } else {
+          const pct = isUsa ? '1.0%' : '2.5%';
+          dpdInfoBoxHtml = '<div class="dpd-info-box air">'
+            + '<div class="dpd-info-head"><span>✈️</span> DPD Air DDP Duty Terms</div>'
+            + '<div class="dpd-info-body">£5.00 parcel admin fee is included in the quote above. When duties &amp; taxes are assessed at destination, DPD charges <b>' + pct + '</b> of the forwarded duty/tax amount (billed post-clearance).</div>'
+            + '</div>';
+        }
       } else {
-        const pct = isUsa ? '1.0%' : '2.5%';
-        dpdInfoBoxHtml = '<div class="dpd-info-box air">'
-          + '<div class="dpd-info-head"><span>✈️</span> DPD Air DDP Duty Terms</div>'
-          + '<div class="dpd-info-body">£5.00 parcel admin fee is included in the quote above. When duties &amp; taxes are assessed at destination, DPD charges <b>' + pct + '</b> of the forwarded duty/tax amount (billed post-clearance).</div>'
+        dpdInfoBoxHtml = '<div class="dpd-info-box road">'
+          + '<div class="dpd-info-head"><span>ℹ️</span> DPD Standard Delivery (DDU / DAP)</div>'
+          + '<div class="dpd-info-body">Destination customs clearance duties and local import taxes will be collected directly from the recipient upon delivery.</div>'
           + '</div>';
       }
     }

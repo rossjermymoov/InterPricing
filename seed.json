@@ -24958,6 +24958,30 @@
         "basis": "flat"
       },
       {
+        "key": "ddp",
+        "name": "DDP (Delivered Duty Paid)",
+        "list": 0,
+        "disc": 0,
+        "sell": 0,
+        "cond": "toggle",
+        "fuelable": false,
+        "applyTo": "all",
+        "basis": "flat",
+        "group": "ddp"
+      },
+      {
+        "key": "ip",
+        "name": "International Processing Fee (IP)",
+        "list": 4.30,
+        "disc": 0,
+        "sell": 4.30,
+        "cond": "always",
+        "fuelable": false,
+        "applyTo": "ups",
+        "basis": "flat",
+        "group": "ip"
+      },
+      {
         "key": "disbursement",
         "name": "Disbursement fee",
         "basis": "pctValue",

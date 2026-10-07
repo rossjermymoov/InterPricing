@@ -106,10 +106,10 @@ function buildCardPayload(cfg, card) {
   const demandRates = (demandInfo && demandInfo.rates) || {};
 
   const accessorials = !includeSur ? [] : (S.accessorials || [])
-    .filter((a) => carriersShown.has(a.applyTo))
+    .filter((a) => !a.applyTo || a.applyTo === 'all' || carriersShown.has(String(a.applyTo).toLowerCase()))
     .map((a) => {
       const o = { key: a.key, name: a.name, group: a.group || a.key, cond: a.cond, basis: a.basis,
-        carrier: (a.applyTo || '').toUpperCase(), fuelable: !!a.fuelable };
+        carrier: (a.applyTo || 'ALL').toUpperCase(), fuelable: !!a.fuelable };
       
       // If peak demand rate applies to this accessorial and in effect
       let baseList = (a.list != null ? Number(a.list) : 0);
