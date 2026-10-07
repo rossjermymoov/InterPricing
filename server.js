@@ -942,16 +942,16 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
     const customerVat = req.query.vat || recObj.vatNumber || cardDa.vatNumber || cardConf.vatNumber || cardConf.vat || cfg.vatNumber || 'GB 446 8673 75';
 
     const sender = {
-      name: sendObj.name || 'Customer Return Sender',
+      name: sendObj.name || req.query.senderName || 'Magdalena Piszczek',
       company: sendObj.company || 'Private Individual',
-      line1: sendObj.line1 || 'Bahnhofstrasse 10',
+      line1: sendObj.line1 || req.query.senderLine1 || 'Gersauerstrasse 76',
       line2: sendObj.line2 || '',
-      city: sendObj.city || 'Zurich',
-      state: sendObj.state || 'ZH',
-      postcode: sendObj.postcode || '8001',
+      city: sendObj.city || req.query.senderCity || 'Brunnen',
+      state: sendObj.state || 'SZ',
+      postcode: sendObj.postcode || req.query.senderPostcode || '6440',
       country: sendObj.country || 'Switzerland',
-      countryCode: sendObj.countryCode || (sendObj.country && sendObj.country.length === 2 ? sendObj.country : 'CH'),
-      phone: sendObj.phone || '+41 44 123 4567',
+      countryCode: sendObj.countryCode || 'CH',
+      phone: sendObj.phone || req.query.senderPhone || '+49 1551 0037366',
       email: sendObj.email || 'customer@example.com',
     };
 
@@ -972,11 +972,8 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
     };
 
     const docs = parseJson(shipment && shipment.documents_attached, {});
-    const goodsVal = shipment ? Number(shipment.goods_value || 65.00) : 65.00;
+    const goodsVal = shipment ? Number(shipment.goods_value || 316.00) : 316.00;
     const weightVal = shipment ? Number(shipment.total_weight_kg || 1.5) : 1.5;
-
-    const hsCodeInput = req.query.hsCode || req.query.hs || (docs && docs.hsCode) || '6204.6200';
-    const originCountry = req.query.origin || (docs && docs.origin) || 'PL';
 
     const html = invoiceGenerator.generateCommercialInvoiceHtml({
       trackingNumber: trk,
@@ -991,20 +988,20 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       receiver,
       items: (docs && Array.isArray(docs.items) && docs.items.length) ? docs.items : [
         {
-          description: 'Trousers (Women\'s Trousers)',
-          qty: 1,
-          unitValue: 182.00,
-          hsCode: '6204.6200',
-          origin: 'PL',
-          weight: 0.90,
-        },
-        {
           description: 'Camisole (Women\'s Silk Camisole Top)',
           qty: 1,
           unitValue: 136.00,
           hsCode: '6206.1000',
-          origin: 'IT',
+          origin: 'PT',
           weight: 0.60,
+        },
+        {
+          description: 'Trousers (Women\'s Cotton Trousers)',
+          qty: 1,
+          unitValue: 180.00,
+          hsCode: '6204.6239',
+          origin: 'PT',
+          weight: 0.90,
         }
       ]
     });
