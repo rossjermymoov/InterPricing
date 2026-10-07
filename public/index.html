@@ -3697,18 +3697,26 @@ function calc(){
             }
           }
 
+          const sumSur = liveSur.reduce((t, x) => t + (Number(x[1]) || 0), 0);
+          const rawFuelRate = (live.costFuelRate != null) ? live.costFuelRate : ((live.costBase > 0 && live.costFuel > 0) ? (live.costFuel / live.costBase) : 0);
+          const sellFuelRate = (live.sellFuelRate != null) ? live.sellFuelRate : (rawFuelRate * 0.75);
+          const costFuel = Math.round((live.costBase + sumSur) * rawFuelRate * 100) / 100;
+          const sellFuel = Math.round((live.sellBase + sumSur) * sellFuelRate * 100) / 100;
+          const costPrice = Math.round((live.costBase + costFuel + sumSur) * 100) / 100;
+          const sellPrice = Math.round((live.sellBase + sellFuel + sumSur) * 100) / 100;
+
           const built={
             live:true, days:live.days, raw,
-            fc:(live.costBase?(live.costFuel/live.costBase*100):0),
-            fs:(live.fuelRatePct != null ? live.fuelRatePct : (live.sellBase?(live.sellFuel/live.sellBase*100):0)),
-            costFuel:live.costFuel, sellFuel:live.sellFuel,
-            totalCost:live.costPrice, mk:live.markupPct, markupAmt:live.markupAmt,
-            sell:live.sellPrice, cost:live.costPrice,
+            fc: rawFuelRate * 100,
+            fs: sellFuelRate * 100,
+            costFuel, sellFuel,
+            totalCost: costPrice, mk: live.markupPct, markupAmt: Math.round((sellPrice - costPrice) * 100) / 100,
+            sell: sellPrice, cost: costPrice,
             fuelExtras:[], flatExtras:liveSur
           };
           rows.push({
             svc:{key:live.key,name:live.name,carrier:'ups',color:UPS_COLOR},
-            b:{price:live.costPrice,avail:true,live:true},
+            b:{price:costPrice,avail:true,live:true},
             built, live:true, days:live.days,
           });
         });

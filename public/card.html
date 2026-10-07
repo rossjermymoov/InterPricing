@@ -3864,7 +3864,8 @@ function calc() {
           }
 
           const surTotal = mergedSur.reduce((t, x) => t + (Number(x.amt) || 0), 0);
-          const fuelRate = (live.base > 0 && live.fuel > 0) ? (live.fuel / live.base) : 0;
+          const rawFuelRate = (live.rawFuelRate != null) ? live.rawFuelRate : ((live.base > 0 && live.fuel > 0) ? (live.fuel / live.base) : 0);
+          const fuelRate = (live.fuelRate != null) ? live.fuelRate : (rawFuelRate * 0.75); // 25% discount on fuel
           const fuel = Math.round((live.base + surTotal) * fuelRate * 100) / 100;
           const total = Math.round((live.base + fuel + surTotal) * 100) / 100;
           rows.push({
