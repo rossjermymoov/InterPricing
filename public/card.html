@@ -5328,7 +5328,7 @@ async function handleBookReturnLabel() {
         packages: parcels,
         lineItems,
         goodsValue: totalVal,
-        ukEori: $('retUkEori')?.value.trim() || 'GB446867375',
+        ukEori: $('retUkEori')?.value.trim() || (RC && (RC.eoriNumber || (RC.receiver && RC.receiver.eoriNumber) || (RC.deliveryAddress && RC.deliveryAddress.eoriNumber))) || 'GB471791369000',
         senderTaxId: $('retSenderTaxId')?.value.trim() || '',
         termsOfSale: $('retTermsOfSale')?.value || 'DDP',
         incoterms: $('retTermsOfSale')?.value || 'DDP',
