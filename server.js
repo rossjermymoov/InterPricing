@@ -902,17 +902,17 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
     const recObj = (shipment && shipment.receiver) ? parseJson(shipment.receiver, {}) : {};
     const sendObj = (shipment && shipment.sender) ? parseJson(shipment.sender, {}) : {};
 
-    const customerCompany = req.query.company || recObj.company || cardDa.company || card?.customer || cardConf.customer || shipment?.customer || 'Customer Warehouse';
+    const customerCompany = req.query.company || recObj.company || cardDa.company || card?.customer || cardConf.customer || shipment?.customer || 'Bessette LTD';
     const customerName = req.query.name || recObj.name || cardDa.name || cardDa.contactName || cardConf.contactName || 'Returns Processing Unit';
-    const customerLine1 = req.query.address || recObj.line1 || cardDa.line1 || cardDa.address || cardConf.line1 || cardConf.address || 'Customer Return Centre';
+    const customerLine1 = req.query.address || recObj.line1 || cardDa.line1 || cardDa.address || cardConf.line1 || cardConf.address || 'Unit 1, Bessette Logistics';
     const customerLine2 = recObj.line2 || cardDa.line2 || cardConf.line2 || '';
     const customerCity = req.query.city || recObj.city || cardDa.city || cardConf.city || 'London';
-    const customerState = recObj.state || recObj.county || cardDa.state || cardDa.county || cardConf.state || cardConf.county || '';
-    const customerPostcode = req.query.postcode || recObj.postcode || cardDa.postcode || cardConf.postcode || '';
+    const customerState = recObj.state || recObj.county || cardDa.state || cardDa.county || cardConf.state || cardConf.county || 'Greater London';
+    const customerPostcode = req.query.postcode || recObj.postcode || cardDa.postcode || cardConf.postcode || 'E1 6AN';
     const customerCountry = recObj.country || cardDa.country || cardConf.country || 'United Kingdom';
     const customerCountryCode = recObj.countryCode || (customerCountry === 'GB' || customerCountry.toUpperCase() === 'UNITED KINGDOM' ? 'GB' : 'GB');
     const customerPhone = req.query.phone || recObj.phone || cardDa.phone || cardConf.phone || '+44 20 7946 0123';
-    const customerEmail = req.query.email || recObj.email || cardDa.email || cardConf.email || 'returns@customer.com';
+    const customerEmail = req.query.email || recObj.email || cardDa.email || cardConf.email || 'returns@bessette.co.uk';
     const customerEori = req.query.eori || recObj.eoriNumber || cardDa.eoriNumber || cardConf.eoriNumber || cardConf.eori || cfg.eoriNumber || 'GB446867375';
     const customerVat = req.query.vat || recObj.vatNumber || cardDa.vatNumber || cardConf.vatNumber || cardConf.vat || cfg.vatNumber || 'GB 446 8673 75';
 
@@ -951,6 +951,7 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
     const weightVal = shipment ? Number(shipment.total_weight_kg || 1.5) : 1.5;
 
     const hsCodeInput = req.query.hsCode || req.query.hs || (docs && docs.hsCode) || '6204.6200';
+    const originCountry = req.query.origin || (docs && docs.origin) || 'PL';
 
     const html = invoiceGenerator.generateCommercialInvoiceHtml({
       trackingNumber: trk,
@@ -965,11 +966,11 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       receiver,
       items: [
         {
-          description: 'Returned Retail Merchandise (Apparel / Cotton Trousers)',
+          description: 'Returned Retail Merchandise (Women\'s Cotton Trousers)',
           qty: 1,
           unitValue: goodsVal,
           hsCode: hsCodeInput,
-          origin: sender.countryCode || 'CH',
+          origin: originCountry,
           weight: weightVal,
         }
       ]

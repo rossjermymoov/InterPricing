@@ -1040,7 +1040,7 @@ function buildShipmentRequest(p) {
   }
 
   // Build product line items for customs declaration (commercial invoice)
-  const defaultOrigin = toIso((senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'US');
+  const defaultOrigin = toIso(p.originCountry || p.origin || (isReturn ? 'PL' : ((senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'GB')));
   const rawItems = Array.isArray(p.lineItems) && p.lineItems.length ? p.lineItems : (Array.isArray(p.items) && p.items.length ? p.items : []);
   const sourceItems = rawItems.length ? rawItems : [
     {
