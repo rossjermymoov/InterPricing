@@ -938,8 +938,8 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
     const customerCountryCode = recObj.countryCode || (customerCountry === 'GB' || customerCountry.toUpperCase() === 'UNITED KINGDOM' ? 'GB' : 'GB');
     const customerPhone = req.query.phone || recObj.phone || cardDa.phone || cardConf.phone || '+44 20 7946 0123';
     const customerEmail = req.query.email || recObj.email || cardDa.email || cardConf.email || 'returns@bessette.co.uk';
-    const customerEori = req.query.eori || recObj.eoriNumber || cardDa.eoriNumber || cardConf.eoriNumber || cardConf.eori || cfg.eoriNumber || 'GB446867375';
-    const customerVat = req.query.vat || recObj.vatNumber || cardDa.vatNumber || cardConf.vatNumber || cardConf.vat || cfg.vatNumber || 'GB 446 8673 75';
+    const customerEori = req.query.eori || recObj.eoriNumber || cardDa.eoriNumber || cardConf.eoriNumber || cardConf.eori || cfg.eoriNumber || 'GB471791369000';
+    const customerVat = req.query.vat || recObj.vatNumber || cardDa.vatNumber || cardConf.vatNumber || cardConf.vat || cfg.vatNumber || 'GB 471 7913 69';
 
     const sender = {
       name: sendObj.name || req.query.senderName || 'Magdalena Piszczek',
