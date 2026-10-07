@@ -1047,7 +1047,7 @@ function buildShipmentRequest(p) {
       description: S(p.description || 'Returned Merchandise').slice(0, 35),
       qty: 1,
       unitValue: Number(p.goodsValue || p.value || 50),
-      hsCode: '620462',
+      hsCode: '62046200',
       sku: 'RET-01',
       originCountry: defaultOrigin,
     }
@@ -1056,7 +1056,8 @@ function buildShipmentRequest(p) {
   const productList = sourceItems.map((item, idx) => {
     const descStr = S(item.description || item.name || 'Returned Merchandise').slice(0, 35) || 'Merchandise';
     const orig = toIso(item.originCountry || item.origin || defaultOrigin);
-    const cleanHs = S(item.hsCode || item.tariffCode || '620462').replace(/[^0-9]/g, '').slice(0, 10) || '620462';
+    const rawHsDigits = S(item.hsCode || item.tariffCode || '62046200').replace(/[^0-9]/g, '');
+    const cleanHs = rawHsDigits.length === 6 ? (rawHsDigits + '00') : (rawHsDigits.slice(0, 10) || '62046200');
     return {
       Description: [descStr],
       Unit: {

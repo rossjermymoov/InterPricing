@@ -2913,8 +2913,8 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                     </thead>
                     <tbody id="retItemsBody">
                       <tr class="ret-item-row">
-                        <td><input type="text" class="sd-input ret-item-desc" placeholder="e.g. Cotton Shirt" value="Merchandise Return" required style="height:32px;font-size:12px"/></td>
-                        <td><input type="text" class="sd-input ret-item-hs" placeholder="e.g. 6205.20" value="6205.20" style="height:32px;font-size:12px"/></td>
+                        <td><input type="text" class="sd-input ret-item-desc" placeholder="e.g. Cotton Trousers" value="Merchandise Return" required style="height:32px;font-size:12px"/></td>
+                        <td><input type="text" class="sd-input ret-item-hs" placeholder="e.g. 6204.6200" value="6204.6200" style="height:32px;font-size:12px"/></td>
                         <td><input type="number" class="sd-input ret-item-qty" min="1" value="1" style="height:32px;font-size:12px;text-align:center" oninput="updateReturnCustomsTotal()"/></td>
                         <td><input type="number" class="sd-input ret-item-val" min="1" step="0.5" value="50" style="height:32px;font-size:12px;text-align:right" oninput="updateReturnCustomsTotal()"/></td>
                         <td><input type="text" class="sd-input ret-item-origin" value="GB" maxlength="2" style="height:32px;font-size:12px;text-align:center;text-transform:uppercase"/></td>
@@ -4981,7 +4981,7 @@ function addReturnItemRow() {
   tr.className = 'ret-item-row';
   tr.innerHTML = `
     <td><input type="text" class="sd-input ret-item-desc" placeholder="e.g. Silk Blouse" value="Merchandise Return" required style="height:32px;font-size:12px"/></td>
-    <td><input type="text" class="sd-input ret-item-hs" placeholder="e.g. 6206.10" value="6206.10" style="height:32px;font-size:12px"/></td>
+    <td><input type="text" class="sd-input ret-item-hs" placeholder="e.g. 6206.1000" value="6206.1000" style="height:32px;font-size:12px"/></td>
     <td><input type="number" class="sd-input ret-item-qty" min="1" value="1" style="height:32px;font-size:12px;text-align:center" oninput="updateReturnCustomsTotal()"/></td>
     <td><input type="number" class="sd-input ret-item-val" min="1" step="0.5" value="40" style="height:32px;font-size:12px;text-align:right" oninput="updateReturnCustomsTotal()"/></td>
     <td><input type="text" class="sd-input ret-item-origin" value="${esc(country)}" maxlength="2" style="height:32px;font-size:12px;text-align:center;text-transform:uppercase"/></td>
@@ -5023,7 +5023,7 @@ function getReturnLineItems() {
   if (!tbody) {
     return [{
       description: 'Merchandise Return',
-      hsCode: '6204.62',
+      hsCode: '6204.6200',
       qty: 1,
       unitValue: 50,
       originCountry: country.toUpperCase(),
@@ -5032,7 +5032,10 @@ function getReturnLineItems() {
   const items = [];
   tbody.querySelectorAll('.ret-item-row').forEach(row => {
     const desc = row.querySelector('.ret-item-desc')?.value.trim() || 'Merchandise Return';
-    const hs = row.querySelector('.ret-item-hs')?.value.trim() || '6204.62';
+    let hs = row.querySelector('.ret-item-hs')?.value.trim() || '6204.6200';
+    const rawDigits = hs.replace(/[^0-9]/g, '');
+    if (rawDigits.length === 6) hs = rawDigits.slice(0, 4) + '.' + rawDigits.slice(4) + '00';
+    else if (rawDigits.length >= 8 && !hs.includes('.')) hs = rawDigits.slice(0, 4) + '.' + rawDigits.slice(4, 8);
     const qty = Number(row.querySelector('.ret-item-qty')?.value) || 1;
     const unitVal = Number(row.querySelector('.ret-item-val')?.value) || 50;
     const origin = (row.querySelector('.ret-item-origin')?.value.trim() || country || 'GB').toUpperCase();
@@ -5047,7 +5050,7 @@ function getReturnLineItems() {
   if (!items.length) {
     items.push({
       description: 'Merchandise Return',
-      hsCode: '6204.62',
+      hsCode: '6204.6200',
       qty: 1,
       unitValue: 50,
       originCountry: country.toUpperCase(),

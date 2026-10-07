@@ -867,17 +867,7 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
   try {
     const trk = String(req.params.tracking || '').replace(/\s+/g, '').trim();
     let shipment = null;
-    if (db.hasDb) {
-      try {
-        const { rows } = await db.pool.query('SELECT * FROM shipments WHERE tracking_number = $1 OR shipment_id = $1 LIMIT 1', [trk]);
-        if (rows && rows.length) shipment = rows[0];
-      } catch (err) {
-        console.error('[invoice route query error]:', err.message);
-      }
-    }
-
-    const cfg = await db.getConfig();
-    const da = (cfg && cfg.data && cfg.data.defaultAddress) || {};
+    let card = null;
 
     const parseJson = (val, def) => {
       if (!val) return def;
@@ -885,37 +875,82 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       try { return JSON.parse(val); } catch (_) { return def; }
     };
 
-    const sender = (shipment && shipment.sender) ? parseJson(shipment.sender, {}) : {
-      name: 'Customer Return Sender',
-      company: 'Private Individual',
-      line1: 'Bahnhofstrasse 10',
-      city: 'Zurich',
-      state: 'ZH',
-      postcode: '8001',
-      country: 'Switzerland',
-      countryCode: 'CH',
-      phone: '+41 44 123 4567',
-      email: 'returns@moovparcel.com',
+    if (db.hasDb) {
+      try {
+        const { rows } = await db.pool.query('SELECT * FROM shipments WHERE tracking_number = $1 OR shipment_id = $1 LIMIT 1', [trk]);
+        if (rows && rows.length) {
+          shipment = rows[0];
+          if (shipment.card_id) {
+            card = await db.getCardById(shipment.card_id);
+          } else if (shipment.token) {
+            card = await db.getCardByToken(shipment.token);
+          }
+        }
+        if (!card) {
+          const cardList = await db.listCards();
+          if (cardList && cardList.length) card = cardList[0];
+        }
+      } catch (err) {
+        console.error('[invoice route query error]:', err.message);
+      }
+    }
+
+    const cfg = await db.getConfig();
+    const cardConf = (card && card.config) ? card.config : {};
+    const cardDa = cardConf.deliveryAddress || cardConf.receiver || {};
+
+    const recObj = (shipment && shipment.receiver) ? parseJson(shipment.receiver, {}) : {};
+    const sendObj = (shipment && shipment.sender) ? parseJson(shipment.sender, {}) : {};
+
+    const customerCompany = req.query.company || recObj.company || cardDa.company || card?.customer || cardConf.customer || shipment?.customer || 'Customer Warehouse';
+    const customerName = req.query.name || recObj.name || cardDa.name || cardDa.contactName || cardConf.contactName || 'Returns Processing Unit';
+    const customerLine1 = req.query.address || recObj.line1 || cardDa.line1 || cardDa.address || cardConf.line1 || cardConf.address || 'Customer Return Centre';
+    const customerLine2 = recObj.line2 || cardDa.line2 || cardConf.line2 || '';
+    const customerCity = req.query.city || recObj.city || cardDa.city || cardConf.city || 'London';
+    const customerState = recObj.state || recObj.county || cardDa.state || cardDa.county || cardConf.state || cardConf.county || '';
+    const customerPostcode = req.query.postcode || recObj.postcode || cardDa.postcode || cardConf.postcode || '';
+    const customerCountry = recObj.country || cardDa.country || cardConf.country || 'United Kingdom';
+    const customerCountryCode = recObj.countryCode || (customerCountry === 'GB' || customerCountry.toUpperCase() === 'UNITED KINGDOM' ? 'GB' : 'GB');
+    const customerPhone = req.query.phone || recObj.phone || cardDa.phone || cardConf.phone || '+44 20 7946 0123';
+    const customerEmail = req.query.email || recObj.email || cardDa.email || cardConf.email || 'returns@customer.com';
+    const customerEori = req.query.eori || recObj.eoriNumber || cardDa.eoriNumber || cardConf.eoriNumber || cardConf.eori || cfg.eoriNumber || 'GB446867375';
+    const customerVat = req.query.vat || recObj.vatNumber || cardDa.vatNumber || cardConf.vatNumber || cardConf.vat || cfg.vatNumber || 'GB 446 8673 75';
+
+    const sender = {
+      name: sendObj.name || 'Customer Return Sender',
+      company: sendObj.company || 'Private Individual',
+      line1: sendObj.line1 || 'Bahnhofstrasse 10',
+      line2: sendObj.line2 || '',
+      city: sendObj.city || 'Zurich',
+      state: sendObj.state || 'ZH',
+      postcode: sendObj.postcode || '8001',
+      country: sendObj.country || 'Switzerland',
+      countryCode: sendObj.countryCode || (sendObj.country && sendObj.country.length === 2 ? sendObj.country : 'CH'),
+      phone: sendObj.phone || '+41 44 123 4567',
+      email: sendObj.email || 'customer@example.com',
     };
 
-    const receiver = (shipment && shipment.receiver) ? parseJson(shipment.receiver, {}) : {
-      name: 'Returns Processing Hub',
-      company: 'MOOV Parcel Logistics Ltd',
-      line1: da.line1 || '1 Mellor Meadows',
-      city: da.city || 'Whittington',
-      state: da.county || 'Shropshire',
-      postcode: da.postcode || 'SY11 4FN',
-      country: da.country || 'United Kingdom',
-      countryCode: 'GB',
-      phone: da.phone || '+44 1691 654321',
-      email: da.email || 'returns@moovparcel.com',
-      eoriNumber: da.eoriNumber || cfg.eoriNumber || 'GB446867375',
-      vatNumber: da.vatNumber || cfg.vatNumber || 'GB 446 8673 75',
+    const receiver = {
+      name: customerName,
+      company: customerCompany,
+      line1: customerLine1,
+      line2: customerLine2,
+      city: customerCity,
+      state: customerState,
+      postcode: customerPostcode,
+      country: customerCountry,
+      countryCode: customerCountryCode,
+      phone: customerPhone,
+      email: customerEmail,
+      eoriNumber: customerEori,
+      vatNumber: customerVat,
     };
 
     const docs = parseJson(shipment && shipment.documents_attached, {});
     const goodsVal = shipment ? Number(shipment.goods_value || 65.00) : 65.00;
     const weightVal = shipment ? Number(shipment.total_weight_kg || 1.5) : 1.5;
+
+    const hsCodeInput = req.query.hsCode || req.query.hs || (docs && docs.hsCode) || '6204.6200';
 
     const html = invoiceGenerator.generateCommercialInvoiceHtml({
       trackingNumber: trk,
@@ -928,6 +963,16 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       termsOfSale: 'DDP',
       sender,
       receiver,
+      items: [
+        {
+          description: 'Returned Retail Merchandise (Apparel / Cotton Trousers)',
+          qty: 1,
+          unitValue: goodsVal,
+          hsCode: hsCodeInput,
+          origin: sender.countryCode || 'CH',
+          weight: weightVal,
+        }
+      ]
     });
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
