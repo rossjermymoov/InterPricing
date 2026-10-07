@@ -966,17 +966,17 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       receiver,
       items: (docs && Array.isArray(docs.items) && docs.items.length) ? docs.items : [
         {
-          description: 'Trousers (Women\'s Cotton Trousers)',
+          description: 'Trousers (Women\'s Trousers)',
           qty: 1,
-          unitValue: 40.00,
+          unitValue: 182.00,
           hsCode: '6204.6200',
           origin: 'PL',
           weight: 0.90,
         },
         {
-          description: 'Top (Women\'s Blouse / Top)',
+          description: 'Camisole (Women\'s Silk Camisole Top)',
           qty: 1,
-          unitValue: 25.00,
+          unitValue: 136.00,
           hsCode: '6206.1000',
           origin: 'IT',
           weight: 0.60,
