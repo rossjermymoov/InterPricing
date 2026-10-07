@@ -964,14 +964,22 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       termsOfSale: 'DDP',
       sender,
       receiver,
-      items: [
+      items: (docs && Array.isArray(docs.items) && docs.items.length) ? docs.items : [
         {
-          description: 'Returned Retail Merchandise (Women\'s Cotton Trousers)',
+          description: 'Trousers (Women\'s Cotton Trousers)',
           qty: 1,
-          unitValue: goodsVal,
-          hsCode: hsCodeInput,
-          origin: originCountry,
-          weight: weightVal,
+          unitValue: 40.00,
+          hsCode: '6204.6200',
+          origin: 'PL',
+          weight: 0.90,
+        },
+        {
+          description: 'Top (Women\'s Blouse / Top)',
+          qty: 1,
+          unitValue: 25.00,
+          hsCode: '6206.1000',
+          origin: 'IT',
+          weight: 0.60,
         }
       ]
     });
