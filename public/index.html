@@ -2401,11 +2401,13 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           <span style="font-size:20px;line-height:1">⚠️</span>
           <div style="flex:1">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <b style="font-size:13px;letter-spacing:0.04em;text-transform:uppercase;color:var(--moov-yellow)">UPS &amp; DPD Peak Demand &amp; Surge Surcharges In Effect</b>
-              <span style="background:rgba(255,214,0,0.18);color:var(--moov-yellow);border:1px solid rgba(255,214,0,0.4);font-size:11px;font-weight:800;padding:2px 8px">20 Sept 2026 – 6 Feb 2027</span>
+              <b style="font-size:13px;letter-spacing:0.04em;text-transform:uppercase;color:var(--moov-yellow)">Peak Demand &amp; Festive Surcharges In Effect</b>
+              <span style="background:rgba(255,214,0,0.18);color:var(--moov-yellow);border:1px solid rgba(255,214,0,0.4);font-size:11px;font-weight:800;padding:2px 8px">Peak Windows Active</span>
             </div>
             <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px;line-height:1.45">
-              During this peak window, UPS Demand Surcharges apply to Additional Handling, Large Package, and Over Max limits (with your negotiated discounts factored in), a Surge Emergency Fee applies to residential deliveries (£0.48/pkg domestic, £0.13/kg standard international), and a DPD Peak Season Surcharge of £0.40/parcel applies. All charges are automatically reflected below.
+              <b>• UPS Peak Demand (20 Sept – 6 Feb):</b> Demand surcharges on Additional Handling, Large Package, Over Max, and Residential Surge (£0.48/pkg domestic, £0.13/kg international).<br/>
+              <b>• DPD Festive Peak (16 Nov – 31 Dec):</b> Domestic 30p/parcel, DPD Lite 20p/parcel, Classic &amp; ROI 75p/parcel, Air Service £1.50/parcel.<br/>
+              All applicable charges are automatically calculated and itemized below.
             </div>
           </div>
         </div>
@@ -3227,6 +3229,14 @@ function isSurgeDate(d = new Date()) {
   return dt >= start && dt <= end;
 }
 
+function isDpdPeakDate(d = new Date()) {
+  const dt = d ? new Date(d) : new Date();
+  const year = dt.getUTCFullYear();
+  const start = new Date(Date.UTC(year, 10, 16, 0, 0, 0)); // 16th November
+  const end = new Date(Date.UTC(year, 11, 31, 23, 59, 59)); // 31st December
+  return dt >= start && dt <= end;
+}
+
 const DEMAND_SURCHARGE_RATES = {
   addlHandling: 7.25,
   largePackage: 68.95,
@@ -3235,7 +3245,7 @@ const DEMAND_SURCHARGE_RATES = {
 
 function calcSurgeFee(c, chg, isResi) {
   if (!isSurgeDate()) return null;
-  const isDom = (c === 'United Kingdom' || c === 'GB');
+  const isDom = (c === 'United Kingdom' || c === 'GB' || c === 'UK');
   const isIt = (c === 'Italy' || c === 'IT');
   const applies = isResi || (isIt && isDom);
   if (!applies) return null;
@@ -3245,6 +3255,33 @@ function calcSurgeFee(c, chg, isResi) {
   }
   const fee = Math.round(0.13 * (chg || 1) * 100) / 100;
   return fee > 0 ? { name: 'Surge Emergency Fee (£0.13/kg)', amt: fee } : null;
+}
+
+function calcDpdPeakFee(svc, c) {
+  if (!isDpdPeakDate()) return null;
+  const isDom = (c === 'United Kingdom' || c === 'GB' || c === 'UK');
+  const isRoi = (c === 'Ireland' || c === 'IE' || c === 'Republic of Ireland');
+  const svcKey = String((svc && svc.key) || '').toLowerCase();
+  const svcName = String((svc && svc.name) || '').toLowerCase();
+
+  let amt = 0.75;
+  let label = 'DPD Peak Season Surcharge (Classic & ROI)';
+
+  if (isDom) {
+    amt = 0.30;
+    label = 'DPD Peak Season Surcharge (Domestic)';
+  } else if (svcKey === 'ep' || svcName.includes('expresspak') || svcName.includes('lite')) {
+    amt = 0.20;
+    label = 'DPD Peak Season Surcharge (DPD Lite)';
+  } else if (svcKey === 'ae' || svcKey === 'ca' || svcName.includes('air') || svcName.includes('express')) {
+    amt = 1.50;
+    label = 'DPD Peak Season Surcharge (Air Service)';
+  } else if (svcKey === 'cp' || isRoi || svcName.includes('classic') || svcName.includes('parcel')) {
+    amt = 0.75;
+    label = 'DPD Peak Season Surcharge (Classic & ROI)';
+  }
+
+  return { name: label, amt, peak: true };
 }
 
 function accCost(a){
@@ -3366,7 +3403,7 @@ function build(raw, svc, countryOverride){
 
   const isDdp = !!($('acc_ddp') && $('acc_ddp').checked);
   const isUsa = (c === 'USA' || c === 'US' || c === 'United States');
-  const isInternational = (c !== 'United Kingdom' && c !== 'GB');
+  const isInternational = (c !== 'United Kingdom' && c !== 'GB' && c !== 'UK');
 
   if (svc && svc.carrier === 'dpd') {
     const isRoad = ['cp', 'ep'].includes(svc.key);
@@ -3380,10 +3417,11 @@ function build(raw, svc, countryOverride){
       sumSellExtra += 5.00;
       sumCostExtra += 5.00;
     }
-    if (isSurgeDate() && !flatExtras.some(([n]) => n.toLowerCase().includes('peak'))) {
-      flatExtras.push(['DPD Peak Season Surcharge', 0.40]);
-      sumSellExtra += 0.40;
-      sumCostExtra += 0.40;
+    const dpdPeak = calcDpdPeakFee(svc, c);
+    if (dpdPeak && !flatExtras.some(([n]) => n.toLowerCase().includes('peak'))) {
+      flatExtras.push([dpdPeak.name, dpdPeak.amt]);
+      sumSellExtra += dpdPeak.amt;
+      sumCostExtra += dpdPeak.amt;
     }
     if (isDdp) {
       flatExtras.push(['DDP Duty Forwarding Fee (' + (isUsa ? '1.0% USA' : '2.5% ROW') + ')', 0, { forwardingPct: true }]);
@@ -3893,7 +3931,7 @@ function bootCalc(){
     });
   }
 
-  const isSurge = isSurgeDate();
+  const isSurge = isSurgeDate() || isDpdPeakDate();
   if ($('calcSurgeBanner')) {
     $('calcSurgeBanner').style.display = isSurge ? 'block' : 'none';
   }

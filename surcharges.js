@@ -226,16 +226,61 @@ function calculateSurgeEmergencyFee({ country, isDomestic = false, isResidential
   };
 }
 
+function isDpdPeakPeriod(dateInput) {
+  const d = dateInput ? new Date(dateInput) : new Date();
+  const year = d.getUTCFullYear();
+  const start = new Date(Date.UTC(year, 10, 16, 0, 0, 0)); // 16th November
+  const end = new Date(Date.UTC(year, 11, 31, 23, 59, 59)); // 31st December
+  return d >= start && d <= end;
+}
+
 /**
  * Calculates the DPD Peak / Festive Season Surcharge
- * - £0.40 per parcel during the peak volume period
+ * Dates: 16th November – 31st December
+ * - Domestic: 30p per parcel (£0.30)
+ * - DPD Lite: 20p per parcel (£0.20)
+ * - Classic & ROI (Republic of Ireland): 75p per parcel (£0.75)
+ * - Air Service: £1.50 per parcel (£1.50)
  */
-function calculateDpdPeakFee({ qty = 1, date = new Date() } = {}) {
-  if (!isSurgePeriod(date)) return null;
+function calculateDpdPeakFee({ serviceKey = '', serviceName = '', country = '', qty = 1, date = new Date() } = {}) {
+  if (!isDpdPeakPeriod(date)) return null;
   const numQty = Math.max(1, Number(qty) || 1);
+  const svc = String(serviceKey || '').toLowerCase();
+  const name = String(serviceName || '').toLowerCase();
+  const c = String(country || '').trim();
+  const isDom = (c === 'United Kingdom' || c === 'GB' || c === 'UK');
+  const isRoi = (c === 'Ireland' || c === 'IE' || c === 'Republic of Ireland');
+
+  let rate = 0.75;
+  let label = 'DPD Peak Season Surcharge (Classic & ROI)';
+  let note = 'Classic & ROI (75p/parcel)';
+
+  if (isDom) {
+    rate = 0.30;
+    label = 'DPD Peak Season Surcharge (Domestic)';
+    note = 'Domestic (30p/parcel)';
+  } else if (svc === 'ep' || name.includes('expresspak') || name.includes('lite')) {
+    rate = 0.20;
+    label = 'DPD Peak Season Surcharge (DPD Lite)';
+    note = 'DPD Lite (20p/parcel)';
+  } else if (svc === 'ae' || svc === 'ca' || name.includes('air') || name.includes('express')) {
+    rate = 1.50;
+    label = 'DPD Peak Season Surcharge (Air Service)';
+    note = 'Air Service (£1.50/parcel)';
+  } else if (svc === 'cp' || isRoi || name.includes('classic') || name.includes('parcel')) {
+    rate = 0.75;
+    label = 'DPD Peak Season Surcharge (Classic & ROI)';
+    note = 'Classic & ROI (75p/parcel)';
+  }
+
+  const amt = Math.round(rate * numQty * 100) / 100;
+
   return {
-    name: 'DPD Peak Season Surcharge',
-    amt: Math.round(0.40 * numQty * 100) / 100,
+    name: label,
+    rate,
+    amt,
+    costAmt: amt,
+    note,
     code: 'DPD_PEAK',
     surge: true,
   };
@@ -249,6 +294,7 @@ module.exports = {
   SURGE_START_DATE,
   SURGE_END_DATE,
   isSurgePeriod,
+  isDpdPeakPeriod,
   getDemandSurcharges,
   calculateSurgeEmergencyFee,
   calculateDpdPeakFee,
