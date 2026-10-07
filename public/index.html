@@ -2401,11 +2401,11 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           <span style="font-size:20px;line-height:1">⚠️</span>
           <div style="flex:1">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <b style="font-size:13px;letter-spacing:0.04em;text-transform:uppercase;color:var(--moov-yellow)">UPS Peak Demand &amp; Surge Emergency Surcharges In Effect</b>
+              <b style="font-size:13px;letter-spacing:0.04em;text-transform:uppercase;color:var(--moov-yellow)">UPS &amp; DPD Peak Demand &amp; Surge Surcharges In Effect</b>
               <span style="background:rgba(255,214,0,0.18);color:var(--moov-yellow);border:1px solid rgba(255,214,0,0.4);font-size:11px;font-weight:800;padding:2px 8px">20 Sept 2026 – 6 Feb 2027</span>
             </div>
             <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:4px;line-height:1.45">
-              During this peak window, UPS Demand Surcharges apply to Additional Handling, Large Package, and Over Max limits (with your negotiated discounts factored in). A Surge Emergency Fee applies to residential deliveries (£0.48/pkg domestic, £0.13/kg standard international). All charges are automatically reflected below.
+              During this peak window, UPS Demand Surcharges apply to Additional Handling, Large Package, and Over Max limits (with your negotiated discounts factored in), a Surge Emergency Fee applies to residential deliveries (£0.48/pkg domestic, £0.13/kg standard international), and a DPD Peak Season Surcharge of £0.40/parcel applies. All charges are automatically reflected below.
             </div>
           </div>
         </div>
@@ -3380,6 +3380,11 @@ function build(raw, svc, countryOverride){
       sumSellExtra += 5.00;
       sumCostExtra += 5.00;
     }
+    if (isSurgeDate() && !flatExtras.some(([n]) => n.toLowerCase().includes('peak'))) {
+      flatExtras.push(['DPD Peak Season Surcharge', 0.40]);
+      sumSellExtra += 0.40;
+      sumCostExtra += 0.40;
+    }
     if (isDdp) {
       flatExtras.push(['DDP Duty Forwarding Fee (' + (isUsa ? '1.0% USA' : '2.5% ROW') + ')', 0, { forwardingPct: true }]);
     }
@@ -3396,7 +3401,7 @@ function build(raw, svc, countryOverride){
     }
 
     if (isInternational) {
-      if (!flatExtras.some(([n]) => n.toLowerCase().includes('processing') || n.toLowerCase().includes('ip'))) {
+      if (!flatExtras.some(([n]) => n.toLowerCase().includes('international processing') || n.toLowerCase().includes('ip fee'))) {
         flatExtras.push(['International Processing Fee (IP)', 4.30]);
         sumSellExtra += 4.30;
         sumCostExtra += 4.30;
@@ -3769,6 +3774,10 @@ function calc(){
           displayName = 'Disbursement fee <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">Calculated as a minimum of £8.00 or 3% of forwarded customs duties and taxes prepaid upon import.</span></span>';
         } else if (String(n || '').toLowerCase().includes('international processing') || String(n || '').toLowerCase().includes('ip fee')) {
           displayName = 'International Processing Fee (IP) <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">Standard customs entry and electronic international documentation fee.</span></span>';
+        } else if (String(n || '').toLowerCase().includes('merchant processing')) {
+          displayName = 'Merchant Processing Fee <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">UPS US electronic export / merchant processing charge.</span></span>';
+        } else if (String(n || '').toLowerCase().includes('peak season') || String(n || '').toLowerCase().includes('dpd peak')) {
+          displayName = 'DPD Peak Season Surcharge <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">DPD festive season demand surcharge (£0.40/parcel) active 20 Sept 2026 – 6 Feb 2027.</span></span>';
         } else if (String(n || '').toLowerCase().includes('air ddp admin') || String(n || '').toLowerCase().includes('dpd air')) {
           displayName = n + ' <span class="ds-tooltip-wrap" tabindex="0"><span class="ds-tooltip-icon">?</span><span class="ds-tooltip-bubble">£5.00 parcel admin fee included. Post-clearance duty forwarding fee is ' + (isUsa ? '1.0% (USA)' : '2.5%') + ' of forwarded duties/taxes.</span></span>';
         } else if (String(n || '').toLowerCase().includes('dpd road admin') || String(n || '').toLowerCase().includes('road admin')) {

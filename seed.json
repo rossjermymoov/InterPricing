@@ -25019,6 +25019,17 @@
         "disc": 0,
         "sell": 5.0,
         "fuelable": false
+      },
+      {
+        "key": "dpdPeak",
+        "name": "DPD Peak Season Surcharge",
+        "applyTo": "dpd",
+        "cond": "auto",
+        "basis": "flat",
+        "list": 0.40,
+        "disc": 0,
+        "sell": 0.40,
+        "fuelable": false
       }
     ],
     "accessorials_reference": [

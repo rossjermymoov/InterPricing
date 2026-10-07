@@ -381,7 +381,7 @@ const CHG = {
   '510': 'Lift Gate for Pickup',
   '511': 'Lift Gate for Delivery',
   '520': 'Oversize Pallet Surcharge',
-  '573': 'International Processing Fee (US)',
+  '573': 'Merchant Processing Fee',
 };
 const chgName = (c) => CHG[String(c)] || ('Accessorial ' + c);
 const REMOTE = ['190', '195', '197', '199', '400', '401', '376'];

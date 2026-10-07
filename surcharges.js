@@ -226,6 +226,21 @@ function calculateSurgeEmergencyFee({ country, isDomestic = false, isResidential
   };
 }
 
+/**
+ * Calculates the DPD Peak / Festive Season Surcharge
+ * - £0.40 per parcel during the peak volume period
+ */
+function calculateDpdPeakFee({ qty = 1, date = new Date() } = {}) {
+  if (!isSurgePeriod(date)) return null;
+  const numQty = Math.max(1, Number(qty) || 1);
+  return {
+    name: 'DPD Peak Season Surcharge',
+    amt: Math.round(0.40 * numQty * 100) / 100,
+    code: 'DPD_PEAK',
+    surge: true,
+  };
+}
+
 module.exports = {
   lookupSurcharge,
   loadData,
@@ -236,5 +251,6 @@ module.exports = {
   isSurgePeriod,
   getDemandSurcharges,
   calculateSurgeEmergencyFee,
+  calculateDpdPeakFee,
 };
 
