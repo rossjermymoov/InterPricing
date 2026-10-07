@@ -602,7 +602,17 @@ async function getShipmentById(id) {
 
 async function getShipmentByTracking(tracking) {
   if (!pool || !tracking) return null;
-  const { rows } = await pool.query(`SELECT * FROM shipments WHERE tracking_number = $1 OR shipment_id = $1 OR id::text = $1 LIMIT 1`, [String(tracking)]);
+  const raw = String(tracking).trim();
+  const clean = raw.replace(/\s+/g, '');
+  const { rows } = await pool.query(
+    `SELECT * FROM shipments 
+     WHERE REPLACE(COALESCE(tracking_number, ''), ' ', '') = $1 
+        OR tracking_number = $2 
+        OR shipment_id = $2 
+        OR id::text = $2 
+     LIMIT 1`,
+    [clean, raw]
+  );
   return rows[0] || null;
 }
 
