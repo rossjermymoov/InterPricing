@@ -1046,7 +1046,7 @@ function buildShipmentRequest(p) {
     });
   }
 
-  // Build product line items for customs declaration (commercial invoice)
+  const isReturn = !!(p.isReturn || p.mode === 'return' || p.mode === 'intl_return');
   const defaultOrigin = toIso(p.originCountry || p.origin || (isReturn ? 'PL' : ((senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'GB')));
   const rawItems = Array.isArray(p.lineItems) && p.lineItems.length ? p.lineItems : (Array.isArray(p.items) && p.items.length ? p.items : []);
   const sourceItems = rawItems.length ? rawItems : [
@@ -1061,7 +1061,11 @@ function buildShipmentRequest(p) {
   ];
 
   const productList = sourceItems.map((item, idx) => {
-    const descStr = S(item.description || item.name || 'Returned Merchandise').slice(0, 35) || 'Merchandise';
+    let rawDesc = item.description || item.name || 'Returned Merchandise';
+    if (isReturn && !String(rawDesc).toUpperCase().includes('61 23') && !String(rawDesc).toUpperCase().includes('CPC')) {
+      rawDesc = String(rawDesc).slice(0, 20) + ' (CPC 61 23 F01)';
+    }
+    const descStr = S(rawDesc).slice(0, 35) || 'Merchandise';
     const orig = toIso(item.originCountry || item.origin || defaultOrigin);
     const rawHsDigits = S(item.hsCode || item.tariffCode || '62046200').replace(/[^0-9]/g, '');
     const cleanHs = rawHsDigits.length === 6 ? (rawHsDigits + '00') : (rawHsDigits.slice(0, 10) || '62046200');
@@ -1084,17 +1088,30 @@ function buildShipmentRequest(p) {
 
   const invoiceNumber = S(p.invoiceNumber || p.originalOrderRef || ('RET-' + Date.now().toString().slice(-6)));
   const purchaseOrderNumber = S(p.reference || p.originalOrderRef || ('MOOV-' + Date.now().toString().slice(-6)));
+  const rgrDeclaration = 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty and VAT claimed under Returned Goods Relief (CPC 61 23 F01).';
+  const rgrComments = 'RETURNED GOODS RELIEF CLAIMED UNDER CPC 61 23 F01 - UK GOODS RETURNED UNALTERED';
 
   if (forms.length > 0) {
     const intlForms = {
       FormType: ['01'],
       UserCreatedForm: forms,
-      ReasonForExport: reasonForExport,
+      ReasonForExport: isReturn ? 'RETURN' : reasonForExport,
       TermsOfSale: incoTerms,
       InvoiceNumber: invoiceNumber,
       InvoiceDate: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
       PurchaseOrderNumber: purchaseOrderNumber,
       CurrencyCode: p.currency || 'GBP',
+      DeclarationStatement: isReturn ? rgrDeclaration : (p.declarationStatement || 'I hereby declare that the information in this invoice is true and correct.'),
+      Comments: isReturn ? rgrComments : 'Commercial Invoices provided for customs clearance',
+      Contacts: {
+        SoldTo: {
+          Name: S(receiver.company || receiver.name || 'Importer').slice(0, 35),
+          AttentionName: S(receiver.name || receiver.company || 'Importer').slice(0, 35),
+          TaxIdentificationNumber: ukEoriNumber,
+          Phone: { Number: S(receiver.phone || '').replace(/[^0-9+ ]/g, '').slice(0, 15) },
+          Address: receiverAddr.Address,
+        },
+      },
     };
     if (productList.length > 0) {
       intlForms.Product = productList;
@@ -1106,14 +1123,14 @@ function buildShipmentRequest(p) {
     // Cross-border shipment or international return: build full electronic commercial invoice
     const intlForms = {
       FormType: ['01'],
-      ReasonForExport: reasonForExport,
+      ReasonForExport: isReturn ? 'RETURN' : reasonForExport,
       TermsOfSale: incoTerms,
       InvoiceNumber: invoiceNumber,
       InvoiceDate: new Date().toISOString().slice(0, 10).replace(/-/g, ''),
       PurchaseOrderNumber: purchaseOrderNumber,
       CurrencyCode: p.currency || 'GBP',
-      DeclarationStatement: isReturn ? 'Returned goods being returned to the United Kingdom. Relief from import duty and VAT claimed under Returned Goods Relief (CPC 61 23).' : 'I hereby declare that the information in this invoice is true and correct.',
-      Comments: isReturn ? 'Customer Return / Repatriation of goods to UK (CPC 61 23)' : 'Commercial Invoices provided for customs clearance',
+      DeclarationStatement: isReturn ? rgrDeclaration : (p.declarationStatement || 'I hereby declare that the information in this invoice is true and correct.'),
+      Comments: isReturn ? rgrComments : 'Commercial Invoices provided for customs clearance',
       Contacts: {
         SoldTo: {
           Name: S(receiver.company || receiver.name || 'Importer').slice(0, 35),
