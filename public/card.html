@@ -3591,7 +3591,8 @@ function renderToggles() {
   groups.forEach(({ g, name }) => {
     const lab = document.createElement('label');
     lab.className = 'tg';
-    lab.innerHTML = '<input type="checkbox" id="tg_' + g + '"/> ' + name;
+    const isChecked = (g === 'ddp' || g === 'residential');
+    lab.innerHTML = '<input type="checkbox" id="tg_' + g + '"' + (isChecked ? ' checked' : '') + '/> ' + name;
     box.appendChild(lab);
     lab.querySelector('input').addEventListener('change', calc);
   });

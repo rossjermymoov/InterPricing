@@ -3627,8 +3627,9 @@ function renderToggles(){
 
   groups.forEach(g=>{
     const id='acc_'+g.key;
+    const isChecked = (g.key === 'ddp' || g.key === 'residential');
     const div=document.createElement('div');div.className='ds-toggle';
-    div.innerHTML='<input id="'+id+'" type="checkbox"/><label for="'+id+'">'+g.name+'</label>';
+    div.innerHTML='<input id="'+id+'" type="checkbox"'+(isChecked ? ' checked' : '')+'/><label for="'+id+'">'+g.name+'</label>';
     box.appendChild(div);
     $(id).addEventListener('change',calc);
   });
