@@ -6480,7 +6480,7 @@ async function refreshUsers(){
 if ($('upsTest')) $('upsTest').onclick=async()=>{
   $('upsMsg').style.color='var(--mv-purple)';$('upsMsg').textContent='Testing UPS connection…';
   const sample={mode:'import',sender:{country:'DE',city:'Berlin',postcode:'10115',line1:'Hauptstrasse 1',name:'Test Sender'},
-    receiver:{country:'GB',city:'Whittington',postcode:'SY11 4FN',line1:'1 Mellor Meadows',name:'Test Receiver'},
+    receiver:{country:'GB',city:'Sheffield',postcode:'S9 3AJ',line1:'Units 3-5 Kettlebridge Road',line2:'Parkway Link',name:'Test Receiver'},
     packages:[{qty:1,weight:5,l:30,w:20,h:15}],value:250,currency:'GBP'};
   const r=await jpost('/api/ups-test',sample);const d=await r.json();
   if(!r.ok){if($('upsMsg')){$('upsMsg').style.color='var(--mv-magenta-deep)';$('upsMsg').textContent=d.error||'Test failed';}return;}

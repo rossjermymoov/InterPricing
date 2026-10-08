@@ -226,7 +226,16 @@ function isImperialCountry(countryCode) {
 function buildRateRequest(p) {
   const acct = process.env.UPS_ACCOUNT_NUMBER || '';
   const homeCountry = 'GB';
-  const shipper = { Name: 'MOOV Parcel', ShipperNumber: acct, Address: { AddressLine: ['1 Mellor Meadows'], City: 'Whittington', PostalCode: 'SY11 4FN', CountryCode: 'GB' } };
+  const shipper = {
+    Name: 'MOOV Logistics Solutions Limited',
+    ShipperNumber: acct,
+    Address: {
+      AddressLine: ['Units 3-5 Kettlebridge Road', 'Parkway Link'],
+      City: 'Sheffield',
+      PostalCode: 'S9 3AJ',
+      CountryCode: 'GB',
+    },
+  };
   const sender = p.sender || {}, receiver = p.receiver || {};
   const shipFrom = Object.assign({ Name: S(sender.name || sender.company || 'Sender') }, addressOf(sender, ''));
   const shipTo = Object.assign({ Name: S(receiver.name || receiver.company || 'Receiver') }, addressOf(receiver, homeCountry));
@@ -894,20 +903,18 @@ function buildShipmentRequest(p) {
   // For cross-border imports originating overseas (e.g. NL -> GB), UPS requires the ReturnService
   // container (Code: '9' Print Return Label) so the shipment originates from ShipFrom (NL)
   // and delivers to ShipTo (GB) billed to the UK Shipper account.
-  const ukEoriNumber = S(p.ukEori || p.importerEori || 'GB446867375').slice(0, 18);
+  const ukEoriNumber = S(p.ukEori || p.importerEori || (receiver && (receiver.eoriNumber || receiver.eori)) || '').slice(0, 18);
   const senderTaxId = S(p.senderTaxId || p.senderVat || (sender && (sender.taxId || sender.vatNumber)) || '').slice(0, 18);
 
-  const shipperPhone = S(process.env.MOOV_PHONE || (sender && sender.phone) || (receiver && receiver.phone) || '').replace(/[^0-9+ ]/g, '').slice(0, 15);
   const shipperObj = {
-    Name: 'MOOV Parcel',
-    AttentionName: 'Operations',
-    TaxIdentificationNumber: ukEoriNumber,
-    Phone: { Number: shipperPhone || '0000000000' },
+    Name: 'MOOV Logistics Solutions Limited',
+    AttentionName: 'Customer Success Team',
+    Phone: { Number: '01133224100' },
     ShipperNumber: acct,
     Address: {
-      AddressLine: ['1 Mellor Meadows'],
-      City: 'Whittington',
-      PostalCode: 'SY11 4FN',
+      AddressLine: ['Units 3-5 Kettlebridge Road', 'Parkway Link'],
+      City: 'Sheffield',
+      PostalCode: 'S9 3AJ',
       CountryCode: 'GB',
     },
   };

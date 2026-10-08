@@ -260,7 +260,7 @@ app.get('/api/card/:token', async (req, res) => {
 // PUBLIC: Live parcel shop / drop-off points lookup (DPD Pickup Shops & UPS Access Points)
 app.get('/api/pickups', async (req, res) => {
   try {
-    const pc = String(req.query.postcode || '').trim() || 'SY11 4FN';
+    const pc = String(req.query.postcode || '').trim() || 'S9 3AJ';
     const carrier = req.query.carrier ? [req.query.carrier] : undefined;
     const pk = await fetchPickups(pc, carrier);
     res.json(pk || { dropoffs: [], origin: null, postcode: pc });
@@ -271,7 +271,7 @@ app.get('/api/pickups', async (req, res) => {
 app.post('/api/pickups', async (req, res) => {
   try {
     const { postcode, carriers } = req.body || {};
-    const pc = String(postcode || '').trim() || 'SY11 4FN';
+    const pc = String(postcode || '').trim() || 'S9 3AJ';
     const pk = await fetchPickups(pc, carriers);
     res.json(pk || { dropoffs: [], origin: null, postcode: pc });
   } catch (e) {
@@ -510,10 +510,20 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
 
     const origin = sender || {};
     const originCountry = (countries.nameToIso(origin.country) || (/^[A-Za-z]{2}$/.test(origin.country) ? String(origin.country).toUpperCase() : 'GB'));
+    const isInternationalReturn = originCountry !== 'GB';
     const pkgs = (Array.isArray(packages) && packages.length) ? packages : ((Array.isArray(parcels) && parcels.length) ? parcels : [{ weight: 1.5, l: 30, w: 20, h: 15, qty: 1 }]);
-    const isUpsCourier = String(courier || '').toUpperCase() === 'UPS' || originCountry !== 'GB';
+    const isUpsCourier = String(courier || '').toUpperCase() === 'UPS' || isInternationalReturn;
 
     if (isUpsCourier) {
+      // Validate customer EORI for international return customs clearance
+      const customerEori = String(req.body.ukEori || (receiver && (receiver.eoriNumber || receiver.eori)) || da.eoriNumber || da.eori || cfg.eoriNumber || cfg.eori || '').trim();
+      if (isInternationalReturn && !customerEori) {
+        return res.status(400).json({
+          ok: false,
+          error: 'EORI number is required for international customs clearance. Please enter a valid customer EORI number on the rate card.',
+        });
+      }
+
       // 1. Book via UPS Shipping API with ReturnService & Paperless Commercial Invoice
       const retType = returnServiceType || 'driver_brings_label';
       const actualSvcCode = serviceCode || '65';
@@ -531,7 +541,7 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
         declarationStatement: declarationStatement || 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty claimed (RGR CPC 61 23).',
         termsOfSale: req.body.termsOfSale || req.body.incoterms || 'DDP',
         incoterms: req.body.incoterms || req.body.termsOfSale || 'DDP',
-        ukEori: req.body.ukEori || (receiver && receiver.eoriNumber) || da.eoriNumber || cfg.eoriNumber || cfg.eori || 'GB446867375',
+        ukEori: customerEori,
         ukVat: req.body.ukVat || (receiver && receiver.vatNumber) || da.vatNumber || cfg.vatNumber || cfg.vat || '',
         senderTaxId: req.body.senderTaxId || '',
       });
@@ -1044,7 +1054,7 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
 // PUBLIC: live outbound (export) UPS pricing for a customer's rate card. Token-authorized;
 // returns the customer's SELL price (their per-service markup applied) plus a markup-scaled
 // charge breakdown — never raw cost. Falls back to enabled:false so the card uses static rates.
-const MOOV_ORIGIN = { country: 'GB', postcode: 'SY11 4FN', city: 'Whittington', line1: '1 Mellor Meadows', name: 'MOOV Parcel' };
+const MOOV_ORIGIN = { country: 'GB', postcode: 'S9 3AJ', city: 'Sheffield', line1: 'Units 3-5 Kettlebridge Road', line2: 'Parkway Link', name: 'MOOV Logistics Solutions Limited' };
 const CODE2KEY = {
   '01': 'u1', '1': 'u1',
   '02': 'u2', '2': 'u2',
