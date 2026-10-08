@@ -3708,16 +3708,20 @@ function staticRow(s, c, chg, applicable) {
   const base = r.p, carr = s.carrier.toLowerCase();
   const isDdp = !!($('tg_ddp') && $('tg_ddp').checked);
   const isUsa = (c === 'USA' || c === 'US' || c === 'United States');
-  const isInternational = (c !== 'United Kingdom' && c !== 'GB' && c !== 'UK');
-  const sur = applicable.filter(a => a.carrier.toLowerCase() === carr || a.carrier === 'ALL').map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 })).filter(x => x.amt > 0);
+  const sur = applicable
+    .filter(a => a.carrier.toLowerCase() === carr || a.carrier === 'ALL')
+    .filter(a => a.key !== 'ddp' && a.group !== 'ddp' && a.key !== 'dpdRoad' && a.key !== 'dpdAir')
+    .filter(a => !a.services || !a.services.length || a.services.includes(s.key))
+    .map(a => ({ name: a.name, amt: Math.round(accAmount(a) * 100) / 100 }))
+    .filter(x => x.amt > 0);
   
   if (carr === 'dpd') {
     const isRoad = ['cp', 'ep'].includes(s.key);
     const isAir = ['ca', 'ae'].includes(s.key);
     if (isDdp) {
-      if (isRoad && !sur.some(x => x.name.toLowerCase().includes('admin') || x.name.toLowerCase().includes('road'))) {
+      if (isRoad) {
         sur.push({ name: 'DPD Road Admin Fee', amt: 2.50 });
-      } else if (isAir && !sur.some(x => x.name.toLowerCase().includes('admin') || x.name.toLowerCase().includes('air'))) {
+      } else if (isAir) {
         sur.push({ name: 'DPD Air DDP Admin Fee', amt: 5.00 });
       }
       sur.push({ name: 'DDP Duty Forwarding Fee (' + (isUsa ? '1.0% USA' : '2.5% ROW') + ')', amt: 0, forwardingPct: true });

@@ -3393,9 +3393,9 @@ function build(raw, svc, countryOverride){
       if(valEur<=threshEur&&isEu){const dutyGbp=(skus*perSku)/rate;flatExtras.push([a.name+' ('+skus+' SKU'+(skus>1?'s':'')+')',dutyGbp]);sumSellExtra+=dutyGbp;sumCostExtra+=dutyGbp;}
       return;
     }
-    if(a.key === 'ddp' || a.group === 'ddp') return;
+    if(a.key === 'ddp' || a.group === 'ddp' || a.key === 'dpdRoad' || a.key === 'dpdAir') return;
     if(a.carrier&&a.carrier!==svc.carrier&&a.carrier!=='ALL')return;
-    if(a.cond==='service'&&(a.services||[]).length && !(a.services||[]).includes(svc.key))return;
+    if(a.services && a.services.length && !a.services.includes(svc.key))return;
     flatExtras.push([a.name,v]);
     sumSellExtra+=v;
     sumCostExtra+=cv;
@@ -3409,11 +3409,11 @@ function build(raw, svc, countryOverride){
     const isRoad = ['cp', 'ep'].includes(svc.key);
     const isAir = ['ca', 'ae'].includes(svc.key);
     if (isDdp) {
-      if (isRoad && !flatExtras.some(([n]) => n.toLowerCase().includes('admin') || n.toLowerCase().includes('road'))) {
+      if (isRoad) {
         flatExtras.push(['DPD Road Admin Fee', 2.50]);
         sumSellExtra += 2.50;
         sumCostExtra += 2.50;
-      } else if (isAir && !flatExtras.some(([n]) => n.toLowerCase().includes('admin') || n.toLowerCase().includes('air'))) {
+      } else if (isAir) {
         flatExtras.push(['DPD Air DDP Admin Fee', 5.00]);
         sumSellExtra += 5.00;
         sumCostExtra += 5.00;
