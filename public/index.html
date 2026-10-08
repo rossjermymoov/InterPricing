@@ -3408,23 +3408,23 @@ function build(raw, svc, countryOverride){
   if (svc && svc.carrier === 'dpd') {
     const isRoad = ['cp', 'ep'].includes(svc.key);
     const isAir = ['ca', 'ae'].includes(svc.key);
-    if (isRoad && !flatExtras.some(([n]) => n.toLowerCase().includes('admin') || n.toLowerCase().includes('road'))) {
-      flatExtras.push(['DPD Road Admin Fee', 2.50]);
-      sumSellExtra += 2.50;
-      sumCostExtra += 2.50;
-    } else if (isAir && !flatExtras.some(([n]) => n.toLowerCase().includes('admin') || n.toLowerCase().includes('air'))) {
-      flatExtras.push(['DPD Air DDP Admin Fee', 5.00]);
-      sumSellExtra += 5.00;
-      sumCostExtra += 5.00;
+    if (isDdp) {
+      if (isRoad && !flatExtras.some(([n]) => n.toLowerCase().includes('admin') || n.toLowerCase().includes('road'))) {
+        flatExtras.push(['DPD Road Admin Fee', 2.50]);
+        sumSellExtra += 2.50;
+        sumCostExtra += 2.50;
+      } else if (isAir && !flatExtras.some(([n]) => n.toLowerCase().includes('admin') || n.toLowerCase().includes('air'))) {
+        flatExtras.push(['DPD Air DDP Admin Fee', 5.00]);
+        sumSellExtra += 5.00;
+        sumCostExtra += 5.00;
+      }
+      flatExtras.push(['DDP Duty Forwarding Fee (' + (isUsa ? '1.0% USA' : '2.5% ROW') + ')', 0, { forwardingPct: true }]);
     }
     const dpdPeak = calcDpdPeakFee(svc, c);
     if (dpdPeak && !flatExtras.some(([n]) => n.toLowerCase().includes('peak'))) {
       flatExtras.push([dpdPeak.name, dpdPeak.amt]);
       sumSellExtra += dpdPeak.amt;
       sumCostExtra += dpdPeak.amt;
-    }
-    if (isDdp) {
-      flatExtras.push(['DDP Duty Forwarding Fee (' + (isUsa ? '1.0% USA' : '2.5% ROW') + ')', 0, { forwardingPct: true }]);
     }
   }
 

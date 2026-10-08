@@ -3713,17 +3713,17 @@ function staticRow(s, c, chg, applicable) {
   if (carr === 'dpd') {
     const isRoad = ['cp', 'ep'].includes(s.key);
     const isAir = ['ca', 'ae'].includes(s.key);
-    if (isRoad && !sur.some(x => x.name.toLowerCase().includes('admin') || x.name.toLowerCase().includes('road'))) {
-      sur.push({ name: 'DPD Road Admin Fee', amt: 2.50 });
-    } else if (isAir && !sur.some(x => x.name.toLowerCase().includes('admin') || x.name.toLowerCase().includes('air'))) {
-      sur.push({ name: 'DPD Air DDP Admin Fee', amt: 5.00 });
+    if (isDdp) {
+      if (isRoad && !sur.some(x => x.name.toLowerCase().includes('admin') || x.name.toLowerCase().includes('road'))) {
+        sur.push({ name: 'DPD Road Admin Fee', amt: 2.50 });
+      } else if (isAir && !sur.some(x => x.name.toLowerCase().includes('admin') || x.name.toLowerCase().includes('air'))) {
+        sur.push({ name: 'DPD Air DDP Admin Fee', amt: 5.00 });
+      }
+      sur.push({ name: 'DDP Duty Forwarding Fee (' + (isUsa ? '1.0% USA' : '2.5% ROW') + ')', amt: 0, forwardingPct: true });
     }
     const dpdPeak = calcDpdPeakFee(s, c);
     if (dpdPeak && !sur.some(x => x.name.toLowerCase().includes('peak'))) {
       sur.push(dpdPeak);
-    }
-    if (isDdp) {
-      sur.push({ name: 'DDP Duty Forwarding Fee (' + (isUsa ? '1.0% USA' : '2.5% ROW') + ')', amt: 0, forwardingPct: true });
     }
   }
 
