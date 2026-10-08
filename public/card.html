@@ -6717,6 +6717,9 @@ function renderCustomerBookings(shipments) {
     const originCity = s.city || 'Origin';
     const destCity = r.city || 'London';
     const statusBadge = getShipmentStatusBadge(x.status);
+    const isCancelled = x.status === 'cancelled';
+    const isRescheduled = x.status === 'rescheduled';
+    const isDelivered = x.status === 'delivered';
 
     if (isSameday) {
       card.innerHTML = `
