@@ -371,9 +371,16 @@ async function setConfig(data) {
 }
 
 // ---- secret (JWT signing key), persisted so logins survive restarts ----
+let _fallbackSecret = null;
 async function getSecret() {
   if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
-  if (!pool) return 'dev-insecure-secret-change-me';
+  if (!pool) {
+    if (!_fallbackSecret) {
+      _fallbackSecret = crypto.randomBytes(48).toString('hex');
+      console.warn('[SECURITY WARNING] No DATABASE_URL or SESSION_SECRET found. Generated runtime-ephemeral JWT secret.');
+    }
+    return _fallbackSecret;
+  }
   const r = await pool.query(`SELECT value FROM app_secrets WHERE key = 'jwt'`);
   if (r.rows[0]) return r.rows[0].value;
   const s = crypto.randomBytes(48).toString('hex');

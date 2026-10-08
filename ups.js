@@ -10,6 +10,7 @@ const TEST = 'https://wwwcie.ups.com';
 const { nameToIso } = require('./countries');
 const base = () => (String(process.env.UPS_ENV || 'test').toLowerCase().startsWith('prod') ? PROD : TEST);
 const ver = () => process.env.UPS_RATING_VERSION || 'v2403';
+const transSrc = () => (base().includes('wwwcie') ? 'testing' : 'MOOV-InterPricing');
 
 // UPS service code -> friendly name (international + domestic).
 const SVC = {
@@ -815,7 +816,7 @@ async function cancelPickup(prn) {
   const headers = {
     'Authorization': 'Bearer ' + tk,
     'transId': 'moov_cancel_' + Date.now(),
-    'transactionSrc': 'testing',
+    'transactionSrc': transSrc(),
     'Prn': cleanPrn,
   };
 
@@ -901,10 +902,19 @@ function buildShipmentRequest(p) {
 
   // Shipper is always the account owner (MOOV Parcel in the UK) with your ShipperNumber.
   // For cross-border imports originating overseas (e.g. NL -> GB), UPS requires the ReturnService
-  // container (Code: '9' Print Return Label) so the shipment originates from ShipFrom (NL)
-  // and delivers to ShipTo (GB) billed to the UK Shipper account.
   const ukEoriNumber = S(p.ukEori || p.importerEori || (receiver && (receiver.eoriNumber || receiver.eori)) || '').slice(0, 18);
   const senderTaxId = S(p.senderTaxId || p.senderVat || (sender && (sender.taxId || sender.vatNumber)) || '').slice(0, 18);
+  const destCountryCode = ((receiverAddr.Address && receiverAddr.Address.CountryCode) || (receiver && receiver.country) || 'GB').toUpperCase();
+  const originCountryCode = ((senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'GB').toUpperCase();
+  const isUkDestination = destCountryCode === 'GB';
+  const isCrossBorderLane = originCountryCode !== destCountryCode;
+
+  // Strict EORI Enforcement: Customer (Importer) EORI is mandatory for clearance into the UK
+  if (isUkDestination && (isImport || isCrossBorderLane)) {
+    if (!ukEoriNumber || ukEoriNumber.length < 5) {
+      throw new Error('Customer Importer EORI number is mandatory for customs clearance into the United Kingdom. Consignment cannot be booked without customer EORI (e.g. GB471791369000). Never use MOOV Logistics EORI.');
+    }
+  }
 
   const shipperObj = {
     Name: 'MOOV Logistics Solutions Limited',
@@ -1059,10 +1069,7 @@ function buildShipmentRequest(p) {
   ];
 
   const productList = sourceItems.map((item, idx) => {
-    let rawDesc = item.description || item.name || 'Returned Merchandise';
-    if (isReturn && !String(rawDesc).toUpperCase().includes('61 23') && !String(rawDesc).toUpperCase().includes('CPC')) {
-      rawDesc = String(rawDesc).slice(0, 20) + ' (CPC 61 23 F01)';
-    }
+    const rawDesc = item.description || item.name || 'Returned Merchandise';
     const descStr = S(rawDesc).slice(0, 35) || 'Merchandise';
     const orig = toIso(item.originCountry || item.origin || defaultOrigin);
     const rawHsDigits = S(item.hsCode || item.tariffCode || '62046200').replace(/[^0-9]/g, '');
@@ -1086,8 +1093,12 @@ function buildShipmentRequest(p) {
 
   const invoiceNumber = S(p.invoiceNumber || p.originalOrderRef || ('RET-' + Date.now().toString().slice(-6)));
   const purchaseOrderNumber = S(p.reference || p.originalOrderRef || ('MOOV-' + Date.now().toString().slice(-6)));
-  const rgrDeclaration = 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty and VAT claimed under Returned Goods Relief (CPC 61 23 F01).';
-  const rgrComments = 'RETURNED GOODS RELIEF CLAIMED UNDER CPC 61 23 F01 - UK GOODS RETURNED UNALTERED';
+  const rgrDeclaration = isUkDestination
+    ? 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty and VAT claimed under Returned Goods Relief (CPC 61 23 F01).'
+    : 'Returned merchandise being returned to the vendor for customer refund/repair. Relief from customs import duty and taxes claimed under international return provisions.';
+  const rgrComments = isUkDestination
+    ? 'RETURNED GOODS RELIEF CLAIMED UNDER CPC 61 23 F01 - UK GOODS RETURNED UNALTERED'
+    : 'CUSTOMER RETURN - GOODS RETURNED UNALTERED FOR REFUND';
 
   if (forms.length > 0) {
     const intlForms = {
@@ -1257,7 +1268,7 @@ async function voidShipment({ shipmentId, trackingNumber } = {}) {
   const headers = {
     'Authorization': 'Bearer ' + tk,
     'transId': 'moov_void_' + Date.now(),
-    'transactionSrc': 'testing',
+    'transactionSrc': transSrc(),
   };
 
   let url = base() + '/api/shipments/v1/void/cancel/' + encodeURIComponent(sId);
@@ -1346,7 +1357,7 @@ async function trackShipment(trackingNumber) {
   const headers = {
     'Authorization': 'Bearer ' + tk,
     'transId': 'moov_track_' + Date.now(),
-    'transactionSrc': 'testing',
+    'transactionSrc': transSrc(),
   };
   if (process.env.UPS_ACCOUNT_NUMBER) {
     headers['x-merchant-id'] = process.env.UPS_ACCOUNT_NUMBER;
@@ -1680,7 +1691,7 @@ async function uploadPaperlessDocument({ trackingNumber, documentType, base64Con
     'Authorization': 'Bearer ' + tk,
     'Content-Type': 'application/json',
     'transId': 'moov_doc_' + Date.now(),
-    'transactionSrc': 'testing',
+    'transactionSrc': transSrc(),
   };
 
   try {

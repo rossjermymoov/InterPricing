@@ -629,19 +629,16 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
           goodsValue: Number(goodsValue) || 0,
           weight: Math.round(totalWeight * 10) / 10,
           currency: 'GBP',
-          reasonForExport: reasonForExport || 'RETURN OF GOODS (CUSTOMER RETURN - CPC 61 23)',
+          reasonForExport: reasonForExport || 'RETURN OF GOODS (CUSTOMER RETURN - CPC 61 23 F01)',
           termsOfSale: 'DDP',
           sender: origin,
           receiver: shipTo,
           items: Array.isArray(lineItems) && lineItems.length ? lineItems : [],
         });
-        const invDir = path.join(__dirname, 'public', 'invoices');
-        if (!fs.existsSync(invDir)) fs.mkdirSync(invDir, { recursive: true });
-        fs.writeFileSync(path.join(invDir, `${trackingNumber}.html`), invHtml, 'utf8');
       } catch (invErr) {
-        console.error('[invoice auto-save error]:', invErr.message);
+        console.error('[invoice generation notice]:', invErr.message);
       }
-      sse.broadcast('shipment_booked', saved || shipmentRecord);
+      sse.broadcast('shipment_booked', saved || shipmentRecord, { token });
 
       return res.json({
         ok: true,
@@ -912,19 +909,7 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
 
     if (db.hasDb) {
       try {
-        shipment = await db.getShipmentByTracking(trk);
-        if (!shipment) {
-          const { rows } = await db.pool.query(
-            `SELECT * FROM shipments 
-             WHERE REPLACE(COALESCE(tracking_number, ''), ' ', '') = $1 
-                OR tracking_number ILIKE $1 
-                OR shipment_id = $1 
-                OR id::text = $1 
-             LIMIT 1`,
-            [trk]
-          );
-          if (rows && rows.length) shipment = rows[0];
-        }
+        shipment = await db.getShipmentByTracking(trk) || await db.getShipmentById(trk);
         if (shipment) {
           if (shipment.card_id) {
             card = await db.getCardById(shipment.card_id);
@@ -1425,11 +1410,17 @@ app.post('/api/collections/cancel', async (req, res) => {
     const { prn, token } = req.body || {};
     if (!prn) return res.status(400).json({ ok: false, error: 'PRN is required to cancel a pickup.' });
 
+    let card = null;
     if (token) {
-      const card = db.hasDb ? await db.getCardByToken(token) : null;
+      card = db.hasDb ? await db.getCardByToken(token) : null;
       if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Rate card not available' });
     } else if (!req.user) {
       return res.status(401).json({ ok: false, error: 'Authentication required' });
+    }
+
+    const existingCol = db.hasDb ? await db.getCollectionByPrn(prn) : null;
+    if (token && existingCol && existingCol.token && existingCol.token !== token) {
+      return res.status(403).json({ ok: false, error: 'Unauthorized: collection does not belong to this card token.' });
     }
 
     const cancelRes = await ups.cancelPickup(prn);
@@ -1465,6 +1456,9 @@ app.post('/api/collections/reschedule', async (req, res) => {
     }
 
     const existing = db.hasDb ? await db.getCollectionByPrn(oldPrn) : null;
+    if (token && existing && existing.token && existing.token !== token) {
+      return res.status(403).json({ ok: false, error: 'Unauthorized: collection does not belong to this card token.' });
+    }
 
     // 1. Send Cancellation to UPS
     const cancelRes = await ups.cancelPickup(oldPrn);
@@ -1639,7 +1633,9 @@ app.post('/api/book-import', async (req, res) => {
     let card = null;
     if (token) {
       card = db.hasDb ? await db.getCardByToken(token) : null;
-      if (!card) return res.status(404).json({ ok: false, error: 'Invalid card token' });
+      if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Invalid or inactive card token' });
+    } else if (!req.user) {
+      return res.status(401).json({ ok: false, error: 'A valid customer card token or user login is required to book shipments.' });
     }
 
     if (!sender || !sender.country || !sender.city || !sender.line1) {
@@ -1647,6 +1643,13 @@ app.post('/api/book-import', async (req, res) => {
     }
     if (!receiver || !receiver.country || !receiver.city || !receiver.line1) {
       return res.status(400).json({ ok: false, error: 'Destination delivery address (line1, city, country) is required.' });
+    }
+
+    const customerEori = String(req.body.ukEori || req.body.importerEori || (receiver && (receiver.eoriNumber || receiver.eori)) || (card && card.config && (card.config.eoriNumber || card.config.eori)) || '').trim();
+    const destCountry = String((receiver && receiver.country) || 'GB').toUpperCase();
+    const originCountry = String((sender && sender.country) || 'GB').toUpperCase();
+    if (destCountry === 'GB' && originCountry !== 'GB' && !customerEori) {
+      return res.status(400).json({ ok: false, error: 'Customer Importer EORI number is mandatory for customs clearance into the United Kingdom.' });
     }
 
     const pkgs = (Array.isArray(packages) && packages.length) ? packages : [{ weight: 1, qty: 1 }];
@@ -1666,6 +1669,8 @@ app.post('/api/book-import', async (req, res) => {
       thirdPartyAccountNumber: thirdPartyAccountNumber || dutyAccountNumber,
       thirdPartyPostalCode: thirdPartyPostalCode || dutyPostalCode,
       thirdPartyCountryCode: thirdPartyCountryCode || dutyCountryCode || 'GB',
+      ukEori: customerEori,
+      token,
       invoiceBase64,
       invoiceFormat,
       packingSlipBase64,
@@ -1676,8 +1681,7 @@ app.post('/api/book-import', async (req, res) => {
       return res.status(400).json({
         ok: false,
         error: shipResult.error || 'UPS failed to book shipment consignment.',
-        raw: shipResult.raw,
-        request: shipResult.request,
+        ...(req.user && (req.user.role === 'admin' || req.user.role === 'sales') ? { raw: shipResult.raw, request: shipResult.request } : {}),
       });
     }
 
@@ -1850,10 +1854,15 @@ app.post('/api/shipments/cancel', async (req, res) => {
 
     // Lookup any associated PRN from the database shipment record if not explicitly provided
     let targetPrn = prn;
-    if (!targetPrn && db.hasDb && sId) {
+    if (db.hasDb && sId) {
       const existing = await db.getShipmentByTracking(sId) || (shipmentId ? await db.getShipmentById(shipmentId) : null);
-      if (existing && existing.prn) {
-        targetPrn = existing.prn;
+      if (existing) {
+        if (token && existing.token && existing.token !== token) {
+          return res.status(403).json({ ok: false, error: 'Unauthorized: shipment does not belong to this card token.' });
+        }
+        if (existing.prn) {
+          targetPrn = existing.prn;
+        }
       }
     }
 
@@ -1902,6 +1911,13 @@ app.post('/api/shipments/uncancel', async (req, res) => {
 
     const sId = id || trackingNumber;
     if (!sId) return res.status(400).json({ ok: false, error: 'Shipment ID or tracking number required.' });
+
+    if (db.hasDb) {
+      const existing = await db.getShipmentByTracking(sId) || await db.getShipmentById(sId);
+      if (existing && token && existing.token && existing.token !== token) {
+        return res.status(403).json({ ok: false, error: 'Unauthorized: shipment does not belong to this card token.' });
+      }
+    }
 
     let updated = null;
     if (db.hasDb) {
@@ -2023,12 +2039,20 @@ app.all(['/api/shipments/:id/delete', '/api/shipments/delete'], async (req, res)
   }
 });
 
-// PUBLIC / AUTH: Purge all cancelled shipments
+// PUBLIC (with token) / ADMIN: Purge cancelled shipments
 app.post('/api/shipments/purge-cancelled', async (req, res) => {
   try {
     const { token } = req.body || {};
+    const isAdmin = req.user && (req.user.role === 'admin' || req.user.role === 'sales');
+    if (!isAdmin && !token) {
+      return res.status(401).json({ ok: false, error: 'Authentication or card token required to purge cancelled shipments.' });
+    }
+    if (token) {
+      const card = db.hasDb ? await db.getCardByToken(token) : null;
+      if (!card) return res.status(404).json({ ok: false, error: 'Invalid card token' });
+    }
     if (db.hasDb) {
-      const count = await db.deleteCancelledShipments({ token });
+      const count = await db.deleteCancelledShipments({ token: token || (isAdmin ? undefined : '__none__') });
       return res.json({ ok: true, purgedCount: count, message: `Removed ${count} cancelled shipment(s) from history.` });
     }
     res.json({ ok: true, purgedCount: 0 });
@@ -2067,6 +2091,9 @@ app.post('/api/shipments/:id/email-labels', async (req, res) => {
     }
     if (!shipment) {
       return res.status(404).json({ ok: false, error: 'Shipment record not found' });
+    }
+    if (token && shipment.token && shipment.token !== token) {
+      return res.status(403).json({ ok: false, error: 'Unauthorized: shipment does not belong to this card token.' });
     }
 
     const toEmail = (to || '').trim() || (shipment.sender && shipment.sender.email) || (shipment.receiver && shipment.receiver.email);
@@ -2125,6 +2152,9 @@ app.post('/api/shipments/:id/documents', async (req, res) => {
     if (!shipment) {
       return res.status(404).json({ ok: false, error: 'Shipment record not found' });
     }
+    if (token && shipment.token && shipment.token !== token) {
+      return res.status(403).json({ ok: false, error: 'Unauthorized: shipment does not belong to this card token.' });
+    }
 
     const docType = documentType || '002'; // 002 = Commercial Invoice, 004 = Packing List
     const docFmt = (format || 'PDF').toUpperCase();
@@ -2169,8 +2199,8 @@ app.post('/api/shipments/:id/documents', async (req, res) => {
   }
 });
 
-// AUTHENTICATED: List all booked shipments
-app.get('/api/shipments', auth.requireAuth, async (req, res) => {
+// ADMIN ONLY: List all booked shipments
+app.get('/api/shipments', auth.requireAdmin, async (req, res) => {
   try {
     const list = await db.listShipments({ limit: req.query.limit });
     res.json({ shipments: list });
