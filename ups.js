@@ -1045,8 +1045,6 @@ function buildShipmentRequest(p) {
       DocumentContent: rawB64,
     });
   }
-
-  const isReturn = !!(p.isReturn || p.mode === 'return' || p.mode === 'intl_return');
   const defaultOrigin = toIso(p.originCountry || p.origin || (isReturn ? 'PL' : ((senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'GB')));
   const rawItems = Array.isArray(p.lineItems) && p.lineItems.length ? p.lineItems : (Array.isArray(p.items) && p.items.length ? p.items : []);
   const sourceItems = rawItems.length ? rawItems : [
