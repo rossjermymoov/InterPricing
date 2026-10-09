@@ -1014,30 +1014,27 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
     }
 
     if (isMalvina) {
-      // Must show both coats on the commercial invoice for Malvina Ziou
-      if (!rawItems.length || rawItems.length < 2) {
-        const itemVal = (shipment && Number(shipment.goods_value) > 0) ? (Number(shipment.goods_value) / 2) : 150.00;
-        rawItems = [
-          {
-            description: "Women's Wool Tailored Coat",
-            sku: 'BES-COAT-01',
-            qty: 1,
-            unitValue: itemVal,
-            hsCode: '6202.4000',
-            origin: 'GR',
-            weight: 5.00,
-          },
-          {
-            description: "Women's Classic Trench Coat",
-            sku: 'BES-COAT-02',
-            qty: 1,
-            unitValue: itemVal,
-            hsCode: '6202.4000',
-            origin: 'GR',
-            weight: 5.00,
-          }
-        ];
-      }
+      // Real consignment items for Malvina Ziou return (booked 5th Oct 2026)
+      rawItems = [
+        {
+          description: 'Faye Shearling Coat - Chocolate XS',
+          sku: '15957733933388',
+          qty: 1,
+          unitValue: 686.00,
+          hsCode: '6202.4010',
+          origin: 'PT',
+          weight: 5.00,
+        },
+        {
+          description: 'Faye Shearling Coat - Black XXS',
+          sku: '15881510650188',
+          qty: 1,
+          unitValue: 686.00,
+          hsCode: '6202.4010',
+          origin: 'PT',
+          weight: 5.00,
+        }
+      ];
     } else if (isMagdalena) {
       rawItems = [
         {
@@ -1060,7 +1057,7 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
     }
 
     const goodsVal = isMalvina
-      ? (shipment && Number(shipment.goods_value) > 0 ? Number(shipment.goods_value) : 300.00)
+      ? 1372.00
       : (shipment ? Number(shipment.goods_value || 0) : (isMagdalena ? 316.00 : 50.00));
     const weightVal = isMalvina
       ? (shipment ? Number(shipment.total_weight_kg || 10.0) : 10.0)
@@ -1079,7 +1076,7 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       ];
     }
 
-    const displayTrk = (shipment && shipment.tracking_number) ? shipment.tracking_number : (isMalvina ? (trk.startsWith('1Z') ? trk : '1ZH2908X9930138541') : trk);
+    const displayTrk = (shipment && shipment.tracking_number) ? shipment.tracking_number : (isMalvina ? (trk.startsWith('1Z') ? trk : '1ZH2908X9911473607') : trk);
 
     const html = invoiceGenerator.generateCommercialInvoiceHtml({
       trackingNumber: displayTrk,
