@@ -611,14 +611,20 @@ async function getShipmentByTracking(tracking) {
   if (!pool || !tracking) return null;
   const raw = String(tracking).trim();
   const clean = raw.replace(/\s+/g, '');
+  const term = `%${raw}%`;
   const { rows } = await pool.query(
     `SELECT * FROM shipments 
      WHERE REPLACE(COALESCE(tracking_number, ''), ' ', '') = $1 
-        OR tracking_number = $2 
-        OR shipment_id = $2 
+        OR tracking_number ILIKE $2 
+        OR shipment_id ILIKE $2 
+        OR prn ILIKE $2
         OR id::text = $2 
+        OR sender::text ILIKE $3
+        OR receiver::text ILIKE $3
+        OR documents_attached::text ILIKE $3
+     ORDER BY (REPLACE(COALESCE(tracking_number, ''), ' ', '') = $1) DESC, created_at DESC 
      LIMIT 1`,
-    [clean, raw]
+    [clean, raw, term]
   );
   return rows[0] || null;
 }

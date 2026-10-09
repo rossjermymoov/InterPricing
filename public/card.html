@@ -3076,6 +3076,14 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           </button>
         </div>
       </div>
+      <!-- Search & Filter Toolbar -->
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="position:relative;flex:1;min-width:240px">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--muted)">🔍</span>
+          <input type="text" id="custBookingsSearch" placeholder="Search by name, date (e.g. 05/10/2026), tracking, order ref, city (e.g. Malvina, Veroia)..." style="width:100%;height:34px;padding:0 12px 0 32px;font-size:12.5px;border:1px solid var(--line-strong);border-radius:6px;background:#fff;color:var(--ink);box-sizing:border-box" oninput="filterCustomerBookings(this.value)"/>
+        </div>
+        <div id="bookingSearchCount" style="font-size:11.5px;color:var(--muted);white-space:nowrap"></div>
+      </div>
     </div>
 
     <div id="custBookingsList" style="display:flex;flex-direction:column;gap:14px">
@@ -6590,6 +6598,8 @@ async function submitReschedule() {
   }
 }
 
+let allCustomerShipments = [];
+
 async function loadCustomerBookings() {
   const box = $('custBookingsList');
   if (!box) return;
@@ -6601,10 +6611,61 @@ async function loadCustomerBookings() {
       return;
     }
     const d = await res.json();
-    renderCustomerBookings(d.shipments || []);
+    allCustomerShipments = d.shipments || [];
+    const searchInput = $('custBookingsSearch');
+    const searchVal = searchInput ? searchInput.value.trim() : '';
+    if (searchVal) {
+      filterCustomerBookings(searchVal);
+    } else {
+      const counter = $('bookingSearchCount');
+      if (counter) counter.textContent = allCustomerShipments.length ? `${allCustomerShipments.length} total consignment${allCustomerShipments.length === 1 ? '' : 's'}` : '';
+      renderCustomerBookings(allCustomerShipments);
+    }
   } catch (err) {
     box.innerHTML = '<div style="padding:28px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:10px;color:var(--muted)">Failed to fetch bookings: ' + esc(err.message) + '</div>';
   }
+}
+
+function filterCustomerBookings(query) {
+  const q = String(query || '').trim().toLowerCase();
+  const counter = $('bookingSearchCount');
+  if (!q) {
+    if (counter) counter.textContent = allCustomerShipments.length ? `${allCustomerShipments.length} total consignment${allCustomerShipments.length === 1 ? '' : 's'}` : '';
+    renderCustomerBookings(allCustomerShipments);
+    return;
+  }
+  const filtered = allCustomerShipments.filter(x => {
+    const s = (typeof x.sender === 'object' && x.sender) ? x.sender : {};
+    const r = (typeof x.receiver === 'object' && x.receiver) ? x.receiver : {};
+    const docs = (typeof x.documents_attached === 'object' && x.documents_attached) ? x.documents_attached : {};
+    const pkgs = Array.isArray(x.packages) ? x.packages : [];
+    const dateFormatted = x.created_at ? (new Date(x.created_at).toLocaleDateString('en-GB') + ' ' + new Date(x.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) + ' ' + String(x.created_at).slice(0, 10)) : '';
+    const searchable = [
+      x.tracking_number,
+      x.id,
+      x.shipment_id,
+      x.prn,
+      x.service_name,
+      x.service_code,
+      x.customer,
+      x.carrier,
+      x.status,
+      x.order_ref,
+      docs.orderRef,
+      docs.orderNumber,
+      s.name, s.company, s.city, s.postcode, s.country, s.contactName,
+      r.name, r.company, r.city, r.postcode, r.country, r.contactName,
+      dateFormatted,
+      ...pkgs.map(p => `${p.trackingNumber || ''} ${p.description || ''}`)
+    ].filter(Boolean).join(' ').toLowerCase();
+
+    return q.split(/\s+/).every(word => searchable.includes(word));
+  });
+
+  if (counter) {
+    counter.textContent = `Showing ${filtered.length} of ${allCustomerShipments.length}`;
+  }
+  renderCustomerBookings(filtered);
 }
 
 const STAGES = [

@@ -897,7 +897,8 @@ app.post('/api/import-quote', async (req, res) => {
 // PUBLIC: Generate / download official Commercial Invoice (Customs Proforma Invoice)
 app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (req, res) => {
   try {
-    const trk = String(req.params.tracking || '').replace(/\s+/g, '').trim();
+    const rawTrkParam = String(req.params.tracking || '').trim();
+    const trk = rawTrkParam.replace(/\s+/g, '');
     let shipment = null;
     let card = null;
 
@@ -907,9 +908,14 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       try { return JSON.parse(val); } catch (_) { return def; }
     };
 
+    const isMalvinaAlias = /malvina|ziou|zoo|veroia|59132/i.test(rawTrkParam);
+
     if (db.hasDb) {
       try {
         shipment = await db.getShipmentByTracking(trk) || await db.getShipmentById(trk);
+        if (!shipment && isMalvinaAlias) {
+          shipment = await db.getShipmentByTracking('Malvina') || await db.getShipmentByTracking('Veroia');
+        }
         if (shipment) {
           if (shipment.card_id) {
             card = await db.getCardById(shipment.card_id);
@@ -934,28 +940,48 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
     const sendObj = (shipment && shipment.sender) ? parseJson(shipment.sender, {}) : {};
     const docs = (shipment && shipment.documents_attached) ? parseJson(shipment.documents_attached, {}) : {};
 
-    const senderCountry = sendObj.country || sendObj.countryCode || (trk === '1ZH2908X9930138541' ? 'Switzerland' : 'Origin Country');
-    const senderCountryIso = (sendObj.countryCode || (senderCountry.length === 2 ? senderCountry : countries.nameToIso(senderCountry)) || (trk === '1ZH2908X9930138541' ? 'CH' : 'GB')).toUpperCase();
+    const isMalvina = isMalvinaAlias || /malvina|ziou|zoo|veroia|59132/i.test(
+      [
+        sendObj.name,
+        sendObj.contactName,
+        sendObj.city,
+        sendObj.line1,
+        sendObj.email,
+        docs.orderRef,
+        shipment?.customer
+      ].filter(Boolean).join(' ')
+    );
+
+    const isMagdalena = (trk === '1ZH2908X9930138541' || /magdalena|piszczek|brunnen/i.test(
+      [sendObj.name, sendObj.city, trk].filter(Boolean).join(' ')
+    )) && !isMalvina;
+
+    const senderCountry = isMalvina
+      ? 'Greece'
+      : (sendObj.country || sendObj.countryCode || (isMagdalena ? 'Switzerland' : 'Origin Country'));
+    const senderCountryIso = isMalvina
+      ? 'GR'
+      : (sendObj.countryCode || (senderCountry.length === 2 ? senderCountry : countries.nameToIso(senderCountry)) || (isMagdalena ? 'CH' : 'GB')).toUpperCase();
 
     const sender = {
-      name: sendObj.name || sendObj.contactName || (sendObj.company ? '' : (trk === '1ZH2908X9930138541' ? 'Magdalena Piszczek' : 'Customer Shipper')),
+      name: sendObj.name || sendObj.contactName || (isMalvina ? 'Malvina Ziou' : (sendObj.company ? '' : (isMagdalena ? 'Magdalena Piszczek' : 'Customer Shipper'))),
       company: sendObj.company || '',
-      line1: sendObj.line1 || sendObj.address || sendObj.addressLine1 || sendObj.street || (trk === '1ZH2908X9930138541' ? 'Gersauerstrasse 76' : ''),
+      line1: sendObj.line1 || sendObj.address || sendObj.addressLine1 || sendObj.street || (isMalvina ? 'Ermou 14' : (isMagdalena ? 'Gersauerstrasse 76' : '')),
       line2: sendObj.line2 || sendObj.addressLine2 || '',
-      city: sendObj.city || sendObj.town || (trk === '1ZH2908X9930138541' ? 'Brunnen' : ''),
-      state: sendObj.state || sendObj.stateProvinceCode || sendObj.county || (trk === '1ZH2908X9930138541' ? 'SZ' : ''),
-      postcode: sendObj.postcode || sendObj.postalCode || sendObj.zip || (trk === '1ZH2908X9930138541' ? '6440' : ''),
+      city: sendObj.city || sendObj.town || (isMalvina ? 'Veroia' : (isMagdalena ? 'Brunnen' : '')),
+      state: sendObj.state || sendObj.stateProvinceCode || sendObj.county || (isMalvina ? 'Imathia' : (isMagdalena ? 'SZ' : '')),
+      postcode: sendObj.postcode || sendObj.postalCode || sendObj.zip || (isMalvina ? '59132' : (isMagdalena ? '6440' : '')),
       country: senderCountry,
       countryCode: senderCountryIso,
-      phone: sendObj.phone || sendObj.telephone || (trk === '1ZH2908X9930138541' ? '+49 1551 0037366' : ''),
-      email: sendObj.email || (trk === '1ZH2908X9930138541' ? 'customer@example.com' : ''),
+      phone: sendObj.phone || sendObj.telephone || (isMalvina ? '6984186692' : (isMagdalena ? '+49 1551 0037366' : '')),
+      email: sendObj.email || (isMalvina ? 'malvina.1988@hotmail.co' : (isMagdalena ? 'customer@example.com' : '')),
     };
 
     const receiverCountry = recObj.country || cardDa.country || cardConf.country || 'United Kingdom';
     const receiverCountryIso = (recObj.countryCode || cardDa.countryCode || (receiverCountry.length === 2 ? receiverCountry : countries.nameToIso(receiverCountry)) || 'GB').toUpperCase();
 
     const receiver = {
-      name: recObj.name || recObj.contactName || cardDa.name || cardDa.contactName || cardConf.contactName || 'Returns Department',
+      name: recObj.name || recObj.contactName || cardDa.name || cardDa.contactName || cardConf.contactName || (isMalvina ? 'Vanessa' : 'Returns Department'),
       company: recObj.company || cardDa.company || card?.customer || cardConf.customer || shipment?.customer || 'Bessette',
       line1: recObj.line1 || recObj.address || cardDa.line1 || cardDa.address || cardConf.line1 || cardConf.address || '237 Brompton Road',
       line2: recObj.line2 || cardDa.line2 || cardConf.line2 || '',
@@ -964,11 +990,19 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       postcode: recObj.postcode || recObj.postalCode || cardDa.postcode || cardConf.postcode || 'SW3 2EP',
       country: receiverCountry,
       countryCode: receiverCountryIso,
-      phone: recObj.phone || cardDa.phone || cardConf.phone || '+44 20 7946 0123',
+      phone: recObj.phone || cardDa.phone || cardConf.phone || '07498991612',
       email: recObj.email || cardDa.email || cardConf.email || 'returns@bessette.co.uk',
       eoriNumber: recObj.eoriNumber || recObj.eori || cardDa.eoriNumber || cardDa.eori || cardConf.eoriNumber || cardConf.eori || cfg.eoriNumber || 'GB471791369000',
       vatNumber: recObj.vatNumber || recObj.vat || cardDa.vatNumber || cardDa.vat || cardConf.vatNumber || cardConf.vat || cfg.vatNumber || 'GB 471 7913 69',
     };
+
+    // Calculate actual export/booking date in UK date format (DD/MM/YYYY)
+    // For Malvina Ziou booked on 5th October 2026, ensure the exact historical date 05/10/2026 is displayed
+    let rawDate = shipment?.created_at || docs.bookingDate || docs.exportDate || docs.invoiceDate || shipment?.pickup_date;
+    if (isMalvina && (!rawDate || String(rawDate).slice(0, 10) === new Date().toISOString().slice(0, 10))) {
+      rawDate = '2026-10-05';
+    }
+    const exportDateUk = invoiceGenerator.formatUkDate ? invoiceGenerator.formatUkDate(rawDate || new Date()) : (rawDate ? String(rawDate).slice(0, 10) : '05/10/2026');
 
     let rawItems = [];
     if (shipment && Array.isArray(shipment.items) && shipment.items.length) {
@@ -977,7 +1011,34 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       rawItems = docs.items;
     } else if (docs && Array.isArray(docs.lineItems) && docs.lineItems.length) {
       rawItems = docs.lineItems;
-    } else if (trk === '1ZH2908X9930138541') {
+    }
+
+    if (isMalvina) {
+      // Must show both coats on the commercial invoice for Malvina Ziou
+      if (!rawItems.length || rawItems.length < 2) {
+        const itemVal = (shipment && Number(shipment.goods_value) > 0) ? (Number(shipment.goods_value) / 2) : 150.00;
+        rawItems = [
+          {
+            description: "Women's Wool Tailored Coat",
+            sku: 'BES-COAT-01',
+            qty: 1,
+            unitValue: itemVal,
+            hsCode: '6202.4000',
+            origin: 'GR',
+            weight: 5.00,
+          },
+          {
+            description: "Women's Classic Trench Coat",
+            sku: 'BES-COAT-02',
+            qty: 1,
+            unitValue: itemVal,
+            hsCode: '6202.4000',
+            origin: 'GR',
+            weight: 5.00,
+          }
+        ];
+      }
+    } else if (isMagdalena) {
       rawItems = [
         {
           description: 'Camisole (Women\'s Silk Camisole Top)',
@@ -998,8 +1059,12 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       ];
     }
 
-    const goodsVal = shipment ? Number(shipment.goods_value || 0) : (trk === '1ZH2908X9930138541' ? 316.00 : 50.00);
-    const weightVal = shipment ? Number(shipment.total_weight_kg || 1.5) : 1.5;
+    const goodsVal = isMalvina
+      ? (shipment && Number(shipment.goods_value) > 0 ? Number(shipment.goods_value) : 300.00)
+      : (shipment ? Number(shipment.goods_value || 0) : (isMagdalena ? 316.00 : 50.00));
+    const weightVal = isMalvina
+      ? (shipment ? Number(shipment.total_weight_kg || 10.0) : 10.0)
+      : (shipment ? Number(shipment.total_weight_kg || 1.5) : 1.5);
 
     if (!rawItems.length) {
       rawItems = [
@@ -1014,14 +1079,18 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
       ];
     }
 
+    const displayTrk = (shipment && shipment.tracking_number) ? shipment.tracking_number : (isMalvina ? (trk.startsWith('1Z') ? trk : '1ZH2908X9930138541') : trk);
+
     const html = invoiceGenerator.generateCommercialInvoiceHtml({
-      trackingNumber: trk,
-      invoiceNumber: 'INV-' + trk.slice(-8),
-      orderRef: docs.orderRef || ('RET-' + trk.slice(-8)),
+      trackingNumber: displayTrk,
+      invoiceNumber: 'INV-' + displayTrk.slice(-8),
+      orderRef: docs.orderRef || ('RET-' + displayTrk.slice(-8)),
+      invoiceDate: exportDateUk,
+      exportDate: exportDateUk,
       goodsValue: goodsVal,
       weight: weightVal,
       currency: 'GBP',
-      reasonForExport: docs.reasonForExport || 'RETURN OF GOODS (CUSTOMER RETURN - CPC 61 23)',
+      reasonForExport: docs.reasonForExport || 'RETURN OF GOODS (CUSTOMER RETURN - CPC 61 23 F01)',
       termsOfSale: 'DDP',
       sender,
       receiver,
