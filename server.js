@@ -480,8 +480,9 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
 // PUBLIC: Book an International or Domestic Return Label
 app.post('/api/card/:token/returns/book', async (req, res) => {
   try {
+    const token = req.params.token;
     if (!db.hasDb) return res.status(400).json({ error: 'No database configured' });
-    const card = await db.getCardByToken(req.params.token);
+    const card = await db.getCardByToken(token);
     if (!card || card.enabled === false) return res.status(404).json({ error: 'Rate card not available.' });
 
     const cfg = card.config || {};
@@ -717,7 +718,7 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
     };
 
     const saved = await db.createShipmentRecord(shipmentRecord);
-    sse.broadcast('shipment_booked', saved || shipmentRecord);
+    sse.broadcast('shipment_booked', saved || shipmentRecord, { token });
 
     res.json({
       ok: true,
