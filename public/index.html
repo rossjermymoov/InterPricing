@@ -1622,6 +1622,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
       </div>
       <div class="mv-rail-group" id="adminNavGroup">
         <div class="mv-rail-group-label">ADMINISTRATION</div>
+        <div class="mv-rail-item" id="navTeam"><span class="mv-rail-icon">👥</span>Team Members</div>
         <div class="mv-rail-item" id="navSettings"><span class="mv-rail-icon">⚙️</span>Settings &amp; Rates</div>
       </div>
     </div>
@@ -2108,6 +2109,47 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
         <div class="ds-modal-foot" style="justify-content:space-between">
           <div id="sdTrackActions"></div>
           <button class="ds-btn ds-btn-secondary" id="sdTrackClose">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: ADD TEAM MEMBER -->
+    <div class="ds-modal-scrim" id="addUserModal" style="display:none">
+      <div class="ds-modal" style="width:480px">
+        <div class="ds-modal-head" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="ds-kicker">TEAM &amp; PERMISSIONS</div>
+            <h2 style="margin:4px 0 0;font-size:20px">Add Team Member</h2>
+            <p class="ds-blurb" style="font-size:12px;margin-top:4px">Create a new login for a colleague to access Moov Parcel.</p>
+          </div>
+          <button type="button" id="addUserModalClose" style="font-size:22px;background:none;border:none;cursor:pointer;color:var(--mv-ink-55);line-height:1">&times;</button>
+        </div>
+        <div class="ds-modal-body" style="display:flex;flex-direction:column;gap:14px">
+          <div class="ds-field-wrap">
+            <label class="ds-label" for="addUserName">Full Name</label>
+            <input id="addUserName" type="text" class="ds-input" placeholder="e.g. Sarah Jenkins" autocomplete="name"/>
+          </div>
+          <div class="ds-field-wrap">
+            <label class="ds-label" for="addUserEmail">Email Address</label>
+            <input id="addUserEmail" type="email" class="ds-input" placeholder="e.g. sarah@moovlogistics.co.uk" autocomplete="email"/>
+          </div>
+          <div class="ds-field-wrap">
+            <label class="ds-label" for="addUserRole">Access Role</label>
+            <select id="addUserRole" class="ds-select" style="width:100%">
+              <option value="sales">Sales &amp; Operations (Rate quoting, customer cards, shipments &amp; bookings)</option>
+              <option value="admin">Administrator (Full control: settings, UPS credentials &amp; team management)</option>
+            </select>
+          </div>
+          <div class="ds-field-wrap">
+            <label class="ds-label" for="addUserPass">Initial Password</label>
+            <input id="addUserPass" type="password" class="ds-input" placeholder="Minimum 8 characters" autocomplete="new-password"/>
+            <span style="font-size:11px;color:var(--mv-ink-55);margin-top:4px;display:block">Must be at least 8 characters. The user can change it anytime after logging in.</span>
+          </div>
+          <div id="addUserErr" style="color:var(--mv-magenta-deep);font-size:12.5px;font-weight:600;min-height:18px"></div>
+        </div>
+        <div class="ds-modal-foot">
+          <button class="ds-btn ds-btn-secondary" id="addUserCancelBtn">Cancel</button>
+          <button class="ds-btn ds-btn-primary" id="addUserSubmitBtn">Create Account &amp; Grant Access</button>
         </div>
       </div>
     </div>
@@ -3065,11 +3107,20 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 
       <!-- Team Members -->
       <div class="ds-section" id="teamPanel" style="margin-top:40px">
-        <div class="ds-section-title">Team Access</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+          <div>
+            <div class="ds-section-title" style="margin-bottom:2px">Team Access</div>
+            <p class="ds-blurb" style="font-size:12px;margin:0">Manage team member logins, roles, and platform permissions.</p>
+          </div>
+          <button class="btn-moov-action primary" id="addMemberFromSettingsBtn" style="font-size:12px;height:32px;padding:0 14px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>+ Add Team Member</span>
+          </button>
+        </div>
         <div class="ds-table-wrap">
           <table class="ds-table">
             <thead>
-              <tr><th>Name</th><th>Email</th><th>Role</th><th>Set Password</th><th class="r">Action</th></tr>
+              <tr><th>Member</th><th>Email</th><th>Role</th><th>Change Role</th><th>Set Password</th><th class="r">Action</th></tr>
             </thead>
             <tbody id="usersBody"></tbody>
           </table>
@@ -3085,6 +3136,53 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
         <span id="upsMsg" style="margin-left:12px;font-size:12.5px;font-weight:700"></span>
         <div id="upsResult" style="margin-top:12px;font-size:13px"></div>
         <textarea id="upsRaw" style="display:none;width:100%;height:160px;font-family:monospace;font-size:11.5px;margin-top:8px" class="rawpre"></textarea>
+      </div>
+    </div>
+
+    <!-- 6. TEAM MEMBERS (team) -->
+    <div id="team" style="display:none">
+      <div class="ds-pagehead" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
+        <div>
+          <div class="ds-kicker">ACCESS &amp; USERS</div>
+          <h1 class="ds-h1">Team Members</h1>
+          <p class="ds-blurb">Add, manage, and configure login permissions for team members.</p>
+        </div>
+        <div>
+          <button class="btn-moov-action primary" id="openAddUserBtn" style="height:38px;padding:0 18px;font-size:13px;font-weight:700">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>+ Add Team Member</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ds-section" style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:12px">
+          <div>
+            <div class="ds-section-title" style="margin:0">Active Team Accounts</div>
+            <p class="ds-blurb" style="font-size:12px;margin:2px 0 0">Team members can sign in to quote, book, and access control plane functions according to their assigned role.</p>
+          </div>
+          <button class="btn-moov-refresh" id="teamRefreshBtn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>REFRESH</span>
+          </button>
+        </div>
+
+        <div class="ds-table-wrap">
+          <table class="ds-table">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Change Role</th>
+                <th>Reset Password</th>
+                <th class="r">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="teamBody"></tbody>
+          </table>
+        </div>
+        <div id="teamMsg" style="font-size:12.5px;margin-top:10px"></div>
       </div>
     </div>
   </main>
@@ -3948,10 +4046,10 @@ function bootCalc(){
   calc();
 }
 
-const SCREENS=['loading','setup','login','app','sameday','cards','shipments','settings','quotes','collection'];
+const SCREENS=['loading','setup','login','app','sameday','cards','shipments','settings','quotes','collection','team'];
 function screen(id){
   SCREENS.forEach(s=>$(s).style.display='none');
-  const authed=(id==='app'||id==='sameday'||id==='cards'||id==='shipments'||id==='settings'||id==='quotes'||id==='collection');
+  const authed=(id==='app'||id==='sameday'||id==='cards'||id==='shipments'||id==='settings'||id==='quotes'||id==='collection'||id==='team');
   if(id==='setup'||id==='login'||id==='loading'){
     $(id).style.display='flex';
   } else {
@@ -3961,6 +4059,7 @@ function screen(id){
   if(!authed){
     $('pwPanel').style.display='none';
     $('editCardModal').style.display='none';
+    if ($('addUserModal')) $('addUserModal').style.display='none';
   }
 
   document.querySelectorAll('.mv-rail-item').forEach(el=>el.classList.remove('active'));
@@ -3971,6 +4070,7 @@ function screen(id){
   if(id==='collection')$('navCollection').classList.add('active');
   if(id==='quotes')$('navQuotes').classList.add('active');
   if(id==='settings')$('navSettings').classList.add('active');
+  if(id==='team')$('navTeam').classList.add('active');
 }
 
 // ==========================================
@@ -4429,6 +4529,14 @@ if ($('navShipments')) $('navShipments').onclick=openShipments;
 if ($('navCollection')) $('navCollection').onclick=openCollection;
 if ($('navQuotes')) $('navQuotes').onclick=openQuotes;
 if ($('navSettings')) $('navSettings').onclick=openSettings;
+if ($('navTeam')) $('navTeam').onclick=openTeam;
+if ($('teamRefreshBtn')) $('teamRefreshBtn').onclick=refreshUsers;
+if ($('openAddUserBtn')) $('openAddUserBtn').onclick=openAddUserModal;
+if ($('addMemberFromSettingsBtn')) $('addMemberFromSettingsBtn').onclick=openAddUserModal;
+if ($('addUserModalClose')) $('addUserModalClose').onclick=closeAddUserModal;
+if ($('addUserCancelBtn')) $('addUserCancelBtn').onclick=closeAddUserModal;
+if ($('addUserSubmitBtn')) $('addUserSubmitBtn').onclick=submitAddUser;
+if ($('addUserPass')) $('addUserPass').addEventListener('keydown',e=>{if(e.key==='Enter')submitAddUser();});
 if ($('shipRefresh')) $('shipRefresh').onclick = loadShipments;
 
 if ($('suBtn')) $('suBtn').onclick=async()=>{$('suErr').textContent='';
@@ -6463,17 +6571,197 @@ if ($('saveBtn')) $('saveBtn').onclick=async()=>{
   calc();
 };
 
+async function openTeam(){
+  screen('team');
+  await refreshUsers();
+}
+
+function openAddUserModal(){
+  $('addUserName').value = '';
+  $('addUserEmail').value = '';
+  $('addUserRole').value = 'sales';
+  $('addUserPass').value = '';
+  if ($('addUserErr')) $('addUserErr').textContent = '';
+  $('addUserModal').style.display = 'flex';
+}
+
+function closeAddUserModal(){
+  $('addUserModal').style.display = 'none';
+}
+
+async function submitAddUser(){
+  const name = ($('addUserName').value || '').trim();
+  const email = ($('addUserEmail').value || '').trim();
+  const role = $('addUserRole').value || 'sales';
+  const password = $('addUserPass').value || '';
+  const errEl = $('addUserErr');
+  if (errEl) errEl.textContent = '';
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (errEl) errEl.textContent = 'Please enter a valid email address.';
+    return;
+  }
+  if (!password || password.length < 8) {
+    if (errEl) errEl.textContent = 'Password must be at least 8 characters long.';
+    return;
+  }
+
+  const submitBtn = $('addUserSubmitBtn');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating account…';
+  }
+
+  try {
+    const r = await jpost('/api/users', { name, email, role, password });
+    const d = await r.json();
+    if (!r.ok) {
+      if (errEl) errEl.textContent = d.error || 'Failed to create user account.';
+      return;
+    }
+    closeAddUserModal();
+    await refreshUsers();
+    const msg = `User account created successfully for ${d.user.email} (${d.user.role}).`;
+    if ($('teamMsg')) {
+      $('teamMsg').style.color = 'var(--mv-green-deep)';
+      $('teamMsg').textContent = msg;
+      setTimeout(() => { if ($('teamMsg')) $('teamMsg').textContent = ''; }, 6000);
+    }
+  } catch (e) {
+    if (errEl) errEl.textContent = 'Network error: ' + e.message;
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Account & Grant Access';
+    }
+  }
+}
+
 async function refreshUsers(){
-  if($('usersErr')) $('usersErr').textContent='';
-  const r=await fetch('/api/users'); if(!r.ok){if($('usersErr'))$('usersErr').textContent='Could not load users';return;}
-  const {users}=await r.json(); const tb=$('usersBody'); if(!tb) return; tb.innerHTML='';
-  users.forEach(u=>{
-    const tr=document.createElement('tr');const self=current&&u.id===current.id;
-    tr.innerHTML='<td>'+(u.name||'—')+'</td><td>'+u.email+'</td>' +
-      '<td><select data-id="'+u.id+'" class="ds-select" style="width:100px"><option value="sales"'+(u.role==='sales'?' selected':'')+'>sales</option><option value="admin"'+(u.role==='admin'?' selected':'')+'>admin</option></select></td>' +
-      '<td><input type="password" class="ds-input pwSet" data-id="'+u.id+'" placeholder="new pw" style="width:110px"/> <button class="ds-btn ds-btn-secondary pwSetBtn" data-id="' + u.id + '" style="padding:4px 8px;font-size:11px">Set</button></td>' +
-      '<td class="r">'+(self?'<span class="ds-status ds-status--progress"><span class="ds-mark ds-mark--progress"></span>YOU</span>':'<button class="ds-btn ds-btn-danger delBtn" data-id="'+u.id+'" style="padding:4px 8px;font-size:11px">Delete</button>')+'</td>';
-    tb.appendChild(tr);
+  if ($('usersErr')) $('usersErr').textContent = '';
+  if ($('teamMsg')) $('teamMsg').textContent = '';
+
+  const r = await fetch('/api/users');
+  if (!r.ok) {
+    const errText = 'Could not load users (requires administrator login).';
+    if ($('usersErr')) $('usersErr').textContent = errText;
+    if ($('teamMsg')) { $('teamMsg').style.color = 'var(--mv-magenta-deep)'; $('teamMsg').textContent = errText; }
+    return;
+  }
+
+  const { users } = await r.json();
+  const bodies = [$('teamBody'), $('usersBody')].filter(Boolean);
+
+  bodies.forEach(tb => {
+    tb.innerHTML = '';
+    if (!users || users.length === 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="6" style="text-align:center;color:var(--mv-ink-55);padding:20px">No team members found.</td>';
+      tb.appendChild(tr);
+      return;
+    }
+
+    users.forEach(u => {
+      const self = current && u.id === current.id;
+      const initials = (u.name || u.email || 'U').split(' ').map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+      const roleBadge = u.role === 'admin'
+        ? '<span class="ds-status ds-status--ok" style="font-size:11px"><span class="ds-mark ds-mark--ok"></span>admin</span>'
+        : '<span class="ds-status ds-status--info" style="font-size:11px"><span class="ds-mark ds-mark--info"></span>sales</span>';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:30px;height:30px;border-radius:50%;background:rgba(65,3,204,0.08);color:var(--mv-purple);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;letter-spacing:0.5px;flex:none">${initials}</div>
+            <div>
+              <div style="font-weight:700;color:var(--mv-ink);font-size:13px">${qesc(u.name || '—')}</div>
+              <div style="font-size:11px;color:var(--mv-ink-55)">${qesc(u.email)}</div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size:12.5px;color:var(--mv-ink-55)">${qesc(u.email)}</td>
+        <td>${roleBadge}</td>
+        <td>
+          <select data-id="${u.id}" class="ds-select uRoleSel" style="width:96px;font-size:11.5px;padding:3px 6px">
+            <option value="sales"${u.role === 'sales' ? ' selected' : ''}>sales</option>
+            <option value="admin"${u.role === 'admin' ? ' selected' : ''}>admin</option>
+          </select>
+        </td>
+        <td>
+          <div style="display:inline-flex;gap:4px;align-items:center">
+            <input type="password" class="ds-input uPwInput" data-id="${u.id}" placeholder="new password" style="width:110px;font-size:11.5px;padding:3px 6px"/>
+            <button class="ds-btn ds-btn-secondary uPwBtn" data-id="${u.id}" style="padding:4px 8px;font-size:11px;font-weight:600">Set</button>
+          </div>
+        </td>
+        <td class="r">
+          ${self
+            ? '<span class="ds-status ds-status--progress" style="font-size:11px"><span class="ds-mark ds-mark--progress"></span>YOU</span>'
+            : `<button class="ds-btn ds-btn-danger uDelBtn" data-id="${u.id}" data-email="${qesc(u.email)}" style="padding:4px 8px;font-size:11px">Delete</button>`
+          }
+        </td>
+      `;
+      tb.appendChild(tr);
+    });
+  });
+
+  // Attach event handlers to role dropdowns, password reset, and delete actions
+  document.querySelectorAll('.uRoleSel').forEach(sel => {
+    sel.onchange = async () => {
+      const id = sel.getAttribute('data-id');
+      const nextRole = sel.value;
+      const r = await jpatch('/api/users/' + id, { role: nextRole });
+      const d = await r.json();
+      if (!r.ok) {
+        alert(d.error || 'Failed to update user role');
+        await refreshUsers();
+        return;
+      }
+      await refreshUsers();
+    };
+  });
+
+  document.querySelectorAll('.uPwBtn').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-id');
+      const input = document.querySelector(`.uPwInput[data-id="${id}"]`);
+      const pw = input ? input.value : '';
+      if (!pw || pw.length < 8) {
+        alert('Password must be at least 8 characters');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = '…';
+      const r = await jpatch('/api/users/' + id, { password: pw });
+      const d = await r.json();
+      btn.disabled = false;
+      btn.textContent = 'Set';
+      if (!r.ok) {
+        alert(d.error || 'Failed to update password');
+        return;
+      }
+      if (input) input.value = '';
+      btn.textContent = '✓ Saved';
+      setTimeout(() => { btn.textContent = 'Set'; }, 2000);
+    };
+  });
+
+  document.querySelectorAll('.uDelBtn').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.getAttribute('data-id');
+      const email = btn.getAttribute('data-email');
+      if (!confirm(`Are you sure you want to remove team member ${email}? This cannot be undone.`)) return;
+      btn.disabled = true;
+      btn.textContent = '…';
+      const r = await jdel('/api/users/' + id);
+      const d = await r.json();
+      if (!r.ok) {
+        alert(d.error || 'Failed to delete user');
+        btn.disabled = false;
+        btn.textContent = 'Delete';
+        return;
+      }
+      await refreshUsers();
+    };
   });
 }
 
