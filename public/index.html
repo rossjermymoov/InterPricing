@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="/chart.umd.js"></script>
 <script src="/xlsx.full.min.js"></script>
+<script src="/js/html2pdf.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 /* ============================================================================
@@ -3189,12 +3190,15 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
             <div id="retSuccessSummary" style="font-size:12.5px;color:#15803d;margin-top:6px"></div>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <a id="retDownloadBtn" href="#" download="return_label.pdf" class="btn-moov-action primary" style="background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy);font-weight:900;font-size:14px;padding:12px 24px;text-decoration:none;display:inline-flex;align-items:center;gap:8px">
-              <span>⬇️ Download Label (PDF)</span>
-            </a>
+            <button type="button" id="retDownloadBtn" class="btn-moov-action primary" style="background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy);font-weight:900;font-size:14px;padding:12px 24px;display:inline-flex;align-items:center;gap:8px;cursor:pointer">
+              <span>⬇️ Download Moov Label (PDF)</span>
+            </button>
             <button type="button" id="retPrintBtn" class="btn-moov-action secondary" style="font-weight:700;font-size:14px;padding:12px 20px">
               <span>🖨️ Print Label</span>
             </button>
+            <a id="retCarrierPassLink" href="#" target="_blank" style="font-size:12px;color:#166534;font-weight:700;text-decoration:underline;margin-left:4px;display:none">
+              Download Raw Carrier Pass
+            </a>
           </div>
         </div>
 
@@ -5716,17 +5720,24 @@ async function createReturnsLabelApi() {
         summaryDiv.innerHTML = `Customer: <b>${customerId.toUpperCase()}</b> · Courier: <b>${serviceCode}</b> · Recipient: <b>${$('retShipToText')?.textContent || ''}</b>`;
       }
 
-      // Proxy download URL with Content-Disposition: attachment so browser never redirects off page
+      // Proxy download URL for raw carrier pass
       const proxyDownloadUrl = labelUrl 
-        ? `/api/returns/download-pdf?url=${encodeURIComponent(labelUrl)}&filename=${encodeURIComponent('return_label_' + (tracking || customerId) + '.pdf')}`
+        ? `/api/returns/download-pdf?url=${encodeURIComponent(labelUrl)}&filename=${encodeURIComponent('carrier_pass_' + (tracking || customerId) + '.pdf')}`
         : getPdfBlobUrl(labelPdf);
 
       currentLabelBlobUrl = proxyDownloadUrl;
 
-      if (downloadBtn && proxyDownloadUrl) {
-        downloadBtn.href = proxyDownloadUrl;
-        downloadBtn.download = `return_label_${tracking || customerId}.pdf`;
+      // Primary download button downloads our Moov branded 4x6 label PDF:
+      if (downloadBtn) {
+        downloadBtn.onclick = () => downloadBrandedHtmlAsPdf(window.currentBrandedHtml, `moov_return_label_${tracking || customerId}.pdf`);
         downloadBtn.style.display = 'inline-flex';
+      }
+
+      // Secondary link to download raw carrier document if needed
+      const rawCarrierLink = $('retCarrierPassLink');
+      if (rawCarrierLink && proxyDownloadUrl) {
+        rawCarrierLink.href = proxyDownloadUrl;
+        rawCarrierLink.style.display = 'inline-block';
       }
 
       // Populate live thermal preview if branded HTML is available
@@ -5850,15 +5861,70 @@ function renderReturnsHistoryTable(list) {
         </td>
         <td style="padding:12px;text-align:right;white-space:nowrap">
           <div style="display:inline-flex;gap:6px;align-items:center">
+            ${b.branded_html ? `<button type="button" onclick="downloadReturnBookingPdf('${b.id}')" class="btn-moov-action primary" style="height:28px;padding:0 10px;font-size:11.5px;background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy);font-weight:900" title="Download 4x6 Moov Thermal PDF">⬇️ Moov PDF</button>` : ''}
             ${b.branded_html ? `<button type="button" onclick="printReturnBookingById('${b.id}')" class="btn-moov-action secondary" style="height:28px;padding:0 8px;font-size:11.5px" title="Print 4x6 Thermal Label">🖨️ Print</button>` : ''}
-            ${b.label_url || b.label_pdf ? `<a href="${pdfDownloadUrl}" download="return_label_${b.tracking_number || b.id}.pdf" class="btn-moov-action secondary" style="height:28px;padding:0 8px;font-size:11.5px;text-decoration:none;display:inline-flex;align-items:center" title="Download Carrier PDF">⬇️ PDF</a>` : ''}
             ${b.branded_html ? `<button type="button" onclick="previewReturnBookingById('${b.id}')" class="btn-moov-action secondary" style="height:28px;padding:0 8px;font-size:11.5px" title="View Thermal Label Preview">👁️ View</button>` : ''}
+            ${b.label_url || b.label_pdf ? `<a href="${pdfDownloadUrl}" download="carrier_pass_${b.tracking_number || b.id}.pdf" style="font-size:11px;color:var(--mv-subtle);text-decoration:underline;margin-left:4px" title="Download Raw Carrier Pass">Carrier Pass</a>` : ''}
             <button type="button" onclick="deleteReturnBookingById('${b.id}')" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:4px;font-size:13px" title="Delete from history">🗑️</button>
           </div>
         </td>
       </tr>
     `;
   }).join('');
+}
+
+async function downloadBrandedHtmlAsPdf(htmlString, filename = 'moov_return_label.pdf') {
+  if (!htmlString) return alert('No return label template available to download.');
+  const dlBtn = $('retDownloadBtn');
+  let origText = '';
+  if (dlBtn) {
+    origText = dlBtn.innerHTML;
+    dlBtn.innerHTML = '<span>⏳ Generating PDF...</span>';
+    dlBtn.disabled = true;
+  }
+
+  // Create an offscreen wrapper container sized strictly for 4" width (384px at 96 DPI)
+  const wrap = document.createElement('div');
+  wrap.style.position = 'fixed';
+  wrap.style.left = '-9999px';
+  wrap.style.top = '0';
+  wrap.style.width = '384px';
+  wrap.style.background = '#ffffff';
+  wrap.innerHTML = htmlString;
+  document.body.appendChild(wrap);
+
+  const card = wrap.querySelector('.label-card') || wrap;
+  const opt = {
+    margin: 0,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 3, useCORS: true, logging: false },
+    jsPDF: { unit: 'in', format: [4, 6], orientation: 'portrait' }
+  };
+
+  try {
+    if (typeof html2pdf !== 'undefined') {
+      await html2pdf().set(opt).from(card).save();
+    } else {
+      printCurrentReturnLabel();
+    }
+  } catch (e) {
+    console.error('Error generating branded PDF:', e);
+    printCurrentReturnLabel();
+  } finally {
+    if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
+    if (dlBtn) {
+      dlBtn.innerHTML = origText;
+      dlBtn.disabled = false;
+    }
+  }
+}
+
+async function downloadReturnBookingPdf(id) {
+  const item = currentReturnsHistoryList.find(b => b.id === id);
+  if (!item || !item.branded_html) return alert('No branded template available for this return booking.');
+  const filename = `moov_return_label_${item.tracking_number || item.id}.pdf`;
+  await downloadBrandedHtmlAsPdf(item.branded_html, filename);
 }
 
 function printReturnBookingById(id) {

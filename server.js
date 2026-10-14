@@ -825,7 +825,7 @@ app.post('/api/returns/create-label', async (req, res) => {
     let savedBooking = null;
     if (result.ok || labelInfo.trackingNumber) {
       try {
-        savedBooking = returnsManager.saveReturnBooking({
+        savedBooking = await returnsManager.saveReturnBooking({
           customer_id: customerId,
           service_code: serviceCode || 'DPD',
           tracking_number: labelInfo.trackingNumber,
@@ -865,10 +865,10 @@ app.post('/api/returns/create-label', async (req, res) => {
 });
 
 // GET list of return bookings history
-app.get('/api/returns/history', (req, res) => {
+app.get('/api/returns/history', async (req, res) => {
   try {
     const { search, customerId, limit } = req.query;
-    const bookings = returnsManager.listReturnBookings({ search, customerId, limit });
+    const bookings = await returnsManager.listReturnBookings({ search, customerId, limit });
     res.json({ ok: true, bookings });
   } catch (err) {
     console.error('[returns/history error]', err.message);
@@ -877,9 +877,9 @@ app.get('/api/returns/history', (req, res) => {
 });
 
 // GET single return booking by ID or Tracking
-app.get('/api/returns/history/:id', (req, res) => {
+app.get('/api/returns/history/:id', async (req, res) => {
   try {
-    const booking = returnsManager.getReturnBookingById(req.params.id);
+    const booking = await returnsManager.getReturnBookingById(req.params.id);
     if (!booking) return res.status(404).json({ ok: false, error: 'Return booking not found' });
     res.json({ ok: true, booking });
   } catch (err) {
@@ -889,9 +889,9 @@ app.get('/api/returns/history/:id', (req, res) => {
 });
 
 // DELETE return booking from history
-app.delete('/api/returns/history/:id', (req, res) => {
+app.delete('/api/returns/history/:id', async (req, res) => {
   try {
-    const deleted = returnsManager.deleteReturnBooking(req.params.id);
+    const deleted = await returnsManager.deleteReturnBooking(req.params.id);
     res.json({ ok: true, deleted });
   } catch (err) {
     console.error('[returns/history/:id delete error]', err.message);

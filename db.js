@@ -222,28 +222,28 @@ async function initDb() {
     );`);
   await pool.query(`CREATE INDEX IF NOT EXISTS sameday_gps_job_idx ON sameday_gps_pings (job_ref);`);
 
-  // Auto-restore any Bessette order erroneously marked as cancelled
-  try {
-    const uncancelRes = await pool.query(`
-      UPDATE shipments 
-      SET status = 'booked' 
-      WHERE status = 'cancelled' 
-        AND (
-          lower(coalesce(customer, '')) LIKE '%bessette%' 
-          OR lower(coalesce(sender::text, '')) LIKE '%bessette%' 
-          OR lower(coalesce(receiver::text, '')) LIKE '%bessette%'
-        )
-      RETURNING id, tracking_number, customer;
-    `);
-    if (uncancelRes.rowCount > 0) {
-      console.log('[db] Auto-restored Bessette shipment(s) back to booked:', uncancelRes.rows);
-    }
-  } catch (err) {
-    console.error('[db] Error restoring Bessette shipment:', err.message);
-  }
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS return_bookings (
+      id text PRIMARY KEY,
+      customer_id text NOT NULL,
+      customer_name text,
+      service_code text,
+      tracking_number text,
+      barcode_ref text,
+      reference text,
+      ship_from jsonb,
+      ship_to jsonb,
+      label_url text,
+      label_pdf text,
+      qr_code_url text,
+      qr_code_base64 text,
+      branded_html text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS return_bookings_created_idx ON return_bookings (created_at DESC);`);
 
   await migrateConfig();
-  console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs, collections, shipments, sameday_quotes, sameday_jobs)');
+  console.log('[db] schema ready (rate_config, users, app_secrets, rate_cards, quote_logs, collections, shipments, sameday_quotes, sameday_jobs, return_bookings)');
 }
 
 // ---- quote logging + reporting ----
@@ -966,6 +966,103 @@ async function getSamedayGpsPings(jobRef) {
   return rows;
 }
 
+// ---- RETURN BOOKINGS PERSISTENCE ----
+async function createReturnBooking(record = {}) {
+  if (!pool) return null;
+  const id = record.id || `RET-${Date.now()}`;
+  await pool.query(
+    `INSERT INTO return_bookings (
+      id, customer_id, customer_name, service_code, tracking_number, barcode_ref,
+      reference, ship_from, ship_to, label_url, label_pdf, qr_code_url, qr_code_base64,
+      branded_html, created_at
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,COALESCE($15, now()))
+    ON CONFLICT (id) DO UPDATE SET
+      customer_id = EXCLUDED.customer_id,
+      customer_name = EXCLUDED.customer_name,
+      service_code = EXCLUDED.service_code,
+      tracking_number = EXCLUDED.tracking_number,
+      barcode_ref = EXCLUDED.barcode_ref,
+      reference = EXCLUDED.reference,
+      ship_from = EXCLUDED.ship_from,
+      ship_to = EXCLUDED.ship_to,
+      label_url = EXCLUDED.label_url,
+      label_pdf = EXCLUDED.label_pdf,
+      qr_code_url = EXCLUDED.qr_code_url,
+      qr_code_base64 = EXCLUDED.qr_code_base64,
+      branded_html = EXCLUDED.branded_html`,
+    [
+      id,
+      record.customer_id,
+      record.customer_name,
+      record.service_code,
+      record.tracking_number,
+      record.barcode_ref,
+      record.reference,
+      JSON.stringify(record.ship_from || {}),
+      JSON.stringify(record.ship_to || {}),
+      record.label_url,
+      record.label_pdf,
+      record.qr_code_url,
+      record.qr_code_base64,
+      record.branded_html,
+      record.created_at ? new Date(record.created_at) : null
+    ]
+  );
+  return record;
+}
+
+async function listReturnBookings({ search, customerId, limit = 100 } = {}) {
+  if (!pool) return null;
+  let q = `SELECT * FROM return_bookings`;
+  const params = [];
+  const wheres = [];
+
+  if (customerId && customerId !== 'all') {
+    params.push(String(customerId).toLowerCase());
+    wheres.push(`lower(customer_id) = $${params.length}`);
+  }
+
+  if (search && typeof search === 'string' && search.trim()) {
+    params.push(`%${search.trim().toLowerCase()}%`);
+    const pIdx = params.length;
+    wheres.push(`(
+      lower(coalesce(tracking_number, '')) LIKE $${pIdx} OR
+      lower(coalesce(customer_name, '')) LIKE $${pIdx} OR
+      lower(coalesce(reference, '')) LIKE $${pIdx} OR
+      lower(coalesce(barcode_ref, '')) LIKE $${pIdx} OR
+      lower(coalesce(ship_from::text, '')) LIKE $${pIdx}
+    )`);
+  }
+
+  if (wheres.length > 0) {
+    q += ` WHERE ` + wheres.join(' AND ');
+  }
+
+  params.push(Number(limit) || 100);
+  q += ` ORDER BY created_at DESC LIMIT $${params.length}`;
+
+  const { rows } = await pool.query(q, params);
+  return rows;
+}
+
+async function getReturnBookingById(id) {
+  if (!pool || !id) return null;
+  const { rows } = await pool.query(
+    `SELECT * FROM return_bookings WHERE id = $1 OR tracking_number = $1 LIMIT 1`,
+    [String(id).trim()]
+  );
+  return rows[0] || null;
+}
+
+async function deleteReturnBooking(id) {
+  if (!pool || !id) return false;
+  const result = await pool.query(
+    `DELETE FROM return_bookings WHERE id = $1 OR tracking_number = $1`,
+    [String(id).trim()]
+  );
+  return result.rowCount > 0;
+}
+
 module.exports = {
   initDb, getConfig, setConfig, getSecret,
   countUsers, getUserByEmail, getUserById, createUser, listUsers, updateUser, deleteUser,
@@ -978,5 +1075,7 @@ module.exports = {
   getNextSamedayQuoteRef, createSamedayQuote, getSamedayQuoteByIdOrRef, listSamedayQuotes, markSamedayQuoteBooked,
   createSamedayJob, getSamedayJobByRef, listSamedayJobs, updateSamedayJobStatus, cancelSamedayJob, deleteCancelledSamedayJobs,
   saveSamedayTrackingEvent, getSamedayTrackingEvents, saveSamedayGpsPing, getSamedayGpsPings,
+  // Return Bookings Exports
+  createReturnBooking, listReturnBookings, getReturnBookingById, deleteReturnBooking,
   hasDb: !!pool,
 };
