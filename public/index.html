@@ -5458,11 +5458,6 @@ function updateReturnsCustomerView() {
     ].filter(Boolean);
     $('retShipToText').textContent = addrParts.join(' · ');
   }
-
-  // Regenerate payload if fields have data
-  if ($('retFromName') && $('retFromName').value.trim()) {
-    generateReturnsPayload(false);
-  }
 }
 
 async function handleReturnsSmartParse() {
@@ -5488,8 +5483,12 @@ async function handleReturnsSmartParse() {
     if (p.county && $('retFromCounty')) $('retFromCounty').value = p.county;
     if (p.country_iso && $('retFromCountry')) $('retFromCountry').value = p.country_iso;
 
-    // Generate payload automatically
-    generateReturnsPayload(true);
+    const parseBtn = $('retBtnParseText');
+    if (parseBtn) {
+      const orig = parseBtn.innerHTML;
+      parseBtn.innerHTML = '<span>✓ Auto-Filled!</span>';
+      setTimeout(() => { parseBtn.innerHTML = orig; }, 2000);
+    }
   } catch (err) {
     console.error('Smart parse error:', err);
     alert('Failed to parse text: ' + err.message);
