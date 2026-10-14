@@ -803,10 +803,15 @@ app.post('/api/returns/create-label', async (req, res) => {
     if (!payload) return res.status(400).json({ error: 'Payload or shipFrom details required' });
 
     const result = await returnsManager.callCreateLabel({ customerId, payload });
+    const labelInfo = returnsManager.extractLabelInfo(result.data);
+
     res.status(result.status || (result.ok ? 200 : 400)).json({
       ok: result.ok,
       status: result.status,
       data: result.data,
+      trackingNumber: labelInfo.trackingNumber,
+      labelPdf: labelInfo.labelPdf,
+      labelUrl: labelInfo.labelUrl,
       payload
     });
   } catch (err) {

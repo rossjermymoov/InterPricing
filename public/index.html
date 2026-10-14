@@ -3168,71 +3168,111 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
     <div id="returns" style="display:none">
       <div class="ds-pagehead" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
         <div>
-          <div class="ds-kicker">RETURNS &amp; POSTMAN PAYLOADS</div>
-          <h1 class="ds-h1">Return Labels Generator</h1>
-          <p class="ds-blurb">Extract customer details, generate exact Postman JSON payloads, and create live return labels for Buffalo, Xplore, and Bessette via DPD or Yodel.</p>
+          <div class="ds-kicker">CUSTOMER RETURNS</div>
+          <h1 class="ds-h1">Create Return Label</h1>
+          <p class="ds-blurb">Enter customer and order details to generate and download a return shipping label with DPD or Yodel.</p>
         </div>
       </div>
 
-      <!-- Customer & Courier Selection Banner -->
-      <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:20px 24px;margin-bottom:24px">
-        <div class="ds-section-title" style="margin-bottom:14px">1. Select Customer &amp; Courier Service</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:20px">
-          <div class="ds-field-wrap">
-            <label class="ds-label">Customer Account</label>
-            <select id="retCustomerSelect" class="ds-select" style="font-weight:700">
-              <option value="buffalo">Buffalo Systems (Buffalo Systems Ltd S8 0XQ)</option>
-              <option value="xplore">Xplore Brands (Xplore Brands LE12 7RA)</option>
-              <option value="bessette">Bessette (Bessette LTD W4 4PH)</option>
-            </select>
-          </div>
-          <div class="ds-field-wrap">
-            <label class="ds-label">Courier Service</label>
-            <select id="retServiceSelect" class="ds-select" style="font-weight:700">
-              <option value="DPD">DPD — Drop Off QR (DPD-12DROPQR)</option>
-              <option value="YOD">Yodel — Direct Return C2C (YOD-C2CPS)</option>
-            </select>
-          </div>
-          <div class="ds-field-wrap">
-            <label class="ds-label">Collection Date &amp; Time (Today @ 18:00)</label>
-            <input id="retCollectionDate" type="text" class="ds-input" style="font-family:monospace;font-weight:700"/>
-          </div>
-        </div>
-
-        <!-- Ship To Preview Badge -->
-        <div id="retShipToBadge" style="margin-top:16px;padding:12px 16px;background:var(--mv-bg);border:1px solid var(--mv-hairline-2);font-size:12px;line-height:1.5;display:flex;align-items:center;gap:12px">
-          <span style="font-size:18px">🏢</span>
+      <!-- Success & Download Card (Displayed after label creation) -->
+      <div id="retSuccessCard" class="ds-section" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-left:4px solid var(--moov-green);padding:24px 28px;margin-bottom:24px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px">
           <div>
-            <b>Static Return Destination (Ship To):</b> <span id="retShipToText">Returns Dept · Bessette Limited · 237 Brompton Road, London SW3 2EP</span>
+            <div style="display:inline-flex;align-items:center;gap:8px;background:#dcfce7;color:#166534;font-size:12px;font-weight:800;padding:4px 12px;border-radius:20px;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:10px">
+              <span>✓ Label Created Successfully</span>
+            </div>
+            <h2 style="margin:0 0 6px;font-size:20px;color:#14532d">Return Label Ready for Download</h2>
+            <div style="font-size:13.5px;color:#166534;line-height:1.6">
+              <b>Tracking Number:</b> <span id="retTrackingDisplay" style="font-family:'JetBrains Mono',monospace;font-weight:900;font-size:16px;color:var(--mv-purple);letter-spacing:0.05em"></span>
+              <button type="button" id="retBtnCopyTracking" class="btn-moov-action secondary" style="height:24px;padding:0 8px;font-size:11px;margin-left:8px;vertical-align:middle">📋 Copy</button>
+            </div>
+            <div id="retSuccessSummary" style="font-size:12.5px;color:#15803d;margin-top:6px"></div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <a id="retDownloadBtn" href="#" download="return_label.pdf" class="btn-moov-action primary" style="background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy);font-weight:900;font-size:14px;padding:12px 24px;text-decoration:none;display:inline-flex;align-items:center;gap:8px">
+              <span>⬇️ Download Label (PDF)</span>
+            </a>
+            <button type="button" id="retPrintBtn" class="btn-moov-action secondary" style="font-weight:700;font-size:14px;padding:12px 20px">
+              <span>🖨️ Print Label</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(420px, 1fr));gap:24px;align-items:start">
-        <!-- Left: Customer Ship From Input -->
+      <!-- Error Card (if courier returns error) -->
+      <div id="retErrorCard" class="ds-section" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-left:4px solid #dc2626;padding:18px 22px;margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:10px;color:#991b1b;font-weight:800;font-size:13px;margin-bottom:4px">
+          <span>⚠️ Courier Notice</span>
+        </div>
+        <div id="retErrorMessage" style="font-size:13px;color:#b91c1c;line-height:1.5"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:24px;align-items:start">
+        
+        <!-- Left Column: Customer & Service Selection + Quick Paste -->
         <div>
-          <!-- Smart Text / Screenshot Paste -->
-          <div class="ds-section" style="padding:18px 22px;margin-bottom:20px;background:#f8fafc;border:1px solid #cbd5e1">
+          <!-- Customer & Courier Selection -->
+          <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:20px 24px;margin-bottom:20px">
+            <div class="ds-section-title" style="margin-bottom:14px">1. Select Account &amp; Courier</div>
+            
+            <div class="ds-field-wrap" style="margin-bottom:14px">
+              <label class="ds-label">Customer Account</label>
+              <select id="retCustomerSelect" class="ds-select" style="font-weight:700;font-size:13.5px">
+                <option value="buffalo">Buffalo Systems (Buffalo Systems Ltd S8 0XQ)</option>
+                <option value="xplore">Xplore Brands (Xplore Brands LE12 7RA)</option>
+                <option value="bessette">Bessette (Bessette LTD W4 4PH)</option>
+              </select>
+            </div>
+
+            <div class="ds-field-wrap" style="margin-bottom:14px">
+              <label class="ds-label">Courier Service</label>
+              <select id="retServiceSelect" class="ds-select" style="font-weight:700;font-size:13.5px">
+                <option value="DPD">DPD — Drop Off QR (DPD-12DROPQR)</option>
+                <option value="YOD">Yodel — Direct Return C2C (YOD-C2CPS)</option>
+              </select>
+            </div>
+
+            <div class="ds-field-wrap" style="margin-bottom:14px">
+              <label class="ds-label">Collection Date &amp; Time (Today @ 18:00)</label>
+              <input id="retCollectionDate" type="text" class="ds-input" style="font-family:monospace;font-weight:700"/>
+            </div>
+
+            <!-- Ship To Preview Badge -->
+            <div id="retShipToBadge" style="margin-top:14px;padding:12px 14px;background:var(--mv-bg);border:1px solid var(--mv-hairline-2);font-size:12px;line-height:1.5;display:flex;align-items:flex-start;gap:10px">
+              <span style="font-size:16px;line-height:1">🏢</span>
+              <div>
+                <b style="color:var(--mv-ink)">Return Address (Ship To):</b><br/>
+                <span id="retShipToText" style="color:var(--mv-ink-55)">Returns Dept · Bessette Limited · 237 Brompton Road, London SW3 2EP</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Text / Screenshot Paste -->
+          <div class="ds-section" style="padding:18px 22px;background:#f8fafc;border:1px solid #cbd5e1">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-              <span style="font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-purple)">⚡ Quick Paste / Smart Auto-Fill</span>
+              <span style="font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-purple)">⚡ Quick Paste Auto-Fill</span>
               <button type="button" class="btn-moov-action secondary" id="retBtnParseText" style="height:28px;padding:0 12px;font-size:11px;font-weight:700">
-                <span>🪄 Smart Parse into Fields</span>
+                <span>🪄 Auto-Fill Form</span>
               </button>
             </div>
-            <p class="ds-blurb" style="font-size:11.5px;margin-bottom:10px">Paste raw customer details, email text, or address lines. Clicking <b>Smart Parse</b> will automatically populate the name, phone, email, and address fields below.</p>
-            <textarea id="retRawText" class="ds-input" rows="4" placeholder="e.g.&#10;Hannah Jones&#10;07761597044&#10;hannah.lloyd@live.co.uk&#10;8 Lindisfarne Avenue&#10;Ellesmere Port&#10;CH65 9JF" style="font-family:inherit;font-size:12.5px"></textarea>
+            <p class="ds-blurb" style="font-size:11.5px;margin-bottom:10px">Paste customer info from an order confirmation, email, or chat. Click <b>Auto-Fill Form</b> to populate the fields.</p>
+            <textarea id="retRawText" class="ds-input" rows="5" placeholder="Paste customer details here...&#10;e.g.&#10;Hannah Jones&#10;07761597044&#10;hannah.lloyd@live.co.uk&#10;8 Lindisfarne Avenue&#10;Ellesmere Port&#10;CH65 9JF" style="font-family:inherit;font-size:12.5px"></textarea>
           </div>
+        </div>
 
-          <div class="ds-section" style="padding:20px 24px">
-            <div class="ds-section-title" style="margin-bottom:14px">2. Customer Details (Ship From)</div>
+        <!-- Right Column: Customer Details (Ship From) Form -->
+        <div>
+          <div class="ds-section" style="padding:22px 26px;border-top:3px solid var(--moov-green)">
+            <div class="ds-section-title" style="margin-bottom:16px">2. Customer Details (Ship From)</div>
+            
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
               <div class="ds-field-wrap">
-                <label class="ds-label">Full Name *</label>
+                <label class="ds-label">Customer Name *</label>
                 <input id="retFromName" type="text" class="ds-input" placeholder="e.g. Mansi Mehta"/>
               </div>
               <div class="ds-field-wrap">
                 <label class="ds-label">Phone Number *</label>
-                <input id="retFromPhone" type="text" class="ds-input" placeholder="e.g. +447545515449"/>
+                <input id="retFromPhone" type="text" class="ds-input" placeholder="e.g. 07545 515449"/>
               </div>
               <div class="ds-field-wrap" style="grid-column:1 / -1">
                 <label class="ds-label">Email Address *</label>
@@ -3259,60 +3299,28 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                 <input id="retFromPostcode" type="text" class="ds-input" placeholder="e.g. E17 6LS" style="font-weight:700;text-transform:uppercase"/>
               </div>
               <div class="ds-field-wrap">
-                <label class="ds-label">County / State</label>
-                <input id="retFromCounty" type="text" class="ds-input" placeholder="e.g. England / Cheshire"/>
+                <label class="ds-label">County / Region</label>
+                <input id="retFromCounty" type="text" class="ds-input" placeholder="e.g. Greater London"/>
               </div>
               <div class="ds-field-wrap">
                 <label class="ds-label">Country ISO</label>
                 <input id="retFromCountry" type="text" class="ds-input" value="GB" maxlength="2" style="font-weight:700;text-transform:uppercase"/>
               </div>
               <div class="ds-field-wrap">
-                <label class="ds-label">Reference / RMA #</label>
+                <label class="ds-label">Order Ref / RMA # (Optional)</label>
                 <input id="retReference" type="text" class="ds-input" placeholder="e.g. RET-10492"/>
               </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
-              <button type="button" class="btn-moov-action primary" id="retBtnGenPayload" style="height:42px;flex:1;font-size:13px;font-weight:700">
-                <span>⚡ Generate JSON Payload</span>
-              </button>
-              <button type="button" class="btn-moov-action" id="retBtnCreateLabel" style="height:42px;flex:1;background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy);font-weight:800;font-size:13px">
-                <span>🚀 Create Label via API</span>
+            <!-- Big Action Button -->
+            <div style="margin-top:24px">
+              <button type="button" class="btn-moov-action" id="retBtnCreateLabel" style="width:100%;height:46px;background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy);font-weight:900;font-size:14.5px">
+                <span>🏷️ Generate &amp; Download Return Label</span>
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Right: Generated Output & Live Courier Result -->
-        <div>
-          <!-- Payload Output Card -->
-          <div class="ds-section" style="padding:20px 24px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-              <div class="ds-section-title" style="margin:0">3. Postman JSON Payload</div>
-              <button type="button" class="btn-moov-action secondary" id="retBtnCopyPayload" style="height:32px;padding:0 14px;font-size:12px;font-weight:700">
-                <span id="retCopyBtnText">📋 Copy JSON to Clipboard</span>
-              </button>
-            </div>
-            <p class="ds-blurb" style="font-size:12px;margin-bottom:12px">Copy this exact JSON and paste it into the Body tab of your Postman request.</p>
-
-            <div style="position:relative">
-              <pre id="retPayloadDisplay" style="background:#0f172a;color:#f8fafc;padding:16px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11.5px;max-height:460px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;border:1px solid #334155">// Click "Generate JSON Payload" or fill the form on the left to view payload</pre>
-            </div>
-          </div>
-
-          <!-- Live API Response Card (Direct Label Generation) -->
-          <div class="ds-section" id="retApiResponseCard" style="padding:20px 24px;margin-top:20px;display:none">
-            <div class="ds-section-title" style="margin-bottom:10px">Courier API Result</div>
-            <div id="retApiStatusBadge" style="margin-bottom:12px;display:inline-block;padding:4px 10px;border-radius:4px;font-weight:800;font-size:12px"></div>
-            <div id="retApiResultDetails" style="font-size:12.5px;line-height:1.6;margin-bottom:14px"></div>
-            <div id="retApiLabelAction" style="margin-bottom:14px"></div>
-            <details style="font-size:11.5px;cursor:pointer">
-              <summary style="font-weight:700;color:var(--mv-ink-55)">View Full Courier Response</summary>
-              <pre id="retApiResponseRaw" style="margin-top:8px;background:#f1f5f9;padding:12px;font-family:monospace;font-size:11px;overflow-x:auto;max-height:300px"></pre>
-            </details>
-          </div>
-        </div>
       </div>
     </div>
   </main>
@@ -4659,11 +4667,10 @@ if ($('navCards')) $('navCards').onclick=openCards;
 if ($('navShipments')) $('navShipments').onclick=openShipments;
 if ($('navReturns')) $('navReturns').onclick=openReturns;
 if ($('retCustomerSelect')) $('retCustomerSelect').onchange=updateReturnsCustomerView;
-if ($('retServiceSelect')) $('retServiceSelect').onchange=()=>generateReturnsPayload(false);
 if ($('retBtnParseText')) $('retBtnParseText').onclick=handleReturnsSmartParse;
-if ($('retBtnGenPayload')) $('retBtnGenPayload').onclick=()=>generateReturnsPayload(true);
-if ($('retBtnCopyPayload')) $('retBtnCopyPayload').onclick=copyReturnsPayload;
 if ($('retBtnCreateLabel')) $('retBtnCreateLabel').onclick=createReturnsLabelApi;
+if ($('retBtnCopyTracking')) $('retBtnCopyTracking').onclick=copyReturnsTracking;
+if ($('retPrintBtn')) $('retPrintBtn').onclick=printCurrentReturnLabel;
 if ($('navCollection')) $('navCollection').onclick=openCollection;
 if ($('navQuotes')) $('navQuotes').onclick=openQuotes;
 if ($('navSettings')) $('navSettings').onclick=openSettings;
@@ -5505,69 +5512,72 @@ function getReturnsShipFromData() {
   };
 }
 
-async function generateReturnsPayload(shouldAlert = false) {
-  const customerId = $('retCustomerSelect') ? $('retCustomerSelect').value : 'buffalo';
-  const serviceCode = $('retServiceSelect') ? $('retServiceSelect').value : 'DPD';
-  const collectionDate = $('retCollectionDate') ? $('retCollectionDate').value : '';
-  const reference = $('retReference') ? $('retReference').value : '';
-  const shipFrom = getReturnsShipFromData();
+let currentLabelBlobUrl = null;
+let currentTrackingNumber = null;
 
-  if (!shipFrom.name && !shipFrom.address_1 && !shipFrom.postcode) {
-    if (shouldAlert) alert('Please fill in at least the Name, Address, and Postcode.');
-    return;
-  }
-
+function getPdfBlobUrl(labelPdf) {
+  if (!labelPdf) return null;
+  if (labelPdf.startsWith('http://') || labelPdf.startsWith('https://')) return labelPdf;
   try {
-    const res = await jpost('/api/returns/payload', {
-      customerId,
-      serviceCode,
-      shipFrom,
-      collectionDate,
-      reference
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Failed to generate payload');
-
-    currentReturnsPayload = data.payload;
-    if ($('retPayloadDisplay')) {
-      $('retPayloadDisplay').textContent = JSON.stringify(data.payload, null, 2);
+    const cleanBase64 = labelPdf.replace(/^data:[^;]+;base64,/, '');
+    const byteCharacters = atob(cleanBase64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
-  } catch (err) {
-    console.error('Payload generation error:', err);
-    if (shouldAlert) alert('Error: ' + err.message);
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: 'application/pdf' });
+    return URL.createObjectURL(blob);
+  } catch (e) {
+    console.error('Error creating PDF blob:', e);
+    return labelPdf.startsWith('data:') ? labelPdf : 'data:application/pdf;base64,' + labelPdf;
   }
 }
 
-async function copyReturnsPayload() {
-  const text = $('retPayloadDisplay') ? $('retPayloadDisplay').textContent : '';
-  if (!text || text.startsWith('//')) {
-    await generateReturnsPayload(true);
-  }
-  const updatedText = $('retPayloadDisplay') ? $('retPayloadDisplay').textContent : '';
-  if (!updatedText || updatedText.startsWith('//')) return;
+function triggerPdfDownload(urlOrBlob, filename = 'return_label.pdf') {
+  const a = document.createElement('a');
+  a.href = urlOrBlob;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
-  try {
-    await navigator.clipboard.writeText(updatedText);
-    const btnText = $('retCopyBtnText');
-    if (btnText) {
-      const orig = btnText.textContent;
-      btnText.textContent = '✅ Copied to Clipboard!';
-      setTimeout(() => { btnText.textContent = orig; }, 2200);
-    }
-  } catch (e) {
-    const ta = document.createElement('textarea');
-    ta.value = updatedText;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    const btnText = $('retCopyBtnText');
-    if (btnText) {
-      btnText.textContent = '✅ Copied!';
-      setTimeout(() => { btnText.textContent = '📋 Copy JSON to Clipboard'; }, 2200);
-    }
+function printCurrentReturnLabel() {
+  if (!currentLabelBlobUrl) {
+    alert('No label available to print.');
+    return;
   }
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.src = currentLabelBlobUrl;
+  document.body.appendChild(iframe);
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch (e) {
+      window.open(currentLabelBlobUrl, '_blank');
+    }
+  };
+}
+
+async function copyReturnsTracking() {
+  if (!currentTrackingNumber) return;
+  try {
+    await navigator.clipboard.writeText(currentTrackingNumber);
+    const b = $('retBtnCopyTracking');
+    if (b) {
+      const orig = b.textContent;
+      b.textContent = '✓ Copied!';
+      setTimeout(() => { b.textContent = orig; }, 2000);
+    }
+  } catch (e) {}
 }
 
 async function createReturnsLabelApi() {
@@ -5576,39 +5586,30 @@ async function createReturnsLabelApi() {
   const shipFrom = getReturnsShipFromData();
 
   if (!shipFrom.name || !shipFrom.address_1 || !shipFrom.postcode) {
-    alert('Please ensure Full Name, Address Line 1, and Postcode are completed before creating a label.');
+    alert('Please fill in at least Customer Name, Address Line 1, and Postcode.');
     return;
   }
 
   const btn = $('retBtnCreateLabel');
-  const card = $('retApiResponseCard');
-  const badge = $('retApiStatusBadge');
-  const details = $('retApiResultDetails');
-  const action = $('retApiLabelAction');
-  const rawPre = $('retApiResponseRaw');
+  const successCard = $('retSuccessCard');
+  const errorCard = $('retErrorCard');
+  const errorMsg = $('retErrorMessage');
+  const trackingSpan = $('retTrackingDisplay');
+  const summaryDiv = $('retSuccessSummary');
+  const downloadBtn = $('retDownloadBtn');
+
+  if (successCard) successCard.style.display = 'none';
+  if (errorCard) errorCard.style.display = 'none';
 
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<span>⏳ Booking with Courier...</span>';
+    btn.innerHTML = '<span>⏳ Creating &amp; Downloading Label...</span>';
   }
-
-  if (card) card.style.display = 'block';
-  if (badge) {
-    badge.style.background = '#e2e8f0';
-    badge.style.color = '#334155';
-    badge.textContent = 'Contacting CourierAPI...';
-  }
-  if (details) details.innerHTML = 'Sending return shipment request to MoovParcel / CourierAPI...';
-  if (action) action.innerHTML = '';
-  if (rawPre) rawPre.textContent = '';
 
   try {
-    await generateReturnsPayload(false);
-
     const res = await jpost('/api/returns/create-label', {
       customerId,
       serviceCode,
-      payload: currentReturnsPayload,
       shipFrom,
       collectionDate: $('retCollectionDate') ? $('retCollectionDate').value : '',
       reference: $('retReference') ? $('retReference').value : ''
@@ -5617,57 +5618,55 @@ async function createReturnsLabelApi() {
     const result = await res.json();
     const data = result.data || {};
 
-    if (rawPre) {
-      rawPre.textContent = JSON.stringify(data, null, 2);
-    }
-
     if (res.ok && result.ok) {
-      badge.style.background = '#dcfce7';
-      badge.style.color = '#15803d';
-      badge.textContent = '✓ Label Generated Successfully (HTTP ' + (result.status || 200) + ')';
+      const tracking = result.trackingNumber || data.tracking_number || data.trackingNumber || (data.shipment && data.shipment.tracking_number) || (data.parcels && data.parcels[0] && data.parcels[0].tracking_number);
+      const labelUrl = result.labelUrl || data.label_url || data.labelUrl || (data.shipment && data.shipment.label_url);
+      const labelPdf = result.labelPdf || data.label_pdf || data.label_base64 || (data.shipment && (data.shipment.label_pdf || data.shipment.label));
 
-      const tracking = data.tracking_number || data.trackingNumber || (data.shipment && data.shipment.tracking_number) || (data.parcels && data.parcels[0] && data.parcels[0].tracking_number);
-      const labelUrl = data.label_url || data.labelUrl || (data.shipment && data.shipment.label_url);
-      const labelPdfBase64 = data.label_pdf || data.label_base64 || (data.shipment && data.shipment.label_pdf);
+      currentTrackingNumber = tracking || '';
+      if (trackingSpan) trackingSpan.textContent = tracking || 'Created';
 
-      let html = '<div><b>Customer:</b> ' + customerId.toUpperCase() + ' · <b>Courier:</b> ' + serviceCode + '</div>';
-      if (tracking) {
-        html += '<div style="margin-top:6px;font-size:15px"><b>Tracking Number:</b> <span style="font-family:monospace;font-weight:800;color:var(--mv-purple)">' + tracking + '</span></div>';
+      if (summaryDiv) {
+        summaryDiv.innerHTML = `Customer: <b>${customerId.toUpperCase()}</b> · Courier: <b>${serviceCode}</b> · Recipient: <b>${$('retShipToText')?.textContent || ''}</b>`;
       }
-      details.innerHTML = html;
 
-      let actionHtml = '';
-      if (labelUrl) {
-        actionHtml += '<a href="' + labelUrl + '" target="_blank" class="btn-moov-action primary" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;text-decoration:none"><span>📄 Open / Download Label (PDF)</span></a>';
-      } else if (labelPdfBase64) {
-        const pdfSrc = labelPdfBase64.startsWith('data:') ? labelPdfBase64 : 'data:application/pdf;base64,' + labelPdfBase64;
-        actionHtml += '<a href="' + pdfSrc + '" download="return_label_' + (tracking || 'label') + '.pdf" class="btn-moov-action primary" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;text-decoration:none"><span>📄 Download Label PDF</span></a>';
+      // Convert to blob URL or direct URL
+      const finalDownloadUrl = labelUrl || getPdfBlobUrl(labelPdf);
+      currentLabelBlobUrl = finalDownloadUrl;
+
+      if (downloadBtn && finalDownloadUrl) {
+        downloadBtn.href = finalDownloadUrl;
+        downloadBtn.download = `return_label_${tracking || customerId}.pdf`;
+        downloadBtn.style.display = 'inline-flex';
       }
-      if (action) action.innerHTML = actionHtml;
+
+      if (successCard) {
+        successCard.style.display = 'block';
+        successCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Automatically trigger download of PDF
+      if (finalDownloadUrl) {
+        triggerPdfDownload(finalDownloadUrl, `return_label_${tracking || customerId}.pdf`);
+      }
 
     } else {
-      badge.style.background = '#fee2e2';
-      badge.style.color = '#b91c1c';
-      badge.textContent = '✕ Courier API Notice (HTTP ' + (result.status || 400) + ')';
-
-      const errMsg = (data && (data.message || data.error || data.errors)) || result.error || 'Failed to generate return label';
-      details.innerHTML = '<div style="color:#b91c1c"><b>Message:</b> ' + (typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg) + '</div><div style="margin-top:6px;font-size:12px;color:var(--mv-ink-55)">Check the full response JSON below for specific field validation requirements.</div>';
+      if (errorCard) errorCard.style.display = 'block';
+      const errMsg = (data && (data.message || data.error || data.errors)) || result.error || 'Failed to create return label with courier.';
+      if (errorMsg) {
+        errorMsg.textContent = typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg;
+      }
+      if (errorCard) errorCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
   } catch (err) {
     console.error('API label error:', err);
-    if (badge) {
-      badge.style.background = '#fee2e2';
-      badge.style.color = '#b91c1c';
-      badge.textContent = '✕ Network / Server Error';
-    }
-    if (details) {
-      details.innerHTML = '<div style="color:#b91c1c"><b>Error:</b> ' + err.message + '</div>';
-    }
+    if (errorCard) errorCard.style.display = 'block';
+    if (errorMsg) errorMsg.textContent = err.message || 'Network error occurred while connecting to courier.';
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<span>🚀 Create Label via API</span>';
+      btn.innerHTML = '<span>🏷️ Generate &amp; Download Return Label</span>';
     }
   }
 }
