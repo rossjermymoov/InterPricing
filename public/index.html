@@ -10,7 +10,6 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="/chart.umd.js"></script>
 <script src="/xlsx.full.min.js"></script>
-<script src="/js/html2pdf.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 /* ============================================================================
@@ -5727,9 +5726,12 @@ async function createReturnsLabelApi() {
 
       currentLabelBlobUrl = proxyDownloadUrl;
 
-      // Primary download button downloads our Moov branded 4x6 label PDF:
+      // Primary download button downloads our native 4x6 Moov branded label PDF:
+      const bookingId = (result.booking && result.booking.id) || tracking || customerId;
+      window.currentReturnBookingId = bookingId;
+
       if (downloadBtn) {
-        downloadBtn.onclick = () => downloadBrandedHtmlAsPdf(window.currentBrandedHtml, `moov_return_label_${tracking || customerId}.pdf`);
+        downloadBtn.onclick = () => downloadMoovBrandedPdf(bookingId, `moov_return_label_${tracking || customerId}.pdf`);
         downloadBtn.style.display = 'inline-flex';
       }
 
@@ -5873,58 +5875,22 @@ function renderReturnsHistoryTable(list) {
   }).join('');
 }
 
-async function downloadBrandedHtmlAsPdf(htmlString, filename = 'moov_return_label.pdf') {
-  if (!htmlString) return alert('No return label template available to download.');
-  const dlBtn = $('retDownloadBtn');
-  let origText = '';
-  if (dlBtn) {
-    origText = dlBtn.innerHTML;
-    dlBtn.innerHTML = '<span>⏳ Generating PDF...</span>';
-    dlBtn.disabled = true;
-  }
-
-  // Create an offscreen wrapper container sized strictly for 4" width (384px at 96 DPI)
-  const wrap = document.createElement('div');
-  wrap.style.position = 'fixed';
-  wrap.style.left = '-9999px';
-  wrap.style.top = '0';
-  wrap.style.width = '384px';
-  wrap.style.background = '#ffffff';
-  wrap.innerHTML = htmlString;
-  document.body.appendChild(wrap);
-
-  const card = wrap.querySelector('.label-card') || wrap;
-  const opt = {
-    margin: 0,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 3, useCORS: true, logging: false },
-    jsPDF: { unit: 'in', format: [4, 6], orientation: 'portrait' }
-  };
-
-  try {
-    if (typeof html2pdf !== 'undefined') {
-      await html2pdf().set(opt).from(card).save();
-    } else {
-      printCurrentReturnLabel();
-    }
-  } catch (e) {
-    console.error('Error generating branded PDF:', e);
-    printCurrentReturnLabel();
-  } finally {
-    if (wrap.parentNode) wrap.parentNode.removeChild(wrap);
-    if (dlBtn) {
-      dlBtn.innerHTML = origText;
-      dlBtn.disabled = false;
-    }
-  }
+function downloadMoovBrandedPdf(id, filename) {
+  if (!id) return alert('No return booking identifier found.');
+  const url = `/api/returns/download-branded-pdf?id=${encodeURIComponent(id)}`;
+  const a = document.createElement('a');
+  a.href = url;
+  if (filename) a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
-async function downloadReturnBookingPdf(id) {
+function downloadReturnBookingPdf(id) {
   const item = currentReturnsHistoryList.find(b => b.id === id);
-  if (!item || !item.branded_html) return alert('No branded template available for this return booking.');
-  const filename = `moov_return_label_${item.tracking_number || item.id}.pdf`;
-  await downloadBrandedHtmlAsPdf(item.branded_html, filename);
+  const targetId = id || (item && (item.id || item.tracking_number));
+  const filename = `moov_return_label_${(item && item.tracking_number) || targetId || 'pass'}.pdf`;
+  downloadMoovBrandedPdf(targetId, filename);
 }
 
 function printReturnBookingById(id) {

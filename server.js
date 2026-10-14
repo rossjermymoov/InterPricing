@@ -930,6 +930,37 @@ app.get('/api/returns/download-pdf', async (req, res) => {
   }
 });
 
+// GET download custom Moov-branded 4x6 label PDF (native vector PDF via PDFKit)
+app.get('/api/returns/download-branded-pdf', async (req, res) => {
+  try {
+    const { id, tracking } = req.query;
+    const targetId = id || tracking;
+    if (!targetId) return res.status(400).send('Booking ID or Tracking number required');
+
+    let booking = await returnsManager.getReturnBookingById(targetId);
+    if (!booking) {
+      booking = {
+        tracking_number: targetId,
+        customer_id: req.query.customerId || 'buffalo',
+        service_code: req.query.serviceCode || 'DPD',
+        barcode_ref: req.query.barcodeRef || '',
+        qr_code_base64: req.query.qrCodeBase64 || null
+      };
+    }
+
+    const pdfBuffer = await returnsManager.generateBrandedReturnPdf(booking);
+    const fname = `moov_return_label_${booking.tracking_number || booking.id || 'pass'}.pdf`.replace(/[^a-zA-Z0-9_.-]/g, '_');
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    res.end(pdfBuffer);
+  } catch (err) {
+    console.error('[returns/download-branded-pdf error]:', err.message);
+    res.status(500).send('Error generating branded label PDF: ' + err.message);
+  }
+});
+
 // ADMIN: test a postcode against the courier pickup API (diagnose + reveal response shape).
 app.post('/api/pickups-test', auth.requireAdmin, async (req, res) => {
   try {
