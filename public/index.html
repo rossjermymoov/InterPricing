@@ -1617,6 +1617,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
         <div class="mv-rail-item" id="navSameDay"><span class="mv-rail-icon">⚡</span>Same-Day Courier</div>
         <div class="mv-rail-item" id="navCards"><span class="mv-rail-icon">💳</span>Customer Rate Cards</div>
         <div class="mv-rail-item" id="navShipments"><span class="mv-rail-icon">🏷️</span>Shipments &amp; Bookings</div>
+        <div class="mv-rail-item" id="navReturns"><span class="mv-rail-icon">🔄</span>Return Labels</div>
         <div class="mv-rail-item" id="navCollection"><span class="mv-rail-icon">📦</span>Create a Collection</div>
         <div class="mv-rail-item" id="navQuotes"><span class="mv-rail-icon">📋</span>Quote Log</div>
       </div>
@@ -3162,6 +3163,158 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
         <div id="teamMsg" style="font-size:12.5px;margin-top:10px"></div>
       </div>
     </div>
+
+    <!-- 8. RETURN LABELS GENERATOR (returns) -->
+    <div id="returns" style="display:none">
+      <div class="ds-pagehead" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
+        <div>
+          <div class="ds-kicker">RETURNS &amp; POSTMAN PAYLOADS</div>
+          <h1 class="ds-h1">Return Labels Generator</h1>
+          <p class="ds-blurb">Extract customer details, generate exact Postman JSON payloads, and create live return labels for Buffalo, Xplore, and Bessette via DPD or Yodel.</p>
+        </div>
+      </div>
+
+      <!-- Customer & Courier Selection Banner -->
+      <div class="ds-section" style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-top:3px solid var(--mv-purple);padding:20px 24px;margin-bottom:24px">
+        <div class="ds-section-title" style="margin-bottom:14px">1. Select Customer &amp; Courier Service</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:20px">
+          <div class="ds-field-wrap">
+            <label class="ds-label">Customer Account</label>
+            <select id="retCustomerSelect" class="ds-select" style="font-weight:700">
+              <option value="buffalo">Buffalo Systems (Buffalo Systems Ltd S8 0XQ)</option>
+              <option value="xplore">Xplore Brands (Xplore Brands LE12 7RA)</option>
+              <option value="bessette">Bessette (Bessette LTD W4 4PH)</option>
+            </select>
+          </div>
+          <div class="ds-field-wrap">
+            <label class="ds-label">Courier Service</label>
+            <select id="retServiceSelect" class="ds-select" style="font-weight:700">
+              <option value="DPD">DPD — Drop Off QR (DPD-12DROPQR)</option>
+              <option value="YOD">Yodel — Direct Return C2C (YOD-C2CPS)</option>
+            </select>
+          </div>
+          <div class="ds-field-wrap">
+            <label class="ds-label">Collection Date &amp; Time (Today @ 18:00)</label>
+            <input id="retCollectionDate" type="text" class="ds-input" style="font-family:monospace;font-weight:700"/>
+          </div>
+        </div>
+
+        <!-- Ship To Preview Badge -->
+        <div id="retShipToBadge" style="margin-top:16px;padding:12px 16px;background:var(--mv-bg);border:1px solid var(--mv-hairline-2);font-size:12px;line-height:1.5;display:flex;align-items:center;gap:12px">
+          <span style="font-size:18px">🏢</span>
+          <div>
+            <b>Static Return Destination (Ship To):</b> <span id="retShipToText">Returns Dept · Bessette Limited · 237 Brompton Road, London SW3 2EP</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(420px, 1fr));gap:24px;align-items:start">
+        <!-- Left: Customer Ship From Input -->
+        <div>
+          <!-- Smart Text / Screenshot Paste -->
+          <div class="ds-section" style="padding:18px 22px;margin-bottom:20px;background:#f8fafc;border:1px solid #cbd5e1">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--mv-purple)">⚡ Quick Paste / Smart Auto-Fill</span>
+              <button type="button" class="btn-moov-action secondary" id="retBtnParseText" style="height:28px;padding:0 12px;font-size:11px;font-weight:700">
+                <span>🪄 Smart Parse into Fields</span>
+              </button>
+            </div>
+            <p class="ds-blurb" style="font-size:11.5px;margin-bottom:10px">Paste raw customer details, email text, or address lines. Clicking <b>Smart Parse</b> will automatically populate the name, phone, email, and address fields below.</p>
+            <textarea id="retRawText" class="ds-input" rows="4" placeholder="e.g.&#10;Hannah Jones&#10;07761597044&#10;hannah.lloyd@live.co.uk&#10;8 Lindisfarne Avenue&#10;Ellesmere Port&#10;CH65 9JF" style="font-family:inherit;font-size:12.5px"></textarea>
+          </div>
+
+          <div class="ds-section" style="padding:20px 24px">
+            <div class="ds-section-title" style="margin-bottom:14px">2. Customer Details (Ship From)</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div class="ds-field-wrap">
+                <label class="ds-label">Full Name *</label>
+                <input id="retFromName" type="text" class="ds-input" placeholder="e.g. Mansi Mehta"/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">Phone Number *</label>
+                <input id="retFromPhone" type="text" class="ds-input" placeholder="e.g. +447545515449"/>
+              </div>
+              <div class="ds-field-wrap" style="grid-column:1 / -1">
+                <label class="ds-label">Email Address *</label>
+                <input id="retFromEmail" type="email" class="ds-input" placeholder="e.g. customer@example.com"/>
+              </div>
+              <div class="ds-field-wrap" style="grid-column:1 / -1">
+                <label class="ds-label">Company Name (Optional)</label>
+                <input id="retFromCompany" type="text" class="ds-input" placeholder="Optional"/>
+              </div>
+              <div class="ds-field-wrap" style="grid-column:1 / -1">
+                <label class="ds-label">Address Line 1 *</label>
+                <input id="retFromAddr1" type="text" class="ds-input" placeholder="e.g. 34 Wellington Road"/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">Address Line 2</label>
+                <input id="retFromAddr2" type="text" class="ds-input" placeholder="Apartment, suite, etc."/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">City / Town *</label>
+                <input id="retFromCity" type="text" class="ds-input" placeholder="e.g. London"/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">Postcode *</label>
+                <input id="retFromPostcode" type="text" class="ds-input" placeholder="e.g. E17 6LS" style="font-weight:700;text-transform:uppercase"/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">County / State</label>
+                <input id="retFromCounty" type="text" class="ds-input" placeholder="e.g. England / Cheshire"/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">Country ISO</label>
+                <input id="retFromCountry" type="text" class="ds-input" value="GB" maxlength="2" style="font-weight:700;text-transform:uppercase"/>
+              </div>
+              <div class="ds-field-wrap">
+                <label class="ds-label">Reference / RMA #</label>
+                <input id="retReference" type="text" class="ds-input" placeholder="e.g. RET-10492"/>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
+              <button type="button" class="btn-moov-action primary" id="retBtnGenPayload" style="height:42px;flex:1;font-size:13px;font-weight:700">
+                <span>⚡ Generate JSON Payload</span>
+              </button>
+              <button type="button" class="btn-moov-action" id="retBtnCreateLabel" style="height:42px;flex:1;background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy);font-weight:800;font-size:13px">
+                <span>🚀 Create Label via API</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Generated Output & Live Courier Result -->
+        <div>
+          <!-- Payload Output Card -->
+          <div class="ds-section" style="padding:20px 24px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <div class="ds-section-title" style="margin:0">3. Postman JSON Payload</div>
+              <button type="button" class="btn-moov-action secondary" id="retBtnCopyPayload" style="height:32px;padding:0 14px;font-size:12px;font-weight:700">
+                <span id="retCopyBtnText">📋 Copy JSON to Clipboard</span>
+              </button>
+            </div>
+            <p class="ds-blurb" style="font-size:12px;margin-bottom:12px">Copy this exact JSON and paste it into the Body tab of your Postman request.</p>
+
+            <div style="position:relative">
+              <pre id="retPayloadDisplay" style="background:#0f172a;color:#f8fafc;padding:16px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:11.5px;max-height:460px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;border:1px solid #334155">// Click "Generate JSON Payload" or fill the form on the left to view payload</pre>
+            </div>
+          </div>
+
+          <!-- Live API Response Card (Direct Label Generation) -->
+          <div class="ds-section" id="retApiResponseCard" style="padding:20px 24px;margin-top:20px;display:none">
+            <div class="ds-section-title" style="margin-bottom:10px">Courier API Result</div>
+            <div id="retApiStatusBadge" style="margin-bottom:12px;display:inline-block;padding:4px 10px;border-radius:4px;font-weight:800;font-size:12px"></div>
+            <div id="retApiResultDetails" style="font-size:12.5px;line-height:1.6;margin-bottom:14px"></div>
+            <div id="retApiLabelAction" style="margin-bottom:14px"></div>
+            <details style="font-size:11.5px;cursor:pointer">
+              <summary style="font-weight:700;color:var(--mv-ink-55)">View Full Courier Response</summary>
+              <pre id="retApiResponseRaw" style="margin-top:8px;background:#f1f5f9;padding:12px;font-family:monospace;font-size:11px;overflow-x:auto;max-height:300px"></pre>
+            </details>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -4023,10 +4176,10 @@ function bootCalc(){
   calc();
 }
 
-const SCREENS=['loading','setup','login','app','sameday','cards','shipments','settings','quotes','collection','team'];
+const SCREENS=['loading','setup','login','app','sameday','cards','shipments','returns','settings','quotes','collection','team'];
 function screen(id){
   SCREENS.forEach(s=>$(s).style.display='none');
-  const authed=(id==='app'||id==='sameday'||id==='cards'||id==='shipments'||id==='settings'||id==='quotes'||id==='collection'||id==='team');
+  const authed=(id==='app'||id==='sameday'||id==='cards'||id==='shipments'||id==='returns'||id==='settings'||id==='quotes'||id==='collection'||id==='team');
   if(id==='setup'||id==='login'||id==='loading'){
     $(id).style.display='flex';
   } else {
@@ -4044,6 +4197,7 @@ function screen(id){
   if(id==='sameday')$('navSameDay').classList.add('active');
   if(id==='cards')$('navCards').classList.add('active');
   if(id==='shipments')$('navShipments').classList.add('active');
+  if(id==='returns')$('navReturns').classList.add('active');
   if(id==='collection')$('navCollection').classList.add('active');
   if(id==='quotes')$('navQuotes').classList.add('active');
   if(id==='settings')$('navSettings').classList.add('active');
@@ -4503,6 +4657,13 @@ if ($('navCalc')) $('navCalc').onclick=()=>{screen('app');calc();};
 if ($('navSameDay')) $('navSameDay').onclick=()=>{screen('sameday');initSdForm();};
 if ($('navCards')) $('navCards').onclick=openCards;
 if ($('navShipments')) $('navShipments').onclick=openShipments;
+if ($('navReturns')) $('navReturns').onclick=openReturns;
+if ($('retCustomerSelect')) $('retCustomerSelect').onchange=updateReturnsCustomerView;
+if ($('retServiceSelect')) $('retServiceSelect').onchange=()=>generateReturnsPayload(false);
+if ($('retBtnParseText')) $('retBtnParseText').onclick=handleReturnsSmartParse;
+if ($('retBtnGenPayload')) $('retBtnGenPayload').onclick=()=>generateReturnsPayload(true);
+if ($('retBtnCopyPayload')) $('retBtnCopyPayload').onclick=copyReturnsPayload;
+if ($('retBtnCreateLabel')) $('retBtnCreateLabel').onclick=createReturnsLabelApi;
 if ($('navCollection')) $('navCollection').onclick=openCollection;
 if ($('navQuotes')) $('navQuotes').onclick=openQuotes;
 if ($('navSettings')) $('navSettings').onclick=openSettings;
@@ -5226,6 +5387,289 @@ async function openCollection() {
   $('colResultCard').style.display = 'none';
   $('colMsg').textContent = '';
   await loadCollections();
+}
+
+// ==========================================
+// RETURN LABELS GENERATOR (Buffalo, Xplore, Bessette)
+// ==========================================
+let returnsConfigData = null;
+let currentReturnsPayload = null;
+
+async function openReturns() {
+  screen('returns');
+  await initReturnsUI();
+}
+
+async function initReturnsUI() {
+  try {
+    if (!returnsConfigData) {
+      const res = await fetch('/api/returns/config');
+      if (res.ok) {
+        returnsConfigData = await res.json();
+      }
+    }
+
+    // Set collection date to today at 18:00
+    if ($('retCollectionDate')) {
+      if (returnsConfigData && returnsConfigData.collection_date) {
+        $('retCollectionDate').value = returnsConfigData.collection_date;
+      } else {
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        $('retCollectionDate').value = `${yyyy}-${mm}-${dd} 18:00:00`;
+      }
+    }
+
+    updateReturnsCustomerView();
+  } catch (err) {
+    console.error('Failed to init returns UI:', err);
+  }
+}
+
+function updateReturnsCustomerView() {
+  const custId = $('retCustomerSelect') ? $('retCustomerSelect').value : 'buffalo';
+  const cust = returnsConfigData?.customers?.find(c => c.id === custId);
+
+  // Set default service
+  if (cust && cust.default_service && $('retServiceSelect')) {
+    $('retServiceSelect').value = cust.default_service;
+  }
+
+  // Update Ship To destination preview badge
+  if (cust && cust.ship_to && $('retShipToText')) {
+    const st = cust.ship_to;
+    const addrParts = [
+      st.name,
+      st.company_name,
+      st.address_1,
+      st.address_2,
+      st.city,
+      st.postcode,
+      st.country_iso
+    ].filter(Boolean);
+    $('retShipToText').textContent = addrParts.join(' · ');
+  }
+
+  // Regenerate payload if fields have data
+  if ($('retFromName') && $('retFromName').value.trim()) {
+    generateReturnsPayload(false);
+  }
+}
+
+async function handleReturnsSmartParse() {
+  const rawText = $('retRawText') ? $('retRawText').value : '';
+  if (!rawText.trim()) {
+    alert('Please paste customer details or order text into the box first.');
+    return;
+  }
+
+  try {
+    const res = await jpost('/api/returns/parse-text', { text: rawText });
+    if (!res.ok) throw new Error('Parse request failed');
+    const data = await res.json();
+    const p = data.parsed || {};
+
+    if (p.name && $('retFromName')) $('retFromName').value = p.name;
+    if (p.phone && $('retFromPhone')) $('retFromPhone').value = p.phone;
+    if (p.email && $('retFromEmail')) $('retFromEmail').value = p.email;
+    if (p.address_1 && $('retFromAddr1')) $('retFromAddr1').value = p.address_1;
+    if (p.address_2 && $('retFromAddr2')) $('retFromAddr2').value = p.address_2;
+    if (p.city && $('retFromCity')) $('retFromCity').value = p.city;
+    if (p.postcode && $('retFromPostcode')) $('retFromPostcode').value = p.postcode;
+    if (p.county && $('retFromCounty')) $('retFromCounty').value = p.county;
+    if (p.country_iso && $('retFromCountry')) $('retFromCountry').value = p.country_iso;
+
+    // Generate payload automatically
+    generateReturnsPayload(true);
+  } catch (err) {
+    console.error('Smart parse error:', err);
+    alert('Failed to parse text: ' + err.message);
+  }
+}
+
+function getReturnsShipFromData() {
+  return {
+    name: ($('retFromName') ? $('retFromName').value : '').trim(),
+    phone: ($('retFromPhone') ? $('retFromPhone').value : '').trim(),
+    email: ($('retFromEmail') ? $('retFromEmail').value : '').trim(),
+    company_name: ($('retFromCompany') ? $('retFromCompany').value : '').trim(),
+    address_1: ($('retFromAddr1') ? $('retFromAddr1').value : '').trim(),
+    address_2: ($('retFromAddr2') ? $('retFromAddr2').value : '').trim(),
+    address_3: '',
+    city: ($('retFromCity') ? $('retFromCity').value : '').trim(),
+    postcode: ($('retFromPostcode') ? $('retFromPostcode').value : '').trim().toUpperCase(),
+    county: ($('retFromCounty') ? $('retFromCounty').value : '').trim(),
+    country_iso: ($('retFromCountry') ? $('retFromCountry').value : 'GB').trim().toUpperCase()
+  };
+}
+
+async function generateReturnsPayload(shouldAlert = false) {
+  const customerId = $('retCustomerSelect') ? $('retCustomerSelect').value : 'buffalo';
+  const serviceCode = $('retServiceSelect') ? $('retServiceSelect').value : 'DPD';
+  const collectionDate = $('retCollectionDate') ? $('retCollectionDate').value : '';
+  const reference = $('retReference') ? $('retReference').value : '';
+  const shipFrom = getReturnsShipFromData();
+
+  if (!shipFrom.name && !shipFrom.address_1 && !shipFrom.postcode) {
+    if (shouldAlert) alert('Please fill in at least the Name, Address, and Postcode.');
+    return;
+  }
+
+  try {
+    const res = await jpost('/api/returns/payload', {
+      customerId,
+      serviceCode,
+      shipFrom,
+      collectionDate,
+      reference
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to generate payload');
+
+    currentReturnsPayload = data.payload;
+    if ($('retPayloadDisplay')) {
+      $('retPayloadDisplay').textContent = JSON.stringify(data.payload, null, 2);
+    }
+  } catch (err) {
+    console.error('Payload generation error:', err);
+    if (shouldAlert) alert('Error: ' + err.message);
+  }
+}
+
+async function copyReturnsPayload() {
+  const text = $('retPayloadDisplay') ? $('retPayloadDisplay').textContent : '';
+  if (!text || text.startsWith('//')) {
+    await generateReturnsPayload(true);
+  }
+  const updatedText = $('retPayloadDisplay') ? $('retPayloadDisplay').textContent : '';
+  if (!updatedText || updatedText.startsWith('//')) return;
+
+  try {
+    await navigator.clipboard.writeText(updatedText);
+    const btnText = $('retCopyBtnText');
+    if (btnText) {
+      const orig = btnText.textContent;
+      btnText.textContent = '✅ Copied to Clipboard!';
+      setTimeout(() => { btnText.textContent = orig; }, 2200);
+    }
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = updatedText;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btnText = $('retCopyBtnText');
+    if (btnText) {
+      btnText.textContent = '✅ Copied!';
+      setTimeout(() => { btnText.textContent = '📋 Copy JSON to Clipboard'; }, 2200);
+    }
+  }
+}
+
+async function createReturnsLabelApi() {
+  const customerId = $('retCustomerSelect') ? $('retCustomerSelect').value : 'buffalo';
+  const serviceCode = $('retServiceSelect') ? $('retServiceSelect').value : 'DPD';
+  const shipFrom = getReturnsShipFromData();
+
+  if (!shipFrom.name || !shipFrom.address_1 || !shipFrom.postcode) {
+    alert('Please ensure Full Name, Address Line 1, and Postcode are completed before creating a label.');
+    return;
+  }
+
+  const btn = $('retBtnCreateLabel');
+  const card = $('retApiResponseCard');
+  const badge = $('retApiStatusBadge');
+  const details = $('retApiResultDetails');
+  const action = $('retApiLabelAction');
+  const rawPre = $('retApiResponseRaw');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ Booking with Courier...</span>';
+  }
+
+  if (card) card.style.display = 'block';
+  if (badge) {
+    badge.style.background = '#e2e8f0';
+    badge.style.color = '#334155';
+    badge.textContent = 'Contacting CourierAPI...';
+  }
+  if (details) details.innerHTML = 'Sending return shipment request to MoovParcel / CourierAPI...';
+  if (action) action.innerHTML = '';
+  if (rawPre) rawPre.textContent = '';
+
+  try {
+    await generateReturnsPayload(false);
+
+    const res = await jpost('/api/returns/create-label', {
+      customerId,
+      serviceCode,
+      payload: currentReturnsPayload,
+      shipFrom,
+      collectionDate: $('retCollectionDate') ? $('retCollectionDate').value : '',
+      reference: $('retReference') ? $('retReference').value : ''
+    });
+
+    const result = await res.json();
+    const data = result.data || {};
+
+    if (rawPre) {
+      rawPre.textContent = JSON.stringify(data, null, 2);
+    }
+
+    if (res.ok && result.ok) {
+      badge.style.background = '#dcfce7';
+      badge.style.color = '#15803d';
+      badge.textContent = '✓ Label Generated Successfully (HTTP ' + (result.status || 200) + ')';
+
+      const tracking = data.tracking_number || data.trackingNumber || (data.shipment && data.shipment.tracking_number) || (data.parcels && data.parcels[0] && data.parcels[0].tracking_number);
+      const labelUrl = data.label_url || data.labelUrl || (data.shipment && data.shipment.label_url);
+      const labelPdfBase64 = data.label_pdf || data.label_base64 || (data.shipment && data.shipment.label_pdf);
+
+      let html = '<div><b>Customer:</b> ' + customerId.toUpperCase() + ' · <b>Courier:</b> ' + serviceCode + '</div>';
+      if (tracking) {
+        html += '<div style="margin-top:6px;font-size:15px"><b>Tracking Number:</b> <span style="font-family:monospace;font-weight:800;color:var(--mv-purple)">' + tracking + '</span></div>';
+      }
+      details.innerHTML = html;
+
+      let actionHtml = '';
+      if (labelUrl) {
+        actionHtml += '<a href="' + labelUrl + '" target="_blank" class="btn-moov-action primary" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;text-decoration:none"><span>📄 Open / Download Label (PDF)</span></a>';
+      } else if (labelPdfBase64) {
+        const pdfSrc = labelPdfBase64.startsWith('data:') ? labelPdfBase64 : 'data:application/pdf;base64,' + labelPdfBase64;
+        actionHtml += '<a href="' + pdfSrc + '" download="return_label_' + (tracking || 'label') + '.pdf" class="btn-moov-action primary" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;text-decoration:none"><span>📄 Download Label PDF</span></a>';
+      }
+      if (action) action.innerHTML = actionHtml;
+
+    } else {
+      badge.style.background = '#fee2e2';
+      badge.style.color = '#b91c1c';
+      badge.textContent = '✕ Courier API Notice (HTTP ' + (result.status || 400) + ')';
+
+      const errMsg = (data && (data.message || data.error || data.errors)) || result.error || 'Failed to generate return label';
+      details.innerHTML = '<div style="color:#b91c1c"><b>Message:</b> ' + (typeof errMsg === 'object' ? JSON.stringify(errMsg) : errMsg) + '</div><div style="margin-top:6px;font-size:12px;color:var(--mv-ink-55)">Check the full response JSON below for specific field validation requirements.</div>';
+    }
+
+  } catch (err) {
+    console.error('API label error:', err);
+    if (badge) {
+      badge.style.background = '#fee2e2';
+      badge.style.color = '#b91c1c';
+      badge.textContent = '✕ Network / Server Error';
+    }
+    if (details) {
+      details.innerHTML = '<div style="color:#b91c1c"><b>Error:</b> ' + err.message + '</div>';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>🚀 Create Label via API</span>';
+    }
+  }
 }
 
 // ---- Shipments & Labels ----

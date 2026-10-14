@@ -15,6 +15,7 @@ const sse = require('./lib/sse');
 const billing = require('./lib/billing');
 const returnLabel = require('./lib/returnLabel');
 const invoiceGenerator = require('./lib/invoice');
+const returnsManager = require('./lib/returnsManager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -732,6 +733,88 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
     res.status(500).json({ error: err.message || 'Failed to book return shipment' });
   }
 });
+
+// ---- RETURNS PAYLOAD & LABEL GENERATOR (Buffalo, Xplore, Bessette) ----
+app.get('/api/returns/config', (req, res) => {
+  const customers = Object.values(returnsManager.CUSTOMERS).map(c => ({
+    id: c.id,
+    name: c.name,
+    auth_company: c.auth_company,
+    default_service: c.default_service,
+    ship_to: c.ship_to
+  }));
+  const services = Object.values(returnsManager.SERVICES);
+  res.json({
+    customers,
+    services,
+    collection_date: returnsManager.getCollectionDate()
+  });
+});
+
+app.post('/api/returns/parse-text', (req, res) => {
+  const { text } = req.body || {};
+  const parsed = returnsManager.parseAddressText(text || '');
+  res.json({ ok: true, parsed });
+});
+
+app.post('/api/returns/payload', (req, res) => {
+  try {
+    const { customerId, serviceCode, shipFrom, collectionDate, requestId, reference, reference2, deliveryInstructions, parcelWeight, dimensions } = req.body || {};
+    if (!customerId) return res.status(400).json({ error: 'Customer ID required' });
+    if (!shipFrom) return res.status(400).json({ error: 'Ship from details required' });
+
+    const payload = returnsManager.buildPayload({
+      customerId,
+      serviceCode,
+      shipFrom,
+      collectionDate,
+      requestId,
+      reference,
+      reference2,
+      deliveryInstructions,
+      parcelWeight,
+      dimensions
+    });
+
+    res.json({ ok: true, payload });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/returns/create-label', async (req, res) => {
+  try {
+    const { customerId, serviceCode, payload: providedPayload, shipFrom, collectionDate, requestId, reference, reference2, deliveryInstructions } = req.body || {};
+    if (!customerId) return res.status(400).json({ error: 'Customer ID required' });
+
+    let payload = providedPayload;
+    if (!payload && shipFrom) {
+      payload = returnsManager.buildPayload({
+        customerId,
+        serviceCode,
+        shipFrom,
+        collectionDate,
+        requestId,
+        reference,
+        reference2,
+        deliveryInstructions
+      });
+    }
+    if (!payload) return res.status(400).json({ error: 'Payload or shipFrom details required' });
+
+    const result = await returnsManager.callCreateLabel({ customerId, payload });
+    res.status(result.status || (result.ok ? 200 : 400)).json({
+      ok: result.ok,
+      status: result.status,
+      data: result.data,
+      payload
+    });
+  } catch (err) {
+    console.error('[returns/create-label error]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ADMIN: test a postcode against the courier pickup API (diagnose + reveal response shape).
 app.post('/api/pickups-test', auth.requireAdmin, async (req, res) => {
   try {
