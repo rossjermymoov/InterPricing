@@ -3333,6 +3333,50 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
         </div>
 
       </div>
+
+      <!-- Returns Booking History Section -->
+      <div class="ds-section" style="margin-top:28px;background:var(--mv-surface);border:1px solid var(--mv-hairline-2);padding:24px 28px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:18px">
+          <div>
+            <div class="ds-kicker" style="margin-bottom:2px">AUDIT &amp; REPRINTS</div>
+            <h2 style="font-size:18px;font-weight:900;margin:0;color:var(--mv-text)">Returns Booking History</h2>
+            <p style="font-size:12.5px;color:var(--mv-subtle);margin:2px 0 0">All generated return labels with direct print, PDF re-download, and tracking details.</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <select id="retHistoryFilterCustomer" class="ds-select" style="width:160px;font-size:12px;height:34px;padding:4px 8px">
+              <option value="all">All Accounts</option>
+              <option value="buffalo">Buffalo Systems</option>
+              <option value="xplore">Xplore Brands</option>
+              <option value="bessette">Bessette</option>
+            </select>
+            <input id="retHistorySearch" type="text" class="ds-input" placeholder="Search tracking, sender, postcode..." style="width:240px;font-size:12px;height:34px;padding:4px 10px"/>
+            <button type="button" id="retHistoryRefreshBtn" class="btn-moov-action secondary" style="height:34px;padding:0 12px;font-size:12px">
+              <span>↻ Refresh</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto">
+          <table class="ds-table" style="width:100%;font-size:12.5px;border-collapse:collapse">
+            <thead>
+              <tr style="border-bottom:2px solid var(--mv-hairline-2);text-align:left;color:var(--mv-subtle);font-size:11px;text-transform:uppercase;letter-spacing:0.04em">
+                <th style="padding:10px 12px">Created</th>
+                <th style="padding:10px 12px">Account</th>
+                <th style="padding:10px 12px">Courier</th>
+                <th style="padding:10px 12px">Tracking #</th>
+                <th style="padding:10px 12px">Sender (From)</th>
+                <th style="padding:10px 12px">Destination (To)</th>
+                <th style="padding:10px 12px;text-align:right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="retHistoryTableBody">
+              <tr>
+                <td colspan="7" style="text-align:center;padding:32px 16px;color:var(--mv-subtle)">Loading returns history...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -4682,6 +4726,9 @@ if ($('retBtnParseText')) $('retBtnParseText').onclick=handleReturnsSmartParse;
 if ($('retBtnCreateLabel')) $('retBtnCreateLabel').onclick=createReturnsLabelApi;
 if ($('retBtnCopyTracking')) $('retBtnCopyTracking').onclick=copyReturnsTracking;
 if ($('retPrintBtn')) $('retPrintBtn').onclick=printCurrentReturnLabel;
+if ($('retHistoryFilterCustomer')) $('retHistoryFilterCustomer').onchange=loadReturnsHistory;
+if ($('retHistorySearch')) $('retHistorySearch').oninput=loadReturnsHistory;
+if ($('retHistoryRefreshBtn')) $('retHistoryRefreshBtn').onclick=loadReturnsHistory;
 if ($('navCollection')) $('navCollection').onclick=openCollection;
 if ($('navQuotes')) $('navQuotes').onclick=openQuotes;
 if ($('navSettings')) $('navSettings').onclick=openSettings;
@@ -5441,6 +5488,7 @@ async function initReturnsUI() {
     }
 
     updateReturnsCustomerView();
+    await loadReturnsHistory();
   } catch (err) {
     console.error('Failed to init returns UI:', err);
   }
@@ -5668,12 +5716,15 @@ async function createReturnsLabelApi() {
         summaryDiv.innerHTML = `Customer: <b>${customerId.toUpperCase()}</b> · Courier: <b>${serviceCode}</b> · Recipient: <b>${$('retShipToText')?.textContent || ''}</b>`;
       }
 
-      // Convert to blob URL or direct URL
-      const finalDownloadUrl = labelUrl || getPdfBlobUrl(labelPdf);
-      currentLabelBlobUrl = finalDownloadUrl;
+      // Proxy download URL with Content-Disposition: attachment so browser never redirects off page
+      const proxyDownloadUrl = labelUrl 
+        ? `/api/returns/download-pdf?url=${encodeURIComponent(labelUrl)}&filename=${encodeURIComponent('return_label_' + (tracking || customerId) + '.pdf')}`
+        : getPdfBlobUrl(labelPdf);
 
-      if (downloadBtn && finalDownloadUrl) {
-        downloadBtn.href = finalDownloadUrl;
+      currentLabelBlobUrl = proxyDownloadUrl;
+
+      if (downloadBtn && proxyDownloadUrl) {
+        downloadBtn.href = proxyDownloadUrl;
         downloadBtn.download = `return_label_${tracking || customerId}.pdf`;
         downloadBtn.style.display = 'inline-flex';
       }
@@ -5689,10 +5740,8 @@ async function createReturnsLabelApi() {
         successCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
 
-      // Automatically trigger download of PDF
-      if (finalDownloadUrl) {
-        triggerPdfDownload(finalDownloadUrl, `return_label_${tracking || customerId}.pdf`);
-      }
+      // Auto-refresh returns booking history table
+      await loadReturnsHistory();
 
     } else {
       if (errorCard) errorCard.style.display = 'block';
@@ -5712,6 +5761,161 @@ async function createReturnsLabelApi() {
       btn.disabled = false;
       btn.innerHTML = '<span>🏷️ Generate &amp; Download Return Label</span>';
     }
+  }
+}
+
+// ----------------------------------------------------
+// RETURNS HISTORY TABLE & ACTIONS
+// ----------------------------------------------------
+let currentReturnsHistoryList = [];
+
+function retEscapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+async function loadReturnsHistory() {
+  const tbody = $('retHistoryTableBody');
+  const searchInput = $('retHistorySearch');
+  const customerFilter = $('retHistoryFilterCustomer');
+  const search = searchInput ? searchInput.value.trim() : '';
+  const customerId = customerFilter ? customerFilter.value : 'all';
+
+  if (!tbody) return;
+
+  try {
+    const res = await fetch(`/api/returns/history?search=${encodeURIComponent(search)}&customerId=${encodeURIComponent(customerId)}`);
+    if (!res.ok) throw new Error('Failed to load history');
+    const data = await res.json();
+    currentReturnsHistoryList = data.bookings || [];
+    renderReturnsHistoryTable(currentReturnsHistoryList);
+  } catch (err) {
+    console.error('Error loading returns history:', err);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--mv-red)">Failed to load returns history: ${err.message}</td></tr>`;
+  }
+}
+
+function renderReturnsHistoryTable(list) {
+  const tbody = $('retHistoryTableBody');
+  if (!tbody) return;
+
+  if (!list || list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:36px 16px;color:var(--mv-subtle)">No return bookings found. Generate a label above to see it here.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(b => {
+    const dateStr = b.created_at ? new Date(b.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+    const custBadge = b.customer_id === 'buffalo'
+      ? `<span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px">BUFFALO</span>`
+      : b.customer_id === 'xplore'
+      ? `<span class="badge" style="background:#fef3c7;color:#92400e;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px">XPLORE</span>`
+      : `<span class="badge" style="background:#f3e8ff;color:#7e22ce;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px">BESSETTE</span>`;
+
+    const courierBadge = String(b.service_code).toUpperCase().includes('DPD')
+      ? `<span class="badge" style="background:#fee2e2;color:#991b1b;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px">DPD</span>`
+      : `<span class="badge" style="background:#dcfce7;color:#166534;font-weight:800;font-size:11px;padding:3px 8px;border-radius:4px">YODEL</span>`;
+
+    const trackingText = b.tracking_number || '—';
+    const sender = b.ship_from || {};
+    const dest = b.ship_to || {};
+
+    const pdfDownloadUrl = b.label_url 
+      ? `/api/returns/download-pdf?url=${encodeURIComponent(b.label_url)}&filename=${encodeURIComponent('return_label_' + (b.tracking_number || b.id) + '.pdf')}`
+      : (b.label_pdf ? getPdfBlobUrl(b.label_pdf) : '#');
+
+    return `
+      <tr style="border-bottom:1px solid var(--mv-hairline-2);transition:background 0.15s">
+        <td style="padding:12px;font-family:monospace;font-size:11.5px;color:var(--mv-subtle);white-space:nowrap">${dateStr}</td>
+        <td style="padding:12px;white-space:nowrap">${custBadge}</td>
+        <td style="padding:12px;white-space:nowrap">${courierBadge}</td>
+        <td style="padding:12px;white-space:nowrap">
+          <div style="display:inline-flex;align-items:center;gap:6px">
+            <span style="font-family:'JetBrains Mono',monospace;font-weight:900;color:var(--mv-purple);font-size:13px">${trackingText}</span>
+            ${b.tracking_number ? `<button type="button" onclick="navigator.clipboard.writeText('${b.tracking_number}').then(()=>{this.textContent='✓';setTimeout(()=>this.textContent='📋',1500)})" title="Copy tracking" style="background:none;border:none;cursor:pointer;font-size:11px;padding:2px">📋</button>` : ''}
+          </div>
+        </td>
+        <td style="padding:12px;line-height:1.3">
+          <div style="font-weight:700;color:var(--mv-text)">${retEscapeHtml(sender.name || 'Shopper')}</div>
+          <div style="font-size:11px;color:var(--mv-subtle)">${retEscapeHtml([sender.address_1, sender.city, sender.postcode].filter(Boolean).join(', '))}</div>
+        </td>
+        <td style="padding:12px;line-height:1.3">
+          <div style="font-weight:700;color:var(--mv-text)">${retEscapeHtml(dest.company_name || dest.name || 'Warehouse')}</div>
+          <div style="font-size:11px;color:var(--mv-subtle)">${retEscapeHtml([dest.city, dest.postcode].filter(Boolean).join(', '))}</div>
+        </td>
+        <td style="padding:12px;text-align:right;white-space:nowrap">
+          <div style="display:inline-flex;gap:6px;align-items:center">
+            ${b.branded_html ? `<button type="button" onclick="printReturnBookingById('${b.id}')" class="btn-moov-action secondary" style="height:28px;padding:0 8px;font-size:11.5px" title="Print 4x6 Thermal Label">🖨️ Print</button>` : ''}
+            ${b.label_url || b.label_pdf ? `<a href="${pdfDownloadUrl}" download="return_label_${b.tracking_number || b.id}.pdf" class="btn-moov-action secondary" style="height:28px;padding:0 8px;font-size:11.5px;text-decoration:none;display:inline-flex;align-items:center" title="Download Carrier PDF">⬇️ PDF</a>` : ''}
+            ${b.branded_html ? `<button type="button" onclick="previewReturnBookingById('${b.id}')" class="btn-moov-action secondary" style="height:28px;padding:0 8px;font-size:11.5px" title="View Thermal Label Preview">👁️ View</button>` : ''}
+            <button type="button" onclick="deleteReturnBookingById('${b.id}')" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:4px;font-size:13px" title="Delete from history">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function printReturnBookingById(id) {
+  const item = currentReturnsHistoryList.find(b => b.id === id);
+  if (!item || !item.branded_html) return alert('No print template available for this booking.');
+  
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  document.body.appendChild(iframe);
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(item.branded_html);
+  iframe.contentDocument.close();
+  iframe.contentWindow.focus();
+  setTimeout(() => {
+    try {
+      iframe.contentWindow.print();
+    } catch (e) {
+      console.error('Print error:', e);
+    }
+  }, 250);
+}
+
+function previewReturnBookingById(id) {
+  const item = currentReturnsHistoryList.find(b => b.id === id);
+  if (!item || !item.branded_html) return alert('No preview available for this booking.');
+
+  const previewSection = $('retPreviewSection');
+  const previewFrame = $('retPreviewFrame');
+  const successCard = $('retSuccessCard');
+
+  if (previewSection && previewFrame) {
+    window.currentBrandedHtml = item.branded_html;
+    currentTrackingNumber = item.tracking_number;
+    if ($('retTrackingDisplay')) $('retTrackingDisplay').textContent = item.tracking_number;
+    if ($('retSuccessSummary')) $('retSuccessSummary').innerHTML = `Customer: <b>${item.customer_id.toUpperCase()}</b> · Courier: <b>${item.service_code}</b> · Sender: <b>${retEscapeHtml(item.ship_from?.name || '')} (${retEscapeHtml(item.ship_from?.postcode || '')})</b>`;
+    previewFrame.srcdoc = item.branded_html;
+    previewSection.style.display = 'block';
+    if (successCard) {
+      successCard.style.display = 'block';
+      successCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+}
+
+async function deleteReturnBookingById(id) {
+  if (!confirm('Remove this return booking from history?')) return;
+  try {
+    const res = await fetch(`/api/returns/history/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete booking');
+    await loadReturnsHistory();
+  } catch (err) {
+    alert('Failed to delete return booking: ' + err.message);
   }
 }
 

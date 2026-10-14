@@ -811,6 +811,7 @@ app.post('/api/returns/create-label', async (req, res) => {
         customerId,
         courier: serviceCode || 'DPD',
         trackingNumber: labelInfo.trackingNumber,
+        barcodeRef: labelInfo.barcodeRef,
         qrCodeBase64: labelInfo.qrCodeBase64,
         qrCodeUrl: labelInfo.qrCodeUrl,
         shipFrom: payload.shipment?.ship_from || shipFrom,
@@ -820,21 +821,111 @@ app.post('/api/returns/create-label', async (req, res) => {
       console.error('Error generating branded return HTML:', e.message);
     }
 
+    let savedBooking = null;
+    if (result.ok || labelInfo.trackingNumber) {
+      try {
+        savedBooking = returnsManager.saveReturnBooking({
+          customer_id: customerId,
+          service_code: serviceCode || 'DPD',
+          tracking_number: labelInfo.trackingNumber,
+          barcode_ref: labelInfo.barcodeRef,
+          reference: reference || payload.shipment?.reference || '',
+          ship_from: payload.shipment?.ship_from || shipFrom,
+          ship_to: payload.shipment?.ship_to,
+          label_url: labelInfo.labelUrl,
+          label_pdf: labelInfo.labelPdf,
+          qr_code_url: labelInfo.qrCodeUrl,
+          qr_code_base64: labelInfo.qrCodeBase64,
+          branded_html: brandedHtml
+        });
+      } catch (err) {
+        console.error('Error saving return booking to history:', err.message);
+      }
+    }
+
     res.status(result.status || (result.ok ? 200 : 400)).json({
       ok: result.ok,
       status: result.status,
       data: result.data,
       trackingNumber: labelInfo.trackingNumber,
+      barcodeRef: labelInfo.barcodeRef,
       labelPdf: labelInfo.labelPdf,
       labelUrl: labelInfo.labelUrl,
       qrCodeBase64: labelInfo.qrCodeBase64,
       qrCodeUrl: labelInfo.qrCodeUrl,
       brandedHtml,
+      booking: savedBooking,
       payload
     });
   } catch (err) {
     console.error('[returns/create-label error]', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// GET list of return bookings history
+app.get('/api/returns/history', (req, res) => {
+  try {
+    const { search, customerId, limit } = req.query;
+    const bookings = returnsManager.listReturnBookings({ search, customerId, limit });
+    res.json({ ok: true, bookings });
+  } catch (err) {
+    console.error('[returns/history error]', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET single return booking by ID or Tracking
+app.get('/api/returns/history/:id', (req, res) => {
+  try {
+    const booking = returnsManager.getReturnBookingById(req.params.id);
+    if (!booking) return res.status(404).json({ ok: false, error: 'Return booking not found' });
+    res.json({ ok: true, booking });
+  } catch (err) {
+    console.error('[returns/history/:id error]', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// DELETE return booking from history
+app.delete('/api/returns/history/:id', (req, res) => {
+  try {
+    const deleted = returnsManager.deleteReturnBooking(req.params.id);
+    res.json({ ok: true, deleted });
+  } catch (err) {
+    console.error('[returns/history/:id delete error]', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// GET direct download of carrier PDF (proxied with Content-Disposition: attachment so browser does not navigate away)
+app.get('/api/returns/download-pdf', async (req, res) => {
+  try {
+    const { url, id, filename } = req.query;
+    let targetUrl = url;
+    let fname = filename || 'return_label.pdf';
+
+    if (!targetUrl && id) {
+      const b = returnsManager.getReturnBookingById(id);
+      if (b) {
+        targetUrl = b.label_url;
+        fname = `return_label_${b.tracking_number || b.id}.pdf`;
+      }
+    }
+
+    if (!targetUrl) return res.status(400).send('No PDF URL or booking ID provided');
+
+    const pdfRes = await fetch(targetUrl);
+    if (!pdfRes.ok) return res.status(502).send('Failed to fetch courier PDF document');
+
+    const buffer = Buffer.from(await pdfRes.arrayBuffer());
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${fname.replace(/[^a-zA-Z0-9_.-]/g, '_')}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
+  } catch (err) {
+    console.error('[returns/download-pdf error]', err.message);
+    res.status(500).send('Error downloading PDF: ' + err.message);
   }
 });
 
