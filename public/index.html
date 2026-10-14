@@ -4728,6 +4728,11 @@ if ($('retCustomerSelect')) $('retCustomerSelect').onchange=updateReturnsCustome
 if ($('retBtnParseText')) $('retBtnParseText').onclick=handleReturnsSmartParse;
 if ($('retBtnCreateLabel')) $('retBtnCreateLabel').onclick=createReturnsLabelApi;
 if ($('retBtnCopyTracking')) $('retBtnCopyTracking').onclick=copyReturnsTracking;
+if ($('retDownloadBtn')) $('retDownloadBtn').onclick=()=>{
+  const targetId = window.currentReturnBookingId || currentTrackingNumber;
+  if (!targetId) return alert('No return booking available to download.');
+  downloadMoovBrandedPdf(targetId, `moov_return_label_${currentTrackingNumber || targetId}.pdf`);
+};
 if ($('retPrintBtn')) $('retPrintBtn').onclick=printCurrentReturnLabel;
 if ($('retHistoryFilterCustomer')) $('retHistoryFilterCustomer').onchange=loadReturnsHistory;
 if ($('retHistorySearch')) $('retHistorySearch').oninput=loadReturnsHistory;
@@ -5754,7 +5759,10 @@ async function createReturnsLabelApi() {
       window.currentReturnBookingId = bookingId;
 
       if (downloadBtn) {
-        downloadBtn.onclick = () => downloadMoovBrandedPdf(bookingId, `moov_return_label_${tracking || customerId}.pdf`);
+        downloadBtn.onclick = (e) => {
+          if (e && e.preventDefault) e.preventDefault();
+          downloadMoovBrandedPdf(bookingId, `moov_return_label_${tracking || customerId}.pdf`);
+        };
         downloadBtn.style.display = 'inline-flex';
       }
 
@@ -5898,40 +5906,54 @@ function renderReturnsHistoryTable(list) {
   }).join('');
 }
 
+function triggerBrowserDownload(blob, filename) {
+  const blobUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = filename;
+  a.rel = 'noopener';
+  a.style.position = 'fixed';
+  a.style.left = '-9999px';
+  a.style.top = '-9999px';
+  a.style.opacity = '0';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    try {
+      if (a.parentNode) a.parentNode.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (e) {}
+  }, 3000);
+}
+
 async function downloadMoovBrandedPdf(id, filename) {
-  if (!id) return alert('No return booking identifier found.');
+  const targetId = id || window.currentReturnBookingId || currentTrackingNumber;
+  if (!targetId) return alert('No return booking identifier found to download.');
   const dlBtn = $('retDownloadBtn');
   let origText = '';
   if (dlBtn) {
     origText = dlBtn.innerHTML;
     dlBtn.innerHTML = '<span>⏳ Downloading...</span>';
-    dlBtn.disabled = true;
+    dlBtn.style.pointerEvents = 'none';
+    dlBtn.style.opacity = '0.7';
   }
   try {
-    const res = await fetch(`/api/returns/download-branded-pdf?id=${encodeURIComponent(id)}`);
+    const res = await fetch(`/api/returns/download-branded-pdf?id=${encodeURIComponent(targetId)}`);
     if (!res.ok) {
       const err = await res.text();
       throw new Error(err || 'Failed to download PDF');
     }
     const blob = await res.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = blobUrl;
-    a.download = filename || `moov_return_label_${id}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      if (a.parentNode) a.parentNode.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-    }, 1500);
+    const finalFilename = filename || `moov_return_label_${currentTrackingNumber || targetId}.pdf`;
+    triggerBrowserDownload(blob, finalFilename);
   } catch (e) {
     console.error('Download error:', e);
     alert('Could not download PDF: ' + e.message);
   } finally {
     if (dlBtn && origText) {
       dlBtn.innerHTML = origText;
-      dlBtn.disabled = false;
+      dlBtn.style.pointerEvents = '';
+      dlBtn.style.opacity = '';
     }
   }
 }
@@ -5978,11 +6000,40 @@ function previewReturnBookingById(id) {
   const previewSection = $('retPreviewSection');
   const previewFrame = $('retPreviewFrame');
   const successCard = $('retSuccessCard');
+  const downloadBtn = $('retDownloadBtn');
+  const printBtn = $('retPrintBtn');
+
+  window.currentReturnBookingId = item.id || item.tracking_number;
+  currentTrackingNumber = item.tracking_number || '';
+  window.currentBrandedHtml = item.branded_html;
+
+  if (downloadBtn) {
+    downloadBtn.onclick = (e) => {
+      if (e && e.preventDefault) e.preventDefault();
+      downloadMoovBrandedPdf(item.id || item.tracking_number, `moov_return_label_${item.tracking_number || item.id}.pdf`);
+    };
+    downloadBtn.style.display = 'inline-flex';
+  }
+
+  if (printBtn) {
+    printBtn.onclick = () => printCurrentReturnLabel();
+  }
+
+  const rawCarrierLink = $('retCarrierPassLink');
+  if (rawCarrierLink) {
+    if (item.label_url) {
+      rawCarrierLink.href = `/api/returns/download-pdf?url=${encodeURIComponent(item.label_url)}&filename=${encodeURIComponent('carrier_pass_' + (item.tracking_number || item.id) + '.pdf')}`;
+      rawCarrierLink.style.display = 'inline-block';
+    } else if (item.label_pdf) {
+      rawCarrierLink.href = getPdfBlobUrl(item.label_pdf);
+      rawCarrierLink.style.display = 'inline-block';
+    } else {
+      rawCarrierLink.style.display = 'none';
+    }
+  }
 
   if (previewSection && previewFrame) {
-    window.currentBrandedHtml = item.branded_html;
-    currentTrackingNumber = item.tracking_number;
-    if ($('retTrackingDisplay')) $('retTrackingDisplay').textContent = item.tracking_number;
+    if ($('retTrackingDisplay')) $('retTrackingDisplay').textContent = item.tracking_number || '—';
     if ($('retSuccessSummary')) $('retSuccessSummary').innerHTML = `Customer: <b>${item.customer_id.toUpperCase()}</b> · Courier: <b>${item.service_code}</b> · Sender: <b>${retEscapeHtml(item.ship_from?.name || '')} (${retEscapeHtml(item.ship_from?.postcode || '')})</b>`;
     previewFrame.srcdoc = item.branded_html;
     previewSection.style.display = 'block';
