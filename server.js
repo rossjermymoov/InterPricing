@@ -930,22 +930,28 @@ app.get('/api/returns/download-pdf', async (req, res) => {
   }
 });
 
-// GET download custom Moov-branded 4x6 label PDF (native vector PDF via PDFKit)
-app.get('/api/returns/download-branded-pdf', async (req, res) => {
+// GET & POST download custom Moov-branded 4x6 label PDF (native vector PDF via PDFKit)
+const handleDownloadBrandedPdf = async (req, res) => {
   try {
-    const { id, tracking } = req.query;
-    const targetId = id || tracking;
-    if (!targetId) return res.status(400).send('Booking ID or Tracking number required');
+    const id = req.query.id || req.query.tracking || (req.body && (req.body.id || req.body.tracking || (req.body.booking && (req.body.booking.id || req.body.booking.tracking_number))));
+    let booking = (req.body && req.body.booking) ? req.body.booking : null;
 
-    let booking = await returnsManager.getReturnBookingById(targetId);
-    if (!booking) {
+    if (!booking && id) {
+      booking = await returnsManager.getReturnBookingById(id);
+    }
+
+    if (!booking && id) {
       booking = {
-        tracking_number: targetId,
-        customer_id: req.query.customerId || 'buffalo',
-        service_code: req.query.serviceCode || 'DPD',
-        barcode_ref: req.query.barcodeRef || '',
-        qr_code_base64: req.query.qrCodeBase64 || null
+        tracking_number: id,
+        customer_id: req.query.customerId || (req.body && req.body.customerId) || 'buffalo',
+        service_code: req.query.serviceCode || (req.body && req.body.serviceCode) || 'DPD',
+        barcode_ref: req.query.barcodeRef || (req.body && req.body.barcodeRef) || '',
+        qr_code_base64: req.query.qrCodeBase64 || (req.body && req.body.qrCodeBase64) || null
       };
+    }
+
+    if (!booking) {
+      return res.status(400).send('Booking ID or Tracking number required');
     }
 
     const pdfBuffer = await returnsManager.generateBrandedReturnPdf(booking);
@@ -959,7 +965,10 @@ app.get('/api/returns/download-branded-pdf', async (req, res) => {
     console.error('[returns/download-branded-pdf error]:', err.message);
     res.status(500).send('Error generating branded label PDF: ' + err.message);
   }
-});
+};
+
+app.get('/api/returns/download-branded-pdf', handleDownloadBrandedPdf);
+app.post('/api/returns/download-branded-pdf', handleDownloadBrandedPdf);
 
 // ADMIN: test a postcode against the courier pickup API (diagnose + reveal response shape).
 app.post('/api/pickups-test', auth.requireAdmin, async (req, res) => {

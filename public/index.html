@@ -5604,6 +5604,26 @@ function triggerPdfDownload(urlOrBlob, filename = 'return_label.pdf') {
   document.body.removeChild(a);
 }
 
+function ensurePrintExactStyles(html) {
+  if (!html) return html;
+  const stylePatch = `
+    <style>
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .label-card { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .header, .footer { background: #121624 !important; color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .header .tag, .footer span { color: #1DFB9D !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .courier-band { background: #000000 !important; color: #ffffff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .courier-band .c-name { color: #ffffff !important; }
+      .courier-band .badge { background: #ffffff !important; color: #000000 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    </style>
+  `;
+  if (html.includes('</head>')) {
+    return html.replace('</head>', `${stylePatch}</head>`);
+  }
+  return stylePatch + html;
+}
+
 function printCurrentReturnLabel() {
   if (window.currentBrandedHtml) {
     const iframe = document.createElement('iframe');
@@ -5615,7 +5635,7 @@ function printCurrentReturnLabel() {
     iframe.style.border = '0';
     document.body.appendChild(iframe);
     iframe.contentDocument.open();
-    iframe.contentDocument.write(window.currentBrandedHtml);
+    iframe.contentDocument.write(ensurePrintExactStyles(window.currentBrandedHtml));
     iframe.contentDocument.close();
     iframe.contentWindow.focus();
     setTimeout(() => {
@@ -5624,7 +5644,10 @@ function printCurrentReturnLabel() {
       } catch (e) {
         console.error('Print error:', e);
       }
-    }, 250);
+      setTimeout(() => {
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 2000);
+    }, 300);
     return;
   }
 
@@ -5875,22 +5898,49 @@ function renderReturnsHistoryTable(list) {
   }).join('');
 }
 
-function downloadMoovBrandedPdf(id, filename) {
+async function downloadMoovBrandedPdf(id, filename) {
   if (!id) return alert('No return booking identifier found.');
-  const url = `/api/returns/download-branded-pdf?id=${encodeURIComponent(id)}`;
-  const a = document.createElement('a');
-  a.href = url;
-  if (filename) a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  const dlBtn = $('retDownloadBtn');
+  let origText = '';
+  if (dlBtn) {
+    origText = dlBtn.innerHTML;
+    dlBtn.innerHTML = '<span>⏳ Downloading...</span>';
+    dlBtn.disabled = true;
+  }
+  try {
+    const res = await fetch(`/api/returns/download-branded-pdf?id=${encodeURIComponent(id)}`);
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(err || 'Failed to download PDF');
+    }
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = blobUrl;
+    a.download = filename || `moov_return_label_${id}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      if (a.parentNode) a.parentNode.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    }, 1500);
+  } catch (e) {
+    console.error('Download error:', e);
+    alert('Could not download PDF: ' + e.message);
+  } finally {
+    if (dlBtn && origText) {
+      dlBtn.innerHTML = origText;
+      dlBtn.disabled = false;
+    }
+  }
 }
 
-function downloadReturnBookingPdf(id) {
+async function downloadReturnBookingPdf(id) {
   const item = currentReturnsHistoryList.find(b => b.id === id);
   const targetId = id || (item && (item.id || item.tracking_number));
   const filename = `moov_return_label_${(item && item.tracking_number) || targetId || 'pass'}.pdf`;
-  downloadMoovBrandedPdf(targetId, filename);
+  await downloadMoovBrandedPdf(targetId, filename);
 }
 
 function printReturnBookingById(id) {
@@ -5906,7 +5956,7 @@ function printReturnBookingById(id) {
   iframe.style.border = '0';
   document.body.appendChild(iframe);
   iframe.contentDocument.open();
-  iframe.contentDocument.write(item.branded_html);
+  iframe.contentDocument.write(ensurePrintExactStyles(item.branded_html));
   iframe.contentDocument.close();
   iframe.contentWindow.focus();
   setTimeout(() => {
@@ -5915,7 +5965,10 @@ function printReturnBookingById(id) {
     } catch (e) {
       console.error('Print error:', e);
     }
-  }, 250);
+    setTimeout(() => {
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+    }, 2000);
+  }, 300);
 }
 
 function previewReturnBookingById(id) {
