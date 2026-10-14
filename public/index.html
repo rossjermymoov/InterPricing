@@ -3197,6 +3197,17 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
             </button>
           </div>
         </div>
+
+        <!-- Live Branded Thermal Label Preview -->
+        <div id="retPreviewSection" style="margin-top:20px;padding-top:16px;border-top:1px solid #bbf7d0;display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span style="font-size:12px;font-weight:800;color:#166534;letter-spacing:0.04em;text-transform:uppercase">Thermal Label Preview (4" × 6")</span>
+            <span style="font-size:11.5px;color:#15803d;font-weight:600">Print-ready with Moov logo &amp; centralized QR code</span>
+          </div>
+          <div style="background:#fff;border:1px solid #86efac;border-radius:8px;padding:16px;display:flex;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+            <iframe id="retPreviewFrame" style="width:410px;height:550px;border:none;border-radius:6px;background:#fff" title="Return Label Preview"></iframe>
+          </div>
+        </div>
       </div>
 
       <!-- Error Card (if courier returns error) -->
@@ -5543,6 +5554,29 @@ function triggerPdfDownload(urlOrBlob, filename = 'return_label.pdf') {
 }
 
 function printCurrentReturnLabel() {
+  if (window.currentBrandedHtml) {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(window.currentBrandedHtml);
+    iframe.contentDocument.close();
+    iframe.contentWindow.focus();
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.print();
+      } catch (e) {
+        console.error('Print error:', e);
+      }
+    }, 250);
+    return;
+  }
+
   if (!currentLabelBlobUrl) {
     alert('No label available to print.');
     return;
@@ -5599,6 +5633,9 @@ async function createReturnsLabelApi() {
 
   if (successCard) successCard.style.display = 'none';
   if (errorCard) errorCard.style.display = 'none';
+  const previewSection = $('retPreviewSection');
+  const previewFrame = $('retPreviewFrame');
+  if (previewSection) previewSection.style.display = 'none';
 
   if (btn) {
     btn.disabled = true;
@@ -5618,6 +5655,8 @@ async function createReturnsLabelApi() {
     const data = result.data || {};
 
     if (res.ok && result.ok) {
+      window.currentBrandedHtml = result.brandedHtml || null;
+
       const tracking = result.trackingNumber || data.tracking_number || data.trackingNumber || (data.shipment && data.shipment.tracking_number) || (data.parcels && data.parcels[0] && data.parcels[0].tracking_number);
       const labelUrl = result.labelUrl || data.label_url || data.labelUrl || (data.shipment && data.shipment.label_url);
       const labelPdf = result.labelPdf || data.label_pdf || data.label_base64 || (data.shipment && (data.shipment.label_pdf || data.shipment.label));
@@ -5637,6 +5676,12 @@ async function createReturnsLabelApi() {
         downloadBtn.href = finalDownloadUrl;
         downloadBtn.download = `return_label_${tracking || customerId}.pdf`;
         downloadBtn.style.display = 'inline-flex';
+      }
+
+      // Populate live thermal preview if branded HTML is available
+      if (result.brandedHtml && previewFrame && previewSection) {
+        previewFrame.srcdoc = result.brandedHtml;
+        previewSection.style.display = 'block';
       }
 
       if (successCard) {

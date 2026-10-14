@@ -805,6 +805,21 @@ app.post('/api/returns/create-label', async (req, res) => {
     const result = await returnsManager.callCreateLabel({ customerId, payload });
     const labelInfo = returnsManager.extractLabelInfo(result.data);
 
+    let brandedHtml = null;
+    try {
+      brandedHtml = returnsManager.generateBrandedReturnHtml({
+        customerId,
+        courier: serviceCode || 'DPD',
+        trackingNumber: labelInfo.trackingNumber,
+        qrCodeBase64: labelInfo.qrCodeBase64,
+        qrCodeUrl: labelInfo.qrCodeUrl,
+        shipFrom: payload.shipment?.ship_from || shipFrom,
+        shipTo: payload.shipment?.ship_to
+      });
+    } catch (e) {
+      console.error('Error generating branded return HTML:', e.message);
+    }
+
     res.status(result.status || (result.ok ? 200 : 400)).json({
       ok: result.ok,
       status: result.status,
@@ -812,6 +827,9 @@ app.post('/api/returns/create-label', async (req, res) => {
       trackingNumber: labelInfo.trackingNumber,
       labelPdf: labelInfo.labelPdf,
       labelUrl: labelInfo.labelUrl,
+      qrCodeBase64: labelInfo.qrCodeBase64,
+      qrCodeUrl: labelInfo.qrCodeUrl,
+      brandedHtml,
       payload
     });
   } catch (err) {
