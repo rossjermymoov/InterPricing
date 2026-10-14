@@ -812,6 +812,7 @@ app.post('/api/returns/create-label', async (req, res) => {
         courier: serviceCode || 'DPD',
         trackingNumber: labelInfo.trackingNumber,
         barcodeRef: labelInfo.barcodeRef,
+        barcodeSvg: labelInfo.barcodeSvg,
         qrCodeBase64: labelInfo.qrCodeBase64,
         qrCodeUrl: labelInfo.qrCodeUrl,
         shipFrom: payload.shipment?.ship_from || shipFrom,
