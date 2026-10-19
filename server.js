@@ -1451,14 +1451,13 @@ app.post('/api/card-rate', async (req, res) => {
       }
 
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
-      const rawFuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0;
-      const fuelRate = rawFuelRate * 0.75; // 25% fuel discount passed on to customer
+      const fuelRate = (bd.base > 0 && bd.fuel > 0) ? (bd.fuel / bd.base) : 0;
       const fuelAmount = Math.round((baseMarkedUp + surTotal) * fuelRate * 100) / 100;
 
       services.push({
         key, code: s.code, name: s.name, days: s.days,
         price: Math.round((baseMarkedUp + fuelAmount + surTotal) * 100) / 100,
-        base: baseMarkedUp, fuel: fuelAmount, rawFuelRate, fuelRate, accessorials,
+        base: baseMarkedUp, fuel: fuelAmount, fuelRate, accessorials,
         remote: accessorials.some((a) => a.remote),
       });
     });
@@ -1582,18 +1581,15 @@ app.post('/api/calc-rate', async (req, res) => {
       }
 
       const surTotal = accessorials.reduce((t, x) => t + x.amt, 0);
-      const costFuelRate = (costBase > 0 && costFuel > 0) ? (costFuel / costBase) : 0;
-      const sellFuelRate = costFuelRate * 0.75; // 25% fuel discount passed on to customer
-      const fuelRatePct = Math.round(sellFuelRate * 1000) / 10;
-      const costFuelTotal = Math.round((costBase + surTotal) * costFuelRate * 100) / 100;
-      const sellFuel = Math.round((sellBase + surTotal) * sellFuelRate * 100) / 100;
+      const fuelRate = (costBase > 0 && costFuel > 0) ? (costFuel / costBase) : 0;
+      const fuelRatePct = Math.round(fuelRate * 1000) / 10;
+      const sellFuel = Math.round((sellBase + surTotal) * fuelRate * 100) / 100;
 
       services.push({
         key, code: s.code, name: s.name, days: s.days,
-        costPrice: Math.round((costBase + costFuelTotal + surTotal) * 100) / 100,
+        costPrice: Math.round((costBase + costFuel + surTotal) * 100) / 100,
         costBase,
-        costFuel: costFuelTotal,
-        costFuelRate,
+        costFuel,
         fuelRatePct,
         sellPrice: Math.round((sellBase + sellFuel + surTotal) * 100) / 100,
         sellBase,

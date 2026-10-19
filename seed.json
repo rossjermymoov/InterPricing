@@ -246,6 +246,7 @@
     "USA",
     "Uganda",
     "United Arab Emirates",
+    "United Kingdom",
     "Uruguay",
     "Uzbekistan",
     "Vanuatu",
@@ -30551,7 +30552,7 @@
     "Switzerland": "6",
     "Vatican City": "705"
   },
-  "dataVersion": 21,
+  "dataVersion": 23,
   "ups_economy_ddp": {
     "009": {
       "bands": [

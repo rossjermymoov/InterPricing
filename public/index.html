@@ -3994,7 +3994,7 @@ function calc(){
 
           const sumSur = liveSur.reduce((t, x) => t + (Number(x[1]) || 0), 0);
           const rawFuelRate = (live.costFuelRate != null) ? live.costFuelRate : ((live.costBase > 0 && live.costFuel > 0) ? (live.costFuel / live.costBase) : 0);
-          const sellFuelRate = (live.sellFuelRate != null) ? live.sellFuelRate : (rawFuelRate * 0.75);
+          const sellFuelRate = (live.sellFuelRate != null) ? live.sellFuelRate : rawFuelRate;
           const costFuel = Math.round((live.costBase + sumSur) * rawFuelRate * 100) / 100;
           const sellFuel = Math.round((live.sellBase + sumSur) * sellFuelRate * 100) / 100;
           const costPrice = Math.round((live.costBase + costFuel + sumSur) * 100) / 100;
@@ -4212,9 +4212,19 @@ function bootCalc(){
   renderToggles(); renderMarkup(); renderCustCardMarkup(); renderRcServices();
   const csel=$('country');
   if(!csel.options.length){
-    P.countries.forEach(c=>csel.appendChild(new Option(c,c)));
-    csel.value=P.countries.includes('USA')?'USA':P.countries[0];
+    const cList = (P && P.countries && P.countries.slice()) || [];
+    if (!cList.includes('United Kingdom')) {
+      cList.push('United Kingdom');
+      cList.sort();
+    }
+    cList.forEach(c=>csel.appendChild(new Option(c,c)));
+    csel.value=cList.includes('USA')?'USA':cList[0];
     ['country','postcode','wt','L','W','H','goodsValue','SK','metric'].forEach(id=>$(id).addEventListener('input',calc));
+    $('country').addEventListener('change', () => {
+      if ($('postcode')) {
+        $('postcode').placeholder = ($('country').value === 'United Kingdom') ? 'e.g. SW1A 1AA' : 'e.g. 90210';
+      }
+    });
     $('mkGlobal').addEventListener('input', applyGlobalMarkup);
     $('mkApply').addEventListener('click', applyGlobalMarkup);
     document.querySelectorAll('#volTabs .ds-chip').forEach(b=>{

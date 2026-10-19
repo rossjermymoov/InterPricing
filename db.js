@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const seedPath = path.join(__dirname, 'seed.json');
 const readSeed = () => {
   const s = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
-  s.dataVersion = 22;
+  s.dataVersion = 23;
   return s;
 };
 
@@ -353,7 +353,14 @@ async function getConfig() {
   if (pool) {
     try {
       const { rows } = await pool.query('SELECT data FROM rate_config WHERE id = 1');
-      if (rows[0]) return rows[0].data;
+      if (rows[0] && rows[0].data) {
+        const d = rows[0].data;
+        if (Array.isArray(d.countries) && !d.countries.includes('United Kingdom')) {
+          d.countries.push('United Kingdom');
+          d.countries.sort();
+        }
+        return d;
+      }
     } catch (e) {
       console.error('[db] config read failed, falling back to seed.json:', e.message);
     }

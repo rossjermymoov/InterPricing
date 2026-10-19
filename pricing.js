@@ -90,6 +90,9 @@ function buildCardPayload(cfg, card) {
     services.push(o);
   }
 
+  // Ensure United Kingdom is available as a destination country
+  countries.add('United Kingdom');
+
   // optional country restriction
   let countryList = Array.from(countries).sort();
   if (Array.isArray(conf.countries) && conf.countries.length) {

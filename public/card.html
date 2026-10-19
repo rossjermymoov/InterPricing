@@ -3857,6 +3857,7 @@ function calc() {
           if (allowedCardKeys.has('ux') && ['65', '065', 'ux'].includes(String(live.code || live.key))) return true;
           if (allowedCardKeys.has('us') && ['11', '011', 'us'].includes(String(live.code || live.key))) return true;
           if (allowedCardKeys.has('ue') && ['07', '7', '007', 'ue'].includes(String(live.code || live.key))) return true;
+          if ((allowedCardKeys.has('ux') || allowedCardKeys.has('us')) && ['07', '7', '007', 'ue'].includes(String(live.code || live.key))) return true;
           return false;
         };
         (upsReady.services || []).filter(isAllowedByCard).forEach(live => {
@@ -3882,7 +3883,7 @@ function calc() {
 
           const surTotal = mergedSur.reduce((t, x) => t + (Number(x.amt) || 0), 0);
           const rawFuelRate = (live.rawFuelRate != null) ? live.rawFuelRate : ((live.base > 0 && live.fuel > 0) ? (live.fuel / live.base) : 0);
-          const fuelRate = (live.fuelRate != null) ? live.fuelRate : (rawFuelRate * 0.75); // 25% discount on fuel
+          const fuelRate = (live.fuelRate != null) ? live.fuelRate : rawFuelRate;
           const fuel = Math.round((live.base + surTotal) * fuelRate * 100) / 100;
           const total = Math.round((live.base + fuel + surTotal) * 100) / 100;
           rows.push({

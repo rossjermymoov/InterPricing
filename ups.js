@@ -15,8 +15,8 @@ const transSrc = () => (base().includes('wwwcie') ? 'testing' : 'MOOV-InterPrici
 // UPS service code -> friendly name (international + domestic).
 const SVC = {
   '01': 'UPS Next Day Air', '02': 'UPS 2nd Day Air', '03': 'UPS Ground', '12': 'UPS 3 Day Select',
-  '07': 'UPS Worldwide Express', '08': 'UPS Worldwide Expedited', '11': 'UPS Standard',
-  '54': 'UPS Worldwide Express Plus', '65': 'UPS Worldwide Saver', '96': 'UPS Worldwide Express Freight',
+  '07': 'UPS Express', '08': 'UPS Worldwide Expedited', '11': 'UPS Standard',
+  '54': 'UPS Express Plus', '65': 'UPS Express Saver', '96': 'UPS Worldwide Express Freight',
 };
 const svcName = (c) => SVC[c] || ('UPS service ' + c);
 
@@ -46,6 +46,8 @@ const S = (v) => (v == null ? '' : String(v));
 const toIso = (c) => nameToIso(c) || (/^[A-Za-z]{2}$/.test(c) ? String(c).toUpperCase() : 'GB');
 
 const COUNTRY_DEFAULTS = {
+  'GB': { city: 'London', postcode: 'EC1A 1BB' },
+  'UK': { city: 'London', postcode: 'EC1A 1BB' },
   'US': { city: 'New York', postcode: '10001' },
   'CA': { city: 'Toronto', postcode: 'M5V 2T6' },
   'AU': { city: 'Sydney', postcode: '2000' },
