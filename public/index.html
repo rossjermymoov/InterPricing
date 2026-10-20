@@ -1922,16 +1922,37 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
             </table>
           </div>
 
-          <!-- 2. Invoiced Return Method Adjustment -->
+          <!-- 2. Courier Invoiced Collection & Return Method -->
           <div style="background:#f8fafc;border:1px solid var(--mv-hairline-2);border-radius:4px;padding:12px">
-            <span class="ds-label" style="font-weight:800;color:var(--mv-ink);margin-bottom:8px;display:block">2. Invoiced Return Method Adjustment</span>
-            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:#fff;border:1px solid var(--mv-hairline-2);border-radius:4px;padding:10px">
-              <input type="checkbox" id="verChkPrintedLabel" style="width:16px;height:16px;margin-top:2px;cursor:pointer" onchange="runVerifyRecalculation()"/>
-              <div>
-                <div style="font-weight:700;font-size:12px;color:var(--mv-ink)">Add Customer-Printed / Digital Return Label Fee (+£1.75)</div>
-                <div style="font-size:11px;color:var(--mv-ink-55);margin-top:2px">Select this if UPS invoiced a £1.75 return label charge that was not included in the original quotation. (Driver collection baseline is included in the booking quotation with £0.00 differential).</div>
-              </div>
-            </label>
+            <span class="ds-label" style="font-weight:800;color:var(--mv-ink);margin-bottom:8px;display:block">2. Courier Invoiced Collection &amp; Return Method</span>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:8px">
+              <label style="border:1px solid var(--mv-hairline-2);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;background:#fff;cursor:pointer;border-radius:4px" id="verLblDriver">
+                <input type="radio" name="verColType" value="driver_brings_label" id="verRadioDriver" onchange="runVerifyRecalculation()"/>
+                <div>
+                  <div style="font-weight:700;font-size:12px">🚚 Driver Brings Label</div>
+                  <div style="font-size:11px;color:#166534;font-weight:700">£5.65 actual courier fee</div>
+                  <div style="font-size:10.5px;color:var(--mv-ink-55);margin-top:2px" id="verDriverHint">Trues up legacy £4.25 quote to £5.65</div>
+                </div>
+              </label>
+
+              <label style="border:1px solid var(--mv-hairline-2);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;background:#fff;cursor:pointer;border-radius:4px" id="verLblPrint">
+                <input type="radio" name="verColType" value="printed_label" id="verRadioPrint" onchange="runVerifyRecalculation()"/>
+                <div>
+                  <div style="font-weight:700;font-size:12px">📄 Customer Printed / Digital</div>
+                  <div style="font-size:11px;color:var(--mv-purple);font-weight:700">+£1.75 return label fee</div>
+                  <div style="font-size:10.5px;color:var(--mv-ink-55);margin-top:2px">Billed if courier invoiced return label</div>
+                </div>
+              </label>
+
+              <label style="border:1px solid var(--mv-hairline-2);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;background:#fff;cursor:pointer;border-radius:4px" id="verLblNone">
+                <input type="radio" name="verColType" value="none" id="verRadioNone" onchange="runVerifyRecalculation()"/>
+                <div>
+                  <div style="font-weight:700;font-size:12px">📦 Standard Drop-off</div>
+                  <div style="font-size:11px;color:var(--mv-ink-55)">£0.00 collection fee</div>
+                  <div style="font-size:10.5px;color:var(--mv-ink-55);margin-top:2px">No collection fee billed</div>
+                </div>
+              </label>
+            </div>
           </div>
 
           <!-- Verified By Input -->
@@ -7249,10 +7270,20 @@ function openVerifyShipmentModal(id) {
     `;
   }).join('');
 
-  // Set collection radio
+  // Set collection radio & hints
   const bd = sh.verification_breakdown || {};
-  if ($('verChkPrintedLabel')) {
-    $('verChkPrintedLabel').checked = !!bd.hasPrintedLabel;
+  const docs = (typeof sh.documents_attached === 'object' && sh.documents_attached) ? sh.documents_attached : {};
+  const isDriver = !!(docs.driverBringsLabel || docs.returnServiceType === 'driver_brings_label' || sh.prn);
+  const isPrint = !!(docs.returnServiceType === 'printed_label' || docs.returnServiceType === 'electronic_label');
+
+  let chosenType = bd.effectiveColType || (isPrint ? 'printed_label' : (isDriver ? 'driver_brings_label' : 'none'));
+  if ($('verRadioDriver')) $('verRadioDriver').checked = (chosenType === 'driver_brings_label');
+  if ($('verRadioPrint')) $('verRadioPrint').checked = (chosenType === 'printed_label');
+  if ($('verRadioNone')) $('verRadioNone').checked = (chosenType === 'none');
+
+  const isLegacy = isDriver && (docs.returnsFee !== 5.65 && (!sh.created_at || new Date(sh.created_at) < new Date('2026-10-20T11:16:00Z')));
+  if ($('verDriverHint')) {
+    $('verDriverHint').textContent = isLegacy ? 'Trues up legacy £4.25 quote to £5.65' : 'Quoted at current £5.65 (£0.00 diff)';
   }
 
   $('verifyShipmentModal').style.display = 'flex';
@@ -7296,7 +7327,9 @@ async function runVerifyRecalculation() {
     });
   });
 
-  const addPrintedLabel = $('verChkPrintedLabel') ? $('verChkPrintedLabel').checked : false;
+  let collectionType = 'driver_brings_label';
+  if ($('verRadioPrint') && $('verRadioPrint').checked) collectionType = 'printed_label';
+  else if ($('verRadioNone') && $('verRadioNone').checked) collectionType = 'none';
 
   $('verBoxNewSell').textContent = 'Calculating…';
   $('btnConfirmVerify').disabled = true;
@@ -7304,14 +7337,14 @@ async function runVerifyRecalculation() {
   try {
     const res = await jpost(`/api/shipments/${encodeURIComponent(sId)}/verify-preview`, {
       actualPackages,
-      addPrintedLabel
+      collectionType
     });
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to preview recalculation');
 
     currentVerPreviewData = {
       actualPackages,
-      addPrintedLabel,
+      collectionType,
       ...data
     };
 
@@ -7327,20 +7360,27 @@ async function runVerifyRecalculation() {
     const itemsHtml = [];
 
     if (Math.abs(bd.totalWeightAdjustment || 0) < 0.01) {
-      itemsHtml.push(`<div>• Invoiced weight (${data.totalBilledWeight} kg) matches booking (${bd.origBilledWeight} kg) — <b>£0.00 weight differential</b>.</div>`);
+      itemsHtml.push(`<div>• <b>Invoiced Weight:</b> ${data.totalBilledWeight} kg matches booking (${bd.origBilledWeight} kg) — £0.00 weight differential.</div>`);
     } else {
       const sign = (bd.totalWeightAdjustment || 0) > 0 ? '+' : '';
-      itemsHtml.push(`<div>• Invoiced Weight Adjustment (${bd.origBilledWeight} kg ➔ ${data.totalBilledWeight} kg billable): <b>${sign}£${Number(bd.customerBaseWeightDiff || 0).toFixed(2)}</b> (with ${bd.markupPct || 70}% card markup)</div>`);
+      itemsHtml.push(`<div>• <b>Weight Adjustment (${bd.origBilledWeight} kg ➔ ${data.totalBilledWeight} kg billable):</b> <b>${sign}£${Number(bd.customerBaseWeightDiff || 0).toFixed(2)}</b> (with ${bd.markupPct || 70}% card markup)</div>`);
       if (bd.customerFuelWeightDiff) {
-        itemsHtml.push(`<div>• Contract Fuel on Weight Delta (${bd.fuelRatePct || '34'}%): <b>${sign}£${Number(bd.customerFuelWeightDiff || 0).toFixed(2)}</b></div>`);
+        itemsHtml.push(`<div>• <b>Contract Fuel on Weight Delta (${bd.fuelRatePct || '25.50'}%):</b> <b>${sign}£${Number(bd.customerFuelWeightDiff || 0).toFixed(2)}</b></div>`);
       }
     }
 
-    if (bd.hasPrintedLabel) {
-      itemsHtml.push(`<div>• Customer-Printed / Digital Label Surcharge: <b style="color:var(--mv-purple)">+£1.75</b></div>`);
+    if (bd.colFeeDiff !== 0) {
+      const sign = bd.totalCollectionTrueUp > 0 ? '+' : '';
+      if (bd.origColFee === 4.25 && bd.newColFee === 5.65) {
+        itemsHtml.push(`<div>• <b>Driver Collection True-Up:</b> Quoted at legacy rate £4.25 ➔ Trued up to actual courier fee £5.65 (<b>${sign}£${bd.colFeeDiff.toFixed(2)}</b> + £${bd.colFuelDiff.toFixed(2)} fuel @ ${bd.fuelRatePct}% = <b style="color:#166534">${sign}£${bd.totalCollectionTrueUp.toFixed(2)}</b>)</div>`);
+      } else {
+        itemsHtml.push(`<div>• <b>Collection Fee Adjustment (${bd.newColName}):</b> <b style="color:#166534">${sign}£${bd.totalCollectionTrueUp.toFixed(2)}</b> (Quoted £${bd.origColFee.toFixed(2)} ➔ Invoiced £${bd.newColFee.toFixed(2)} + fuel)</div>`);
+      }
+    } else if (bd.newColFee > 0) {
+      itemsHtml.push(`<div>• <b>Collection Service (${bd.newColName}):</b> Quoted at actual £${bd.newColFee.toFixed(2)} baseline (£0.00 differential).</div>`);
+    } else {
+      itemsHtml.push(`<div>• <b>Collection Service:</b> Standard drop-off (£0.00 collection fee).</div>`);
     }
-
-    itemsHtml.push(`<div style="color:var(--mv-ink-55);font-size:11px;margin-top:5px">• <i>Collection return service fee: Quoted at booking (£0.00 collection differential).</i></div>`);
 
     $('verBreakdownList').innerHTML = itemsHtml.join('');
     $('btnConfirmVerify').disabled = false;
@@ -7362,7 +7402,7 @@ async function commitShipmentVerification() {
   try {
     const res = await jpost(`/api/shipments/${encodeURIComponent(sId)}/verify`, {
       actualPackages: currentVerPreviewData.actualPackages,
-      addPrintedLabel: currentVerPreviewData.addPrintedLabel,
+      collectionType: currentVerPreviewData.collectionType,
       verifiedBy: $('verAuditorName').value.trim() || 'Accounts Team',
     });
     const d = await res.json();

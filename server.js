@@ -417,8 +417,8 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
 
               const surchargesTotal = liveAcc.reduce((t, x) => t + x.amt, 0);
               const isStandard = ['11', '011', '03'].includes(String(s.code));
-              // Published contract fuel rate: 34% Standard, 53.25% Express (pure contract fuel rate)
-              const fuelRate = isStandard ? 0.34 : 0.5325;
+              // Published fuel with 25% discount (0.75 multiplier): 25.50% Standard, 39.94% Express
+              const fuelRate = isStandard ? (0.34 * 0.75) : (0.5325 * 0.75);
 
               const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
               const finalPrice = Math.round((baseMarkedUp + surchargesTotal + fuelAmount) * 100) / 100;
@@ -2586,7 +2586,8 @@ async function calculateVerifiedShipmentPricing(shipment, { actualPackages, addP
   const markup = resolveCardMarkup(card, svcCode, originCountry, st);
   const factor = 1 + markup / 100;
   const isStandard = ['11', '011', '03'].includes(String(svcCode));
-  const fuelRate = isStandard ? 0.34 : 0.5325;
+  // Discounted contract fuel (0.75 multiplier): 25.50% Standard, 39.94% Express
+  const fuelRate = isStandard ? (0.34 * 0.75) : (0.5325 * 0.75);
 
   // 3. Weight Differential: If invoiced measurements match booking, weight delta is zero
   let courierBaseDiff = 0;
@@ -2636,24 +2637,63 @@ async function calculateVerifiedShipmentPricing(shipment, { actualPackages, addP
   const customerFuelWeightDiff = Math.round(customerBaseWeightDiff * fuelRate * 100) / 100;
   const totalWeightAdjustment = Math.round((customerBaseWeightDiff + customerFuelWeightDiff) * 100) / 100;
 
-  // 4. Invoiced Label Adjustment: Flat £1.75 for Customer-Printed / Digital Return Label (if billed by UPS)
-  const hasPrintedLabel = !!(addPrintedLabel || collectionType === 'printed_label' || collectionType === 'electronic_label');
-  const printedLabelFee = hasPrintedLabel ? 1.75 : 0;
+  // 4. Collection / Return Method True-Up
+  const docs = (typeof shipment.documents_attached === 'object' && shipment.documents_attached) ? shipment.documents_attached : {};
+  const isDriverColBooked = !!(docs.driverBringsLabel || docs.returnServiceType === 'driver_brings_label' || shipment.prn);
+
+  // Baseline collection fee included at booking time (£5.65, £4.25 legacy, or £0)
+  let origColFee = 0;
+  if (isDriverColBooked) {
+    if (docs.returnsFee === 5.65 || (shipment.created_at && new Date(shipment.created_at) >= new Date('2026-10-20T11:16:00Z'))) {
+      origColFee = 5.65;
+    } else {
+      origColFee = 4.25; // Legacy quote rate
+    }
+  } else if (docs.returnServiceType === 'printed_label' || docs.returnServiceType === 'electronic_label' || docs.returnsFee === 1.75) {
+    origColFee = 1.75;
+  }
+
+  let effectiveColType = collectionType;
+  if (!effectiveColType) {
+    if (addPrintedLabel) effectiveColType = 'printed_label';
+    else if (isDriverColBooked) effectiveColType = 'driver_brings_label';
+    else effectiveColType = 'none';
+  }
+
+  let newColFee = 0;
+  let newColName = 'Standard Drop-off';
+  if (effectiveColType === 'driver_brings_label' || effectiveColType === '1_attempt') {
+    newColFee = 5.65;
+    newColName = 'UPS Returns Plus (Driver Brings Label)';
+  } else if (effectiveColType === '3_attempts') {
+    newColFee = 7.95;
+    newColName = 'UPS Returns Plus (3-Attempt)';
+  } else if (effectiveColType === 'printed_label' || effectiveColType === 'electronic_label' || addPrintedLabel) {
+    newColFee = 1.75;
+    newColName = 'UPS Return Label Surcharge';
+  } else {
+    newColFee = 0;
+    newColName = 'Standard Drop-off';
+  }
+
+  const colFeeDiff = Math.round((newColFee - origColFee) * 100) / 100;
+  const colFuelDiff = Math.round(colFeeDiff * fuelRate * 100) / 100;
+  const totalCollectionTrueUp = Math.round((colFeeDiff + colFuelDiff) * 100) / 100;
 
   const originalSellPrice = Number(shipment.original_sell_price || shipment.sell_price || 0);
   const originalCostPrice = Number(shipment.original_cost_price || shipment.cost_price || 0);
 
   let newSellPrice;
   if (originalSellPrice > 0) {
-    newSellPrice = Math.round((originalSellPrice + totalWeightAdjustment + printedLabelFee) * 100) / 100;
+    newSellPrice = Math.round((originalSellPrice + totalWeightAdjustment + totalCollectionTrueUp) * 100) / 100;
   } else {
     // If no quote price recorded on shipment record, baseline calculation
     const fallbackBase = Math.round(15 * factor * 100) / 100;
-    const fallbackFuel = Math.round((fallbackBase + printedLabelFee) * fuelRate * 100) / 100;
-    newSellPrice = Math.round((fallbackBase + printedLabelFee + fallbackFuel) * 100) / 100;
+    const fallbackFuel = Math.round((fallbackBase + newColFee) * fuelRate * 100) / 100;
+    newSellPrice = Math.round((fallbackBase + newColFee + fallbackFuel) * 100) / 100;
   }
 
-  const newCostPrice = Math.round((originalCostPrice + courierBaseDiff + (hasPrintedLabel ? 1.75 : 0)) * 100) / 100;
+  const newCostPrice = Math.round((originalCostPrice + courierBaseDiff + colFeeDiff) * 100) / 100;
   const variance = Math.round((newSellPrice - originalSellPrice) * 100) / 100;
 
   return {
@@ -2674,8 +2714,14 @@ async function calculateVerifiedShipmentPricing(shipment, { actualPackages, addP
       customerBaseWeightDiff,
       customerFuelWeightDiff,
       totalWeightAdjustment,
-      hasPrintedLabel,
-      printedLabelFee,
+      isDriverColBooked,
+      origColFee,
+      newColFee,
+      newColName,
+      effectiveColType,
+      colFeeDiff,
+      colFuelDiff,
+      totalCollectionTrueUp,
       markupPct: markup,
       fuelRatePct: (fuelRate * 100).toFixed(2),
       newSellPrice,
