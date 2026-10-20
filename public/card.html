@@ -7841,18 +7841,6 @@ async function commitCardShipmentVerification() {
     alert('Failed to save verification: ' + err.message);
   }
 }
-    const d = await res.json();
-    if (!res.ok || !d.ok) throw new Error(d.error || 'Failed to commit verification');
-
-    closeCardVerifyShipmentModal();
-    alert(`✓ Shipment Verified Successfully!\n\n${d.message}`);
-    await loadCustomerBookings();
-  } catch (err) {
-    btn.disabled = false;
-    btn.textContent = '✓ Confirm & Bill Verified Rate';
-    alert('Failed to save verification: ' + err.message);
-  }
-}
 
 function initCustomerBookingsEvents() {
   if ($('refreshCustBookingsBtn')) {
