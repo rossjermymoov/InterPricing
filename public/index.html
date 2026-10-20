@@ -1922,58 +1922,16 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
             </table>
           </div>
 
-          <!-- Collection & Service Surcharges -->
-          <div>
-            <span class="ds-label" style="font-weight:800;color:var(--mv-ink);margin-bottom:6px;display:block">2. Collection &amp; Return Service Fee</span>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:8px">
-              <label style="border:1px solid var(--mv-hairline-2);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;background:#fff;cursor:pointer;border-radius:4px" id="verLblDriver">
-                <input type="radio" name="verColType" value="driver_brings_label" id="verRadioDriver" onchange="runVerifyRecalculation()"/>
-                <div>
-                  <div style="font-weight:700;font-size:12px">🚚 Driver Brings Label</div>
-                  <div style="font-size:11px;color:#166534;font-weight:700">+£5.65 (Returns Plus 1-Attempt)</div>
-                </div>
-              </label>
-
-              <label style="border:1px solid var(--mv-hairline-2);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;background:#fff;cursor:pointer;border-radius:4px" id="verLblPrint">
-                <input type="radio" name="verColType" value="printed_label" id="verRadioPrint" onchange="runVerifyRecalculation()"/>
-                <div>
-                  <div style="font-weight:700;font-size:12px">📄 Customer Printed / Electronic</div>
-                  <div style="font-size:11px;color:var(--mv-purple);font-weight:700">+£1.75 (Return Label)</div>
-                </div>
-              </label>
-
-              <label style="border:1px solid var(--mv-hairline-2);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;background:#fff;cursor:pointer;border-radius:4px" id="verLblNone">
-                <input type="radio" name="verColType" value="none" id="verRadioNone" onchange="runVerifyRecalculation()"/>
-                <div>
-                  <div style="font-weight:700;font-size:12px">📦 No Collection Fee</div>
-                  <div style="font-size:11px;color:var(--mv-ink-55)">£0.00 (Standard Drop-off)</div>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <!-- Additional Courier Invoice Surcharges -->
-          <div>
-            <span class="ds-label" style="font-weight:800;color:var(--mv-ink);margin-bottom:6px;display:block">3. Additional Courier Invoiced Surcharges (Optional)</span>
-            <div style="display:flex;gap:12px;flex-wrap:wrap">
-              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-                <input type="checkbox" id="verChkRemote" onchange="runVerifyRecalculation()"/>
-                <span>Remote / Extended Area (DAS/RAS)</span>
-                <input type="number" id="verRemoteAmt" value="18.50" step="0.5" style="width:65px;height:24px;font-size:11.5px;padding:2px 4px;margin-left:4px" oninput="runVerifyRecalculation()"/>
-              </label>
-
-              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-                <input type="checkbox" id="verChkAhs" onchange="runVerifyRecalculation()"/>
-                <span>Additional Handling (AHS)</span>
-                <input type="number" id="verAhsAmt" value="11.20" step="0.5" style="width:65px;height:24px;font-size:11.5px;padding:2px 4px;margin-left:4px" oninput="runVerifyRecalculation()"/>
-              </label>
-
-              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
-                <input type="checkbox" id="verChkExtra" onchange="runVerifyRecalculation()"/>
-                <span>Custom Extra Adjustment</span>
-                <input type="number" id="verExtraAmt" value="0.00" step="0.5" style="width:65px;height:24px;font-size:11.5px;padding:2px 4px;margin-left:4px" oninput="runVerifyRecalculation()"/>
-              </label>
-            </div>
+          <!-- 2. Invoiced Return Method Adjustment -->
+          <div style="background:#f8fafc;border:1px solid var(--mv-hairline-2);border-radius:4px;padding:12px">
+            <span class="ds-label" style="font-weight:800;color:var(--mv-ink);margin-bottom:8px;display:block">2. Invoiced Return Method Adjustment</span>
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;background:#fff;border:1px solid var(--mv-hairline-2);border-radius:4px;padding:10px">
+              <input type="checkbox" id="verChkPrintedLabel" style="width:16px;height:16px;margin-top:2px;cursor:pointer" onchange="runVerifyRecalculation()"/>
+              <div>
+                <div style="font-weight:700;font-size:12px;color:var(--mv-ink)">Add Customer-Printed / Digital Return Label Fee (+£1.75)</div>
+                <div style="font-size:11px;color:var(--mv-ink-55);margin-top:2px">Select this if UPS invoiced a £1.75 return label charge that was not included in the original quotation. (Driver collection baseline is included in the booking quotation with £0.00 differential).</div>
+              </div>
+            </label>
           </div>
 
           <!-- Verified By Input -->
@@ -7293,25 +7251,9 @@ function openVerifyShipmentModal(id) {
 
   // Set collection radio
   const bd = sh.verification_breakdown || {};
-  let colType = bd.collectionType;
-  if (!colType) {
-    const docs = sh.documents_attached || {};
-    if (docs.driverBringsLabel || docs.returnServiceType === 'driver_brings_label' || sh.prn) {
-      colType = 'driver_brings_label';
-    } else if (docs.returnServiceType === 'print_label' || docs.returnServiceType === 'electronic_label') {
-      colType = 'printed_label';
-    } else {
-      colType = 'driver_brings_label';
-    }
+  if ($('verChkPrintedLabel')) {
+    $('verChkPrintedLabel').checked = !!bd.hasPrintedLabel;
   }
-
-  $('verRadioDriver').checked = (colType === 'driver_brings_label');
-  $('verRadioPrint').checked = (colType === 'printed_label');
-  $('verRadioNone').checked = (colType === 'none');
-
-  $('verChkRemote').checked = false;
-  $('verChkAhs').checked = false;
-  $('verChkExtra').checked = false;
 
   $('verifyShipmentModal').style.display = 'flex';
   runVerifyRecalculation();
@@ -7354,20 +7296,7 @@ async function runVerifyRecalculation() {
     });
   });
 
-  let collectionType = 'driver_brings_label';
-  if ($('verRadioPrint').checked) collectionType = 'printed_label';
-  else if ($('verRadioNone').checked) collectionType = 'none';
-
-  const extraSurcharges = [];
-  if ($('verChkRemote') && $('verChkRemote').checked) {
-    extraSurcharges.push({ name: 'Remote / Extended Area (DAS/RAS)', amt: Number($('verRemoteAmt').value) || 18.50 });
-  }
-  if ($('verChkAhs') && $('verChkAhs').checked) {
-    extraSurcharges.push({ name: 'Additional Handling (AHS)', amt: Number($('verAhsAmt').value) || 11.20 });
-  }
-  if ($('verChkExtra') && $('verChkExtra').checked) {
-    extraSurcharges.push({ name: 'Custom Extra Adjustment', amt: Number($('verExtraAmt').value) || 0 });
-  }
+  const addPrintedLabel = $('verChkPrintedLabel') ? $('verChkPrintedLabel').checked : false;
 
   $('verBoxNewSell').textContent = 'Calculating…';
   $('btnConfirmVerify').disabled = true;
@@ -7375,16 +7304,14 @@ async function runVerifyRecalculation() {
   try {
     const res = await jpost(`/api/shipments/${encodeURIComponent(sId)}/verify-preview`, {
       actualPackages,
-      collectionType,
-      extraSurcharges
+      addPrintedLabel
     });
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to preview recalculation');
 
     currentVerPreviewData = {
       actualPackages,
-      collectionType,
-      extraSurcharges,
+      addPrintedLabel,
       ...data
     };
 
@@ -7397,15 +7324,25 @@ async function runVerifyRecalculation() {
     vEl.style.color = data.variance > 0 ? '#b45309' : (data.variance < 0 ? '#166534' : 'var(--mv-ink)');
 
     const bd = data.breakdown || {};
-    const itemsHtml = [
-      `<div>• Base Rate (${data.totalBilledWeight} kg billable weight with ${bd.markupPct || 70}% markup): <b>£${(bd.baseMarkedUp || 0).toFixed(2)}</b></div>`,
-      bd.collectionFee > 0 ? `<div>• Collection Service (${bd.collectionFeeName}): <b style="color:#166534">+£${bd.collectionFee.toFixed(2)}</b></div>` : '',
-      ...(Array.isArray(bd.itemizedSurcharges) ? bd.itemizedSurcharges.filter(x => x.code !== 'COLLECTION_FEE').map(s => `<div>• ${s.name}: <b>+£${s.amt.toFixed(2)}</b></div>`) : []),
-      `<div>• Fuel Surcharge (${bd.fuelRatePct || '53.25'}% live contract fuel): <b>+£${(bd.customerFuel || 0).toFixed(2)}</b></div>`,
-      `<div style="margin-top:6px;font-size:11px;color:var(--mv-ink-55)">Courier Invoiced Cost (Moov cost from UPS): <b>£${(data.newCostPrice || 0).toFixed(2)}</b></div>`,
-    ].filter(Boolean).join('');
+    const itemsHtml = [];
 
-    $('verBreakdownList').innerHTML = itemsHtml;
+    if (Math.abs(bd.totalWeightAdjustment || 0) < 0.01) {
+      itemsHtml.push(`<div>• Invoiced weight (${data.totalBilledWeight} kg) matches booking (${bd.origBilledWeight} kg) — <b>£0.00 weight differential</b>.</div>`);
+    } else {
+      const sign = (bd.totalWeightAdjustment || 0) > 0 ? '+' : '';
+      itemsHtml.push(`<div>• Invoiced Weight Adjustment (${bd.origBilledWeight} kg ➔ ${data.totalBilledWeight} kg billable): <b>${sign}£${Number(bd.customerBaseWeightDiff || 0).toFixed(2)}</b> (with ${bd.markupPct || 70}% card markup)</div>`);
+      if (bd.customerFuelWeightDiff) {
+        itemsHtml.push(`<div>• Contract Fuel on Weight Delta (${bd.fuelRatePct || '34'}%): <b>${sign}£${Number(bd.customerFuelWeightDiff || 0).toFixed(2)}</b></div>`);
+      }
+    }
+
+    if (bd.hasPrintedLabel) {
+      itemsHtml.push(`<div>• Customer-Printed / Digital Label Surcharge: <b style="color:var(--mv-purple)">+£1.75</b></div>`);
+    }
+
+    itemsHtml.push(`<div style="color:var(--mv-ink-55);font-size:11px;margin-top:5px">• <i>Collection return service fee: Quoted at booking (£0.00 collection differential).</i></div>`);
+
+    $('verBreakdownList').innerHTML = itemsHtml.join('');
     $('btnConfirmVerify').disabled = false;
   } catch (err) {
     console.error('Recalculation error:', err);
@@ -7425,8 +7362,7 @@ async function commitShipmentVerification() {
   try {
     const res = await jpost(`/api/shipments/${encodeURIComponent(sId)}/verify`, {
       actualPackages: currentVerPreviewData.actualPackages,
-      collectionType: currentVerPreviewData.collectionType,
-      extraSurcharges: currentVerPreviewData.extraSurcharges,
+      addPrintedLabel: currentVerPreviewData.addPrintedLabel,
       verifiedBy: $('verAuditorName').value.trim() || 'Accounts Team',
     });
     const d = await res.json();
