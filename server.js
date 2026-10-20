@@ -361,12 +361,21 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
           const globalCfg = await db.getConfig();
           const st = globalCfg.settings || {};
 
-          // Extra surcharge if Driver Brings Label (UPS Returns Plus 1 Attempt) is requested (~£4.25 list)
-          let returnsPlusFee = 0;
+          // Return service accessorial fees:
+          // - Driver Brings Label (UPS Returns Plus 1-Attempt): flat £5.65
+          // - 3-Attempt Returns Plus: flat £7.95
+          // - Customer Printed / Electronic Return Label: flat £1.75
+          let returnsFee = 0;
+          let returnsFeeName = '';
           if (returnServiceType === 'driver_brings_label' || returnServiceType === '1_attempt') {
-            returnsPlusFee = 4.25;
+            returnsFee = 5.65;
+            returnsFeeName = 'UPS Returns Plus (Driver Brings Label)';
           } else if (returnServiceType === '3_attempts') {
-            returnsPlusFee = 6.50;
+            returnsFee = 7.95;
+            returnsFeeName = 'UPS Returns Plus (3-Attempt)';
+          } else if (returnServiceType === 'print_label' || returnServiceType === 'customer_prints' || returnServiceType === 'electronic_label' || returnServiceType === 'erl') {
+            returnsFee = 1.75;
+            returnsFeeName = 'UPS Return Label Surcharge';
           }
 
           const hsFree = Number.isFinite(Number(st.hsFreeLines)) ? Number(st.hsFreeLines) : 5;
@@ -390,11 +399,11 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
                 remote: !!a.remote,
               })).filter((a) => a.amt > 0);
 
-              if (returnsPlusFee > 0) {
+              if (returnsFee > 0) {
                 liveAcc.push({
-                  code: 'RPLUS',
-                  name: returnServiceType === '3_attempts' ? 'UPS Returns Plus (3-Attempt)' : 'UPS Returns Plus (Driver Brings Label)',
-                  amt: returnsPlusFee,
+                  code: 'RETURN_FEE',
+                  name: returnsFeeName,
+                  amt: returnsFee,
                 });
               }
 
@@ -408,8 +417,8 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
 
               const surchargesTotal = liveAcc.reduce((t, x) => t + x.amt, 0);
               const isStandard = ['11', '011', '03'].includes(String(s.code));
-              // Published fuel: 34% Standard, 53.25% Express with 25% discount
-              const fuelRate = isStandard ? (0.34 * 0.75) : (0.5325 * 0.75);
+              // Published contract fuel rate: 34% Standard, 53.25% Express (pure contract fuel rate)
+              const fuelRate = isStandard ? 0.34 : 0.5325;
 
               const fuelAmount = Math.round((baseMarkedUp + surchargesTotal) * fuelRate * 100) / 100;
               const finalPrice = Math.round((baseMarkedUp + surchargesTotal + fuelAmount) * 100) / 100;
@@ -422,10 +431,13 @@ app.post('/api/card/:token/returns/quote', async (req, res) => {
                 currency: s.currency || 'GBP',
                 price: finalPrice,
                 base: baseMarkedUp,
+                rawBaseCost: rawBase,
                 fuel: fuelAmount,
                 fuelRatePct: (fuelRate * 100).toFixed(2),
                 surcharges: surchargesTotal,
-                returnsPlusFee: returnsPlusFee,
+                returnsPlusFee: returnsFee,
+                returnsFee: returnsFee,
+                returnsFeeName: returnsFeeName,
                 accessorials: liveAcc,
                 returnServiceType: returnServiceType || 'driver_brings_label',
               };
@@ -593,8 +605,10 @@ app.post('/api/card/:token/returns/book', async (req, res) => {
         packages: compiledPackages.length ? compiledPackages : pkgs,
         total_weight_kg: Math.round(totalWeight * 10) / 10,
         goods_value: Number(goodsValue) || 0,
-        cost_price: shipResult.totalCost || Number(costPrice) || 0,
+        cost_price: Number(costPrice) || shipResult.totalCost || 0,
         sell_price: Number(sellPrice) || null,
+        original_cost_price: Number(costPrice) || shipResult.totalCost || 0,
+        original_sell_price: Number(sellPrice) || null,
         prn: null,
         label_base64: labelBase64,
         documents_attached: {
@@ -2507,6 +2521,215 @@ app.get('/api/shipments', auth.requireAdmin, async (req, res) => {
     res.json({ shipments: list });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// Helper to recalculate a shipment based on verified dims, weights, and collection surcharges
+async function calculateVerifiedShipmentPricing(shipment, { actualPackages, collectionType, extraSurcharges } = {}) {
+  let card = null;
+  if (shipment.card_id) card = await db.getCardById(shipment.card_id);
+  else if (shipment.token) card = await db.getCardByToken(shipment.token);
+  if (!card && shipment.customer) {
+    const cards = await db.listCards();
+    card = cards.find(c => c.customer && c.customer.toLowerCase() === shipment.customer.toLowerCase());
+  }
+
+  const sender = (typeof shipment.sender === 'object' && shipment.sender) ? shipment.sender : parseJson(shipment.sender, {});
+  const receiver = (typeof shipment.receiver === 'object' && shipment.receiver) ? shipment.receiver : parseJson(shipment.receiver, {});
+
+  const pkgs = (Array.isArray(actualPackages) && actualPackages.length) ? actualPackages : [{ weight: 1.5, l: 30, w: 20, h: 10 }];
+  let totalDeadWeight = 0;
+  let totalVolWeight = 0;
+
+  const processedPackages = pkgs.map((p, idx) => {
+    const dead = Math.max(0.1, Number(p.weight) || 0);
+    const l = Math.max(0, Number(p.l) || 0);
+    const w = Math.max(0, Number(p.w) || 0);
+    const h = Math.max(0, Number(p.h) || 0);
+    const vol = (l && w && h) ? Math.round((l * w * h / 5000) * 100) / 100 : 0;
+    const billable = Math.max(dead, vol);
+    totalDeadWeight += dead;
+    totalVolWeight += vol;
+    return {
+      pieceIndex: idx + 1,
+      deadWeight: Math.round(dead * 100) / 100,
+      volWeight: vol,
+      billableWeight: Math.round(billable * 100) / 100,
+      l, w, h,
+      packaging: p.packaging || 'custom'
+    };
+  });
+
+  const totalBilledWeight = Math.round(Math.max(totalDeadWeight, totalVolWeight) * 100) / 100;
+  const originCountry = (sender && (sender.country || sender.countryCode)) || 'US';
+  const svcCode = shipment.service_code || '65';
+
+  let rawBaseCost = null;
+  let liveFuelCost = null;
+  let liveAccessorials = [];
+
+  // Query live UPS Rating API with actual dimensions & weights
+  try {
+    const qRes = await ups.quoteRates({
+      mode: 'intl_return',
+      sender,
+      receiver,
+      packages: pkgs.map(p => ({ weight: p.weight, l: p.l, w: p.w, h: p.h, qty: 1 })),
+      value: Number(shipment.goods_value) || 100,
+      currency: 'GBP',
+    });
+    if (qRes && qRes.enabled && Array.isArray(qRes.services)) {
+      const matchSvc = qRes.services.find(s => String(s.code).replace(/^0+/, '') === String(svcCode).replace(/^0+/, '')) || qRes.services[0];
+      if (matchSvc && matchSvc.breakdown) {
+        rawBaseCost = Number(matchSvc.breakdown.negBase || matchSvc.breakdown.base || matchSvc.cost || 0);
+        liveFuelCost = Number(matchSvc.breakdown.fuel || 0);
+        liveAccessorials = (matchSvc.breakdown.accessorials || []).map(a => ({
+          code: a.code,
+          name: a.name,
+          amt: Number(a.amt) || 0,
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('[verify-preview live UPS quote error]', err.message);
+  }
+
+  // Fallback if live rating call fails
+  if (rawBaseCost == null || rawBaseCost <= 0) {
+    const origWeight = Number(shipment.total_weight_kg) || 1.5;
+    const origCost = Number(shipment.original_cost_price || shipment.cost_price || 20);
+    const weightRatio = Math.max(1, totalBilledWeight / origWeight);
+    rawBaseCost = Math.round(origCost * 0.75 * weightRatio * 100) / 100;
+  }
+
+  const globalCfg = await db.getConfig();
+  const st = globalCfg.settings || {};
+  const markup = resolveCardMarkup(card, svcCode, originCountry, st);
+  const factor = 1 + markup / 100;
+  const baseMarkedUp = Math.round(rawBaseCost * factor * 100) / 100;
+
+  // Collection Surcharges: £5.65 for Driver Brings Label, £1.75 for Printed Label
+  let collectionFee = 0;
+  let collectionFeeName = 'No Collection Surcharge';
+  if (collectionType === 'driver_brings_label' || collectionType === '1_attempt') {
+    collectionFee = 5.65;
+    collectionFeeName = 'UPS Returns Plus (Driver Brings Label)';
+  } else if (collectionType === '3_attempts') {
+    collectionFee = 7.95;
+    collectionFeeName = 'UPS Returns Plus (3-Attempt)';
+  } else if (collectionType === 'printed_label' || collectionType === 'print_label' || collectionType === 'electronic_label' || collectionType === 'erl') {
+    collectionFee = 1.75;
+    collectionFeeName = 'UPS Return Label Surcharge';
+  }
+
+  const itemizedSurcharges = [];
+  if (collectionFee > 0) {
+    itemizedSurcharges.push({ name: collectionFeeName, amt: collectionFee, code: 'COLLECTION_FEE' });
+  }
+
+  // Accessorials from live UPS response (excluding fuel code 375)
+  liveAccessorials.forEach(a => {
+    if (a.amt > 0 && a.code !== '375') {
+      itemizedSurcharges.push({ name: a.name, amt: a.amt, code: a.code });
+    }
+  });
+
+  // Manual extra charges entered by finance
+  if (Array.isArray(extraSurcharges)) {
+    extraSurcharges.forEach(ex => {
+      const amt = Number(ex.amt) || 0;
+      if (amt > 0) {
+        itemizedSurcharges.push({ name: ex.name || 'Courier Adjustment', amt: Math.round(amt * 100) / 100, code: 'MANUAL' });
+      }
+    });
+  }
+
+  const totalSurcharges = Math.round(itemizedSurcharges.reduce((s, x) => s + x.amt, 0) * 100) / 100;
+
+  // Fuel Surcharge: 34% Standard, 53.25% Express (pure contract fuel rate)
+  const isStandard = ['11', '011', '03'].includes(String(svcCode));
+  const fuelRate = isStandard ? 0.34 : 0.5325;
+  const customerFuel = Math.round((baseMarkedUp + totalSurcharges) * fuelRate * 100) / 100;
+  const courierFuel = Math.round((rawBaseCost + totalSurcharges) * fuelRate * 100) / 100;
+
+  const newSellPrice = Math.round((baseMarkedUp + totalSurcharges + customerFuel) * 100) / 100;
+  const newCostPrice = Math.round((rawBaseCost + totalSurcharges + courierFuel) * 100) / 100;
+
+  const originalSellPrice = Number(shipment.original_sell_price || shipment.sell_price || 0);
+  const originalCostPrice = Number(shipment.original_cost_price || shipment.cost_price || 0);
+  const variance = Math.round((newSellPrice - originalSellPrice) * 100) / 100;
+
+  return {
+    originalSellPrice,
+    originalCostPrice,
+    newSellPrice,
+    newCostPrice,
+    variance,
+    totalBilledWeight,
+    totalDeadWeight: Math.round(totalDeadWeight * 100) / 100,
+    totalVolWeight: Math.round(totalVolWeight * 100) / 100,
+    processedPackages,
+    breakdown: {
+      rawBaseCost,
+      markupPct: markup,
+      baseMarkedUp,
+      collectionFee,
+      collectionFeeName,
+      collectionType,
+      itemizedSurcharges,
+      totalSurcharges,
+      fuelRatePct: (fuelRate * 100).toFixed(2),
+      customerFuel,
+      courierFuel,
+      newSellPrice,
+      newCostPrice,
+    }
+  };
+}
+
+// AUTHENTICATED: Live preview calculation for verifying a shipment
+app.post('/api/shipments/:id/verify-preview', auth.requireAuth, async (req, res) => {
+  try {
+    const shipment = await db.getShipmentById(req.params.id) || await db.getShipmentByTracking(req.params.id);
+    if (!shipment) return res.status(404).json({ ok: false, error: 'Shipment not found' });
+
+    const { actualPackages, collectionType, extraSurcharges } = req.body || {};
+    const result = await calculateVerifiedShipmentPricing(shipment, { actualPackages, collectionType, extraSurcharges });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    console.error('[verify-preview error]', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// AUTHENTICATED: Commit verification and update billed prices with audit trail
+app.post('/api/shipments/:id/verify', auth.requireAuth, async (req, res) => {
+  try {
+    const shipment = await db.getShipmentById(req.params.id) || await db.getShipmentByTracking(req.params.id);
+    if (!shipment) return res.status(404).json({ ok: false, error: 'Shipment not found' });
+
+    const { actualPackages, collectionType, extraSurcharges, verifiedBy } = req.body || {};
+    const pricing = await calculateVerifiedShipmentPricing(shipment, { actualPackages, collectionType, extraSurcharges });
+
+    const auditor = verifiedBy || (req.user && (req.user.name || req.user.email)) || 'Accounts Team';
+    const updated = await db.verifyShipmentRecord(shipment.id, {
+      verified_by: auditor,
+      sell_price: pricing.newSellPrice,
+      cost_price: pricing.newCostPrice,
+      actual_weight_kg: pricing.totalBilledWeight,
+      actual_packages: pricing.processedPackages,
+      verification_breakdown: pricing.breakdown,
+    });
+
+    res.json({
+      ok: true,
+      message: `Shipment ${shipment.tracking_number || shipment.id} verified by ${auditor}. Customer billed: £${pricing.newSellPrice.toFixed(2)}`,
+      shipment: updated,
+      pricing
+    });
+  } catch (err) {
+    console.error('[verify-confirm error]', err);
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 

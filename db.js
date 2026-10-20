@@ -135,6 +135,14 @@ async function initDb() {
       goods_value numeric,
       cost_price numeric,
       sell_price numeric,
+      is_verified boolean DEFAULT false,
+      verified_at timestamptz,
+      verified_by text,
+      original_sell_price numeric,
+      original_cost_price numeric,
+      actual_weight_kg numeric,
+      actual_packages jsonb,
+      verification_breakdown jsonb,
       prn text,
       label_base64 text,
       documents_attached jsonb,
@@ -144,6 +152,18 @@ async function initDb() {
     );`);
   await pool.query(`CREATE INDEX IF NOT EXISTS shipments_created_idx ON shipments (created_at DESC);`);
   await pool.query(`CREATE INDEX IF NOT EXISTS shipments_tracking_idx ON shipments (tracking_number);`);
+
+  await pool.query(`
+    ALTER TABLE shipments 
+    ADD COLUMN IF NOT EXISTS is_verified boolean DEFAULT false,
+    ADD COLUMN IF NOT EXISTS verified_at timestamptz,
+    ADD COLUMN IF NOT EXISTS verified_by text,
+    ADD COLUMN IF NOT EXISTS original_sell_price numeric,
+    ADD COLUMN IF NOT EXISTS original_cost_price numeric,
+    ADD COLUMN IF NOT EXISTS actual_weight_kg numeric,
+    ADD COLUMN IF NOT EXISTS actual_packages jsonb,
+    ADD COLUMN IF NOT EXISTS verification_breakdown jsonb;
+  `);
   
   // ---- SAME-DAY COURIER SCHEMA TABLES ----
   await pool.query(`
@@ -562,12 +582,12 @@ async function createShipmentRecord(r) {
       shipment_id, tracking_number, status, mode, carrier,
       service_code, service_name, card_id, customer, token,
       sender, receiver, packages, total_weight_kg, goods_value,
-      cost_price, sell_price, prn, label_base64, documents_attached, response, created_by
+      cost_price, sell_price, original_cost_price, original_sell_price, prn, label_base64, documents_attached, response, created_by
     ) VALUES (
       $1, $2, $3, $4, $5,
       $6, $7, $8, $9, $10,
       $11, $12, $13, $14, $15,
-      $16, $17, $18, $19, $20, $21, $22
+      $16, $17, $18, $19, $20, $21, $22, $23, $24
     ) RETURNING *`,
     [
       r.shipment_id || null,
@@ -587,6 +607,8 @@ async function createShipmentRecord(r) {
       Number(r.goods_value) || 0,
       r.cost_price != null ? Number(r.cost_price) : null,
       r.sell_price != null ? Number(r.sell_price) : null,
+      r.original_cost_price != null ? Number(r.original_cost_price) : (r.cost_price != null ? Number(r.cost_price) : null),
+      r.original_sell_price != null ? Number(r.original_sell_price) : (r.sell_price != null ? Number(r.sell_price) : null),
       r.prn || null,
       r.label_base64 || null,
       r.documents_attached ? JSON.stringify(r.documents_attached) : null,
@@ -681,6 +703,34 @@ async function updateShipmentDocuments(idOrTracking, docs) {
   const { rows } = await pool.query(
     `UPDATE shipments SET documents_attached = $2 WHERE id::text = $1 OR tracking_number = $1 OR shipment_id = $1 RETURNING *`,
     [String(idOrTracking), docs ? JSON.stringify(docs) : null]
+  );
+  return rows[0] || null;
+}
+
+async function verifyShipmentRecord(idOrTracking, data = {}) {
+  if (!pool || !idOrTracking) return null;
+  const { rows } = await pool.query(
+    `UPDATE shipments SET
+      is_verified = true,
+      verified_at = now(),
+      verified_by = $2,
+      original_sell_price = COALESCE(original_sell_price, sell_price),
+      original_cost_price = COALESCE(original_cost_price, cost_price),
+      sell_price = $3,
+      cost_price = $4,
+      actual_weight_kg = $5,
+      actual_packages = $6,
+      verification_breakdown = $7
+    WHERE id::text = $1 OR tracking_number = $1 OR shipment_id = $1 RETURNING *`,
+    [
+      String(idOrTracking),
+      data.verified_by || 'Accounts Team',
+      data.sell_price != null ? Number(data.sell_price) : null,
+      data.cost_price != null ? Number(data.cost_price) : null,
+      data.actual_weight_kg != null ? Number(data.actual_weight_kg) : null,
+      JSON.stringify(data.actual_packages || []),
+      JSON.stringify(data.verification_breakdown || {}),
+    ]
   );
   return rows[0] || null;
 }
@@ -1077,7 +1127,7 @@ module.exports = {
   createQuoteLog, listQuoteLogs, quoteStats,
   createCollectionRecord, listCollections, getCollectionByPrn, updateCollectionByPrn,
   createShipmentRecord, listShipments, getShipmentById, getShipmentByTracking, updateShipmentStatus, updateShipmentPrn, updateShipmentDocuments,
-  deleteShipment, deleteCancelledShipments,
+  verifyShipmentRecord, deleteShipment, deleteCancelledShipments,
   // Same-Day Exports
   getNextSamedayQuoteRef, createSamedayQuote, getSamedayQuoteByIdOrRef, listSamedayQuotes, markSamedayQuoteBooked,
   createSamedayJob, getSamedayJobByRef, listSamedayJobs, updateSamedayJobStatus, cancelSamedayJob, deleteCancelledSamedayJobs,

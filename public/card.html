@@ -2812,7 +2812,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                 <div>
                   <div style="font-size:20px;margin-bottom:4px">🚚</div>
                   <div style="font-weight:800;font-size:13.5px;color:var(--mv-ink)">Driver Brings Label</div>
-                  <div style="font-size:10.5px;font-weight:700;color:var(--moov-green-deep);margin-top:1px">UPS Returns Plus (1 Attempt)</div>
+                  <div style="font-size:10.5px;font-weight:700;color:var(--moov-green-deep);margin-top:1px">UPS Returns Plus (+£5.65)</div>
                 </div>
                 <div style="font-size:11.5px;color:#64748b;margin-top:8px;line-height:1.4">
                   UPS dispatches driver to sender's address with physical pre-printed label in hand. No customer printer required.
@@ -2823,7 +2823,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                 <div>
                   <div style="font-size:20px;margin-bottom:4px">📄</div>
                   <div style="font-weight:800;font-size:13.5px;color:var(--mv-ink)">Customer Prints Label</div>
-                  <div style="font-size:10.5px;font-weight:700;color:#64748b;margin-top:1px">Instant PDF &amp; Thermal</div>
+                  <div style="font-size:10.5px;font-weight:700;color:#64748b;margin-top:1px">Instant PDF &amp; Thermal (+£1.75)</div>
                 </div>
                 <div style="font-size:11.5px;color:#64748b;margin-top:8px;line-height:1.4">
                   Generate instant digital shipping label. Download as PDF or thermal label for customer to tape to box.
@@ -2834,7 +2834,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                 <div>
                   <div style="font-size:20px;margin-bottom:4px">📧</div>
                   <div style="font-weight:800;font-size:13.5px;color:var(--mv-ink)">Electronic Return Link</div>
-                  <div style="font-size:10.5px;font-weight:700;color:#64748b;margin-top:1px">UPS ERL Direct Email</div>
+                  <div style="font-size:10.5px;font-weight:700;color:#64748b;margin-top:1px">UPS ERL Direct Email (+£1.75)</div>
                 </div>
                 <div style="font-size:11.5px;color:#64748b;margin-top:8px;line-height:1.4">
                   UPS automatically emails the sender a secure digital link to print their return label and drop off.
@@ -5210,7 +5210,7 @@ function renderReturnServices(data) {
     const rawCost = Number(bd.rawBaseCost || bd.base || 0);
     const markupPct = Number(bd.markupPct || 0);
     const markupAmt = Number(bd.markupAmount || (markupPct ? (rawCost * markupPct / 100) : 0));
-    const retPlusFee = Number(bd.returnsPlusFee || (currentReturnMethod === 'driver_brings_label' ? 4.25 : 0));
+    const retPlusFee = Number(bd.returnsFee || bd.returnsPlusFee || (currentReturnMethod === 'driver_brings_label' ? 5.65 : ((currentReturnMethod === 'print_label' || currentReturnMethod === 'electronic_label') ? 1.75 : 0)));
     const fuelAmt = Number(bd.fuel || 0);
     const fuelPct = bd.fuelRatePct || '15';
 
@@ -6810,6 +6810,7 @@ function renderCustomerBookings(shipments) {
               <span>${destFlag}</span> ${esc(r.city || 'Destination')}
             </span>
             <span style="font-weight:800;font-size:13px;color:var(--ink);white-space:nowrap">· £${Number(x.sell_price || 0).toFixed(2)}</span>
+          ${x.is_verified ? '<span class="badge" style="background:#f0fdf4;color:#166534;font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:3px;border:1px solid #bbf7d0">✓ VERIFIED</span>' : ''}
           </div>
           <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;justify-content:flex-end">
             <div style="min-width:180px;text-align:right">
@@ -6940,6 +6941,7 @@ function renderCustomerBookings(shipments) {
             <span>${destFlag}</span> ${esc(destCity)}
           </span>
           <span style="font-weight:800;font-size:13px;color:var(--ink);white-space:nowrap">· £${Number(x.sell_price || 0).toFixed(2)}</span>
+          ${x.is_verified ? '<span class="badge" style="background:#f0fdf4;color:#166534;font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:3px;border:1px solid #bbf7d0">✓ VERIFIED</span>' : ''}
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;justify-content:flex-end">
           <div style="min-width:180px;text-align:right">
@@ -7010,6 +7012,12 @@ function renderCustomerBookings(shipments) {
             <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">4. Size, Weight &amp; Price</div>
             <div style="font-weight:800;font-size:15px;color:var(--ink)">${totalWeight} kg <span style="font-size:13px;font-weight:700;color:var(--muted)">(${totalParcels} parcel${totalParcels === 1 ? '' : 's'})</span></div>
             <div style="font-size:13px;font-weight:800;color:var(--brand);margin-top:2px">£${Number(x.sell_price || 0).toFixed(2)}</div>
+            ${x.is_verified ? `
+              <div style="font-size:11px;color:#166534;margin-top:5px;line-height:1.3">
+                <b>✓ Accounts Verified:</b> Actual ${x.actual_weight_kg || totalWeight} kg
+                ${x.original_sell_price ? `<br><span style="color:var(--muted)">Est. quote: £${Number(x.original_sell_price).toFixed(2)}</span>` : ''}
+              </div>
+            ` : ''}
           </div>
         </div>
 

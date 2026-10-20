@@ -1879,6 +1879,147 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
       </div>
     </div>
 
+    <!-- MODAL: VERIFY SHIPMENT & COURIER CHARGES (FINANCE) -->
+    <div class="ds-modal-scrim" id="verifyShipmentModal" style="display:none">
+      <div class="ds-modal" style="width:680px;max-width:96vw">
+        <div class="ds-modal-head" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="ds-kicker" style="color:var(--mv-purple)">FINANCE &amp; ACCOUNTS VERIFICATION</div>
+            <h2 style="margin:4px 0 0;font-size:20px" id="verModalTitle">Verify Shipment &amp; Actual Billed Charges</h2>
+            <p class="ds-blurb" style="font-size:12px;margin-top:4px" id="verModalSub">Recalculate customer pricing using actual courier billed weights, dimensions &amp; accessorials.</p>
+          </div>
+          <button type="button" onclick="closeVerifyShipmentModal()" style="font-size:22px;background:none;border:none;cursor:pointer;color:var(--mv-ink-55);line-height:1">&times;</button>
+        </div>
+        <div class="ds-modal-body" style="display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto">
+          <input type="hidden" id="verShipmentId"/>
+
+          <!-- Consignment Snapshot -->
+          <div style="background:var(--mv-surface);border:1px solid var(--mv-hairline-2);border-left:3px solid var(--mv-purple);padding:12px 14px;font-size:12px;display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:10px">
+            <div><span style="color:var(--mv-ink-55)">Customer:</span><br/><b id="verCustName">—</b></div>
+            <div><span style="color:var(--mv-ink-55)">Service:</span><br/><b id="verServiceName">—</b></div>
+            <div><span style="color:var(--mv-ink-55)">Tracking #:</span><br/><span style="font-family:monospace;font-weight:700" id="verTrackingNum">—</span></div>
+            <div><span style="color:var(--mv-ink-55)">Originally Quoted:</span><br/><b style="color:var(--mv-purple);font-size:13px" id="verOrigQuoted">—</b></div>
+          </div>
+
+          <!-- Package Measurements Input -->
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span class="ds-label" style="font-weight:800;color:var(--mv-ink)">1. Actual Courier Invoiced Weights &amp; Dimensions</span>
+              <span style="font-size:11px;color:var(--mv-ink-55)">Volumetric Divisor: 5000</span>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--mv-hairline-2);background:#fff">
+              <thead>
+                <tr style="background:#f8fafc;border-bottom:1px solid var(--mv-hairline-2);font-size:11px;color:var(--mv-ink-55);text-transform:uppercase">
+                  <th style="padding:6px 10px;text-align:left">Piece</th>
+                  <th style="padding:6px 10px;text-align:left">Actual Dead Wt (kg)</th>
+                  <th style="padding:6px 10px;text-align:left">Length (cm)</th>
+                  <th style="padding:6px 10px;text-align:left">Width (cm)</th>
+                  <th style="padding:6px 10px;text-align:left">Height (cm)</th>
+                  <th style="padding:6px 10px;text-align:right">Vol. Wt (kg)</th>
+                </tr>
+              </thead>
+              <tbody id="verPackagesBody"></tbody>
+            </table>
+          </div>
+
+          <!-- Collection & Service Surcharges -->
+          <div>
+            <span class="ds-label" style="font-weight:800;color:var(--mv-ink);margin-bottom:6px;display:block">2. Collection &amp; Return Service Fee</span>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:8px">
+              <label style="border:1px solid var(--mv-hairline-2);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;background:#fff;cursor:pointer;border-radius:4px" id="verLblDriver">
+                <input type="radio" name="verColType" value="driver_brings_label" id="verRadioDriver" onchange="runVerifyRecalculation()"/>
+                <div>
+                  <div style="font-weight:700;font-size:12px">🚚 Driver Brings Label</div>
+                  <div style="font-size:11px;color:#166534;font-weight:700">+£5.65 (Returns Plus 1-Attempt)</div>
+                </div>
+              </label>
+
+              <label style="border:1px solid var(--mv-hairline-2);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;background:#fff;cursor:pointer;border-radius:4px" id="verLblPrint">
+                <input type="radio" name="verColType" value="printed_label" id="verRadioPrint" onchange="runVerifyRecalculation()"/>
+                <div>
+                  <div style="font-weight:700;font-size:12px">📄 Customer Printed / Electronic</div>
+                  <div style="font-size:11px;color:var(--mv-purple);font-weight:700">+£1.75 (Return Label)</div>
+                </div>
+              </label>
+
+              <label style="border:1px solid var(--mv-hairline-2);padding:10px 12px;display:flex;align-items:flex-start;gap:8px;background:#fff;cursor:pointer;border-radius:4px" id="verLblNone">
+                <input type="radio" name="verColType" value="none" id="verRadioNone" onchange="runVerifyRecalculation()"/>
+                <div>
+                  <div style="font-weight:700;font-size:12px">📦 No Collection Fee</div>
+                  <div style="font-size:11px;color:var(--mv-ink-55)">£0.00 (Standard Drop-off)</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Additional Courier Invoice Surcharges -->
+          <div>
+            <span class="ds-label" style="font-weight:800;color:var(--mv-ink);margin-bottom:6px;display:block">3. Additional Courier Invoiced Surcharges (Optional)</span>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+                <input type="checkbox" id="verChkRemote" onchange="runVerifyRecalculation()"/>
+                <span>Remote / Extended Area (DAS/RAS)</span>
+                <input type="number" id="verRemoteAmt" value="18.50" step="0.5" style="width:65px;height:24px;font-size:11.5px;padding:2px 4px;margin-left:4px" oninput="runVerifyRecalculation()"/>
+              </label>
+
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+                <input type="checkbox" id="verChkAhs" onchange="runVerifyRecalculation()"/>
+                <span>Additional Handling (AHS)</span>
+                <input type="number" id="verAhsAmt" value="11.20" step="0.5" style="width:65px;height:24px;font-size:11.5px;padding:2px 4px;margin-left:4px" oninput="runVerifyRecalculation()"/>
+              </label>
+
+              <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+                <input type="checkbox" id="verChkExtra" onchange="runVerifyRecalculation()"/>
+                <span>Custom Extra Adjustment</span>
+                <input type="number" id="verExtraAmt" value="0.00" step="0.5" style="width:65px;height:24px;font-size:11.5px;padding:2px 4px;margin-left:4px" oninput="runVerifyRecalculation()"/>
+              </label>
+            </div>
+          </div>
+
+          <!-- Verified By Input -->
+          <div style="display:flex;gap:14px;align-items:center">
+            <div style="flex:1">
+              <label class="ds-label" style="margin-bottom:4px">Verified By (Accounts / Finance Name)</label>
+              <input type="text" id="verAuditorName" class="ds-input" style="height:32px;font-size:12px" placeholder="e.g. Sarah (Finance Team)"/>
+            </div>
+          </div>
+
+          <!-- Recalculation Results Summary Box -->
+          <div id="verResultBox" style="background:#f8fafc;border:1px solid #cbd5e1;padding:14px 18px;border-radius:4px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #e2e8f0;padding-bottom:8px">
+              <span style="font-weight:800;font-size:13px;color:var(--mv-ink)">Recalculated Price Comparison</span>
+              <button type="button" class="btn-moov-action secondary" onclick="runVerifyRecalculation()" style="height:26px;font-size:11px;padding:0 8px">↻ Recalculate</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center;margin-bottom:12px">
+              <div style="background:#fff;border:1px solid #e2e8f0;padding:8px">
+                <div style="font-size:10px;text-transform:uppercase;color:var(--mv-ink-55)">Originally Quoted</div>
+                <div style="font-size:16px;font-weight:900;color:var(--mv-ink)" id="verBoxOrigSell">£0.00</div>
+              </div>
+              <div style="background:#fff;border:1px solid #bbf7d0;padding:8px">
+                <div style="font-size:10px;text-transform:uppercase;color:#166534">New Customer Total</div>
+                <div style="font-size:18px;font-weight:900;color:#166534" id="verBoxNewSell">£0.00</div>
+              </div>
+              <div style="background:#fff;border:1px solid #e2e8f0;padding:8px">
+                <div style="font-size:10px;text-transform:uppercase;color:var(--mv-ink-55)">Variance (Adjustment)</div>
+                <div style="font-size:16px;font-weight:900" id="verBoxVariance">£0.00</div>
+              </div>
+            </div>
+            <!-- Itemized lines -->
+            <div style="font-size:11.5px;line-height:1.6;color:var(--mv-ink-75);border-top:1px dashed #cbd5e1;padding-top:8px" id="verBreakdownList">
+              <!-- populated dynamically -->
+            </div>
+          </div>
+
+        </div>
+        <div class="ds-modal-foot" style="display:flex;justify-content:space-between;align-items:center">
+          <button class="ds-btn ds-btn-secondary" onclick="closeVerifyShipmentModal()">Cancel</button>
+          <button class="btn-moov-action primary" id="btnConfirmVerify" onclick="commitShipmentVerification()" style="height:36px;padding:0 20px;font-size:13px;font-weight:900;background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy)">
+            <span>✓ Confirm &amp; Bill Verified Rate</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: RESCHEDULE UPS COLLECTION -->
     <div class="ds-modal-scrim" id="adminReschedModal" style="display:none">
       <div class="ds-modal" style="width:460px">
@@ -6234,6 +6375,14 @@ function renderShipments(list) {
         + '</tr>';
     }).join('');
 
+    const verifiedBadge = x.is_verified
+      ? '<div style="margin-top:2px"><span style="display:inline-flex;align-items:center;padding:1px 6px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:9.5px;font-weight:800;border-radius:3px">✓ VERIFIED £' + Number(x.sell_price || 0).toFixed(2) + '</span></div>'
+      : (x.sell_price ? ('<div style="font-size:10px;color:var(--mv-ink-55);margin-top:2px">Quoted £' + Number(x.sell_price).toFixed(2) + '</div>') : '');
+
+    const weightDisplay = x.is_verified
+      ? ('<b>' + totalParcels + ' pc</b> · <b style="color:#166534">' + (x.actual_weight_kg || totalWeight) + ' kg</b>')
+      : ('<b>' + totalParcels + ' pc</b>' + (totalWeight ? (' · ' + totalWeight + ' kg') : ''));
+
     const mainTr = document.createElement('tr');
     mainTr.className = 'ship-row';
     mainTr.dataset.id = x.id;
@@ -6244,14 +6393,17 @@ function renderShipments(list) {
       '<td>' + qesc(x.customer || 'Direct') + '</td>' +
       '<td style="font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + qesc(fromStr) + '">' + qesc(fromStr) + '</td>' +
       '<td style="font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + qesc(toStr) + '">' + qesc(toStr) + '</td>' +
-      '<td><b>' + totalParcels + ' pc</b>' + (totalWeight ? (' · ' + totalWeight + ' kg') : '') + '</td>' +
+      '<td>' + weightDisplay + verifiedBadge + '</td>' +
       '<td>' + prnStr + '</td>' +
       '<td><span id="admStatusChip_' + x.id + '">' + statusChip + '</span><div style="margin-top:2px">' + docsStr + '</div></td>' +
       '<td style="white-space:nowrap;font-size:12px">' + qDT(x.created_at) + '</td>' +
       '<td style="text-align:right;white-space:nowrap">' +
         (isSd
           ? ('<button type="button" class="btn-moov-action primary" style="height:28px;padding:0 10px;font-size:11px" onclick="event.stopPropagation(); openSdTrackingModal(\'' + qesc(x.tracking_number) + '\')">Track Live</button>')
-          : ('<button type="button" class="btn-moov-action secondary btn-inspect-shipment" data-id="' + x.id + '" style="height:28px;padding:0 10px;font-size:11px" onclick="event.stopPropagation(); toggleShipmentDrawer(\'' + x.id + '\')">Inspect Details ▾</button>')) +
+          : ('<div style="display:inline-flex;gap:5px;align-items:center">' +
+              '<button type="button" class="btn-moov-action ' + (x.is_verified ? 'secondary' : 'primary') + '" style="height:28px;padding:0 8px;font-size:11px;font-weight:700" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')">' + (x.is_verified ? '✓ Verified' : '⚖️ Verify') + '</button>' +
+              '<button type="button" class="btn-moov-action secondary btn-inspect-shipment" data-id="' + x.id + '" style="height:28px;padding:0 8px;font-size:11px" onclick="event.stopPropagation(); toggleShipmentDrawer(\'' + x.id + '\')">Details ▾</button>' +
+            '</div>')) +
       '</td>';
 
     const drawerTr = document.createElement('tr');
@@ -6268,6 +6420,7 @@ function renderShipments(list) {
             '<span id="admJourneySub_' + x.id + '" style="font-size:12px;color:var(--mv-ink-55)"></span>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+            '<button type="button" class="btn-moov-action ' + (x.is_verified ? 'secondary' : 'primary') + '" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')" style="color:var(--mv-green-deep);border-color:var(--mv-green)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg><span>' + (x.is_verified ? 'Re-Verify / Edit Charges' : 'Verify Shipment') + '</span></button>' +
             '<button type="button" class="btn-moov-action secondary btn-adm-upload-doc" data-id="' + x.id + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg><span>Upload Invoice</span></button>' +
             '<button type="button" class="btn-moov-action secondary btn-adm-email-labels" data-id="' + x.id + '" style="color:var(--mv-purple);border-color:var(--mv-purple)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg><span>Email Labels</span></button>' +
             (x.tracking_number ? ('<button type="button" class="btn-moov-action primary btn-adm-track-live" data-tracking="' + qesc(x.tracking_number) + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Track Shipment</span></button>') : '') +
@@ -6283,6 +6436,30 @@ function renderShipments(list) {
             renderAdmStages(currentStageIdx) +
           '</div>'
         ) : '') +
+
+        (x.is_verified ? (
+          '<div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:12px 16px;margin-bottom:14px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">' +
+            '<div>' +
+              '<div style="display:flex;align-items:center;gap:6px">' +
+                '<span style="font-weight:900;color:#166534;font-size:12.5px">✓ VERIFIED BY ACCOUNTS (' + qesc(x.verified_by || 'Finance Team') + ')</span>' +
+                '<span style="font-size:11px;color:#15803d">· ' + (x.verified_at ? qDT(x.verified_at) : 'Confirmed') + '</span>' +
+              '</div>' +
+              '<div style="font-size:12px;margin-top:4px;color:#166534">' +
+                'Original Quoted: <b>£' + Number(x.original_sell_price || x.sell_price || 0).toFixed(2) + '</b> ➔ Final Billed: <b style="font-size:13px">£' + Number(x.sell_price || 0).toFixed(2) + '</b> ' +
+                '(Actual Courier Weight: <b>' + (x.actual_weight_kg || totalWeight) + ' kg</b>)' +
+              '</div>' +
+            '</div>' +
+            '<button type="button" class="btn-moov-action secondary" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')" style="height:28px;font-size:11px;padding:0 10px;background:#fff">Amend Verification</button>' +
+          '</div>'
+        ) : (
+          '<div style="background:#fffbeb;border:1px solid #fde68a;padding:10px 14px;margin-bottom:14px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
+            '<div>' +
+              '<span style="font-weight:800;color:#92400e;font-size:12px">⚠️ Awaiting Courier Billing Verification</span>' +
+              '<div style="font-size:11.5px;color:#b45309;margin-top:2px">Original Quoted Price: <b>£' + Number(x.sell_price || 0).toFixed(2) + '</b> (Estimated: ' + (x.total_weight_kg || 1) + ' kg)</div>' +
+            '</div>' +
+            '<button type="button" class="btn-moov-action primary" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')" style="height:28px;font-size:11.5px;padding:0 12px;font-weight:800">⚖️ Verify Shipment</button>' +
+          '</div>'
+        )) +
 
         '<div class="ds-grid ds-grid-3" style="gap:14px;margin-bottom:14px">' +
           '<div style="background:#fff;border:1px solid var(--mv-hairline-2);padding:12px">' +
@@ -7074,6 +7251,196 @@ if ($('admReschedSubmit')) $('admReschedSubmit').onclick = async () => {
     $('admReschedMsg').textContent = 'Network Error: ' + err.message;
   }
 };
+
+// ----------------------------------------------------
+// VERIFY SHIPMENT & COURIER CHARGES (FINANCE)
+// ----------------------------------------------------
+let activeVerShipment = null;
+let currentVerPreviewData = null;
+
+function openVerifyShipmentModal(id) {
+  const sh = cachedAdminShipments.find(x => String(x.id) === String(id));
+  if (!sh) return alert('Shipment not found');
+  activeVerShipment = sh;
+
+  $('verShipmentId').value = sh.id;
+  $('verCustName').textContent = sh.customer || 'Direct';
+  $('verServiceName').textContent = sh.service_name || sh.service_code || 'UPS Return';
+  $('verTrackingNum').textContent = sh.tracking_number || '—';
+  $('verOrigQuoted').textContent = '£' + Number(sh.original_sell_price || sh.sell_price || 0).toFixed(2);
+  $('verAuditorName').value = (typeof currentUser !== 'undefined' && currentUser && currentUser.email) ? currentUser.email : 'Finance Team';
+
+  // Populate Packages
+  const pkgs = (sh.actual_packages && sh.actual_packages.length) ? sh.actual_packages : ((sh.packages && sh.packages.length) ? sh.packages : [{ weight: sh.total_weight_kg || 1.5, l: 30, w: 20, h: 10 }]);
+  const tbody = $('verPackagesBody');
+  tbody.innerHTML = pkgs.map((p, idx) => {
+    const wt = Number(p.deadWeight || p.weight) || 1.5;
+    const l = Number(p.l) || 30;
+    const w = Number(p.w) || 20;
+    const h = Number(p.h) || 10;
+    const vol = Math.round((l * w * h / 5000) * 100) / 100;
+    return `
+      <tr class="ver-pkg-row" data-idx="${idx}">
+        <td style="padding:8px 10px;font-weight:700">Piece ${idx + 1}</td>
+        <td style="padding:6px 10px"><input type="number" step="0.1" min="0.1" class="ds-input ver-p-wt" value="${wt}" style="height:28px;width:80px;font-size:12px;padding:2px 6px" oninput="handleVerInputChanged()"/></td>
+        <td style="padding:6px 10px"><input type="number" step="1" min="1" class="ds-input ver-p-l" value="${l}" style="height:28px;width:70px;font-size:12px;padding:2px 6px" oninput="handleVerInputChanged()"/></td>
+        <td style="padding:6px 10px"><input type="number" step="1" min="1" class="ds-input ver-p-w" value="${w}" style="height:28px;width:70px;font-size:12px;padding:2px 6px" oninput="handleVerInputChanged()"/></td>
+        <td style="padding:6px 10px"><input type="number" step="1" min="1" class="ds-input ver-p-h" value="${h}" style="height:28px;width:70px;font-size:12px;padding:2px 6px" oninput="handleVerInputChanged()"/></td>
+        <td style="padding:8px 10px;text-align:right;font-weight:700;color:var(--mv-ink-55)" id="verVolDisplay_${idx}">${vol} kg</td>
+      </tr>
+    `;
+  }).join('');
+
+  // Set collection radio
+  const bd = sh.verification_breakdown || {};
+  let colType = bd.collectionType;
+  if (!colType) {
+    const docs = sh.documents_attached || {};
+    if (docs.driverBringsLabel || docs.returnServiceType === 'driver_brings_label' || sh.prn) {
+      colType = 'driver_brings_label';
+    } else if (docs.returnServiceType === 'print_label' || docs.returnServiceType === 'electronic_label') {
+      colType = 'printed_label';
+    } else {
+      colType = 'driver_brings_label';
+    }
+  }
+
+  $('verRadioDriver').checked = (colType === 'driver_brings_label');
+  $('verRadioPrint').checked = (colType === 'printed_label');
+  $('verRadioNone').checked = (colType === 'none');
+
+  $('verChkRemote').checked = false;
+  $('verChkAhs').checked = false;
+  $('verChkExtra').checked = false;
+
+  $('verifyShipmentModal').style.display = 'flex';
+  runVerifyRecalculation();
+}
+
+function closeVerifyShipmentModal() {
+  $('verifyShipmentModal').style.display = 'none';
+}
+
+function handleVerInputChanged() {
+  // Update volumetric weights
+  const rows = document.querySelectorAll('.ver-pkg-row');
+  rows.forEach(r => {
+    const idx = r.dataset.idx;
+    const l = Number(r.querySelector('.ver-p-l').value) || 0;
+    const w = Number(r.querySelector('.ver-p-w').value) || 0;
+    const h = Number(r.querySelector('.ver-p-h').value) || 0;
+    const vol = (l && w && h) ? Math.round((l * w * h / 5000) * 100) / 100 : 0;
+    const disp = $('verVolDisplay_' + idx);
+    if (disp) disp.textContent = vol + ' kg';
+  });
+
+  // Debounced recalculation
+  clearTimeout(window._verTimer);
+  window._verTimer = setTimeout(runVerifyRecalculation, 300);
+}
+
+async function runVerifyRecalculation() {
+  if (!activeVerShipment) return;
+  const sId = activeVerShipment.id;
+
+  const rows = document.querySelectorAll('.ver-pkg-row');
+  const actualPackages = [];
+  rows.forEach(r => {
+    actualPackages.push({
+      weight: Number(r.querySelector('.ver-p-wt').value) || 1.5,
+      l: Number(r.querySelector('.ver-p-l').value) || 30,
+      w: Number(r.querySelector('.ver-p-w').value) || 20,
+      h: Number(r.querySelector('.ver-p-h').value) || 10,
+    });
+  });
+
+  let collectionType = 'driver_brings_label';
+  if ($('verRadioPrint').checked) collectionType = 'printed_label';
+  else if ($('verRadioNone').checked) collectionType = 'none';
+
+  const extraSurcharges = [];
+  if ($('verChkRemote') && $('verChkRemote').checked) {
+    extraSurcharges.push({ name: 'Remote / Extended Area (DAS/RAS)', amt: Number($('verRemoteAmt').value) || 18.50 });
+  }
+  if ($('verChkAhs') && $('verChkAhs').checked) {
+    extraSurcharges.push({ name: 'Additional Handling (AHS)', amt: Number($('verAhsAmt').value) || 11.20 });
+  }
+  if ($('verChkExtra') && $('verChkExtra').checked) {
+    extraSurcharges.push({ name: 'Custom Extra Adjustment', amt: Number($('verExtraAmt').value) || 0 });
+  }
+
+  $('verBoxNewSell').textContent = 'Calculating…';
+  $('btnConfirmVerify').disabled = true;
+
+  try {
+    const res = await jpost(`/api/shipments/${encodeURIComponent(sId)}/verify-preview`, {
+      actualPackages,
+      collectionType,
+      extraSurcharges
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to preview recalculation');
+
+    currentVerPreviewData = {
+      actualPackages,
+      collectionType,
+      extraSurcharges,
+      ...data
+    };
+
+    $('verBoxOrigSell').textContent = '£' + data.originalSellPrice.toFixed(2);
+    $('verBoxNewSell').textContent = '£' + data.newSellPrice.toFixed(2);
+    
+    const vEl = $('verBoxVariance');
+    const varSign = data.variance > 0 ? '+' : '';
+    vEl.textContent = varSign + '£' + data.variance.toFixed(2);
+    vEl.style.color = data.variance > 0 ? '#b45309' : (data.variance < 0 ? '#166534' : 'var(--mv-ink)');
+
+    const bd = data.breakdown || {};
+    const itemsHtml = [
+      `<div>• Base Rate (${data.totalBilledWeight} kg billable weight with ${bd.markupPct || 70}% markup): <b>£${(bd.baseMarkedUp || 0).toFixed(2)}</b></div>`,
+      bd.collectionFee > 0 ? `<div>• Collection Service (${bd.collectionFeeName}): <b style="color:#166534">+£${bd.collectionFee.toFixed(2)}</b></div>` : '',
+      ...(Array.isArray(bd.itemizedSurcharges) ? bd.itemizedSurcharges.filter(x => x.code !== 'COLLECTION_FEE').map(s => `<div>• ${s.name}: <b>+£${s.amt.toFixed(2)}</b></div>`) : []),
+      `<div>• Fuel Surcharge (${bd.fuelRatePct || '53.25'}% live contract fuel): <b>+£${(bd.customerFuel || 0).toFixed(2)}</b></div>`,
+      `<div style="margin-top:6px;font-size:11px;color:var(--mv-ink-55)">Courier Invoiced Cost (Moov cost from UPS): <b>£${(data.newCostPrice || 0).toFixed(2)}</b></div>`,
+    ].filter(Boolean).join('');
+
+    $('verBreakdownList').innerHTML = itemsHtml;
+    $('btnConfirmVerify').disabled = false;
+  } catch (err) {
+    console.error('Recalculation error:', err);
+    $('verBoxNewSell').textContent = 'Error';
+    $('verBreakdownList').innerHTML = `<span style="color:var(--mv-red)">Failed to calculate: ${qesc(err.message)}</span>`;
+    $('btnConfirmVerify').disabled = true;
+  }
+}
+
+async function commitShipmentVerification() {
+  if (!activeVerShipment || !currentVerPreviewData) return;
+  const sId = activeVerShipment.id;
+  const btn = $('btnConfirmVerify');
+  btn.disabled = true;
+  btn.textContent = 'Saving & Billing…';
+
+  try {
+    const res = await jpost(`/api/shipments/${encodeURIComponent(sId)}/verify`, {
+      actualPackages: currentVerPreviewData.actualPackages,
+      collectionType: currentVerPreviewData.collectionType,
+      extraSurcharges: currentVerPreviewData.extraSurcharges,
+      verifiedBy: $('verAuditorName').value.trim() || 'Accounts Team',
+    });
+    const d = await res.json();
+    if (!res.ok || !d.ok) throw new Error(d.error || 'Failed to commit verification');
+
+    closeVerifyShipmentModal();
+    alert(`✓ Shipment Verified Successfully!\n\n${d.message}`);
+    await loadShipments();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '✓ Confirm & Bill Verified Rate';
+    alert('Failed to save verification: ' + err.message);
+  }
+}
 
 if ($('colRefresh')) $('colRefresh').onclick = loadCollections;
 
