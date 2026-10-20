@@ -6380,7 +6380,7 @@ function renderShipments(list) {
         (isSd
           ? ('<button type="button" class="btn-moov-action primary" style="height:28px;padding:0 10px;font-size:11px" onclick="event.stopPropagation(); openSdTrackingModal(\'' + qesc(x.tracking_number) + '\')">Track Live</button>')
           : ('<div style="display:inline-flex;gap:5px;align-items:center">' +
-              '<button type="button" class="btn-moov-action ' + (x.is_verified ? 'secondary' : 'primary') + '" style="height:28px;padding:0 8px;font-size:11px;font-weight:700" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')">' + (x.is_verified ? '✓ Verified' : '⚖️ Verify') + '</button>' +
+              '<button type="button" class="btn-moov-action ' + (x.is_verified ? 'secondary' : 'primary') + '" style="height:28px;padding:0 8px;font-size:11px;font-weight:700" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')">' + (x.is_verified ? 'Verified' : 'Verify') + '</button>' +
               '<button type="button" class="btn-moov-action secondary btn-inspect-shipment" data-id="' + x.id + '" style="height:28px;padding:0 8px;font-size:11px" onclick="event.stopPropagation(); toggleShipmentDrawer(\'' + x.id + '\')">Details ▾</button>' +
             '</div>')) +
       '</td>';
@@ -6399,7 +6399,7 @@ function renderShipments(list) {
             '<span id="admJourneySub_' + x.id + '" style="font-size:12px;color:var(--mv-ink-55)"></span>' +
           '</div>' +
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
-            '<button type="button" class="btn-moov-action ' + (x.is_verified ? 'secondary' : 'primary') + '" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')" style="color:var(--mv-green-deep);border-color:var(--mv-green)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg><span>' + (x.is_verified ? 'Re-Verify / Edit Charges' : 'Verify Shipment') + '</span></button>' +
+            '<button type="button" class="btn-moov-action ' + (x.is_verified ? 'secondary' : 'primary') + '" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')" style="color:var(--mv-green-deep);border-color:var(--mv-green)"><span>' + (x.is_verified ? 'Re-Verify / Edit Charges' : 'Verify Shipment') + '</span></button>' +
             '<button type="button" class="btn-moov-action secondary btn-adm-upload-doc" data-id="' + x.id + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg><span>Upload Invoice</span></button>' +
             '<button type="button" class="btn-moov-action secondary btn-adm-email-labels" data-id="' + x.id + '" style="color:var(--mv-purple);border-color:var(--mv-purple)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg><span>Email Labels</span></button>' +
             (x.tracking_number ? ('<button type="button" class="btn-moov-action primary btn-adm-track-live" data-tracking="' + qesc(x.tracking_number) + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg><span>Track Shipment</span></button>') : '') +
@@ -6436,7 +6436,7 @@ function renderShipments(list) {
               '<span style="font-weight:800;color:#92400e;font-size:12px">⚠️ Awaiting Courier Billing Verification</span>' +
               '<div style="font-size:11.5px;color:#b45309;margin-top:2px">Original Quoted Price: <b>£' + Number(x.sell_price || 0).toFixed(2) + '</b> (Estimated: ' + (x.total_weight_kg || 1) + ' kg)</div>' +
             '</div>' +
-            '<button type="button" class="btn-moov-action primary" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')" style="height:28px;font-size:11.5px;padding:0 12px;font-weight:800">⚖️ Verify Shipment</button>' +
+            '<button type="button" class="btn-moov-action primary" onclick="event.stopPropagation(); openVerifyShipmentModal(\'' + x.id + '\')" style="height:28px;font-size:11.5px;padding:0 12px;font-weight:800">Verify Shipment</button>' +
           '</div>'
         )) +
 

@@ -7235,9 +7235,8 @@ function renderCustomerBookings(shipments) {
                 </button>
               `}
 
-              <button type="button" class="btn-moov-action ${x.is_verified ? 'secondary' : 'primary'} btn-cust-verify-shipment" onclick="event.stopPropagation(); openCardVerifyShipmentModal('${x.id}')" style="height:32px;padding:0 12px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:5px;${x.is_verified ? 'color:#166534;border-color:#bbf7d0;background:#f0fdf4' : 'background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy)'}">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                <span>${x.is_verified ? '✓ Verified by Accounts' : '⚖️ Verify Shipment'}</span>
+              <button type="button" class="btn-moov-action ${x.is_verified ? 'secondary' : 'primary'} btn-cust-verify-shipment" onclick="event.stopPropagation(); openCardVerifyShipmentModal('${x.id}')" style="height:32px;padding:0 12px;font-size:12px;font-weight:800;${x.is_verified ? 'color:#166534;border-color:#bbf7d0;background:#f0fdf4' : 'background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy)'}">
+                <span>${x.is_verified ? 'Verified by Accounts' : 'Verify Shipment'}</span>
               </button>
 
               <button type="button" class="btn-moov-action secondary btn-toggle-explode" data-id="${x.id}" style="padding:0 10px">
@@ -7270,7 +7269,7 @@ function renderCustomerBookings(shipments) {
                 <div style="font-weight:800;color:#92400e;font-size:12.5px">⚠️ Awaiting Courier Invoiced Weight Verification</div>
                 <div style="font-size:12px;color:#b45309;margin-top:2px">Currently estimated at <b>£${Number(x.sell_price || 0).toFixed(2)}</b> based on ${totalWeight} kg. When the courier bill arrives, enter actual measurements to adjust.</div>
               </div>
-              <button type="button" class="btn-moov-action primary" onclick="openCardVerifyShipmentModal('${x.id}')" style="height:28px;font-size:12px;padding:0 12px;font-weight:800;background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy)">⚖️ Verify Shipment</button>
+              <button type="button" class="btn-moov-action primary" onclick="openCardVerifyShipmentModal('${x.id}')" style="height:28px;font-size:12px;padding:0 12px;font-weight:800;background:var(--moov-green);border-color:var(--moov-green);color:var(--moov-navy)">Verify Shipment</button>
             </div>
           `}
 
