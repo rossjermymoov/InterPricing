@@ -2687,11 +2687,32 @@ async function calculateVerifiedShipmentPricing(shipment, { actualPackages, coll
   };
 }
 
-// AUTHENTICATED: Live preview calculation for verifying a shipment
-app.post('/api/shipments/:id/verify-preview', auth.requireAuth, async (req, res) => {
+// Helper to check authorization for shipment verification (supports user login or card token)
+async function isAuthorizedForShipment(req, shipment) {
+  if (req.user) return true;
+  const token = (req.body && req.body.token) || req.query.token || req.headers['x-card-token'];
+  if (token) {
+    if (shipment.token && String(shipment.token).toLowerCase() === String(token).toLowerCase()) return true;
+    if (shipment.card_id && db.hasDb) {
+      const card = await db.getCardByToken(token);
+      if (card && card.id === shipment.card_id) return true;
+    }
+    if (shipment.customer && db.hasDb) {
+      const card = await db.getCardByToken(token);
+      if (card && String(card.customer).toLowerCase() === String(shipment.customer).toLowerCase()) return true;
+    }
+  }
+  return false;
+}
+
+// Live preview calculation for verifying a shipment (supports user login or card token)
+app.post('/api/shipments/:id/verify-preview', async (req, res) => {
   try {
     const shipment = await db.getShipmentById(req.params.id) || await db.getShipmentByTracking(req.params.id);
     if (!shipment) return res.status(404).json({ ok: false, error: 'Shipment not found' });
+
+    const authed = await isAuthorizedForShipment(req, shipment);
+    if (!authed) return res.status(401).json({ ok: false, error: 'Unauthorized to verify this shipment.' });
 
     const { actualPackages, collectionType, extraSurcharges } = req.body || {};
     const result = await calculateVerifiedShipmentPricing(shipment, { actualPackages, collectionType, extraSurcharges });
@@ -2702,11 +2723,14 @@ app.post('/api/shipments/:id/verify-preview', auth.requireAuth, async (req, res)
   }
 });
 
-// AUTHENTICATED: Commit verification and update billed prices with audit trail
-app.post('/api/shipments/:id/verify', auth.requireAuth, async (req, res) => {
+// Commit verification and update billed prices with audit trail (supports user login or card token)
+app.post('/api/shipments/:id/verify', async (req, res) => {
   try {
     const shipment = await db.getShipmentById(req.params.id) || await db.getShipmentByTracking(req.params.id);
     if (!shipment) return res.status(404).json({ ok: false, error: 'Shipment not found' });
+
+    const authed = await isAuthorizedForShipment(req, shipment);
+    if (!authed) return res.status(401).json({ ok: false, error: 'Unauthorized to verify this shipment.' });
 
     const { actualPackages, collectionType, extraSurcharges, verifiedBy } = req.body || {};
     const pricing = await calculateVerifiedShipmentPricing(shipment, { actualPackages, collectionType, extraSurcharges });
