@@ -1331,13 +1331,16 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
 
     const displayTrk = (shipment && shipment.tracking_number) ? shipment.tracking_number : (isMalvina ? (trk.startsWith('1Z') ? trk : '1ZH2908X9911473607') : trk);
 
+    const freightVal = req.query.freight != null ? Number(req.query.freight) : Number(shipment?.sell_price || shipment?.cost_price || 25.00);
+
     const html = invoiceGenerator.generateCommercialInvoiceHtml({
       trackingNumber: displayTrk,
       invoiceNumber: 'INV-' + displayTrk.slice(-8),
       orderRef: docs.orderRef || ('RET-' + displayTrk.slice(-8)),
       invoiceDate: exportDateUk,
       exportDate: exportDateUk,
-      goodsValue: goodsVal,
+      goodsValue: req.query.value != null ? Number(req.query.value) : goodsVal,
+      freight: freightVal,
       weight: weightVal,
       currency: 'GBP',
       reasonForExport: docs.reasonForExport || 'RETURN OF GOODS (CUSTOMER RETURN - CPC 61 23 F01)',
