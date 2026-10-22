@@ -1331,7 +1331,9 @@ app.get(['/api/invoice/:tracking', '/api/shipments/:tracking/invoice'], async (r
 
     const displayTrk = (shipment && shipment.tracking_number) ? shipment.tracking_number : (isMalvina ? (trk.startsWith('1Z') ? trk : '1ZH2908X9911473607') : trk);
 
-    const freightVal = req.query.freight != null ? Number(req.query.freight) : Number(shipment?.sell_price || shipment?.cost_price || 25.00);
+    const freightVal = req.query.freight != null
+      ? Number(req.query.freight)
+      : Number(shipment?.sell_price || shipment?.cost_price || (trk === '1ZH2908X8833013593' ? 41.28 : 25.00));
 
     const html = invoiceGenerator.generateCommercialInvoiceHtml({
       trackingNumber: displayTrk,
