@@ -2749,10 +2749,11 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <div class="f" style="flex:1.5 1 200px">
                 <label>Country *</label>
                 <div class="combo" id="ret_countryCombo" style="width:100%">
-                  <input id="ret_countryInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search any country (e.g. Greece, United States, Germany)..." role="combobox" aria-expanded="false" aria-autocomplete="list" required style="font-weight:600"/>
+                  <input id="ret_countryInput" type="text" autocomplete="off" spellcheck="false" placeholder="Type to search country (e.g. United States, Germany, France)..." role="combobox" aria-expanded="false" aria-autocomplete="list" required style="font-weight:600;padding-right:26px"/>
+                  <span class="comboClear" id="ret_countryClear" title="Clear country" style="display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:13px;color:#94a3b8;line-height:1;padding:4px;font-weight:700" onmouseover="this.style.color='#475569'" onmouseout="this.style.color='#94a3b8'">✕</span>
                   <div class="comboList" id="ret_countryList" role="listbox"></div>
                 </div>
-                <input type="hidden" id="retSenderCountry" value="GR"/>
+                <input type="hidden" id="retSenderCountry" value=""/>
               </div>
               <div class="f" style="flex:1.5 1 180px">
                 <label>Shopper / Contact Name *</label>
@@ -2881,8 +2882,8 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                   <input type="text" id="retUkEori" value="" placeholder="e.g. GB123456789000" required style="font-weight:700"/>
                 </div>
                 <div class="f" style="flex:1.5 1 200px">
-                  <label>Sender Tax / VAT ID (Greece / Origin - Optional)</label>
-                  <input type="text" id="retSenderTaxId" placeholder="e.g. EL999999999"/>
+                  <label id="retSenderTaxIdLabel">Sender Tax / VAT ID (Origin - Optional)</label>
+                  <input type="text" id="retSenderTaxId" placeholder="e.g. Tax / VAT ID"/>
                 </div>
               </div>
 
@@ -4710,6 +4711,11 @@ const WORLD_COUNTRIES = [
 function initCountryCombo(boxId, inputId, menuId, onPick, initialIso) {
   const box = $(boxId), inp = $(inputId), menu = $(menuId);
   if (!box || !inp || !menu) return;
+  const clearBtn = box.querySelector('.comboClear');
+  const updateClearBtn = () => {
+    if (clearBtn) clearBtn.style.display = inp.value.trim() ? 'block' : 'none';
+  };
+
   let items = WORLD_COUNTRIES.slice(), active = -1, curLabel = '';
   const open = () => { box.classList.add('open'); inp.setAttribute('aria-expanded', 'true'); };
   const close = () => { box.classList.remove('open'); inp.setAttribute('aria-expanded', 'false'); active = -1; };
@@ -4717,6 +4723,7 @@ function initCountryCombo(boxId, inputId, menuId, onPick, initialIso) {
     if (!o) return;
     curLabel = o.n;
     inp.value = o.n;
+    updateClearBtn();
     onPick(o.c, o.n);
     close();
   };
@@ -4738,8 +4745,52 @@ function initCountryCombo(boxId, inputId, menuId, onPick, initialIso) {
     if (active >= 0 && els[active]) els[active].scrollIntoView({ block: 'nearest' });
   };
 
-  inp.addEventListener('focus', () => { render(''); open(); });
-  inp.addEventListener('input', () => { active = -1; render(inp.value); open(); });
+  let isSelectingOnFocus = false;
+  inp.addEventListener('focus', () => {
+    isSelectingOnFocus = true;
+    render('');
+    open();
+    setTimeout(() => {
+      if (isSelectingOnFocus && inp.value) {
+        inp.select();
+        isSelectingOnFocus = false;
+      }
+    }, 50);
+  });
+  inp.addEventListener('mouseup', () => {
+    if (isSelectingOnFocus) {
+      if (inp.value) inp.select();
+      isSelectingOnFocus = false;
+    }
+  });
+  inp.addEventListener('click', () => {
+    if (!box.classList.contains('open')) {
+      render('');
+      open();
+    }
+  });
+  inp.addEventListener('input', () => {
+    active = -1;
+    updateClearBtn();
+    if (!inp.value.trim()) {
+      curLabel = '';
+      onPick('', '');
+    }
+    render(inp.value);
+    open();
+  });
+  if (clearBtn) {
+    clearBtn.addEventListener('mousedown', ev => {
+      ev.preventDefault();
+      inp.value = '';
+      curLabel = '';
+      onPick('', '');
+      updateClearBtn();
+      render('');
+      inp.focus();
+      open();
+    });
+  }
   inp.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -4762,13 +4813,16 @@ function initCountryCombo(boxId, inputId, menuId, onPick, initialIso) {
   inp.addEventListener('blur', () => {
     setTimeout(() => {
       close();
-      if (inp.value && !curLabel) {
-        const match = WORLD_COUNTRIES.find(o => o.n.toLowerCase() === inp.value.trim().toLowerCase() || o.c.toLowerCase() === inp.value.trim().toLowerCase());
+      const val = inp.value.trim();
+      if (val) {
+        const match = WORLD_COUNTRIES.find(o => o.n.toLowerCase() === val.toLowerCase() || o.c.toLowerCase() === val.toLowerCase());
         if (match) pick(match);
         else if (items.length === 1) pick(items[0]);
-      } else if (!inp.value && curLabel) {
-        inp.value = curLabel;
+      } else {
+        curLabel = '';
+        onPick('', '');
       }
+      updateClearBtn();
     }, 150);
   });
   document.addEventListener('click', e => { if (!box.contains(e.target)) close(); });
@@ -4781,6 +4835,7 @@ function initCountryCombo(boxId, inputId, menuId, onPick, initialIso) {
       onPick(found.c, found.n);
     }
   }
+  updateClearBtn();
 }
 
 function triggerCreateNav(view) {
@@ -4855,8 +4910,8 @@ function saveReturnFormState() {
     const token = curToken || location.pathname.split('/').filter(Boolean).pop();
     if (!token) return;
     const data = {
-      country: $('retSenderCountry')?.value || 'US',
-      countryName: $('ret_countryInput')?.value || 'United States',
+      country: $('retSenderCountry')?.value || '',
+      countryName: $('ret_countryInput')?.value || '',
       name: $('retSenderName')?.value || '',
       company: $('retSenderCompany')?.value || '',
       line1: $('retSenderLine1')?.value || '',
@@ -4893,9 +4948,19 @@ function restoreReturnFormState() {
     const d = JSON.parse(raw);
     if (!d) return;
 
+    // Guard against legacy auto-saved 'GR' when user never actually entered a Greek return
+    if (d.country === 'GR' && !d.line1 && !d.city && !d.name) {
+      delete d.country;
+      delete d.countryName;
+    }
+
     if (d.country && $('retSenderCountry')) {
       $('retSenderCountry').value = d.country;
-      if ($('ret_countryInput')) $('ret_countryInput').value = d.countryName || d.country;
+      if ($('ret_countryInput')) {
+        $('ret_countryInput').value = d.countryName || d.country;
+        const clr = $('ret_countryClear');
+        if (clr) clr.style.display = 'block';
+      }
     }
     if (d.name && $('retSenderName')) $('retSenderName').value = d.name;
     if (d.company && $('retSenderCompany')) $('retSenderCompany').value = d.company;
@@ -4930,7 +4995,7 @@ function clearReturnFormState() {
 }
 
 function initReturnsView() {
-  const initialIso = ($('retSenderCountry') && $('retSenderCountry').value) || 'US';
+  const initialIso = ($('retSenderCountry') && $('retSenderCountry').value) || '';
   initCountryCombo('ret_countryCombo', 'ret_countryInput', 'ret_countryList', (iso, name) => {
     const hidden = $('retSenderCountry');
     if (hidden) hidden.value = iso;
@@ -5071,8 +5136,7 @@ function handleReturnCountryChange() {
     const m = WORLD_COUNTRIES.find(o => o.n.toLowerCase() === textVal.toLowerCase() || o.c.toLowerCase() === textVal.toLowerCase());
     if (m) country = m.c;
   }
-  if (!country) country = 'US';
-  country = country.toUpperCase();
+  country = (country || '').toUpperCase();
 
   const isDomestic = country === 'GB';
   const customsSec = $('retCustomsSection');
@@ -5080,7 +5144,7 @@ function handleReturnCountryChange() {
     customsSec.style.display = isDomestic ? 'none' : 'block';
   }
 
-  const supportsDriverReturns = UPS_RETURNS_PLUS_COUNTRIES.has(country);
+  const supportsDriverReturns = country ? UPS_RETURNS_PLUS_COUNTRIES.has(country) : true;
   const mDriver = $('retMethodDriver');
   if (mDriver) {
     mDriver.style.display = supportsDriverReturns ? '' : 'none';
@@ -5088,8 +5152,14 @@ function handleReturnCountryChange() {
 
   // If driver_brings_label is currently selected but this country does not support UPS Returns Plus (e.g. US),
   // automatically switch to print_label
-  if (!supportsDriverReturns && currentReturnMethod === 'driver_brings_label') {
+  if (country && !supportsDriverReturns && currentReturnMethod === 'driver_brings_label') {
     setReturnMethod('print_label');
+  }
+
+  const taxLabel = $('retSenderTaxIdLabel');
+  if (taxLabel) {
+    const cName = ($('ret_countryInput') && $('ret_countryInput').value.trim()) || '';
+    taxLabel.textContent = cName ? `Sender Tax / VAT ID (${cName} / Origin - Optional)` : 'Sender Tax / VAT ID (Origin - Optional)';
   }
 }
 
@@ -5213,7 +5283,19 @@ async function handleReturnsQuoteSubmit(e) {
       if ($('retSenderCountry')) $('retSenderCountry').value = matched.c;
     }
   }
-  if (!country) country = 'US';
+  if (!country) {
+    if (msg) {
+      msg.style.color = '#dc2626';
+      msg.textContent = 'Please select a sender / collection country from the list.';
+    }
+    if (btn) btn.disabled = false;
+    const inp = $('ret_countryInput');
+    if (inp) {
+      inp.focus();
+      inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
 
   const isDomestic = country === 'GB';
   const lineItems = isDomestic ? [] : getReturnLineItems();
@@ -5420,7 +5502,20 @@ async function handleBookReturnLabel() {
       if ($('retSenderCountry')) $('retSenderCountry').value = matched.c;
     }
   }
-  if (!country) country = 'US';
+  if (!country) {
+    alert('Please select a sender / collection country before booking.');
+    if (btn) {
+      btn.disabled = false;
+      const isDriver = currentReturnMethod === 'driver_brings_label';
+      btn.textContent = isDriver ? `🚀 Book Return & Dispatch Driver (£${currentSelectedReturnService.price.toFixed(2)})` : `✓ Book Return & Create Label (£${currentSelectedReturnService.price.toFixed(2)})`;
+    }
+    const inp = $('ret_countryInput');
+    if (inp) {
+      inp.focus();
+      inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
 
   const isDomestic = country === 'GB';
   const lineItems = isDomestic ? [] : getReturnLineItems();
