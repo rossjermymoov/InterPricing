@@ -3928,6 +3928,18 @@ function checkEconomyLimits(key, actual, L, W, H, val, country) {
   const volCm3 = (numL > 0 && numW > 0 && numH > 0) ? (numL * numW * numH) : 0;
   const dimWeight = volCm3 > 0 ? (volCm3 / 5000) : 0;
 
+  // Packages weighing 2 kg or lower (both DDP and DDU):
+  // (i) Maximum length (longest side): 60 cm
+  // (ii) Maximum size: 90 cm in length + width + height combined
+  if (numActual <= 2.0) {
+    if (longest > 60) {
+      return { allowed: false, reason: 'UPS Worldwide Economy (≤ 2 kg) exceeds maximum length of 60 cm' };
+    }
+    if (combinedSize > 90) {
+      return { allowed: false, reason: 'UPS Worldwide Economy (≤ 2 kg) exceeds maximum combined size L+W+H of 90 cm' };
+    }
+  }
+
   if (isDdp) {
     // DDP Packages:
     // (i) Maximum length (longest side): 122 cm
@@ -3957,23 +3969,13 @@ function checkEconomyLimits(key, actual, L, W, H, val, country) {
       return { allowed: false, reason: 'UPS Economy DDU exceeds maximum actual weight of 20 kg' };
     }
 
-    // Size restrictions:
-    // - Packages weighing <= 2 kg: max length 60 cm, max combined L + W + H 90 cm
-    // - Packages weighing > 2 kg: max length 90 cm, max combined L + W + H 200 cm
-    if (numActual <= 2.0) {
-      if (longest > 60) {
-        return { allowed: false, reason: 'UPS Economy DDU (≤ 2 kg) exceeds maximum length of 60 cm' };
-      }
-      if (combinedSize > 90) {
-        return { allowed: false, reason: 'UPS Economy DDU (≤ 2 kg) exceeds maximum combined size L+W+H of 90 cm' };
-      }
-    } else {
-      if (longest > 90) {
-        return { allowed: false, reason: 'UPS Economy DDU (> 2 kg) exceeds maximum length of 90 cm' };
-      }
-      if (combinedSize > 200) {
-        return { allowed: false, reason: 'UPS Economy DDU (> 2 kg) exceeds maximum combined size L+W+H of 200 cm' };
-      }
+    // Size restrictions for DDU packages (> 2 kg):
+    // Maximum length 90 cm, maximum combined L + W + H 200 cm
+    if (longest > 90) {
+      return { allowed: false, reason: 'UPS Economy DDU (> 2 kg) exceeds maximum length of 90 cm' };
+    }
+    if (combinedSize > 200) {
+      return { allowed: false, reason: 'UPS Economy DDU (> 2 kg) exceeds maximum combined size L+W+H of 200 cm' };
     }
 
     // Rating rule:
