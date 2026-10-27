@@ -16,6 +16,8 @@ const billing = require('./lib/billing');
 const returnLabel = require('./lib/returnLabel');
 const invoiceGenerator = require('./lib/invoice');
 const returnsManager = require('./lib/returnsManager');
+const ratecardExporter = require('./lib/ratecardExporter');
+const XLSX = require('./public/xlsx.full.min.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -237,6 +239,77 @@ app.delete('/api/cards/:id', auth.requireAuth, async (req, res) => {
     if (!(await db.getCardById(id))) return res.status(404).json({ error: 'Card not found' });
     await db.deleteCard(id); res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// EXPORT: Customer Rate Card as Excel (.xlsx) by Card ID (Admin/Staff)
+app.get('/api/cards/:id/ratecard.xlsx', auth.requireAuth, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const card = db.hasDb ? await db.getCardById(id) : null;
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    const cfg = await db.getConfig();
+    const wb = ratecardExporter.buildRateCardWorkbook(cfg, card, {
+      includeSurcharges: req.query.surcharges !== 'false',
+      includeZoneGuide: req.query.zones !== 'false'
+    });
+    const cleanName = (card.customer || 'RateCard').replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_') || 'Rate_Card';
+    res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.set('Content-Disposition', `attachment; filename="${cleanName}_Moov_Rate_Card.xlsx"`);
+    res.set('Cache-Control', 'no-store');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.send(buf);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// EXPORT: Customer Rate Card as Excel (.xlsx) by Public Token (Client/Customer)
+app.get('/api/card/:token/ratecard.xlsx', async (req, res) => {
+  try {
+    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card || card.enabled === false) return res.status(404).json({ error: 'This rate card is not available.' });
+    const cfg = await db.getConfig();
+    const wb = ratecardExporter.buildRateCardWorkbook(cfg, card, {
+      includeSurcharges: req.query.surcharges !== 'false',
+      includeZoneGuide: req.query.zones !== 'false'
+    });
+    const cleanName = (card.customer || 'RateCard').replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_') || 'Rate_Card';
+    res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.set('Content-Disposition', `attachment; filename="${cleanName}_Moov_Rate_Card.xlsx"`);
+    res.set('Cache-Control', 'no-store');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.send(buf);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// EXPORT: Ad-hoc Rate Card Generator (Admin/Staff)
+app.post('/api/ratecard/export.xlsx', auth.requireAuth, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const cfg = await db.getConfig();
+    const adhocCard = {
+      customer: body.customerName || 'Standard Rates',
+      config: {
+        markup: (body.markups && typeof body.markups === 'object') ? body.markups : (body.markup != null ? Number(body.markup) : 10),
+        services: Array.isArray(body.services) ? body.services : ['ux', 'us', 'edp', 'edu']
+      }
+    };
+    const wb = ratecardExporter.buildRateCardWorkbook(cfg, adhocCard, {
+      services: adhocCard.config.services,
+      includeSurcharges: body.includeSurcharges !== false,
+      includeZoneGuide: body.includeZoneGuide !== false
+    });
+    const cleanName = (adhocCard.customer || 'RateCard').replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_') || 'Rate_Card';
+    res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.set('Content-Disposition', `attachment; filename="${cleanName}_Moov_Rate_Card.xlsx"`);
+    res.set('Cache-Control', 'no-store');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.send(buf);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 // PUBLIC: customer-facing payload (final prices only) — no auth.
 app.get('/api/card/:token', async (req, res) => {

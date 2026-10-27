@@ -1879,6 +1879,115 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
       </div>
     </div>
 
+    <!-- MODAL: CREATE / EXPORT PHYSICAL RATE CARD (.XLSX) -->
+    <div class="ds-modal-scrim" id="createRateCardModal" style="display:none">
+      <div class="ds-modal" style="max-width:680px">
+        <div class="ds-modal-head" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="ds-kicker" style="color:var(--mv-purple)">EXPORT PHYSICAL RATE CARD</div>
+            <h2 style="margin:4px 0 0;font-size:20px">Create Customer Rate Card (.xlsx)</h2>
+            <p class="ds-blurb" style="font-size:12.5px;margin-top:4px">Generate a complete multi-tab Excel tariff with 0.5kg weight bands, zone matrices, surcharges schedule, and country zone guide.</p>
+          </div>
+          <button type="button" onclick="closeCreateRateCardModal()" style="font-size:22px;background:none;border:none;cursor:pointer;color:var(--mv-ink-55);line-height:1">&times;</button>
+        </div>
+        <div class="ds-modal-body">
+          <!-- 1. Customer Selection / Mode -->
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin-bottom:8px">1. TARGET CUSTOMER</div>
+          <div class="ds-grid ds-grid-2" style="gap:14px">
+            <div class="ds-field-wrap">
+              <label class="ds-label">Select Existing Customer (or Custom)</label>
+              <select id="rcExpCustomerSelect" class="ds-select">
+                <option value="custom">-- Custom / Ad-Hoc Rate Card --</option>
+              </select>
+            </div>
+            <div class="ds-field-wrap">
+              <label class="ds-label">Rate Card / Customer Name *</label>
+              <input id="rcExpCustomerName" type="text" class="ds-input" value="Standard Customer" placeholder="e.g. Acme Wholesale Ltd"/>
+            </div>
+          </div>
+
+          <!-- 2. Pricing Markups -->
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin:20px 0 8px">2. PRICING MARKUP</div>
+          <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
+            <div class="ds-field-wrap" style="width:140px">
+              <label class="ds-label">Global Markup %</label>
+              <input id="rcExpMarkupGlobal" type="number" min="0" step="1" value="15" class="ds-input num"/>
+            </div>
+            <div class="ds-field-wrap">
+              <label class="ds-label">Volume Presets</label>
+              <div class="ds-chips" id="rcExpVolTabs" style="margin-top:0">
+                <div class="ds-chip" data-mk="70">Low · 70%</div>
+                <div class="ds-chip" data-mk="50">Medium · 50%</div>
+                <div class="ds-chip" data-mk="30">High · 30%</div>
+                <div class="ds-chip active" data-mk="15">Standard · 15%</div>
+                <div class="ds-chip" data-mk="10">Corporate · 10%</div>
+                <div class="ds-chip" data-mk="0">At Cost · 0%</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Per-Service Markups Toggle -->
+          <div style="margin-top:14px">
+            <button type="button" class="btn-moov-action secondary" id="rcExpToggleCustomMk" style="font-size:11px;height:28px;padding:0 10px">
+              <span>⚙️ Show / Hide Per-Service Custom Markups</span>
+            </button>
+            <div id="rcExpCustomMkPanel" style="display:none;margin-top:12px;background:var(--mv-bg);padding:12px 14px;border:1px solid var(--mv-hairline-2);border-radius:4px">
+              <div class="ds-grid ds-grid-3" style="gap:12px">
+                <div class="ds-field-wrap"><label class="ds-label">UPS Express Saver %</label><input id="rcExpMk_ux" type="number" min="0" class="ds-input num" placeholder="15"/></div>
+                <div class="ds-field-wrap"><label class="ds-label">UPS Standard %</label><input id="rcExpMk_us" type="number" min="0" class="ds-input num" placeholder="15"/></div>
+                <div class="ds-field-wrap"><label class="ds-label">UPS Economy DDP %</label><input id="rcExpMk_edp" type="number" min="0" class="ds-input num" placeholder="15"/></div>
+                <div class="ds-field-wrap"><label class="ds-label">UPS Economy DDU %</label><input id="rcExpMk_edu" type="number" min="0" class="ds-input num" placeholder="15"/></div>
+                <div class="ds-field-wrap"><label class="ds-label">DPD Classic Air %</label><input id="rcExpMk_ca" type="number" min="0" class="ds-input num" placeholder="15"/></div>
+                <div class="ds-field-wrap"><label class="ds-label">DPD Classic Parcel %</label><input id="rcExpMk_cp" type="number" min="0" class="ds-input num" placeholder="15"/></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Services to Include -->
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin:20px 0 8px">3. SERVICES TO INCLUDE IN RATE CARD</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:10px">
+            <label class="ds-toggle" style="background:var(--mv-bg);padding:8px 12px;border:1px solid var(--mv-hairline-2)">
+              <input type="checkbox" id="rcExpSvc_ux" checked/> <span><b>UPS Express Saver</b> (Air · 0.5–70kg)</span>
+            </label>
+            <label class="ds-toggle" style="background:var(--mv-bg);padding:8px 12px;border:1px solid var(--mv-hairline-2)">
+              <input type="checkbox" id="rcExpSvc_us" checked/> <span><b>UPS Standard</b> (EU Road · 1–70kg)</span>
+            </label>
+            <label class="ds-toggle" style="background:var(--mv-bg);padding:8px 12px;border:1px solid var(--mv-hairline-2)">
+              <input type="checkbox" id="rcExpSvc_edp" checked/> <span><b>UPS Economy DDP</b> (Tracked · 0.5–30kg)</span>
+            </label>
+            <label class="ds-toggle" style="background:var(--mv-bg);padding:8px 12px;border:1px solid var(--mv-hairline-2)">
+              <input type="checkbox" id="rcExpSvc_edu" checked/> <span><b>UPS Economy DDU</b> (Postal · 0.1–20kg)</span>
+            </label>
+            <label class="ds-toggle" style="background:var(--mv-bg);padding:8px 12px;border:1px solid var(--mv-hairline-2)">
+              <input type="checkbox" id="rcExpSvc_ca"/> <span><b>DPD Classic Air</b> (Europe Bands 1–8)</span>
+            </label>
+            <label class="ds-toggle" style="background:var(--mv-bg);padding:8px 12px;border:1px solid var(--mv-hairline-2)">
+              <input type="checkbox" id="rcExpSvc_cp"/> <span><b>DPD Classic Parcel</b> (Road Flat Rate)</span>
+            </label>
+          </div>
+
+          <!-- 4. Additional Sheets -->
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:800;color:var(--mv-purple);margin:20px 0 8px">4. ADDITIONAL SHEETS</div>
+          <div style="display:flex;gap:20px;flex-wrap:wrap">
+            <label class="ds-toggle">
+              <input type="checkbox" id="rcExpIncSurcharges" checked/> <span>Include Surcharges &amp; Accessorials Schedule</span>
+            </label>
+            <label class="ds-toggle">
+              <input type="checkbox" id="rcExpIncZoneGuide" checked/> <span>Include Country-to-Zone Reference Guide</span>
+            </label>
+          </div>
+
+          <div id="rcExpMsg" style="margin-top:14px;font-size:13px;font-weight:700"></div>
+        </div>
+        <div class="ds-modal-foot" style="display:flex;justify-content:space-between;align-items:center">
+          <button class="ds-btn ds-btn-secondary" onclick="closeCreateRateCardModal()">Cancel</button>
+          <button class="ds-btn ds-btn-primary" id="rcExpSubmitBtn" style="padding:10px 22px;font-size:13.5px">
+            <span>📥 Generate &amp; Download Rate Card (.xlsx)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL: VERIFY SHIPMENT & COURIER CHARGES (FINANCE) -->
     <div class="ds-modal-scrim" id="verifyShipmentModal" style="display:none">
       <div class="ds-modal" style="width:680px;max-width:96vw">
@@ -2552,10 +2661,16 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
 
     <!-- 1. RATE CALCULATOR (app) -->
     <div id="app" style="display:none">
-      <div class="ds-pagehead">
-        <div class="ds-kicker">RATE COMPARISON</div>
-        <h1 class="ds-h1">Rate Calculator</h1>
-        <p class="ds-blurb">Compare carrier services by destination, weight, dimensions, fuel and markup.</p>
+      <div class="ds-pagehead" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
+        <div>
+          <div class="ds-kicker">RATE COMPARISON</div>
+          <h1 class="ds-h1">Rate Calculator</h1>
+          <p class="ds-blurb">Compare carrier services by destination, weight, dimensions, fuel and markup.</p>
+        </div>
+        <button type="button" class="btn-moov-action primary" id="btnOpenCreateRateCardModal" style="height:36px;padding:0 16px;font-size:12.5px;display:inline-flex;align-items:center;gap:7px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span>📊 Create Rate Card Tariff (.xlsx)</span>
+        </button>
       </div>
 
       <!-- Peak Demand & Surge Banner -->
@@ -5385,6 +5500,7 @@ function renderCardsTable(cards) {
       '</td>' +
       '<td class="r">' +
       '<div style="display:flex;gap:6px;justify-content:flex-end">' +
+      '<a href="/api/cards/' + c.id + '/ratecard.xlsx" class="btn-moov-action secondary" style="height:30px;padding:0 9px;font-size:11px;color:var(--mv-purple);border-color:var(--mv-purple);text-decoration:none;display:inline-flex;align-items:center;gap:4px" title="Download Excel Rate Card (.xlsx)"><span>📊 Rate Card (.xlsx)</span></a>' +
       '<button class="btn-moov-action secondary edit-card-btn" data-id="' + c.id + '" style="height:30px;padding:0 9px;font-size:11px">Edit Markups</button>' +
       '<button class="btn-moov-action danger del-card-btn" data-id="' + c.id + '" style="height:30px;padding:0 9px;font-size:11px">Delete</button>' +
       '</div>' +
@@ -5612,6 +5728,221 @@ if ($('custCreateBtn')) $('custCreateBtn').onclick = async () => {
     $('custMsg').textContent = 'Error: ' + e.message;
   }
 };
+
+// ============================================================================
+// RATE CARD (.XLSX) EXPORT WIZARD & MODAL
+// ============================================================================
+function openCreateRateCardModal(preselectedCardId) {
+  const modal = $('createRateCardModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  $('rcExpMsg').textContent = '';
+
+  // Populate customer dropdown
+  const sel = $('rcExpCustomerSelect');
+  sel.innerHTML = '<option value="custom">-- Custom / Ad-Hoc Rate Card --</option>';
+  if (Array.isArray(cachedCards) && cachedCards.length) {
+    cachedCards.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = String(c.id);
+      opt.textContent = c.customer || ('Customer #' + c.id);
+      sel.appendChild(opt);
+    });
+  }
+
+  if (preselectedCardId) {
+    sel.value = String(preselectedCardId);
+    applySelectedCardToExportModal(preselectedCardId);
+  } else {
+    sel.value = 'custom';
+    $('rcExpCustomerName').value = 'Standard Customer';
+    $('rcExpMarkupGlobal').value = 15;
+    setExportModalMarkupChips(15);
+    if ($('rcExpSvc_ux')) $('rcExpSvc_ux').checked = true;
+    if ($('rcExpSvc_us')) $('rcExpSvc_us').checked = true;
+    if ($('rcExpSvc_edp')) $('rcExpSvc_edp').checked = true;
+    if ($('rcExpSvc_edu')) $('rcExpSvc_edu').checked = true;
+    if ($('rcExpSvc_ca')) $('rcExpSvc_ca').checked = false;
+    if ($('rcExpSvc_cp')) $('rcExpSvc_cp').checked = false;
+  }
+}
+
+function closeCreateRateCardModal() {
+  const modal = $('createRateCardModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function setExportModalMarkupChips(mkVal) {
+  document.querySelectorAll('#rcExpVolTabs .ds-chip').forEach(ch => {
+    if (Number(ch.dataset.mk) === Number(mkVal)) ch.classList.add('active');
+    else ch.classList.remove('active');
+  });
+}
+
+function applySelectedCardToExportModal(cardId) {
+  if (cardId === 'custom' || !cardId) {
+    $('rcExpCustomerName').value = 'Standard Customer';
+    $('rcExpMarkupGlobal').value = 15;
+    setExportModalMarkupChips(15);
+    return;
+  }
+  const card = (cachedCards || []).find(c => String(c.id) === String(cardId));
+  if (!card) return;
+
+  $('rcExpCustomerName').value = card.customer || '';
+  let conf = {};
+  try { conf = (typeof card.config === 'string') ? JSON.parse(card.config || '{}') : (card.config || {}); } catch (_) {}
+
+  // Apply markup
+  let globalMk = 15;
+  if (conf.markup != null) {
+    if (typeof conf.markup === 'number') {
+      globalMk = conf.markup;
+    } else if (conf.markup.default != null) {
+      globalMk = conf.markup.default;
+    }
+  }
+  $('rcExpMarkupGlobal').value = globalMk;
+  setExportModalMarkupChips(globalMk);
+
+  // Apply per-service custom markups if defined
+  if (conf.markup && typeof conf.markup === 'object') {
+    if ($('rcExpMk_ux')) $('rcExpMk_ux').value = conf.markup.ux != null ? conf.markup.ux : globalMk;
+    if ($('rcExpMk_us')) $('rcExpMk_us').value = conf.markup.us != null ? conf.markup.us : globalMk;
+    if ($('rcExpMk_edp')) $('rcExpMk_edp').value = conf.markup.edp != null ? conf.markup.edp : globalMk;
+    if ($('rcExpMk_edu')) $('rcExpMk_edu').value = conf.markup.edu != null ? conf.markup.edu : globalMk;
+    if ($('rcExpMk_ca')) $('rcExpMk_ca').value = conf.markup.ca != null ? conf.markup.ca : globalMk;
+    if ($('rcExpMk_cp')) $('rcExpMk_cp').value = conf.markup.cp != null ? conf.markup.cp : globalMk;
+    if (Object.keys(conf.markup).length > 1) {
+      $('rcExpCustomMkPanel').style.display = 'block';
+    }
+  }
+
+  // Apply services
+  const svcs = conf.services || conf.includedServices || ['ux', 'us', 'edp', 'edu'];
+  if ($('rcExpSvc_ux')) $('rcExpSvc_ux').checked = svcs.includes('ux');
+  if ($('rcExpSvc_us')) $('rcExpSvc_us').checked = svcs.includes('us');
+  if ($('rcExpSvc_edp')) $('rcExpSvc_edp').checked = svcs.includes('edp');
+  if ($('rcExpSvc_edu')) $('rcExpSvc_edu').checked = svcs.includes('edu');
+  if ($('rcExpSvc_ca')) $('rcExpSvc_ca').checked = svcs.includes('ca');
+  if ($('rcExpSvc_cp')) $('rcExpSvc_cp').checked = svcs.includes('cp');
+}
+
+async function executeRateCardExcelDownload() {
+  const btn = $('rcExpSubmitBtn');
+  const msg = $('rcExpMsg');
+  const custName = $('rcExpCustomerName').value.trim() || 'Moov_Rate_Card';
+  const selectedCustId = $('rcExpCustomerSelect').value;
+
+  btn.disabled = true;
+  msg.style.color = 'var(--mv-purple)';
+  msg.textContent = '⏳ Compiling rate bands and generating Excel workbook…';
+
+  const services = [];
+  if ($('rcExpSvc_ux') && $('rcExpSvc_ux').checked) services.push('ux');
+  if ($('rcExpSvc_us') && $('rcExpSvc_us').checked) services.push('us');
+  if ($('rcExpSvc_edp') && $('rcExpSvc_edp').checked) services.push('edp');
+  if ($('rcExpSvc_edu') && $('rcExpSvc_edu').checked) services.push('edu');
+  if ($('rcExpSvc_ca') && $('rcExpSvc_ca').checked) services.push('ca');
+  if ($('rcExpSvc_cp') && $('rcExpSvc_cp').checked) services.push('cp');
+
+  if (!services.length) {
+    btn.disabled = false;
+    msg.style.color = 'var(--mv-magenta-deep)';
+    msg.textContent = 'Please select at least one courier service.';
+    return;
+  }
+
+  const globalMk = num('rcExpMarkupGlobal');
+  const markups = { default: globalMk };
+  if ($('rcExpCustomMkPanel').style.display !== 'none') {
+    if ($('rcExpMk_ux') && $('rcExpMk_ux').value) markups.ux = num('rcExpMk_ux');
+    if ($('rcExpMk_us') && $('rcExpMk_us').value) markups.us = num('rcExpMk_us');
+    if ($('rcExpMk_edp') && $('rcExpMk_edp').value) markups.edp = num('rcExpMk_edp');
+    if ($('rcExpMk_edu') && $('rcExpMk_edu').value) markups.edu = num('rcExpMk_edu');
+    if ($('rcExpMk_ca') && $('rcExpMk_ca').value) markups.ca = num('rcExpMk_ca');
+    if ($('rcExpMk_cp') && $('rcExpMk_cp').value) markups.cp = num('rcExpMk_cp');
+  }
+
+  const payload = {
+    customerName: custName,
+    markup: globalMk,
+    markups,
+    services,
+    includeSurcharges: $('rcExpIncSurcharges') ? $('rcExpIncSurcharges').checked : true,
+    includeZoneGuide: $('rcExpIncZoneGuide') ? $('rcExpIncZoneGuide').checked : true,
+  };
+
+  try {
+    let url = '/api/ratecard/export.xlsx';
+    let res;
+    if (selectedCustId !== 'custom') {
+      url = '/api/cards/' + encodeURIComponent(selectedCustId) + '/ratecard.xlsx?surcharges=' + (payload.includeSurcharges ? 'true' : 'false') + '&zones=' + (payload.includeZoneGuide ? 'true' : 'false');
+      res = await fetch(url);
+    } else {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (!res.ok) {
+      const errTxt = await res.text();
+      throw new Error(errTxt || 'Download failed');
+    }
+
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    const cleanFilename = custName.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/\s+/g, '_') || 'Rate_Card';
+    a.download = cleanFilename + '_Moov_Rate_Card.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 30000);
+
+    msg.style.color = 'var(--mv-green-deep)';
+    msg.textContent = '✓ Download started successfully!';
+    setTimeout(() => {
+      closeCreateRateCardModal();
+      btn.disabled = false;
+      msg.textContent = '';
+    }, 1200);
+  } catch (err) {
+    btn.disabled = false;
+    msg.style.color = 'var(--mv-magenta-deep)';
+    msg.textContent = 'Export error: ' + err.message;
+  }
+}
+
+// Wire up rate card export event listeners
+if ($('btnOpenCreateRateCardModal')) {
+  $('btnOpenCreateRateCardModal').onclick = () => openCreateRateCardModal();
+}
+
+if ($('rcExpCustomerSelect')) {
+  $('rcExpCustomerSelect').onchange = (e) => applySelectedCardToExportModal(e.target.value);
+}
+
+document.querySelectorAll('#rcExpVolTabs .ds-chip').forEach(ch => {
+  ch.onclick = () => {
+    $('rcExpMarkupGlobal').value = ch.dataset.mk;
+    setExportModalMarkupChips(ch.dataset.mk);
+  };
+});
+
+if ($('rcExpToggleCustomMk')) {
+  $('rcExpToggleCustomMk').onclick = () => {
+    const p = $('rcExpCustomMkPanel');
+    p.style.display = (p.style.display === 'none' ? 'block' : 'none');
+  };
+}
+
+if ($('rcExpSubmitBtn')) {
+  $('rcExpSubmitBtn').onclick = executeRateCardExcelDownload;
+}
 
 let lastInspData = null;
 if ($('inspBtn')) {

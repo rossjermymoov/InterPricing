@@ -2486,9 +2486,15 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
       <!-- Full-Width Pricing & Calculator Area -->
       <main class="pricing-main" id="pricingMain">
         <div class="calc-card">
-          <div class="calc-head">
-            <h2><span>📦</span> Shipping Rate Calculator</h2>
-            <span class="calc-sub">Instant quotes with negotiated rates &amp; fuel included</span>
+          <div class="calc-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+            <div>
+              <h2><span>📦</span> Shipping Rate Calculator</h2>
+              <span class="calc-sub">Instant quotes with negotiated rates &amp; fuel included</span>
+            </div>
+            <a id="btnDownloadCardXlsx" class="btn-moov-action secondary" href="#" target="_blank" style="height:32px;padding:0 12px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;border-color:var(--moov-green);color:var(--moov-green)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>📥 Download Rate Card (.xlsx)</span>
+            </a>
           </div>
 
           <div class="calc-grid">
@@ -8812,6 +8818,9 @@ async function boot() {
 
   const token = location.pathname.split('/').filter(Boolean).pop();
   curToken = token;
+  if ($('btnDownloadCardXlsx')) {
+    $('btnDownloadCardXlsx').href = '/api/card/' + encodeURIComponent(token) + '/ratecard.xlsx';
+  }
   try {
     const res = await fetch('/api/card/' + encodeURIComponent(token));
     if (!res.ok) { $('state').textContent = 'This rate card link is not available.'; return; }
