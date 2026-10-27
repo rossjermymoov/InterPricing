@@ -2614,7 +2614,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               Goods Value (£)
               <span class="ds-tooltip-wrap" tabindex="0">
                 <span class="ds-tooltip-icon">?</span>
-                <span class="ds-tooltip-bubble">The goods value is used across all international destinations to calculate applicable duties, taxes, customs clearance fees, and disbursement surcharges.</span>
+                <span class="ds-tooltip-bubble">The goods value is used across all international destinations to calculate applicable duties, taxes, customs clearance fees, and disbursement surcharges. Maximum package value for UPS Worldwide Economy (DDP &amp; DDU) is $400 USD (or local currency equivalent: £300 / €360).</span>
               </span>
             </label>
             <input id="goodsValue" type="number" min="0" step="1" value="0" class="ds-input num"/>
@@ -3509,7 +3509,110 @@ const $ = id => document.getElementById(id);
 const num = id => { const el = $(id); const v = el ? parseFloat(el.value) : NaN; return isNaN(v) ? 0 : v; };
 const money = v => v == null ? '—' : '£' + Number(v).toFixed(2);
 const LIVE_CODE_TO_KEY = {'375':'fc','270':'resi','100':'ah','110':'lps','120':'oml','190':'das','195':'eas','197':'ras','199':'ras','400':'ras','401':'eas','376':'das','377':'lps','430':'peak'};
-function exceedsLimits(carrier, w, l, w2, h) {
+function checkEconomyLimits(key, actual, L, W, H, val, country) {
+  const k = String(key || '').toLowerCase();
+  const isDdp = (k === 'edp' || k === 'ups_economy_ddp' || k === 'edp_eu' || k === 'edp_row');
+  const isDdu = (k === 'edu' || k === 'ups_economy_ddu');
+  if (!isDdp && !isDdu) return { allowed: true, billableWeight: Number(actual) || 0 };
+
+  const isEu = (typeof region === 'function' ? region(country) === 'eu' : false);
+  const numVal = Number(val) || 0;
+
+  // Maximum value: $400 USD (or Local Currency Equivalent: £300 GBP / €360 EUR)
+  const maxVal = isEu ? 360 : 300;
+  if (numVal > maxVal) {
+    return {
+      allowed: false,
+      reason: 'Package value exceeds UPS Worldwide Economy limit of $400 USD (' + (isEu ? '€360' : '£300') + ' local equivalent)'
+    };
+  }
+
+  const numActual = Number(actual) || 0;
+  const numL = Number(L) || 0;
+  const numW = Number(W) || 0;
+  const numH = Number(H) || 0;
+  const sides = [numL, numW, numH].filter(x => x > 0).sort((a, b) => b - a);
+  const longest = sides[0] || 0;
+  const second = sides[1] || 0;
+  const third = sides[2] || 0;
+  const girth = (longest + 2 * second + 2 * third);
+  const combinedSize = (longest + second + third);
+  const volCm3 = (numL > 0 && numW > 0 && numH > 0) ? (numL * numW * numH) : 0;
+  const dimWeight = volCm3 > 0 ? (volCm3 / 5000) : 0;
+
+  if (isDdp) {
+    // DDP Packages:
+    // (i) Maximum length (longest side): 122 cm
+    if (longest > 122) {
+      return { allowed: false, reason: 'UPS Economy DDP exceeds maximum length (longest side: 122 cm)' };
+    }
+    // (ii) Maximum size: 330 cm in length plus girth (2W + 2H) combined
+    if (girth > 330) {
+      return { allowed: false, reason: 'UPS Economy DDP exceeds maximum combined size (length + girth: 330 cm)' };
+    }
+    // (iii) Maximum weight: 30 kg
+    // Rated on greater of actual weight or dimensional weight (L x W x H / 5000)
+    const billable = Math.max(numActual, dimWeight);
+    if (numActual > 30) {
+      return { allowed: false, reason: 'UPS Economy DDP exceeds maximum actual weight of 30 kg' };
+    }
+    if (billable > 30) {
+      return { allowed: false, reason: 'UPS Economy DDP exceeds maximum billable weight of 30 kg' };
+    }
+    return { allowed: true, billableWeight: billable };
+  }
+
+  if (isDdu) {
+    // DDU Packages:
+    // Maximum weight: 20 kg
+    if (numActual > 20) {
+      return { allowed: false, reason: 'UPS Economy DDU exceeds maximum actual weight of 20 kg' };
+    }
+
+    // Size restrictions:
+    // - Packages weighing <= 2 kg: max length 60 cm, max combined L + W + H 90 cm
+    // - Packages weighing > 2 kg: max length 90 cm, max combined L + W + H 200 cm
+    if (numActual <= 2.0) {
+      if (longest > 60) {
+        return { allowed: false, reason: 'UPS Economy DDU (≤ 2 kg) exceeds maximum length of 60 cm' };
+      }
+      if (combinedSize > 90) {
+        return { allowed: false, reason: 'UPS Economy DDU (≤ 2 kg) exceeds maximum combined size L+W+H of 90 cm' };
+      }
+    } else {
+      if (longest > 90) {
+        return { allowed: false, reason: 'UPS Economy DDU (> 2 kg) exceeds maximum length of 90 cm' };
+      }
+      if (combinedSize > 200) {
+        return { allowed: false, reason: 'UPS Economy DDU (> 2 kg) exceeds maximum combined size L+W+H of 200 cm' };
+      }
+    }
+
+    // Rating rule:
+    // - Charged on actual weight with exception:
+    // - Packages destined to the United States:
+    //   - < 1 cu ft (28,316 cm3): charged on actual weight
+    //   - >= 1 cu ft: charged greater of actual weight or dimensional weight (L x W x H / 5000)
+    const isUsa = (country === 'USA' || country === 'US' || country === 'United States');
+    let billable = numActual;
+    if (isUsa && volCm3 >= 28316.0) {
+      billable = Math.max(numActual, dimWeight);
+    }
+    if (billable > 20) {
+      return { allowed: false, reason: 'UPS Economy DDU exceeds maximum billable weight of 20 kg' };
+    }
+    return { allowed: true, billableWeight: billable };
+  }
+
+  return { allowed: true, billableWeight: numActual };
+}
+
+function exceedsLimits(carrier, w, l, w2, h, svcKey, val, country) {
+  const k = String(svcKey || '').toLowerCase();
+  if (k === 'edp' || k === 'edu' || k.includes('economy')) {
+    const res = checkEconomyLimits(k, w, l, w2, h, val, country);
+    if (!res.allowed) return { exceeded: true, reason: res.reason };
+  }
   const numW = Number(w) || 0;
   const sides = [l, w2, h].map(Number).filter(x => x > 0).sort((a, b) => b - a);
   const longest = sides[0] || 0;
@@ -4076,6 +4179,7 @@ function calc(){
   });
 
   let rows=[];
+  const econReasons=[];
   if(!dpdLimit.exceeded){
     SERVICES.filter(svc=>svc.carrier==='dpd'&&!(svc.key==='ep'&&(actual>3||(region(c)==='eu'&&chg>CAPS.ep)))).forEach(svc=>{
       const b=baseRate(svc,c,chg);
@@ -4147,19 +4251,17 @@ function calc(){
     }
 
     // Economy DDP / DDU (Postal / Non-API static matrices)
-    economyUps.forEach(svc=>{
-      let econChg = chg;
-      if(svc.key === 'edu'){
-        const volCm3 = (L && W && H) ? (L * W * H) : 0;
-        econChg = (volCm3 > 28316.85) ? Math.max(actual, vol) : actual;
-      }
-      const maxCap = (svc.key === 'edu') ? 20.0 : 30.0;
-      if(econChg <= maxCap){
-        const b=baseRate(svc,c,econChg);
-        if(b.avail&&b.price!=null){
-          const built=build(b.price,svc);
-          if(built&&built.sell!=null) rows.push({svc,b,built,days:svc.days});
+    const goodsVal = num('goodsValue');
+    economyUps.forEach(svc => {
+      const econ = checkEconomyLimits(svc.key, actual, L, W, H, goodsVal, c);
+      if (econ.allowed) {
+        const b = baseRate(svc, c, econ.billableWeight);
+        if (b.avail && b.price != null) {
+          const built = build(b.price, svc);
+          if (built && built.sell != null) rows.push({ svc, b, built, days: svc.days });
         }
+      } else if (econ.reason) {
+        econReasons.push(econ.reason);
       }
     });
   }
@@ -4185,6 +4287,19 @@ function calc(){
   }
 
   const R=$('results'); R.innerHTML='';
+  if(!rows.length){
+    let msg='No services available for this destination and parcel size.';
+    if(econReasons.length>0 && !dpdLimit.exceeded && !upsLimit.exceeded){
+      msg='<b>UPS Worldwide Economy restriction:</b><br/>' + econReasons.join('<br/>');
+    } else if(dpdLimit.exceeded && upsLimit.exceeded){
+      msg='Parcel dimensions or weight exceed courier maximum limits (' + (upsLimit.reason || dpdLimit.reason) + ').';
+    } else if(econReasons.length>0){
+      msg='<b>UPS Worldwide Economy restriction:</b><br/>' + econReasons.join('<br/>');
+    }
+    R.innerHTML='<div class="note" style="padding:14px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:6px;font-size:12.5px;line-height:1.5">'+msg+'</div>';
+    drawChart();
+    return;
+  }
   rows.forEach(({svc,b,built,loading,live,days})=>{
     const d=document.createElement('div');
     if(loading){
