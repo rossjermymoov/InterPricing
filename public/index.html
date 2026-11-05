@@ -1845,6 +1845,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
             <label class="ds-toggle"><input type="checkbox" id="editRcCheapest" checked/> <span>Highlight best price</span></label>
             <label class="ds-toggle"><input type="checkbox" id="editRcBreakdown"/> <span>Show base &amp; fuel separately</span></label>
             <label class="ds-toggle" style="color:var(--mv-purple);font-weight:800"><input type="checkbox" id="editRcSamedayEnabled" checked/> <span>⚡ Enable Same-Day Courier Booking Tab</span></label>
+            <label class="ds-toggle" style="color:var(--mv-purple);font-weight:800"><input type="checkbox" id="editRcImportBookingEnabled" checked/> <span>✈️ Allow Import Bookings (uncheck for Quotes Only)</span></label>
             <label class="ds-toggle" style="margin-left:auto"><input type="checkbox" id="editCardEnabled" checked/> <span>Rate Card Active</span></label>
           </div>
 
@@ -2996,6 +2997,7 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                 <label class="ds-toggle"><input type="checkbox" id="rcCheapest" checked/> <span>Highlight best price</span></label>
                 <label class="ds-toggle"><input type="checkbox" id="rcBreakdown"/> <span>Show base &amp; fuel separately</span></label>
                 <label class="ds-toggle" style="color:var(--mv-purple);font-weight:800"><input type="checkbox" id="rcSamedayEnabled" checked/> <span>⚡ Enable Same-Day Courier Booking Tab</span></label>
+                <label class="ds-toggle" style="color:var(--mv-purple);font-weight:800"><input type="checkbox" id="rcImportBookingEnabled" checked/> <span>✈️ Allow Import Bookings (uncheck for Quotes Only)</span></label>
               </div>
             </div>
           </div>
@@ -5476,6 +5478,11 @@ function renderCardsTable(cards) {
       ? ('<span style="font-size:10.5px;font-weight:800;background:rgba(29,251,157,0.18);color:var(--mv-green-deep);padding:2px 7px;border:1px solid rgba(29,251,157,0.4)">⚡ +' + qesc(sdMarkupStr) + '</span>')
       : ('<span style="font-size:10.5px;font-weight:700;color:var(--mv-ink-45);background:var(--mv-bg);padding:2px 6px">Off</span>');
 
+    const importBooking = (cfg.importBookingEnabled !== false);
+    const importBadge = importBooking
+      ? '<span style="display:inline-block;margin-top:3px;font-size:10px;font-weight:800;background:rgba(29,251,157,0.18);color:var(--mv-green-deep);padding:1px 6px;border:1px solid rgba(29,251,157,0.4)">✈️ Quotes &amp; Bookings</span>'
+      : '<span style="display:inline-block;margin-top:3px;font-size:10px;font-weight:800;background:rgba(147,51,234,0.12);color:var(--mv-purple);padding:1px 6px;border:1px solid rgba(147,51,234,0.3)">📋 Quotes Only</span>';
+
     tr.innerHTML = '<td>' +
       '<b>' + qesc(c.customer || '(Unnamed Card)') + '</b>' +
       (cfg.contactName ? ('<div style="font-size:11.5px;color:var(--mv-ink-75)">' + qesc(cfg.contactName) + '</div>') : '') +
@@ -5488,7 +5495,7 @@ function renderCardsTable(cards) {
       '<a href="' + cardUrl + '" target="_blank" class="btn-moov-action secondary" style="height:30px;padding:0 9px;font-size:11px">Open ↗</a>' +
       '</div>' +
       '</td>' +
-      '<td><b>' + qesc(importMarkupStr) + '</b><div style="font-size:11px;color:var(--mv-ink-55)">' + (cfg.deliveryAddress && cfg.deliveryAddress.city ? qesc(cfg.deliveryAddress.city + ', ' + (cfg.deliveryAddress.country || 'GB')) : 'Standard') + '</div></td>' +
+      '<td><b>' + qesc(importMarkupStr) + '</b> ' + importBadge + '<div style="font-size:11px;color:var(--mv-ink-55)">' + (cfg.deliveryAddress && cfg.deliveryAddress.city ? qesc(cfg.deliveryAddress.city + ', ' + (cfg.deliveryAddress.country || 'GB')) : 'Standard') + '</div></td>' +
       '<td>' + sdBadge + '</td>' +
       '<td>' + qesc(c.creator_name || c.creator_email || '—') + '</td>' +
       '<td class="r mv-num">' + (c.views || 0) + '</td>' +
@@ -5554,6 +5561,7 @@ function openEditCardModal(cardId) {
   if ($('editCustSamedayMarkup')) $('editCustSamedayMarkup').value = (cfg.samedayMarkupPct != null ? cfg.samedayMarkupPct : 15);
   if ($('editRcSamedayEnabled')) $('editRcSamedayEnabled').checked = (cfg.samedayEnabled !== false);
   if ($('editRcReturnsEnabled')) $('editRcReturnsEnabled').checked = (cfg.returnsEnabled !== false);
+  if ($('editRcImportBookingEnabled')) $('editRcImportBookingEnabled').checked = (cfg.importBookingEnabled !== false);
   if ($('editCustBillingCustomerDcId')) $('editCustBillingCustomerDcId').value = cfg.billingCustomerDcId || '';
   if ($('editCustBillingCustomerKey')) $('editCustBillingCustomerKey').value = cfg.billingCustomerKey || '';
   if ($('editCustVoilaAuthCompany')) $('editCustVoilaAuthCompany').value = cfg.voilaAuthCompany || '';
@@ -5615,6 +5623,7 @@ if ($('editCardSave')) $('editCardSave').onclick = async () => {
     vatNumber: vatNum,
     eoriNumber: eoriNum,
     importMarkupPct: num('editCustImportMarkup'),
+    importBookingEnabled: $('editRcImportBookingEnabled') ? $('editRcImportBookingEnabled').checked : true,
     samedayMarkupPct: $('editCustSamedayMarkup') ? num('editCustSamedayMarkup') : 15,
     samedayEnabled: $('editRcSamedayEnabled') ? $('editRcSamedayEnabled').checked : true,
     returnsEnabled: $('editRcReturnsEnabled') ? $('editRcReturnsEnabled').checked : true,
@@ -5682,6 +5691,7 @@ if ($('custCreateBtn')) $('custCreateBtn').onclick = async () => {
     vatNumber: vatNum,
     eoriNumber: eoriNum,
     importMarkupPct: num('custImportMarkup'),
+    importBookingEnabled: $('rcImportBookingEnabled') ? $('rcImportBookingEnabled').checked : true,
     samedayMarkupPct: $('custSamedayMarkup') ? num('custSamedayMarkup') : 15,
     samedayEnabled: $('rcSamedayEnabled') ? $('rcSamedayEnabled').checked : true,
     returnsEnabled: $('rcReturnsEnabled') ? $('rcReturnsEnabled').checked : true,

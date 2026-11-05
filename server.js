@@ -2027,6 +2027,10 @@ app.post('/api/book-import', async (req, res) => {
     if (token) {
       card = db.hasDb ? await db.getCardByToken(token) : null;
       if (!card || card.enabled === false) return res.status(404).json({ ok: false, error: 'Invalid or inactive card token' });
+      const conf = (typeof card.config === 'string') ? JSON.parse(card.config || '{}') : (card.config || {});
+      if (conf.importBookingEnabled === false) {
+        return res.status(403).json({ ok: false, error: 'Online booking is disabled for this rate card (quotations only).' });
+      }
     } else if (!req.user) {
       return res.status(401).json({ ok: false, error: 'A valid customer card token or user login is required to book shipments.' });
     }

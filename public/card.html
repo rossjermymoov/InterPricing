@@ -2166,8 +2166,8 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <button type="button" class="create-opt" onclick="triggerCreateNav('import')" style="width:100%;text-align:left;padding:10px 14px;background:transparent;border:0;color:#f8fafc;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06)">
                 <span style="font-size:16px">✈️</span>
                 <div>
-                  <div>Import Booking</div>
-                  <div style="font-size:10.5px;color:#94a3b8;font-weight:400">UPS direct supplier collection</div>
+                  <div id="createOptImportTitle">Import Booking</div>
+                  <div id="createOptImportSub" style="font-size:10.5px;color:#94a3b8;font-weight:400">UPS direct supplier collection</div>
                 </div>
               </button>
               <button type="button" class="create-opt" onclick="triggerCreateNav('sameday')" style="width:100%;text-align:left;padding:10px 14px;background:transparent;border:0;color:#f8fafc;font-size:13px;font-weight:700;display:flex;align-items:center;gap:10px;cursor:pointer">
@@ -2613,10 +2613,10 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
       <div style="display:flex;align-items:center;gap:14px">
         <img src="https://app.heyvoila.io/courier-service-logos/ups.jpg" alt="UPS" style="height:32px;width:auto;object-fit:contain"/>
         <div>
-          <div style="font-weight:800;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px">
+          <div id="importHeaderTitle" style="font-weight:800;font-size:16px;color:var(--ink);display:flex;align-items:center;gap:8px">
             UPS Import Quotation &amp; Booking
           </div>
-          <div style="font-size:12.5px;color:var(--muted);margin-top:2px">
+          <div id="importHeaderSub" style="font-size:12.5px;color:var(--muted);margin-top:2px">
             Powered exclusively by UPS. Direct courier collection from overseas suppliers, paperless customs clearance, and express delivery to the UK.
           </div>
         </div>
@@ -2626,6 +2626,10 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           UPS Standard · Worldwide Saver · Worldwide Express
         </span>
       </div>
+    </div>
+    <div id="importQuoteOnlyNotice" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #16a34a;padding:12px 16px;margin-bottom:16px;border-radius:6px;font-size:12.5px;color:#166534">
+      <div style="font-weight:700;display:flex;align-items:center;gap:6px"><span>ℹ️</span> Quotation-Only Access Active</div>
+      <div style="margin-top:2px;color:#15803d">You have live quotation access for UPS imports with agreed customer rates. Online self-booking is disabled for this account — to confirm and book any quotation, please contact your account manager.</div>
     </div>
     <div class="imp">
       <div class="panel">
@@ -5962,7 +5966,10 @@ function irender(services) {
       + '<div class="row tot"><span>Total</span><span>' + imoney(q.price) + '</span></div>'
       + '</div>'
     ) : '';
-    const bookBtn = '<button type="button" class="btn primary ibookbtn" data-code="' + esc(q.code) + '" data-name="' + esc(cleanName) + '" data-price="' + q.price + '" style="width:100%;margin-top:14px;padding:10px 14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">Book Shipment &amp; Collection →</button>';
+    const canBook = (RC && RC.importBookingEnabled !== false);
+    const bookBtn = canBook
+      ? '<button type="button" class="btn primary ibookbtn" data-code="' + esc(q.code) + '" data-name="' + esc(cleanName) + '" data-price="' + q.price + '" style="width:100%;margin-top:14px;padding:10px 14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">Book Shipment &amp; Collection →</button>'
+      : '<div style="margin-top:14px;padding:10px 14px;background:#f8fafc;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--muted);text-align:center;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px"><span>📋</span> Quotation Only · Booking disabled</div>';
     const badgeHTML = isOnly ? '<span class="badge best-both">BEST &amp; FASTEST</span>' : (i === 0 ? '<span class="badge cheapest">CHEAPEST</span>' : '');
     const d = document.createElement('div');
     d.className = 'card ups qcard' + (isOnly || i === 0 ? ' win' : '');
@@ -6139,6 +6146,10 @@ let uploadedInvoiceBase64 = null, uploadedInvoiceFormat = 'PDF';
 let uploadedPackingSlipBase64 = null, uploadedPackingSlipFormat = 'PDF';
 
 function openImportBookingModal(code, name, price) {
+  if (RC && RC.importBookingEnabled === false) {
+    alert('Online booking is disabled for this rate card (quotations only). Please contact your account manager to book this shipment.');
+    return;
+  }
   currentBookingService = { code, name, price };
   $('ibModalTitle').textContent = 'Book ' + name;
   $('ibModalSub').textContent = 'Agreed Rate: ' + imoney(price) + ' · Collection & Customs Included';
@@ -8847,6 +8858,15 @@ async function boot() {
     if ($('tabReturnsBtn')) $('tabReturnsBtn').style.display = 'inline-block';
   } else {
     if ($('tabReturnsBtn')) $('tabReturnsBtn').style.display = 'none';
+  }
+
+  // Check if Import Booking is enabled or Quote-Only (enabled by default)
+  if (RC.importBookingEnabled === false) {
+    if ($('createOptImportTitle')) $('createOptImportTitle').textContent = 'Import Quoting';
+    if ($('createOptImportSub')) $('createOptImportSub').textContent = 'UPS direct supplier rates';
+    if ($('importHeaderTitle')) $('importHeaderTitle').innerHTML = 'UPS Import Quotation';
+    if ($('importHeaderSub')) $('importHeaderSub').textContent = 'Powered exclusively by UPS. Direct courier overseas supplier rates and paperless customs clearance to the UK.';
+    if ($('importQuoteOnlyNotice')) $('importQuoteOnlyNotice').style.display = 'block';
   }
 
   // Wire Create menu dropdown
