@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moov Parcel | Commercial Sales Blueprint & Discovery Playbook</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600;700;800&family=Mulish:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="https://cdn.prod.website-files.com/632b0ff747583046d9fa8f7d/6400a3c16048eed18834cd2b_new%20moov%20favicon%2032%20x%2032.png">
+
+  <style>
+    :root {
+      --moov-green: #1DFB9D;
+      --moov-green-hover: #04A562;
+      --moov-green-dim: rgba(29, 251, 157, 0.12);
+      --moov-green-glow: rgba(29, 251, 157, 0.35);
+      --moov-navy: #171B2D;
+      --moov-navy-dark: #0B0E1B;
+      --moov-navy-surface: #1B2034;
+      --moov-purple: #2F1956;
+      --moov-purple-accent: #4103CC;
+      --moov-purple-dim: rgba(65, 3, 204, 0.18);
+      --moov-slate: #3F4253;
+      --moov-grey: #454957;
+      --moov-grey-light: #C6C7CD;
+      --moov-grey-muted: #9FA2B4;
+      --moov-border: rgba(223, 224, 235, 0.14);
+      --moov-white: #FFFFFF;
+      --moov-white-alt: #FDFFFF;
+      --moov-red: #CD1D69;
+      --moov-amber: #FECA00;
+      
+      --font-display: 'Jost', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Mulish', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--moov-navy-dark);
+      color: var(--moov-white);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(65, 3, 204, 0.28) 0%, transparent 40%),
+        radial-gradient(circle at 85% 25%, rgba(29, 251, 157, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 50% 85%, rgba(47, 25, 86, 0.4) 0%, transparent 50%);
+      background-attachment: fixed;
+    }
+
+    /* Header & Branding */
+    header.moov-header {
+      border-bottom: 1px solid var(--moov-border);
+      background: rgba(11, 14, 27, 0.85);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+    }
+
+    .header-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .brand-logo-svg {
+      height: 34px;
+      width: auto;
+    }
+
+    .brand-divider {
+      height: 24px;
+      width: 1px;
+      background: var(--moov-border);
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      background: var(--moov-green-dim);
+      border: 1px solid rgba(29, 251, 157, 0.3);
+      color: var(--moov-green);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-family: var(--font-display);
+    }
+
+    .brand-badge .pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--moov-green);
+      box-shadow: 0 0 8px var(--moov-green);
+    }
+
+    /* Top Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      background: rgba(27, 32, 52, 0.8);
+      border: 1px solid var(--moov-border);
+      padding: 0.25rem;
+      border-radius: 12px;
+      gap: 0.25rem;
+    }
+
+    .nav-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--moov-grey-light);
+      font-family: var(--font-display);
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .nav-tab-btn:hover {
+      color: var(--moov-white);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-tab-btn.active {
+      background: var(--moov-green);
+      color: var(--moov-navy-dark);
+      box-shadow: 0 4px 14px var(--moov-green-glow);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn-action {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--moov-border);
+      color: var(--moov-white);
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-action:hover {
+      border-color: var(--moov-green);
+      color: var(--moov-green);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      background: var(--moov-green);
+      color: var(--moov-navy-dark);
+      border: 1px solid var(--moov-green);
+      font-weight: 700;
+    }
+
+    .btn-primary:hover {
+      background: var(--moov-green-hover);
+      color: var(--moov-white);
+      border-color: var(--moov-green-hover);
+    }
+
+    /* Main Container */
+    main.main-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2.5rem 2rem 5rem;
+    }
+
+    /* Tab Panes */
+    .tab-pane {
+      display: none;
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Typography */
+    h1, h2, h3, h4, h5 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      color: var(--moov-white);
+      letter-spacing: -0.015em;
+    }
+
+    .section-eyebrow {
+      color: var(--moov-green);
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+      display: inline-block;
+    }
+
+    .hero-title {
+      font-size: 2.5rem;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+    }
+
+    .hero-title span.highlight {
+      background: linear-gradient(135deg, #1DFB9D 0%, #65fcbc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-lead {
+      color: var(--moov-grey-light);
+      font-size: 1.12rem;
+      max-width: 780px;
+      margin-bottom: 2rem;
+      font-weight: 400;
+    }
+
+    /* Hero Banner / Identity Strip */
+    .identity-strip {
+      background: linear-gradient(135deg, rgba(47, 25, 86, 0.6) 0%, rgba(27, 32, 52, 0.9) 100%);
+      border: 1px solid rgba(65, 3, 204, 0.4);
+      border-radius: 16px;
+      padding: 1.75rem 2rem;
+      margin-bottom: 2.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .identity-strip::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, var(--moov-green-glow) 0%, transparent 70%);
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .identity-pillar {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .pillar-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--moov-green);
+      font-family: var(--font-display);
+    }
+
+    .pillar-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      font-family: var(--font-display);
+      color: var(--moov-white);
+    }
+
+    .pillar-desc {
+      font-size: 0.85rem;
+      color: var(--moov-grey-muted);
+    }
+
+    /* Carrier Pill Strip */
+    .carrier-strip {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      grid-column: 1 / -1;
+    }
+
+    .carrier-pill {
+      background: rgba(11, 14, 27, 0.6);
+      border: 1px solid var(--moov-border);
+      border-radius: 20px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--moov-grey-light);
+    }
+
+    .carrier-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+    .dot-dpd { background: #DC0032; }
+    .dot-dhl { background: #FFCC00; }
+    .dot-inpost { background: #FFCE00; border: 1px solid #111; }
+    .dot-ups { background: #351C15; }
+    .dot-evri { background: #009FE3; }
+    .dot-rm { background: #E60000; }
+
+    /* Card System */
+    .moov-card {
+      background: rgba(27, 32, 52, 0.65);
+      border: 1px solid var(--moov-border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.25s ease;
+      position: relative;
+    }
+
+    .moov-card:hover {
+      border-color: rgba(29, 251, 157, 0.35);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.25rem;
+      gap: 1rem;
+    }
+
+    .card-header-bar h3 {
+      font-size: 1.25rem;
+    }
+
+    /* Script Cards (Opening Gambits) */
+    .scripts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .script-badge {
+      font-size: 0.72rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-saas { background: rgba(65, 3, 204, 0.25); color: #b794f6; border: 1px solid rgba(65, 3, 204, 0.4); }
+    .badge-ops { background: rgba(254, 202, 0, 0.15); color: #feca00; border: 1px solid rgba(254, 202, 0, 0.3); }
+    .badge-pain { background: rgba(205, 29, 105, 0.18); color: #ff6b9d; border: 1px solid rgba(205, 29, 105, 0.35); }
+
+    .script-quote-box {
+      background: rgba(11, 14, 27, 0.75);
+      border-left: 3px solid var(--moov-green);
+      border-radius: 0 10px 10px 0;
+      padding: 1.25rem;
+      margin: 1rem 0;
+      font-size: 0.95rem;
+      color: var(--moov-white-alt);
+      line-height: 1.55;
+      position: relative;
+    }
+
+    .script-quote-box strong {
+      color: var(--moov-green);
+      font-weight: 600;
+    }
+
+    .copy-script-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--moov-grey-light);
+      border-radius: 6px;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-family: var(--font-display);
+      transition: all 0.2s;
+    }
+
+    .copy-script-btn:hover {
+      background: var(--moov-green);
+      color: var(--moov-navy-dark);
+      border-color: var(--moov-green);
+    }
+
+    .script-logic {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      font-size: 0.84rem;
+      color: var(--moov-grey-muted);
+    }
+
+    .script-logic strong {
+      color: var(--moov-white);
+      font-weight: 600;
+    }
+
+    /* 4-Pillar Discovery Matrix System */
+    .discovery-section-wrapper {
+      margin-bottom: 3.5rem;
+    }
+
+    .pillar-tabs-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 900px) {
+      .pillar-tabs-container {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .pillar-nav-item {
+      background: rgba(27, 32, 52, 0.8);
+      border: 1px solid var(--moov-border);
+      border-radius: 12px;
+      padding: 1.1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .pillar-nav-item:hover {
+      border-color: rgba(29, 251, 157, 0.4);
+      background: rgba(35, 42, 68, 0.9);
+    }
+
+    .pillar-nav-item.active {
+      border-color: var(--moov-green);
+      background: linear-gradient(180deg, rgba(29, 251, 157, 0.12) 0%, rgba(27, 32, 52, 0.95) 100%);
+      box-shadow: 0 4px 18px rgba(29, 251, 157, 0.15);
+    }
+
+    .pillar-number {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--moov-green);
+      font-family: var(--font-display);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .pillar-title {
+      font-size: 0.98rem;
+      font-weight: 700;
+      font-family: var(--font-display);
+      color: var(--moov-white);
+    }
+
+    .pillar-sub {
+      font-size: 0.78rem;
+      color: var(--moov-grey-muted);
+      margin-top: 0.2rem;
+    }
+
+    .pillar-content-card {
+      display: none;
+      background: rgba(27, 32, 52, 0.75);
+      border: 1px solid var(--moov-border);
+      border-radius: 16px;
+      padding: 2.25rem;
+    }
+
+    .pillar-content-card.active {
+      display: block;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .discovery-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 860px) {
+      .discovery-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .questions-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .diagnostic-question {
+      background: rgba(11, 14, 27, 0.55);
+      border: 1px solid rgba(223, 224, 235, 0.08);
+      border-radius: 12px;
+      padding: 1.25rem;
+      transition: all 0.2s ease;
+    }
+
+    .diagnostic-question:hover {
+      border-color: rgba(29, 251, 157, 0.3);
+    }
+
+    .q-number-tag {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--moov-green);
+      text-transform: uppercase;
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .q-main {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--moov-white);
+      margin-bottom: 0.4rem;
+      font-family: var(--font-display);
+    }
+
+    .q-context {
+      font-size: 0.85rem;
+      color: var(--moov-grey-light);
+      margin-bottom: 0.75rem;
+    }
+
+    .rep-field-box {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .field-pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8rem;
+      color: var(--moov-grey-light);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s;
+    }
+
+    .field-pill:hover {
+      border-color: var(--moov-green);
+      color: var(--moov-white);
+    }
+
+    .field-pill.checked {
+      background: var(--moov-green-dim);
+      border-color: var(--moov-green);
+      color: var(--moov-green);
+      font-weight: 600;
+    }
+
+    .diagnostic-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .intel-card {
+      background: rgba(11, 14, 27, 0.8);
+      border: 1px solid var(--moov-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .intel-card h4 {
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--moov-green);
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .intel-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      font-size: 0.84rem;
+      color: var(--moov-grey-light);
+    }
+
+    .intel-list li {
+      position: relative;
+      padding-left: 1.2rem;
+    }
+
+    .intel-list li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--moov-green);
+      font-weight: bold;
+    }
+
+    /* Live Interactive Discovery Pad */
+    .discovery-notepad {
+      background: #111422;
+      border: 1px solid rgba(29, 251, 157, 0.25);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .discovery-notepad h4 {
+      color: var(--moov-white);
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .notepad-textarea {
+      width: 100%;
+      height: 120px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid var(--moov-border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      color: var(--moov-white);
+      font-family: monospace;
+      font-size: 0.82rem;
+      resize: vertical;
+      margin-bottom: 0.75rem;
+    }
+
+    .notepad-textarea:focus {
+      outline: none;
+      border-color: var(--moov-green);
+    }
+
+    /* Consultative Alignment Matrix (Problem -> Moov Pivot) */
+    .alignment-table-wrapper {
+      margin-bottom: 3.5rem;
+    }
+
+    .custom-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: rgba(27, 32, 52, 0.65);
+      border: 1px solid var(--moov-border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .custom-table th {
+      background: rgba(11, 14, 27, 0.9);
+      padding: 1.1rem 1.25rem;
+      text-align: left;
+      font-family: var(--font-display);
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--moov-green);
+      border-bottom: 1px solid var(--moov-border);
+    }
+
+    .custom-table td {
+      padding: 1.25rem;
+      border-bottom: 1px solid rgba(223, 224, 235, 0.08);
+      font-size: 0.9rem;
+      vertical-align: top;
+    }
+
+    .custom-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .custom-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .cell-friction {
+      font-weight: 600;
+      color: #ff9bbb;
+    }
+
+    .cell-pivot {
+      color: var(--moov-white);
+      line-height: 1.5;
+    }
+
+    .cell-pivot strong {
+      color: var(--moov-green);
+    }
+
+    .cell-commercial {
+      color: var(--moov-grey-light);
+    }
+
+    .commercial-pill {
+      display: inline-block;
+      background: rgba(29, 251, 157, 0.1);
+      border: 1px solid rgba(29, 251, 157, 0.25);
+      color: var(--moov-green);
+      font-weight: 700;
+      font-size: 0.76rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 0.35rem;
+    }
+
+    /* 72-Hour Handoff Timeline */
+    .timeline-container {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    @media (max-width: 992px) {
+      .timeline-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .timeline-step {
+      background: rgba(11, 14, 27, 0.6);
+      border: 1px solid var(--moov-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+    }
+
+    .timeline-step.active {
+      border-color: var(--moov-green);
+      background: linear-gradient(180deg, rgba(29, 251, 157, 0.08) 0%, rgba(11, 14, 27, 0.75) 100%);
+    }
+
+    .step-badge {
+      display: inline-block;
+      font-family: var(--font-display);
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--moov-green);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.4rem;
+    }
+
+    .step-title {
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: var(--font-display);
+      margin-bottom: 0.4rem;
+    }
+
+    .step-desc {
+      font-size: 0.82rem;
+      color: var(--moov-grey-light);
+      line-height: 1.45;
+    }
+
+    /* PRESENTATION SLIDES VIEW */
+    .presentation-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .deck-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      background: rgba(27, 32, 52, 0.7);
+      border: 1px solid var(--moov-border);
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+    }
+
+    .slide-counter {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--moov-green);
+      letter-spacing: 0.05em;
+    }
+
+    .deck-nav-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .slide-canvas {
+      background: linear-gradient(145deg, #171b2d 0%, #0d101d 100%);
+      border: 1px solid rgba(223, 224, 235, 0.16);
+      border-radius: 20px;
+      min-height: 580px;
+      padding: 3.5rem;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide-canvas::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, var(--moov-green), var(--moov-purple-accent));
+    }
+
+    .slide-pane {
+      display: none;
+      height: 100%;
+      animation: slideIn 0.35s ease forwards;
+    }
+
+    .slide-pane.active {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: scale(0.98); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .slide-header {
+      margin-bottom: 2rem;
+    }
+
+    .slide-header .slide-topic {
+      color: var(--moov-green);
+      text-transform: uppercase;
+      font-weight: 800;
+      font-size: 0.85rem;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+
+    .slide-header h2 {
+      font-size: 2.3rem;
+      line-height: 1.2;
+    }
+
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.82rem;
+      color: var(--moov-grey-muted);
+    }
+
+    /* Slide Content Grids */
+    .slide-cards-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    .slide-cards-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+    }
+
+    .slide-card-item {
+      background: rgba(11, 14, 27, 0.65);
+      border: 1px solid var(--moov-border);
+      border-radius: 14px;
+      padding: 1.5rem;
+    }
+
+    .slide-card-item.accent-border {
+      border-color: rgba(29, 251, 157, 0.35);
+      background: rgba(29, 251, 157, 0.04);
+    }
+
+    .slide-card-item h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.6rem;
+      color: var(--moov-white);
+    }
+
+    .slide-card-item p {
+      font-size: 0.9rem;
+      color: var(--moov-grey-light);
+      line-height: 1.5;
+    }
+
+    .stat-hero-number {
+      font-size: 3.2rem;
+      font-weight: 800;
+      font-family: var(--font-display);
+      color: var(--moov-green);
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+
+    .stat-hero-label {
+      font-size: 0.88rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--moov-grey-light);
+      font-weight: 600;
+    }
+
+    /* Live Calculator Tab */
+    .calculator-container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .calc-card {
+      background: rgba(27, 32, 52, 0.8);
+      border: 1px solid var(--moov-border);
+      border-radius: 20px;
+      padding: 2.5rem;
+    }
+
+    .calc-input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .calc-label {
+      display: block;
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--moov-white);
+    }
+
+    .calc-slider {
+      width: 100%;
+      height: 6px;
+      background: var(--moov-slate);
+      border-radius: 4px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    .calc-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--moov-green);
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--moov-green-glow);
+    }
+
+    .calc-results-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--moov-border);
+    }
+
+    .calc-res-item {
+      background: rgba(11, 14, 27, 0.85);
+      border: 1px solid var(--moov-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .calc-res-item.highlight {
+      border-color: var(--moov-green);
+      background: rgba(29, 251, 157, 0.08);
+    }
+
+    .calc-res-item .val {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--moov-green);
+      font-family: var(--font-display);
+    }
+
+    .calc-res-item .lbl {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      color: var(--moov-grey-muted);
+      margin-top: 0.25rem;
+      font-weight: 600;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #111111 !important;
+      }
+      header.moov-header, .nav-tabs, .header-actions, .deck-controls, .copy-script-btn {
+        display: none !important;
+      }
+      .tab-pane {
+        display: block !important;
+      }
+      .moov-card, .pillar-content-card, .slide-canvas {
+        background: #ffffff !important;
+        border: 1px solid #ccc !important;
+        color: #111111 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        margin-bottom: 2rem;
+      }
+      h1, h2, h3, h4, .pillar-title, .q-main {
+        color: #0b0d17 !important;
+      }
+      .script-quote-box {
+        background: #f4f5f8 !important;
+        color: #111111 !important;
+        border-left: 3px solid #04A562 !important;
+      }
+      .pillar-tag, .section-eyebrow, .brand-badge {
+        color: #04A562 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation & Global Header -->
+  <header class="moov-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <!-- Exact Official Moov Parcel Logo SVG -->
+        <svg class="brand-logo-svg" viewBox="0 0 185 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M5.22146 37.295C5.96491 37.295 6.60008 37.4324 7.12738 37.7072C7.65468 37.9819 8.04673 38.3669 8.30273 38.8615C8.55874 39.3566 8.64165 39.9485 8.55149 40.6383C8.46092 41.328 8.2174 41.9228 7.82052 42.4226C7.42364 42.9221 6.91405 43.3046 6.29135 43.5693C5.66866 43.8345 4.97029 43.9719 4.19705 43.9819H2.92429L2.26859 47.7901H0.158995L1.95181 37.295H5.22146ZM3.23705 42.1675H4.39308C4.73442 42.1575 5.05562 42.095 5.35711 41.9804C5.65859 41.8655 5.90936 41.6928 6.11022 41.4629C6.31148 41.233 6.44189 40.9531 6.50227 40.6234C6.55259 40.3034 6.5224 40.0311 6.41171 39.8064C6.30142 39.5813 6.12833 39.4062 5.89206 39.2813C5.65578 39.1567 5.36717 39.0942 5.02543 39.0942H3.76636L3.23705 42.1675ZM56.8118 37.295C57.5552 37.295 58.1904 37.4348 58.7181 37.7148C59.2454 37.9948 59.6399 38.3845 59.9007 38.8843C60.1619 39.3838 60.242 39.9686 60.1418 40.6383C60.0512 41.318 59.8053 41.9079 59.4036 42.4074C59.0015 42.9073 58.4919 43.2946 57.874 43.5693C57.7279 43.6346 57.5774 43.6919 57.4224 43.7416L59.4937 47.7901H57.0682L55.3192 43.9819H54.3942L53.7381 47.7901H51.6289L53.4218 37.295H56.8118ZM54.6889 42.2728H55.8324C56.1943 42.2728 56.5232 42.2103 56.8194 42.085C57.1157 41.9604 57.3644 41.7778 57.5653 41.5378C57.7661 41.2979 57.897 41.0184 57.9569 40.6983C58.0173 40.3783 57.9923 40.1011 57.8817 39.8664C57.7714 39.6313 57.5955 39.4491 57.3544 39.3189C57.1133 39.1891 56.8271 39.1243 56.4954 39.1243H55.2311L54.6889 42.2728ZM112.561 37.295L112.245 39.109H107.756L107.37 41.328H111.582L111.265 43.0971H107.063L106.563 45.9757H111.069L110.753 47.7901H104.213L106.007 37.295H112.561ZM30.8445 45.4062H27.337L25.8638 47.7901H23.4076L30.5495 36.6354L33.8344 47.7901H31.4986L30.8445 45.4062ZM28.1147 43.7119H30.6469L29.8865 40.6983L28.1147 43.7119ZM134.543 9.06847e-05H150.963L156.22 21.2029L168.212 9.06847e-05H185L152.254 47.821L134.543 9.06847e-05ZM93.7484 17.762C93.2203 20.5833 92.0937 23.0846 90.3685 25.2659C88.4086 27.744 85.9645 29.6709 83.0366 31.0476C80.1083 32.4242 76.9151 33.1123 73.4567 33.1123C70.0904 33.1123 67.1279 32.4126 64.5687 31.0131C62.0095 29.6137 60.073 27.6635 58.7583 25.163C57.6132 22.9833 57.1245 20.5168 57.2924 17.7624L69.3876 17.762C69.4029 18.521 69.5261 19.2443 69.7563 19.9321C70.1021 20.9646 70.6556 21.8017 71.4163 22.4442C72.1771 23.0866 73.1339 23.4079 74.2867 23.4079C75.5317 23.4539 76.6845 23.1671 77.7451 22.5475C78.8057 21.9279 79.7166 21.0904 80.4774 20.0354C80.9866 19.3289 81.3565 18.5715 81.5867 17.762H93.7484ZM98.2272 14.6383C98.8302 12.1093 99.911 9.84752 101.47 7.85288C103.406 5.3752 105.851 3.44825 108.802 2.07163C111.753 0.695009 114.935 0.00649564 118.347 0.00649564C121.713 0.00649564 124.676 0.717841 127.235 2.14012C129.794 3.56281 131.731 5.5246 133.045 8.02511C134.359 10.5256 134.809 13.3822 134.394 16.594C133.979 19.8976 132.791 22.7882 130.832 25.2659C128.872 27.744 126.428 29.6709 123.5 31.0476C120.572 32.4242 117.379 33.1123 113.92 33.1123C110.554 33.1123 107.591 32.4126 105.032 31.0131C102.473 29.6137 100.536 27.6635 99.2218 25.163C98.0767 22.9833 97.588 20.5168 97.7559 17.762H110.874L109.881 23.395L122.386 16.5596L112.291 9.72416L111.425 14.6383H98.2272ZM13.8164 17.7624L11.2745 32.4242H0L2.53063 17.7624H13.8164ZM32.4144 17.7624L29.9497 32.4242H18.1222L20.7965 17.7624H32.4144ZM51.2164 17.7624L48.6946 32.4242H36.8666L39.5506 17.7624H51.2164ZM3.0696 14.6383L5.46418 0.7639H16.7387L16.0472 5.03115C16.7387 4.02181 17.5458 3.14985 18.4679 2.41568C19.3901 1.68151 20.4278 1.09674 21.5806 0.660565C22.7334 0.224789 24.0243 0.00649564 25.454 0.00649564C27.0681 -0.0391648 28.4165 0.155899 29.5005 0.591675C30.5837 1.02785 31.4487 1.64707 32.094 2.45013C32.7396 3.2532 33.1779 4.18242 33.4082 5.23782C34.7453 3.67735 36.3135 2.41569 38.112 1.45201C39.91 0.488337 41.9391 0.00649564 44.1985 0.00649564C46.6884 -0.0391648 48.5561 0.47712 49.8011 1.55535C51.0465 2.63357 51.8302 4.06747 52.153 5.85704C52.4758 7.64661 52.4988 9.66528 52.2223 11.9139L51.7537 14.6383H40.1222L40.3943 13.1527C40.4406 12.3268 40.4406 11.5237 40.3943 10.7435C40.348 9.96367 40.1636 9.32122 39.8408 8.81655C39.5184 8.31188 38.9416 8.05955 38.112 8.05955C37.2816 8.05955 36.5325 8.25461 35.8639 8.64472C35.1954 9.03444 34.6302 9.608 34.1693 10.3654C33.708 11.122 33.3852 12.0284 33.2009 13.0838L32.9396 14.6383H21.366L21.6498 13.0838C21.742 12.2579 21.7537 11.4665 21.6844 10.7095C21.6152 9.95205 21.4192 9.32122 21.0964 8.81655C20.7735 8.31188 20.1971 8.05955 19.3671 8.05955C18.5834 8.05955 17.8686 8.24299 17.2229 8.61028C16.5773 8.97717 16.0238 9.51628 15.5629 10.2276C15.1017 10.9386 14.8022 11.8221 14.6637 12.8771L14.3586 14.6383H3.0696ZM57.7637 14.6383C58.3667 12.1093 59.4474 9.84752 61.0064 7.85288C62.9433 5.3752 65.387 3.44825 68.3383 2.07163C71.2895 0.695009 74.471 0.00649564 77.8836 0.00649564C81.2498 0.00649564 84.2124 0.717841 86.7716 2.14012C89.3308 3.56281 91.2677 5.5246 92.5815 8.02511C93.6228 10.0065 94.1215 12.211 94.0773 14.6383H81.9047C81.8641 14.118 81.7691 13.6229 81.6185 13.1527C81.2957 12.143 80.7427 11.3175 79.9585 10.675C79.1744 10.0326 78.183 9.68811 76.9843 9.64245C75.8315 9.59679 74.7133 9.89478 73.6298 10.5372C72.5458 11.1797 71.6353 12.0284 70.8975 13.0838C70.5529 13.5769 70.2631 14.0951 70.0292 14.6383H57.7637ZM79.9702 42.5424C79.9002 43.0022 79.9078 43.4348 79.9928 43.8393C80.0785 44.2442 80.2391 44.6015 80.4754 44.9115C80.7113 45.2211 81.0075 45.4686 81.3641 45.6533C81.7208 45.8383 82.135 45.9309 82.6071 45.9309C83.3103 45.9409 83.9455 45.8035 84.513 45.5187C85.0806 45.2335 85.5854 44.9015 86.0273 44.5214L85.6658 46.9206C85.1836 47.2502 84.6736 47.5126 84.1363 47.7076C83.5989 47.9023 82.9786 48 82.2758 48C81.4921 48 80.7889 47.8574 80.1663 47.5726C79.5436 47.2878 79.0287 46.8929 78.6218 46.3883C78.2148 45.8832 77.9262 45.3012 77.7556 44.6416C77.5845 43.9819 77.5547 43.2822 77.665 42.5424C77.7858 41.773 78.0317 41.0556 78.4036 40.3911C78.7751 39.7262 79.2445 39.1467 79.812 38.652C80.3796 38.157 81.02 37.7721 81.7333 37.4973C82.4465 37.2225 83.2101 37.0852 84.0236 37.0852C84.6966 37.0751 85.2766 37.1649 85.7637 37.3547C86.2507 37.5446 86.7056 37.8149 87.1274 38.1646L86.7506 40.5782C86.4294 40.1488 86.0374 39.8011 85.5753 39.5364C85.1132 39.2712 84.5509 39.1391 83.8879 39.1391C83.4158 39.1391 82.9637 39.224 82.5318 39.3938C82.0999 39.564 81.7059 39.804 81.3493 40.1136C80.9926 40.4236 80.6936 40.7833 80.4524 41.193C80.2113 41.6027 80.0507 42.0525 79.9702 42.5424ZM131.259 37.295H133.384L131.907 45.9156H135.991L135.659 47.7901H129.451L131.259 37.295Z" fill="#1DFB9D"/>
+        </svg>
+        <div class="brand-divider"></div>
+        <div class="brand-badge">
+          <span class="pulse-dot"></span>
+          Commercial Sales Playbook
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab-btn active" onclick="switchMainTab('playbook')">
+          <span>📋</span> Discovery Blueprint
+        </button>
+        <button class="nav-tab-btn" onclick="switchMainTab('presentation')">
+          <span>📽️</span> "How Moov Sells" Deck
+        </button>
+        <button class="nav-tab-btn" onclick="switchMainTab('calculator')">
+          <span>🧮</span> Shipper ROI Audit
+        </button>
+      </nav>
+
+      <!-- Action Buttons -->
+      <div class="header-actions">
+        <button class="btn-action" onclick="window.print()">
+          <span>🖨️</span> Print Desk Card
+        </button>
+        <a href="https://www.moovparcel.co.uk" target="_blank" class="btn-action btn-primary">
+          <span>moovparcel.co.uk ↗</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: SALES DISCOVERY PLAYBOOK & BLUEPRINT -->
+    <!-- ========================================== -->
+    <div id="tab-playbook" class="tab-pane active">
+
+      <!-- Executive Positioning Banner -->
+      <div class="identity-strip">
+        <div class="identity-pillar">
+          <span class="pillar-tag">Strategic Core</span>
+          <span class="pillar-val">Tech-Enabled Partner, Not Broker</span>
+          <span class="pillar-desc">We never sell cheap stamps. We engineer friction out of packing benches and protect store conversion.</span>
+        </div>
+        <div class="identity-pillar">
+          <span class="pillar-tag">Proprietary Technology</span>
+          <span class="pillar-val">Moov Ninja (£0 Free Software)</span>
+          <span class="pillar-desc">Award-winning cloud OMS with 150+ direct connectors (Shopify, TikTok Shop, Amazon, eBay).</span>
+        </div>
+        <div class="identity-pillar">
+          <span class="pillar-tag">Carrier Freedom</span>
+          <span class="pillar-val">Multi-Carrier Resilience</span>
+          <span class="pillar-desc">DPD, DHL Express, DHL eCommerce, InPost, UPS & Evri on a unified platform and single VAT invoice.</span>
+        </div>
+        <div class="identity-pillar">
+          <span class="pillar-tag">The Human Moov Difference</span>
+          <span class="pillar-val">Direct Ops Desk: 0113 322 4101</span>
+          <span class="pillar-desc">Real UK logistics pros in Leeds & Sheffield. Zero chatbot purgatory, zero queue times. We fight claims for them.</span>
+        </div>
+
+        <div class="carrier-strip">
+          <span style="font-size: 0.8rem; font-weight: 700; color: var(--moov-green); margin-right: 0.5rem;">CARRIER ECOSYSTEM:</span>
+          <span class="carrier-pill"><span class="carrier-dot dot-dpd"></span> DPD Local / Direct</span>
+          <span class="carrier-pill"><span class="carrier-dot dot-dhl"></span> DHL Express & eCommerce</span>
+          <span class="carrier-pill"><span class="carrier-dot dot-inpost"></span> InPost Locker Injection</span>
+          <span class="carrier-pill"><span class="carrier-dot dot-ups"></span> UPS Standard & Saver</span>
+          <span class="carrier-pill"><span class="carrier-dot dot-evri"></span> Evri Domestic</span>
+          <span class="carrier-pill"><span class="carrier-dot dot-rm"></span> Royal Mail Tracked</span>
+        </div>
+      </div>
+
+      <!-- Section: The First 30 Seconds (Cold Outbound Openers) -->
+      <section style="margin-bottom: 3rem;">
+        <span class="section-eyebrow">Phase 01 // Earning The Conversation</span>
+        <h2 style="font-size: 1.85rem; margin-bottom: 0.5rem;">Conversational Openers That Sound Like a Peer, Not an AI Prompt</h2>
+        <p style="color: var(--moov-grey-light); margin-bottom: 1.5rem; max-width: 820px;">
+          UK e-commerce founders and operations managers get 10 generic broker calls a week. Win attention by leading with permission, hyper-specific operational friction, and our £0 software model.
+        </p>
+
+        <div class="scripts-grid">
+          <!-- Script 1 -->
+          <div class="moov-card">
+            <div class="card-header-bar">
+              <div>
+                <span class="script-badge badge-saas">Angle 01: The SaaS Fee Killer</span>
+                <h3 style="margin-top: 0.35rem;">Shopify & Multi-Channel Retailers</h3>
+              </div>
+            </div>
+
+            <div class="script-quote-box">
+              <button class="copy-script-btn" onclick="copyText(this)">Copy Script</button>
+              "Hi <strong>[First Name]</strong>, it’s <strong>[Your Name]</strong> from Moov Parcel. I know you weren’t expecting my call — have you got 30 seconds to see if this is even relevant for your warehouse?<br><br>
+              ...We connect e-commerce retailers into discounted DPD, DHL, and InPost rates without charging a single penny for the order software. Most brands we speak with are paying £100–£300 every month for tools like ShipStation, plus courier rates. Who oversees your daily despatch setup right now?"
+            </div>
+
+            <div class="script-logic">
+              <strong>Why This Wins:</strong> Disarms immediately by acknowledging the interruption. Puts hard cash back on the table (£0 software vs £2,000/yr SaaS bill) before discussing courier rates.
+            </div>
+          </div>
+
+          <!-- Script 2 -->
+          <div class="moov-card">
+            <div class="card-header-bar">
+              <div>
+                <span class="script-badge badge-ops">Angle 02: Cut-Off & Dispatch Velocity</span>
+                <h3 style="margin-top: 0.35rem;">High-Volume Dispatchers</h3>
+              </div>
+            </div>
+
+            <div class="script-quote-box">
+              <button class="copy-script-btn" onclick="copyText(this)">Copy Script</button>
+              "Hi <strong>[First Name]</strong>, <strong>[Your Name]</strong> here from Moov Parcel. Reason for my call is we’ve been speaking with online retailers in your area whose couriers turn up at 2:00 or 2:30 PM, cutting off afternoon sales.<br><br>
+              Through our multi-carrier platform, we can often switch retailers to a carrier whose local schedule collects later in the day, or use InPost drop-offs. What time does your driver pull up for daily collections at the moment?"
+            </div>
+
+            <div class="script-logic">
+              <strong>Why This Wins:</strong> Hits a deep commercial nerve: early driver collections choke store conversion. You position yourself as a capacity expert, not a generic stamp reseller.
+            </div>
+          </div>
+
+          <!-- Script 3 -->
+          <div class="moov-card">
+            <div class="card-header-bar">
+              <div>
+                <span class="script-badge badge-pain">Angle 03: The Courier Agony Hook</span>
+                <h3 style="margin-top: 0.35rem;">Frustrated Shippers & Operations Heads</h3>
+              </div>
+            </div>
+
+            <div class="script-quote-box">
+              <button class="copy-script-btn" onclick="copyText(this)">Copy Script</button>
+              "Hi <strong>[First Name]</strong>, <strong>[Your Name]</strong> from Moov Parcel. We act as the hands-on logistics arm for UK retailers using DPD, DHL, and UPS — but with one massive difference:<br><br>
+              Our customers never wait in carrier call queues or argue with AI chatbots over missing parcels. Our dedicated desk in Yorkshire handles every dispute directly. When a delivery goes wrong right now, who gets stuck sorting it out?"
+            </div>
+
+            <div class="script-logic">
+              <strong>Why This Wins:</strong> Relives the real warehouse nightmare — hours spent on hold with couriers while 1-star customer reviews roll in. Moov’s human desk is an operational lifesaver.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: The 4-Pillar Consultative Discovery Framework -->
+      <section class="discovery-section-wrapper">
+        <span class="section-eyebrow">Phase 02 // The 5-Minute Commercial Diagnostic</span>
+        <h2 style="font-size: 1.85rem; margin-bottom: 0.5rem;">The 4-Pillar Discovery Framework</h2>
+        <p style="color: var(--moov-grey-light); margin-bottom: 1.75rem; max-width: 820px;">
+          Do not interrogate the prospect like an auditor. Treat this as a friendly operational walkthrough of their packing benches, technology stack, and carrier pain points.
+        </p>
+
+        <!-- Pillar Navigation Bar -->
+        <div class="pillar-tabs-container">
+          <div class="pillar-nav-item active" onclick="switchPillar(0)">
+            <div class="pillar-number">Pillar 01</div>
+            <div class="pillar-title">Volume & Cadence</div>
+            <div class="pillar-sub">Daily flow, surges & peak seasonality</div>
+          </div>
+          <div class="pillar-nav-item" onclick="switchPillar(1)">
+            <div class="pillar-number">Pillar 02</div>
+            <div class="pillar-title">Packaging & Freight Profile</div>
+            <div class="pillar-sub">Deadweight vs volumetric, dead space</div>
+          </div>
+          <div class="pillar-nav-item" onclick="switchPillar(2)">
+            <div class="pillar-number">Pillar 03</div>
+            <div class="pillar-title">Tech Stack & Label Flow</div>
+            <div class="pillar-sub">Channels, manual copying, SaaS fees</div>
+          </div>
+          <div class="pillar-nav-item" onclick="switchPillar(3)">
+            <div class="pillar-number">Pillar 04</div>
+            <div class="pillar-title">Carrier Friction & SLAs</div>
+            <div class="pillar-sub">Driver cut-offs, surcharges, claims</div>
+          </div>
+        </div>
+
+        <!-- Pillar 1 Content -->
+        <div id="pillar-content-0" class="pillar-content-card active">
+          <div class="discovery-grid">
+            <div class="questions-stream">
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 1.1 • Baseline Dispatch</span>
+                <div class="q-main">"Roughly how many parcels are leaving the packing bench on a normal Tuesday or Wednesday?"</div>
+                <div class="q-context">Uncovers baseline volume. Look out for differences between quiet midweek and Monday catch-up bursts.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">Under 25 / day (SME)</span>
+                  <span class="field-pill" onclick="toggleField(this)">25 – 100 / day (Core Growth)</span>
+                  <span class="field-pill" onclick="toggleField(this)">100 – 500 / day (Mid-Market)</span>
+                  <span class="field-pill" onclick="toggleField(this)">500+ / day (Enterprise)</span>
+                </div>
+              </div>
+
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 1.2 • Destination Breakdown</span>
+                <div class="q-main">"Where are these orders heading? Purely UK mainland, or do you have heavy traffic into the Scottish Highlands, Europe, or the US?"</div>
+                <div class="q-context">Highlands/Islands and European IOSS are classic profit-leaks for merchants. Moov's multi-carrier routing eliminates standard carrier surcharge traps.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">UK Mainland 90%+</span>
+                  <span class="field-pill" onclick="toggleField(this)">Highlands / NI Surcharge Heavy</span>
+                  <span class="field-pill" onclick="toggleField(this)">EU / IOSS Active</span>
+                  <span class="field-pill" onclick="toggleField(this)">USA & Worldwide</span>
+                </div>
+              </div>
+
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 1.3 • Seasonality & Black Friday Multiplier</span>
+                <div class="q-main">"When peak rolls around — Black Friday or Q4 — does volume double or 5x? Have carriers ever capped your trailer capacity?"</div>
+                <div class="q-context">Couriers often enforce strict volume caps or punitive peak surcharges during November/December. Moov multi-carrier routing provides an instant overflow safety valve.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">Stable Year-Round</span>
+                  <span class="field-pill" onclick="toggleField(this)">2x Peak Spike</span>
+                  <span class="field-pill" onclick="toggleField(this)">4x–10x Black Friday Spike</span>
+                  <span class="field-pill" onclick="toggleField(this)">Experienced Carrier Caps</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="diagnostic-sidebar">
+              <div class="intel-card">
+                <h4>🎯 Moov Commercial Play</h4>
+                <ul class="intel-list">
+                  <li><strong>The Moov Buying Power:</strong> Aggregate their 50/day volume into Moov’s millions-per-year buying tier with DPD and DHL.</li>
+                  <li><strong>IOSS Peace of Mind:</strong> If shipping to Europe, introduce Moov's integrated Xendo/IOSS workflows to remove customs headaches.</li>
+                  <li><strong>Peak Assurance:</strong> Guarantee multiple carrier accounts so they are never held hostage by a single carrier's capacity limits.</li>
+                </ul>
+              </div>
+
+              <div class="discovery-notepad">
+                <h4>Quick Discovery Notes <span style="font-size:0.75rem; color: var(--moov-green);">Auto-Saved</span></h4>
+                <textarea class="notepad-textarea" placeholder="Type customer volume numbers, peak months, target rate..."></textarea>
+                <div style="font-size: 0.75rem; color: var(--moov-grey-muted);">Notes stay saved in your browser session for easy CRM handoff.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pillar 2 Content -->
+        <div id="pillar-content-1" class="pillar-content-card">
+          <div class="discovery-grid">
+            <div class="questions-stream">
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 2.1 • Deadweight vs Volumetric</span>
+                <div class="q-main">"What does your typical box look like? Are you shipping lightweight bulky boxes or heavy compact items?"</div>
+                <div class="q-context">Merchants often don't realise they are paying volumetric penalties (e.g., a 600g item in a 40cm box billed at 4kg). DPD and UPS have differing volumetric divisor formulas.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">Small Packet (&lt; 1kg)</span>
+                  <span class="field-pill" onclick="toggleField(this)">Standard Shoebox (1–3kg)</span>
+                  <span class="field-pill" onclick="toggleField(this)">Bulky / High-Cube (> 5kg vol)</span>
+                  <span class="field-pill" onclick="toggleField(this)">Heavy Freight (> 20kg)</span>
+                </div>
+              </div>
+
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 2.2 • Packaging Format & Automation</span>
+                <div class="q-main">"Are you using poly mailer flyer bags, custom branded crash-lock boxes, or varied outer cartons?"</div>
+                <div class="q-context">Poly mailers often catch on standard conveyor belts unless sent with carriers optimised for soft freight (e.g. InPost / Evri / DPD Packet).</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">Poly Mailers / Flyer Bags</span>
+                  <span class="field-pill" onclick="toggleField(this)">Branded Cardboard Cartons</span>
+                  <span class="field-pill" onclick="toggleField(this)">Irregular / Long Tubes</span>
+                </div>
+              </div>
+
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 2.3 • Regulated & Special Cargo</span>
+                <div class="q-main">"Do you despatch liquids, cosmetic creams, glass, lithium batteries, or items with specific ADR carriage rules?"</div>
+                <div class="q-context">Carriers have rigid restricted goods policies. Misdeclaring liquids or batteries can lead to destroyed shipments and account suspensions.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">Standard Clean Cargo</span>
+                  <span class="field-pill" onclick="toggleField(this)">Cosmetics / Liquids</span>
+                  <span class="field-pill" onclick="toggleField(this)">Fragile Glass / Ceramics</span>
+                  <span class="field-pill" onclick="toggleField(this)">Lithium Batteries / Tech</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="diagnostic-sidebar">
+              <div class="intel-card">
+                <h4>📦 Packaging Optimization Value</h4>
+                <ul class="intel-list">
+                  <li><strong>Volumetric Rescue:</strong> Match bulky lightweight parcels to carriers with friendlier volumetric divisors (saving up to 35% per parcel).</li>
+                  <li><strong>Drop-to-Shop & Locker Match:</strong> For smaller items, position InPost lockers to reduce door-to-door failed delivery rates to 0%.</li>
+                  <li><strong>Damage Mitigation:</strong> Audit packing methods to drastically lower carrier dispute rates.</li>
+                </ul>
+              </div>
+
+              <div class="discovery-notepad">
+                <h4>Dimensions & Weight Specs</h4>
+                <textarea class="notepad-textarea" placeholder="e.g. Typical carton: 30x20x15cm, 1.2kg deadweight. 15% liquid skincare in glass bottles..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pillar 3 Content -->
+        <div id="pillar-content-2" class="pillar-content-card">
+          <div class="discovery-grid">
+            <div class="questions-stream">
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 3.1 • Channels & Order Ingestion</span>
+                <div class="q-main">"Where are orders generated — Shopify, WooCommerce, TikTok Shop, Amazon, eBay, or direct wholesale B2B?"</div>
+                <div class="q-context">TikTok Shop and multi-channel retailers struggle with tracking sync deadlines. Moov Ninja was first-to-market with direct TikTok Shop integration.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">Shopify Plus / Standard</span>
+                  <span class="field-pill" onclick="toggleField(this)">TikTok Shop Active</span>
+                  <span class="field-pill" onclick="toggleField(this)">Amazon & eBay</span>
+                  <span class="field-pill" onclick="toggleField(this)">WooCommerce / Magento</span>
+                </div>
+              </div>
+
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 3.2 • Current Despatch Software & Costs</span>
+                <div class="q-main">"How do orders get from your store into physical labels? Are you using ShipStation, Linnworks, or logging directly into carrier portals?"</div>
+                <div class="q-context">Shippers despise paying £100–£400/month just for software to print labels. Moov Ninja gives them 150+ integrations, automated rules, and batch printing 100% free.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">ShipStation / ShipTheory (£50–£200/mo)</span>
+                  <span class="field-pill" onclick="toggleField(this)">Linnworks / Mintsoft (£300+/mo)</span>
+                  <span class="field-pill" onclick="toggleField(this)">Click & Drop / Manual Carrier Portal</span>
+                  <span class="field-pill" onclick="toggleField(this)">Custom ERP / API</span>
+                </div>
+              </div>
+
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 3.3 • The Bench Bottleneck</span>
+                <div class="q-main">"How long does your team spend in the morning generating labels and packing before the first collection?"</div>
+                <div class="q-context">Manual order creation or sluggish software costs 1.5–3 hours of warehouse wages every single day. 100-order batch printing eliminates this completely.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">100% Automated Batch</span>
+                  <span class="field-pill" onclick="toggleField(this)">1–2 Hours Daily Manual Work</span>
+                  <span class="field-pill" onclick="toggleField(this)">Typo Errors & Address Re-keys</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="diagnostic-sidebar">
+              <div class="intel-card">
+                <h4>⚡ The Moov Ninja Advantage</h4>
+                <ul class="intel-list">
+                  <li><strong>£0 Software Bill:</strong> Immediately save them £600 to £3,600 per year by replacing their 3rd party shipping SaaS.</li>
+                  <li><strong>100-Order 1-Click Batch:</strong> Print 100 shipping labels + pick lists in 15 seconds flat on standard 6x4 Zebra thermal printers.</li>
+                  <li><strong>Smart Routing Rules:</strong> Auto-route orders under 1kg to Royal Mail/InPost, and anything urgent or over 2kg to DPD next day.</li>
+                </ul>
+              </div>
+
+              <div class="discovery-notepad">
+                <h4>Software Stack & Cost Notes</h4>
+                <textarea class="notepad-textarea" placeholder="Currently using ShipStation at £120/mo + Shopify. 45 mins every morning copying addresses into Royal Mail..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pillar 4 Content -->
+        <div id="pillar-content-3" class="pillar-content-card">
+          <div class="discovery-grid">
+            <div class="questions-stream">
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 4.1 • Driver Arrival & Warehouse Cut-Off</span>
+                <div class="q-main">"What time does your courier driver currently rock up to collect? Does that ever force you to stop taking same-day orders early?"</div>
+                <div class="q-context">Many carriers arrive between 2:00 PM and 3:30 PM. Moving cut-off to 4:30 PM or 5:30 PM can lift an e-commerce brand's daily checkout conversion by 12–18%.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">Early Pick-Up (Pre-3:00 PM)</span>
+                  <span class="field-pill" onclick="toggleField(this)">Standard (3:30 – 4:30 PM)</span>
+                  <span class="field-pill" onclick="toggleField(this)">Late Despatch (5:00 PM+)</span>
+                  <span class="field-pill" onclick="toggleField(this)">Driver Frequently Misses Collections</span>
+                </div>
+              </div>
+
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 4.2 • The Surcharge Surprise</span>
+                <div class="q-main">"When you review your courier invoices, do you get hit with surprise surcharges — fuel indexing, peak fees, address corrections, or oversize penalties?"</div>
+                <div class="q-context">Carriers lure shippers in with cheap base rates, then inflate bills with 18% fuel + peak season fees + £12 manual handling penalties. Moov offers transparent all-in clarity.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">Opaque Surcharges on Invoice</span>
+                  <span class="field-pill" onclick="toggleField(this)">Fuel Indexing Penalty</span>
+                  <span class="field-pill" onclick="toggleField(this)">Clean Transparent Invoicing Needed</span>
+                </div>
+              </div>
+
+              <div class="diagnostic-question">
+                <span class="q-number-tag">Question 4.3 • Customer Service Hold Times & Damaged Claims</span>
+                <div class="q-main">"When a parcel goes missing or arrives damaged, what happens? How long does it take to get a real human on the phone who actually fixes it?"</div>
+                <div class="q-context">Direct carrier support is notorious: automated ticket queues, 72-hour email replies, and denied claims. Moov’s team answers direct at 0113 322 4101 with real people.</div>
+                <div class="rep-field-box">
+                  <span class="field-pill" onclick="toggleField(this)">Trapped in Carrier Bot Queue</span>
+                  <span class="field-pill" onclick="toggleField(this)">Lost Parcel Claims Unpaid</span>
+                  <span class="field-pill" onclick="toggleField(this)">Single Carrier Vulnerability</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="diagnostic-sidebar">
+              <div class="intel-card">
+                <h4>🛡️ The "Peace of Mind" Close</h4>
+                <ul class="intel-list">
+                  <li><strong>Dedicated Account Team:</strong> Moov provides an assigned operations desk in Sheffield & Leeds. No bots. Ever.</li>
+                  <li><strong>Claims Management:</strong> We file and pursue carrier loss and damage claims on behalf of the customer.</li>
+                  <li><strong>Extended Trading Window:</strong> Route density matching to secure later collection windows or local locker injection.</li>
+                </ul>
+              </div>
+
+              <div class="discovery-notepad">
+                <h4>Incumbent Carrier & Rate Baseline</h4>
+                <textarea class="notepad-textarea" placeholder="Using DPD directly at £4.85 base + 18% fuel. Collection at 3:15pm. Owner furious about 3 lost parcels last week..."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Consultative Solution Alignment Matrix -->
+      <section class="alignment-table-wrapper">
+        <span class="section-eyebrow">Phase 03 // Solution Architecture</span>
+        <h2 style="font-size: 1.85rem; margin-bottom: 0.5rem;">How Moov Replaces Shippers' Daily Operational Agony</h2>
+        <p style="color: var(--moov-grey-light); margin-bottom: 1.5rem; max-width: 820px;">
+          Map their diagnosed pain directly to Moov Parcel's commercial differentiators. This proves you aren't just selling a rate card — you're re-engineering their logistics.
+        </p>
+
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th style="width: 28%;">Shipper Situation / Pain Trigger</th>
+              <th style="width: 44%;">The Moov Consultative Pivot</th>
+              <th style="width: 28%;">Commercial & Operational Impact</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="cell-friction">Manual Booking Hell</div>
+                <div style="font-size: 0.8rem; color: var(--moov-grey-muted); margin-top: 0.2rem;">Copy-pasting orders one by one into Click & Drop or carrier portals.</div>
+              </td>
+              <td class="cell-pivot">
+                "We connect <strong>Moov Ninja</strong> directly into your Shopify and TikTok Shop in under 10 minutes. With <strong>100-order batch printing</strong>, your team prints the day's dispatch labels and pick lists in 30 seconds flat."
+              </td>
+              <td>
+                <span class="commercial-pill">Labour Saving</span>
+                <div class="cell-commercial">Frees up 1.5 to 2.5 hours of warehouse labour every single morning; eliminates costly manual typos.</div>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="cell-friction">The "SaaS Subscription Tax"</div>
+                <div style="font-size: 0.8rem; color: var(--moov-grey-muted); margin-top: 0.2rem;">Paying £50 to £300/month for ShipStation, Linnworks or Shiptheory just to print labels.</div>
+              </td>
+              <td class="cell-pivot">
+                "<strong>Moov Ninja is 100% free</strong> for all our shipping clients. It comes with 150+ direct platform connectors, barcode verification, and automated routing rules built-in. You can terminate that software invoice tomorrow."
+              </td>
+              <td>
+                <span class="commercial-pill">Direct Margin Gain</span>
+                <div class="cell-commercial">Immediate bottom-line cash saving of £1,200 – £3,600 / year before counting courier rate discounts.</div>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="cell-friction">Single-Carrier Fragility</div>
+                <div style="font-size: 0.8rem; color: var(--moov-grey-muted); margin-top: 0.2rem;">All eggs in one carrier basket. Driver shortages or regional hub strikes stall business.</div>
+              </td>
+              <td class="cell-pivot">
+                "Through Moov, you unlock <strong>DPD, DHL Express, InPost, and UPS</strong> on a single dashboard and <strong>one weekly consolidated VAT invoice</strong>. If one carrier struggles or strikes, your orders divert with one click."
+              </td>
+              <td>
+                <span class="commercial-pill">Zero Downtime</span>
+                <div class="cell-commercial">Guarantees delivery continuity, customer delivery choice (home vs locker), and streamlined bookkeeping.</div>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="cell-friction">Early 2:30pm Driver Cut-off</div>
+                <div style="font-size: 0.8rem; color: var(--moov-grey-muted); margin-top: 0.2rem;">Courier arrives too early, forcing store to advertise an uncompetitive early cutoff.</div>
+              </td>
+              <td class="cell-pivot">
+                "Because we work across <strong>DPD, DHL, and UPS</strong>, we can audit local carrier collection rounds in your postcode and switch you to a carrier that supports a later afternoon collection, plus InPost locker options for late emergency orders."
+              </td>
+              <td>
+                <span class="commercial-pill">Conversion Lift</span>
+                <div class="cell-commercial">Enables later same-day order processing windows, improving store checkout conversion without changing your warehouse bench.</div>
+              </td>
+            </tr>
+
+            <tr>
+              <td>
+                <div class="cell-friction">Carrier Support Limbo</div>
+                <div style="font-size: 0.8rem; color: var(--moov-grey-muted); margin-top: 0.2rem;">Endless hold times, unhelpful chatbots, and unresolved lost parcel claims.</div>
+              </td>
+              <td class="cell-pivot">
+                "Our clients get a <strong>dedicated human support desk in Yorkshire</strong> (0113 322 4101). When a parcel goes missing, our team pursues the investigation and files the claim for you. No bots. Ever."
+              </td>
+              <td>
+                <span class="commercial-pill">Customer Goodwill</span>
+                <div class="cell-commercial">Protects customer review scores (Trustpilot / Google) and stops lost revenue on uncompensated damages.</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Section: 7–10 Day Guided Onboarding Journey -->
+      <section style="margin-bottom: 2rem;">
+        <span class="section-eyebrow">Phase 04 // Frictionless Execution</span>
+        <h2 style="font-size: 1.85rem; margin-bottom: 0.5rem;">The 7–10 Day Guided Onboarding Journey (Sales to Ops)</h2>
+        <p style="color: var(--moov-grey-light); margin-bottom: 1.5rem; max-width: 820px;">
+          Shippers fear switching logistics providers because they fear downtime. Show prospects this clear, zero-risk transition roadmap.
+        </p>
+
+        <div class="timeline-container">
+          <div class="timeline-step active">
+            <span class="step-badge">Day 1 • Step 01</span>
+            <div class="step-title">Rate Diagnostic</div>
+            <div class="step-desc">Analyse recent courier invoice. Produce a transparent, side-by-side cost & software savings model.</div>
+          </div>
+
+          <div class="timeline-step">
+            <span class="step-badge">Day 1 • Step 02</span>
+            <div class="step-title">Ninja Demo & Sync</div>
+            <div class="step-desc">15-minute screen share demo of Moov Ninja. Connect their Shopify/store API with zero technical setup.</div>
+          </div>
+
+          <div class="timeline-step">
+            <span class="step-badge">Day 2 • Step 03</span>
+            <div class="step-title">Bench Configuration</div>
+            <div class="step-desc">Setup thermal printers (6x4), test print test labels, and establish automated weight/carrier routing rules.</div>
+          </div>
+
+          <div class="timeline-step">
+            <span class="step-badge">Day 3 • Step 04</span>
+            <div class="step-title">Collection Booking</div>
+            <div class="step-desc">Assigned carrier vehicle and driver collection route locked into place with confirmed daily collection slot.</div>
+          </div>
+
+          <div class="timeline-step">
+            <span class="step-badge">Live • Step 05</span>
+            <div class="step-title">First Manifest</div>
+            <div class="step-desc">First live batch dispatched. Dedicated Leeds/Sheffield desk monitors tracking and manifests in real-time.</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: "HOW MOOV PARCEL SELLS" PRESENTATION -->
+    <!-- ========================================== -->
+    <div id="tab-presentation" class="tab-pane">
+      <div class="presentation-container">
+        
+        <div class="deck-controls">
+          <div>
+            <span class="section-eyebrow" style="margin-bottom: 0;">Presentation Mode</span>
+            <div style="font-size: 0.85rem; color: var(--moov-grey-light);">Use <strong>Left / Right Arrow Keys</strong> or the buttons to navigate slides</div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 1.25rem;">
+            <div class="slide-counter" id="slide-indicator">Slide 1 of 6</div>
+            <div class="deck-nav-buttons">
+              <button class="btn-action" onclick="prevSlide()">← Prev</button>
+              <button class="btn-action btn-primary" onclick="nextSlide()">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-canvas">
+          
+          <!-- Slide 1 -->
+          <div class="slide-pane active" id="slide-0">
+            <div class="slide-header">
+              <div class="slide-topic">Moov Commercial Philosophy</div>
+              <h2>Don't Just Deliver Parcels... <span style="color: var(--moov-green);">Moov Them.</span></h2>
+            </div>
+            <div class="slide-body">
+              <div class="slide-cards-2">
+                <div class="slide-card-item">
+                  <div style="font-size: 0.8rem; font-weight: 700; color: #ff6b9d; text-transform: uppercase; margin-bottom: 0.5rem;">How Generic Couriers & Brokers Sell</div>
+                  <h3 style="color: #ff9bbb;">The "Cheap Stamp" Race to the Bottom</h3>
+                  <p style="margin-bottom: 0.75rem;">Brokers hawk 5p discounts on rate cards, trap shippers with inflexible contracts, and disappear the moment a trailer fails to arrive or a claims dispute arises.</p>
+                  <p style="color: var(--moov-grey-muted); font-size: 0.85rem;">Result: Shipper margins bleed from software fees, carrier surcharges, and lost customers.</p>
+                </div>
+
+                <div class="slide-card-item accent-border">
+                  <div style="font-size: 0.8rem; font-weight: 700; color: var(--moov-green); text-transform: uppercase; margin-bottom: 0.5rem;">How Moov Parcel Sells</div>
+                  <h3 style="color: var(--moov-green);">The Consultative Commerce Partner</h3>
+                  <p style="margin-bottom: 0.75rem;">We diagnose the entire dispatch operation: eliminating software fees via <strong>Moov Ninja (£0)</strong>, extending order cut-offs, providing multi-carrier redundancy, and taking over carrier disputes.</p>
+                  <p style="color: var(--moov-white); font-weight: 600; font-size: 0.85rem;">Result: Lower total landed delivery costs, zero software overhead, and total operational peace of mind.</p>
+                </div>
+              </div>
+            </div>
+            <div class="slide-footer">
+              <span>Moov Parcel Commercial Playbook</span>
+              <span>Proprietary Tech + Tier 1 Carrier Infrastructure</span>
+            </div>
+          </div>
+
+          <!-- Slide 2 -->
+          <div class="slide-pane" id="slide-1">
+            <div class="slide-header">
+              <div class="slide-topic">The Market Opportunity</div>
+              <h2>The 3 Hidden Margins Leaks in E-Commerce Logistics</h2>
+            </div>
+            <div class="slide-body">
+              <div class="slide-cards-3">
+                <div class="slide-card-item">
+                  <div class="stat-hero-number">£2.4k</div>
+                  <div class="stat-hero-label">Average Annual SaaS Tax</div>
+                  <p style="margin-top: 0.75rem;">Brands pay £50 to £250/mo for basic software like ShipStation or Linnworks simply to print carrier labels and sync orders.</p>
+                </div>
+                <div class="slide-card-item">
+                  <div class="stat-hero-number">18%</div>
+                  <div class="stat-hero-label">Lost Late-Afternoon Sales</div>
+                  <p style="margin-top: 0.75rem;">Early 2:30 PM driver arrivals kill checkout conversion. Shoppers abandon carts when same-day cut-off times are uncompetitive.</p>
+                </div>
+                <div class="slide-card-item">
+                  <div class="stat-hero-number">3.5 hrs</div>
+                  <div class="stat-hero-label">Weekly Carrier Support Agony</div>
+                  <p style="margin-top: 0.75rem;">Founders and warehouse heads trapped in automated carrier phone queues and chatbot ticket loops fighting for missing shipments.</p>
+                </div>
+              </div>
+            </div>
+            <div class="slide-footer">
+              <span>Every sales conversation diagnoses these 3 friction points</span>
+              <span>moovparcel.co.uk</span>
+            </div>
+          </div>
+
+          <!-- Slide 3 -->
+          <div class="slide-pane" id="slide-2">
+            <div class="slide-header">
+              <div class="slide-topic">The Value Proposition</div>
+              <h2>The Moov Quad-Engine Advantage</h2>
+            </div>
+            <div class="slide-body">
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+                <div class="slide-card-item" style="border-left: 4px solid var(--moov-green);">
+                  <h3 style="color: var(--moov-green);">1. Award-Winning Software at £0 Cost</h3>
+                  <p><strong>Moov Ninja</strong> connects to 150+ sales platforms (Shopify, TikTok Shop, Amazon, WooCommerce). 100-order batch printing, auto-routing rules, and live tracking with zero subscription fees.</p>
+                </div>
+                <div class="slide-card-item" style="border-left: 4px solid #4103cc;">
+                  <h3 style="color: #b794f6;">2. Multi-Carrier Buying Power</h3>
+                  <p>Access high-volume tier rates normally reserved for retail giants across <strong>DPD, DHL Express, InPost, UPS, and Evri</strong> on one single platform and one weekly invoice.</p>
+                </div>
+                <div class="slide-card-item" style="border-left: 4px solid #feca00;">
+                  <h3 style="color: #feca00;">3. Carrier Switching for Later Cut-Offs</h3>
+                  <p>Trapped with an early 2:30pm driver? We audit collection schedules across our carrier network (DPD, DHL, UPS) and switch merchants to a carrier whose local round collects later, plus InPost locker options for after-hours orders.</p>
+                </div>
+                <div class="slide-card-item" style="border-left: 4px solid #cd1d69;">
+                  <h3 style="color: #ff6b9d;">4. Real Human Yorkshire Ops Desk</h3>
+                  <p>Direct phone line (0113 322 4101) to a dedicated customer operations desk in Leeds & Sheffield. We resolve disputes, track missing parcels, and fight claims for you.</p>
+                </div>
+              </div>
+            </div>
+            <div class="slide-footer">
+              <span>Why Shippers Choose Moov Over Going Direct</span>
+              <span>More eCommerce Integrations Than Anyone Else</span>
+            </div>
+          </div>
+
+          <!-- Slide 4 -->
+          <div class="slide-pane" id="slide-3">
+            <div class="slide-header">
+              <div class="slide-topic">The Commercial Process</div>
+              <h2>How Our Sales Reps Lead Consultative Discovery</h2>
+            </div>
+            <div class="slide-body">
+              <div class="slide-cards-2">
+                <div class="slide-card-item">
+                  <h3 style="color: var(--moov-green);">The 4 Diagnostic Pillars</h3>
+                  <ul class="intel-list" style="margin-top: 1rem; gap: 0.9rem;">
+                    <li><strong>Order Cadence:</strong> Uncover actual parcel velocity, seasonal spikes, and regional destination mix.</li>
+                    <li><strong>Physical Profile:</strong> Detect volumetric weight traps and packaging waste.</li>
+                    <li><strong>Tech Stack Friction:</strong> Pinpoint SaaS fees and manual copy-paste hours on the packing bench.</li>
+                    <li><strong>Carrier Vulnerability:</strong> Isolate early driver cut-offs, surcharge surprises, and claims frustration.</li>
+                  </ul>
+                </div>
+                <div class="slide-card-item" style="background: rgba(11, 14, 27, 0.9);">
+                  <h3 style="color: var(--moov-white);">The Moov Discovery Standard</h3>
+                  <div style="font-size: 0.9rem; color: var(--moov-grey-light); line-height: 1.6; margin-top: 0.75rem;">
+                    "We never ask 'What rate do you want to beat?'. We ask 'What time does your driver arrive, how much are you paying for shipping software, and who gets stuck on hold when a parcel goes missing?'<br><br>
+                    Once the merchant feels understood on operational friction, price becomes an easy conversation."
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="slide-footer">
+              <span>Phase 2 Methodology</span>
+              <span>Moov Parcel Rep Training</span>
+            </div>
+          </div>
+
+          <!-- Slide 5 -->
+          <div class="slide-pane" id="slide-4">
+            <div class="slide-header">
+              <div class="slide-topic">The Commercial Transformation</div>
+              <h2>Typical Client P&L Impact: 1,500 Parcels / Month</h2>
+            </div>
+            <div class="slide-body">
+              <div class="slide-cards-3">
+                <div class="slide-card-item" style="text-align: center;">
+                  <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--moov-grey-muted); font-weight: 700;">Software Elimination</div>
+                  <div class="stat-hero-number" style="font-size: 2.6rem; margin: 0.5rem 0;">£1,800</div>
+                  <p style="font-size: 0.84rem;">Cancelling ShipStation/Linnworks seats by migrating to free Moov Ninja.</p>
+                </div>
+                <div class="slide-card-item" style="text-align: center;">
+                  <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--moov-grey-muted); font-weight: 700;">Rate & Surcharge Savings</div>
+                  <div class="stat-hero-number" style="font-size: 2.6rem; margin: 0.5rem 0;">£6,300</div>
+                  <p style="font-size: 0.84rem;">Average 35p/parcel discount across DPD, DHL & InPost multi-carrier split.</p>
+                </div>
+                <div class="slide-card-item" style="text-align: center; border-color: var(--moov-green);">
+                  <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--moov-green); font-weight: 700;">Total Net Gain / Year</div>
+                  <div class="stat-hero-number" style="font-size: 2.6rem; margin: 0.5rem 0; color: var(--moov-green);">£14,100+</div>
+                  <p style="font-size: 0.84rem;">Including 2 hours/day recovered packing bench labour and later order cutoffs.</p>
+                </div>
+              </div>
+            </div>
+            <div class="slide-footer">
+              <span>Real Commercial ROI Delivered to UK Merchants</span>
+              <span>Don't be cheap, be cost-effective</span>
+            </div>
+          </div>
+
+          <!-- Slide 6 -->
+          <div class="slide-pane" id="slide-5">
+            <div class="slide-header">
+              <div class="slide-topic">Zero-Risk Execution</div>
+              <h2>The 7–10 Day Guided Onboarding Journey</h2>
+            </div>
+            <div class="slide-body">
+              <div class="slide-cards-3">
+                <div class="slide-card-item">
+                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--moov-green); margin-bottom: 0.3rem;">Day 1: Connection</div>
+                  <p>10-minute API link to Shopify, TikTok Shop or Amazon. Moov Ninja ingests store catalogue and formats automatically.</p>
+                </div>
+                <div class="slide-card-item">
+                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--moov-green); margin-bottom: 0.3rem;">Day 2: Validation</div>
+                  <p>Test print on standard thermal label printers. Carrier vehicle allocated with confirmed daily collection cut-off time.</p>
+                </div>
+                <div class="slide-card-item">
+                  <div style="font-size: 1.1rem; font-weight: 800; color: var(--moov-green); margin-bottom: 0.3rem;">Day 3: Full Dispatch</div>
+                  <p>First live collection. Dedicated Leeds/Sheffield operations desk monitors manifest and delivery milestones live.</p>
+                </div>
+              </div>
+              <div style="margin-top: 1.5rem; text-align: center; background: rgba(29, 251, 157, 0.08); border: 1px solid rgba(29, 251, 157, 0.25); border-radius: 12px; padding: 1rem;">
+                <span style="font-size: 0.95rem; font-weight: 700; color: var(--moov-green);">Zero Down-Time Guarantee:</span>
+                <span style="font-size: 0.9rem; color: var(--moov-white);"> Merhcants can run their incumbent courier in parallel until 100% satisfied.</span>
+              </div>
+            </div>
+            <div class="slide-footer">
+              <span>Ready to book a consultation? enquiries@moovparcel.co.uk</span>
+              <span>0113 322 4100</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: LIVE SHIPPER AUDIT ROI CALCULATOR -->
+    <!-- ========================================== -->
+    <div id="tab-calculator" class="tab-pane">
+      <div class="calculator-container">
+        <div class="calc-card">
+          <span class="section-eyebrow">Interactive Sales Tool</span>
+          <h2 style="font-size: 2rem; margin-bottom: 0.5rem;">Live Shipper Commercial Audit Calculator</h2>
+          <p style="color: var(--moov-grey-light); margin-bottom: 2rem;">
+            Use this during live consultative calls with merchants to quantify their exact software and dispatch savings.
+          </p>
+
+          <div class="calc-input-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <label class="calc-label" style="margin-bottom:0;">Monthly Parcel Volume</label>
+              <span id="vol-display" style="font-size: 1.25rem; font-weight: 800; color: var(--moov-green); font-family: var(--font-display);">1,500 parcels/mo</span>
+            </div>
+            <input type="range" min="100" max="15000" step="100" value="1500" class="calc-slider" id="vol-slider" oninput="calculateSavings()">
+          </div>
+
+          <div class="calc-input-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <label class="calc-label" style="margin-bottom:0;">Current Monthly Shipping Software Cost (ShipStation, Linnworks, etc.)</label>
+              <span id="saas-display" style="font-size: 1.25rem; font-weight: 800; color: #ff6b9d; font-family: var(--font-display);">£120 / month</span>
+            </div>
+            <input type="range" min="0" max="800" step="10" value="120" class="calc-slider" id="saas-slider" oninput="calculateSavings()">
+          </div>
+
+          <div class="calc-input-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <label class="calc-label" style="margin-bottom:0;">Target Carrier Rate Optimisation (Pence Saved / Parcel)</label>
+              <span id="rate-display" style="font-size: 1.25rem; font-weight: 800; color: var(--moov-amber); font-family: var(--font-display);">35p / parcel</span>
+            </div>
+            <input type="range" min="10" max="150" step="5" value="35" class="calc-slider" id="rate-slider" oninput="calculateSavings()">
+          </div>
+
+          <div class="calc-results-grid">
+            <div class="calc-res-item">
+              <div class="val" id="res-software">£1,440</div>
+              <div class="lbl">Annual Free Software Gain (Moov Ninja)</div>
+            </div>
+            <div class="calc-res-item">
+              <div class="val" id="res-shipping">£6,300</div>
+              <div class="lbl">Annual Parcel Rate Savings</div>
+            </div>
+            <div class="calc-res-item highlight">
+              <div class="val" id="res-total">£7,740</div>
+              <div class="lbl">Total Hard Cash Added to Margin</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 1.5rem; text-align: center; color: var(--moov-grey-muted); font-size: 0.85rem;">
+            *Does not include labour hours saved through 100-order batch printing or revenue generated by extended order cutoffs.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Tab Switching
+    function switchMainTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById('tab-' + tabId).classList.add('active');
+      
+      const buttons = document.querySelectorAll('.nav-tab-btn');
+      if (tabId === 'playbook') buttons[0].classList.add('active');
+      if (tabId === 'presentation') buttons[1].classList.add('active');
+      if (tabId === 'calculator') buttons[2].classList.add('active');
+    }
+
+    // Pillar Switching
+    function switchPillar(index) {
+      document.querySelectorAll('.pillar-nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.pillar-content-card').forEach(el => el.classList.remove('active'));
+      
+      document.querySelectorAll('.pillar-nav-item')[index].classList.add('active');
+      document.getElementById('pillar-content-' + index).classList.add('active');
+    }
+
+    // Field Pill Checking
+    function toggleField(el) {
+      el.classList.toggle('checked');
+    }
+
+    // Copy Script to Clipboard
+    function copyText(btn) {
+      const parent = btn.closest('.script-quote-box');
+      const text = parent.innerText.replace('Copy Script', '').trim();
+      navigator.clipboard.writeText(text);
+      const original = btn.innerText;
+      btn.innerText = 'Copied!';
+      btn.style.background = '#1DFB9D';
+      btn.style.color = '#111422';
+      setTimeout(() => {
+        btn.innerText = original;
+        btn.style.background = '';
+        btn.style.color = '';
+      }, 2000);
+    }
+
+    // Presentation Slide Controller
+    let currentSlide = 0;
+    const totalSlides = 6;
+
+    function showSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= totalSlides) index = totalSlides - 1;
+      currentSlide = index;
+
+      document.querySelectorAll('.slide-pane').forEach(el => el.classList.remove('active'));
+      const activeSlide = document.getElementById('slide-' + currentSlide);
+      if (activeSlide) activeSlide.classList.add('active');
+
+      document.getElementById('slide-indicator').innerText = `Slide ${currentSlide + 1} of ${totalSlides}`;
+    }
+
+    function nextSlide() {
+      showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      showSlide(currentSlide - 1);
+    }
+
+    // Keyboard support for presentation
+    document.addEventListener('keydown', (e) => {
+      const presentationTab = document.getElementById('tab-presentation');
+      if (presentationTab.classList.contains('active')) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+          nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+          prevSlide();
+        }
+      }
+    });
+
+    // ROI Calculator Logic
+    function calculateSavings() {
+      const vol = parseInt(document.getElementById('vol-slider').value);
+      const saas = parseInt(document.getElementById('saas-slider').value);
+      const rate = parseInt(document.getElementById('rate-slider').value);
+
+      document.getElementById('vol-display').innerText = vol.toLocaleString() + ' parcels/mo';
+      document.getElementById('saas-display').innerText = '£' + saas + ' / month';
+      document.getElementById('rate-display').innerText = rate + 'p / parcel';
+
+      const annualSoftwareSaving = saas * 12;
+      const annualShippingSaving = (vol * (rate / 100)) * 12;
+      const totalSaving = annualSoftwareSaving + annualShippingSaving;
+
+      document.getElementById('res-software').innerText = '£' + Math.round(annualSoftwareSaving).toLocaleString();
+      document.getElementById('res-shipping').innerText = '£' + Math.round(annualShippingSaving).toLocaleString();
+      document.getElementById('res-total').innerText = '£' + Math.round(totalSaving).toLocaleString();
+    }
+
+    // Initial calculation run
+    calculateSavings();
+  </script>
+</body>
+</html>

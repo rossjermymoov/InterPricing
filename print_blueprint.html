@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Moov Parcel - Sales Framework & Discovery Blueprint</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700;800&family=Mulish:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: A4;
+      margin: 10mm 12mm 10mm 12mm;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Mulish', -apple-system, sans-serif;
+      color: #171B2D;
+      background: #FFFFFF;
+      font-size: 8pt;
+      line-height: 1.35;
+    }
+    h1, h2, h3, h4 {
+      font-family: 'Jost', sans-serif;
+      color: #0B0E1B;
+      letter-spacing: -0.01em;
+    }
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #1DFB9D;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+    }
+    .logo-text {
+      font-family: 'Jost', sans-serif;
+      font-weight: 800;
+      font-size: 16pt;
+      color: #171B2D;
+      letter-spacing: -0.02em;
+    }
+    .logo-text span { color: #04A562; }
+    .header-sub {
+      font-size: 7.2pt;
+      color: #555;
+      text-align: right;
+      line-height: 1.3;
+    }
+    .desk-meta-box {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: #F4F6F9;
+      border: 1px solid #DFE2E8;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 7.5pt;
+      margin-bottom: 8px;
+    }
+    .section-title {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #171B2D;
+      margin: 8px 0 5px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-left: 3px solid #04A562;
+      padding-left: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .intro-banner {
+      background: #EFFDF6;
+      border: 1px solid #B8F3D7;
+      border-radius: 6px;
+      padding: 6px 9px;
+      margin-bottom: 8px;
+      font-size: 7.8pt;
+      color: #123528;
+      line-height: 1.35;
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 7.5pt;
+      margin-bottom: 8px;
+    }
+    table.data-table th {
+      background: #171B2D;
+      color: #FFFFFF;
+      font-family: 'Jost', sans-serif;
+      text-align: left;
+      padding: 4px 6px;
+      font-weight: 600;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    table.data-table td {
+      padding: 4.5px 6px;
+      border-bottom: 1px solid #E5E8ED;
+      vertical-align: top;
+      line-height: 1.3;
+    }
+    table.data-table tr:nth-child(even) td { background: #F9FAFB; }
+    .pill {
+      display: inline-block;
+      background: #E8F9F1;
+      color: #04A562;
+      font-weight: 700;
+      font-size: 6.5pt;
+      padding: 1px 4px;
+      border-radius: 3px;
+      border: 1px solid #B8F3D7;
+      margin-bottom: 2px;
+    }
+    .step-box {
+      border: 1px solid #DFE2E8;
+      border-radius: 5px;
+      padding: 5px 7px;
+      background: #FAFBFC;
+      font-size: 7.2pt;
+    }
+    .step-num {
+      font-family: 'Jost', sans-serif;
+      font-weight: 700;
+      color: #04A562;
+      font-size: 7.2pt;
+      text-transform: uppercase;
+      margin-bottom: 1px;
+    }
+    .step-title {
+      font-family: 'Jost', sans-serif;
+      font-weight: 700;
+      font-size: 8pt;
+      color: #171B2D;
+      margin-bottom: 2px;
+    }
+    .page-break { page-break-before: always; }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .demo-item {
+      background: #F4F6F9;
+      border: 1px solid #DFE2E8;
+      border-radius: 5px;
+      padding: 5px 7px;
+    }
+    .demo-item-title {
+      font-family: 'Jost', sans-serif;
+      font-weight: 700;
+      font-size: 7.5pt;
+      color: #171B2D;
+      margin-bottom: 2px;
+    }
+    .demo-item-desc {
+      font-size: 7pt;
+      color: #555;
+      line-height: 1.25;
+    }
+    .footer-note {
+      font-size: 7pt;
+      color: #777;
+      border-top: 1px solid #E5E8ED;
+      padding-top: 4px;
+      text-align: center;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1 -->
+  <div class="header-bar">
+    <div>
+      <div class="logo-text">moov<span>parcel</span></div>
+      <div style="font-size: 7pt; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.05em;">Consultative Sales Framework & Discovery Blueprint</div>
+    </div>
+    <div class="header-sub">
+      <strong>Proprietary Tech:</strong> Moov Ninja (150+ Marketplaces & Channels)<br>
+      <strong>Carrier Partners:</strong> DPD • DHL • InPost • UPS<br>
+      <strong>Yorkshire Support Desk:</strong> 0113 322 4101 | moovparcel.co.uk
+    </div>
+  </div>
+
+  <div class="desk-meta-box">
+    <div><strong>Company:</strong> ______________________</div>
+    <div><strong>Contact & Role:</strong> _________________</div>
+    <div><strong>Direct Phone/Email:</strong> ______________</div>
+    <div><strong>Date & Rep:</strong> ___________________</div>
+  </div>
+
+  <div class="intro-banner">
+    <strong>Who We Are:</strong> Moov Parcel was invented to help e-commerce SMEs be more productive. We give them access to <strong>Moov Ninja</strong>, a proprietary piece of software owned by ourselves, which connects them to over 150 different marketplaces and sales channels. This removes manual work, stops 1-by-1 booking errors, and unlocks new selling channels. Combined with our primary carrier relationships with <strong>DPD, DHL, InPost, and UPS</strong>, we deliver multi-carrier power and real human customer service.
+  </div>
+
+  <div class="section-title">1. The Consultative Sales Approach</div>
+  <div style="font-size: 7.8pt; color: #333; margin-bottom: 6px; line-height: 1.35;">
+    Our pipeline is a mix of inbound leads and outbound calling. Our outbound proposition is to call the business, reach the <strong>decision maker</strong> (Owner, Director, Operations Manager), and <strong>understand their business before ever pitching rates</strong>. We gather as much operational detail as possible, and then align our software, multi-carrier options, and human service to solve their specific challenges.
+  </div>
+
+  <div class="section-title">2. The 9 Core Discovery Areas (What Reps Must Understand)</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Discovery Area</th>
+        <th style="width: 48%;">Trigger Question to Ask (Verbatim Script)</th>
+        <th style="width: 27%;">Operational Focus & Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Parcel Volumes</strong></td>
+        <td>"Roughly how many parcels are you dispatching on an average day or week? Does that volume spike significantly during peak periods or promotions?"</td>
+        <td>Establish baseline daily/weekly parcel volume and seasonal surge capacity.</td>
+      </tr>
+      <tr>
+        <td><strong>2. Destinations</strong></td>
+        <td>"Where do these orders go? Are you primarily UK domestic mainland, or do you send to the Scottish Highlands, Islands, Northern Ireland, or Europe?"</td>
+        <td>Identify regional domestic distribution and cross-border customs requirements.</td>
+      </tr>
+      <tr>
+        <td><strong>3. Recipient Profile</strong></td>
+        <td>"Who receives the goods — direct to consumer (B2C) residential addresses and lockers, or B2B trade and commercial retail addresses?"</td>
+        <td>Matches parcel profile to carrier capabilities (e.g. InPost lockers vs B2B trade).</td>
+      </tr>
+      <tr>
+        <td><strong>4. Sizes & Deadweights</strong></td>
+        <td>"What does your parcel profile look like in terms of size and deadweight? What are your typical minimums and maximums?"</td>
+        <td>Examine deadweight vs volumetric limits to prevent carrier surcharge penalties.</td>
+      </tr>
+      <tr>
+        <td><strong>5. International Shipping</strong></td>
+        <td>"Do you ship internationally, either to Europe or the rest of the world? How do you currently handle customs and IOSS?"</td>
+        <td>Positions DHL Express / eCommerce capabilities and customs compliance.</td>
+      </tr>
+      <tr>
+        <td><strong>6. Hazardous / Special Cargo</strong></td>
+        <td>"Do you send anything that is hazardous, liquids, creams, glass, aerosols, batteries, or anything outside of the norm?"</td>
+        <td>Identifies dangerous goods (ADR) compliance and restricted carrier items.</td>
+      </tr>
+      <tr>
+        <td><strong>7. Packaging Requirements</strong></td>
+        <td>"Do you have any specific packaging requirements — for example, poly mailers, custom branded boxes, long tubes, or 6x4 thermal labels?"</td>
+        <td>Ensures packaging format compatibility with carrier sortation belts.</td>
+      </tr>
+      <tr>
+        <td><strong>8. Software & Booking Method</strong></td>
+        <td>"How do you book your parcels right now? Are you booking them one by one? What channels (Shopify, Amazon)? If you use a WMS, which one?"</td>
+        <td><strong>Key Software Trigger:</strong> If booking 1-by-1, Moov Ninja automates this completely.</td>
+      </tr>
+      <tr>
+        <td><strong>9. Couriers, Cut-offs & Pain</strong></td>
+        <td>"Which couriers are collecting today? What time would you need a vehicle to collect from you if you were to move? Any challenges with price, service, or damage?"</td>
+        <td><strong>Cut-Off Trigger:</strong> If driver collects too early, switch carriers. Isolate service pain.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- PAGE 2 -->
+  <div class="page-break"></div>
+
+  <div class="header-bar" style="margin-top: 4px;">
+    <div class="logo-text">moov<span>parcel</span></div>
+    <div class="header-sub">The Power of the Demo & Guided Onboarding Journey</div>
+  </div>
+
+  <div class="section-title">3. The Power of the Demo: Why We Demo & Research Backing</div>
+  <div style="background: #EFFDF6; border: 1px solid #B8F3D7; border-radius: 5px; padding: 6px 9px; margin-bottom: 6px; font-size: 7.5pt; color: #123528;">
+    <strong>Sales Research Insight (Gong / Gartner):</strong> B2B sales data shows that technology-enabled services convert at up to <strong>68% higher win-rates</strong> when prospects experience a live product demonstration compared to receiving static rate quotes. When prospects see a rate sheet, they compare pennies; when they see Moov Ninja on screen, they see their morning dispatch headache disappearing.
+  </div>
+
+  <div style="font-weight: 700; font-size: 8pt; color: #171B2D; margin-bottom: 4px;">The 9 Problems Moov Ninja Solves (The Demo Showcase):</div>
+  <div class="demo-grid">
+    <div class="demo-item">
+      <div class="demo-item-title" style="color: #04A562;">1. Multi-Channel Connectivity</div>
+      <div class="demo-item-desc">Pulls 150+ channels (Shopify, TikTok Shop, Amazon, eBay) into one screen. Solves logging into multiple separate web portals.</div>
+    </div>
+    <div class="demo-item">
+      <div class="demo-item-title" style="color: #04A562;">2. 1-Click Batch Shipping</div>
+      <div class="demo-item-desc">Prints up to 100 shipping labels and pick lists simultaneously. Solves slow 1-by-1 manual typing and copy-paste errors.</div>
+    </div>
+    <div class="demo-item">
+      <div class="demo-item-title" style="color: #04A562;">3. Internal Packing Station</div>
+      <div class="demo-item-desc">Barcode scan verification confirms each item in the carton before printing. Solves packing errors and wrong items sent.</div>
+    </div>
+    <div class="demo-item">
+      <div class="demo-item-title" style="color: #B28900;">4. Multi-Parcel International</div>
+      <div class="demo-item-desc">Specialized workflow for multi-box overseas consignments that competitor software cannot support or breaks on.</div>
+    </div>
+    <div class="demo-item">
+      <div class="demo-item-title" style="color: #B28900;">5. Carrier Error Message Visibility</div>
+      <div class="demo-item-desc">Displays exact courier error codes (postcodes, tax IDs) so warehouse staff can fix and print labels instantly.</div>
+    </div>
+    <div class="demo-item">
+      <div class="demo-item-title" style="color: #B28900;">6. Easy International Shipping</div>
+      <div class="demo-item-desc">Automated commercial invoices and seamless EU IOSS compliance. Solves international border holds and paperwork headaches.</div>
+    </div>
+    <div class="demo-item">
+      <div class="demo-item-title" style="color: #5B21B6;">7. Ninja Status Gamification</div>
+      <div class="demo-item-desc">Visual Ninjas alert warehouse staff immediately when exceptions, address errors, or carrier delays occur.</div>
+    </div>
+    <div class="demo-item">
+      <div class="demo-item-title" style="color: #5B21B6;">8. Direct-to-Printer Integration</div>
+      <div class="demo-item-desc">Integrated printer software sends labels directly to 6x4 Zebra thermal printers without PDF dialogues or downloads.</div>
+    </div>
+    <div class="demo-item">
+      <div class="demo-item-title" style="color: #5B21B6;">9. Smart Shipping Rules Engine</div>
+      <div class="demo-item-desc">Automatically selects optimal carrier (DPD, DHL, InPost, UPS) based on weight, parcel dimensions, country, or postcode.</div>
+    </div>
+  </div>
+
+  <div style="background: #F4F6F9; border-left: 2px solid #04A562; padding: 4px 8px; font-size: 7.2pt; font-style: italic; color: #333; margin-bottom: 8px;">
+    <strong>Verbatim Rep Demo Pitch:</strong> "Anyone can email a list of prices that looks like every other courier. Let me show you 10 minutes on a quick screen share of how Moov Ninja actually connects your store, prints 100 labels in one click, and chooses the right carrier automatically. Do you have your screen open?"
+  </div>
+
+  <div class="section-title">4. The 7–10 Day Guided Onboarding Journey</div>
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px;">
+    <div class="step-box">
+      <div class="step-num">Phase 01</div>
+      <div class="step-title">Welcome to the Team</div>
+      <div>Warm introduction into the Moov team by their dedicated specialist. Review discovery profile, volume patterns, and operational requirements.</div>
+    </div>
+    <div class="step-box">
+      <div class="step-num">Phase 02</div>
+      <div class="step-title">IT & Software Setup</div>
+      <div>Provision Moov Ninja credentials and configure native store connections (Shopify, TikTok Shop, Amazon, WooCommerce) to verify live SKU & order ingestion.</div>
+    </div>
+    <div class="step-box">
+      <div class="step-num">Phase 03</div>
+      <div class="step-title">Courier Account Applications</div>
+      <div>Moov directly applies for and coordinates dedicated sub-accounts with DPD, DHL, InPost, or UPS to lock in collection routes and vehicle timings.</div>
+    </div>
+    <div class="step-box">
+      <div class="step-num">Phase 04</div>
+      <div class="step-title">Workflow Training Call</div>
+      <div>Dedicated 1-on-1 walkthrough call showing staff how to use Moov Ninja, helping them set up box defaults, 6x4 thermal printer output, and custom routing rules.</div>
+    </div>
+    <div class="step-box" style="border-color: #04A562; background: #F0FFF8;">
+      <div class="step-num">Phase 05</div>
+      <div class="step-title">Agreed Go-Live Date</div>
+      <div>Firm, mutually agreed go-live date locked in with warehouse and carrier driver. First live batch collected; team actively tracks collection and hub scanning.</div>
+    </div>
+    <div class="step-box">
+      <div class="step-num">Phase 06</div>
+      <div class="step-title">Follow-Up Action & Support</div>
+      <div>Proactive post-launch check-in to verify scan rates, audit invoice accuracy, and transition to our permanent Yorkshire support desk (0113 322 4101).</div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    MOOV PARCEL  •  Units 3-5 Parkway Link, Kettlebridge Road, Sheffield S9 3AJ  •  Sales: 0113 322 4100  •  Support: 0113 322 4101  •  moovparcel.co.uk
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Moov Parcel - How We Sell Slides</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700;800&family=Mulish:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    @page {
+      size: 297mm 210mm landscape;
+      margin: 0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Mulish', -apple-system, sans-serif;
+      color: #FDFFFF;
+      background: #0C0F1D;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .slide-page {
+      width: 297mm;
+      height: 210mm;
+      padding: 16mm 20mm;
+      page-break-after: always;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      background: #0C0F1D;
+    }
+    .slide-page::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 5px;
+      background: linear-gradient(90deg, #1DFB9D, #4103CC);
+    }
+    .slide-top {
+      margin-bottom: 8mm;
+    }
+    .eyebrow {
+      font-family: 'Jost', sans-serif;
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1DFB9D;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+    }
+    h1 {
+      font-family: 'Jost', sans-serif;
+      font-size: 28pt;
+      font-weight: 800;
+      color: #FFFFFF;
+      line-height: 1.15;
+    }
+    .subhead {
+      font-size: 12pt;
+      color: #C6C7CD;
+      margin-top: 4px;
+      max-width: 85%;
+    }
+    .footer {
+      border-top: 1px solid rgba(223, 224, 235, 0.15);
+      padding-top: 4mm;
+      display: flex;
+      justify-content: space-between;
+      font-size: 9pt;
+      color: #9FA2B4;
+    }
+    .footer strong { color: #1DFB9D; }
+    .card {
+      background: #1B2034;
+      border: 1px solid rgba(223, 224, 235, 0.15);
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      flex: 1;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      flex: 1;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      flex: 1;
+    }
+    .card h3 {
+      font-family: 'Jost', sans-serif;
+      font-size: 14pt;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .card p {
+      font-size: 10pt;
+      color: #C6C7CD;
+      line-height: 1.5;
+    }
+    .big-stat {
+      font-family: 'Jost', sans-serif;
+      font-size: 34pt;
+      font-weight: 800;
+      color: #1DFB9D;
+      line-height: 1;
+      margin: 8px 0;
+    }
+    .stat-label {
+      font-family: 'Jost', sans-serif;
+      font-size: 12pt;
+      font-weight: 700;
+      color: #FECA00;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SLIDE 1 -->
+  <div class="slide-page">
+    <div class="slide-top">
+      <div class="eyebrow">Moov Parcel // Commercial Sales Methodology</div>
+      <h1>Don't Just Deliver Parcels... <span style="color:#1DFB9D;">Moov Them.</span></h1>
+      <div class="subhead">How Moov Parcel sells as a consultative technology partner — eliminating software fees, switching carriers for later cut-offs, and protecting merchant margins.</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card" style="border-color: rgba(205, 29, 105, 0.4);">
+        <div style="font-family: 'Jost'; font-size: 10pt; font-weight: 700; color: #CD1D69; text-transform: uppercase; margin-bottom: 6px;">The Traditional Broker Model</div>
+        <h3 style="color: #FF9BBB;">The "Cheap Stamp" Race to the Bottom</h3>
+        <p style="margin-bottom: 8px;">• Sells 5p rate cuts on static tariffs<br>• Locks merchants into restrictive volume agreements<br>• Disappears when drivers fail to show or claims are denied<br>• Forces merchants to pay £100s/mo for external software<br>• Traps businesses in multi-hour carrier bot queues</p>
+        <p style="color: #9FA2B4; font-size: 9pt;">Outcome: Margins bleed from hidden fees, lost customers, and high operational friction.</p>
+      </div>
+
+      <div class="card" style="border-color: #1DFB9D; background: rgba(29, 251, 157, 0.05);">
+        <div style="font-family: 'Jost'; font-size: 10pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase; margin-bottom: 6px;">The Moov Consultative Model</div>
+        <h3 style="color: #1DFB9D;">The Tech-Enabled Commerce Partner</h3>
+        <p style="margin-bottom: 8px;">• <strong>Free proprietary software:</strong> Moov Ninja (£0/month)<br>• <strong>Carrier Switching:</strong> Switch carriers to access later local cut-offs<br>• <strong>Tier-1 buying power:</strong> DPD, DHL, InPost, UPS & Evri<br>• <strong>One consolidated invoice:</strong> Single weekly VAT bill for all carriers<br>• <strong>Dedicated Yorkshire desk:</strong> Real people (0113 322 4101) fighting claims</p>
+        <p style="color: #FDFFFF; font-size: 9pt; font-weight: 600;">Outcome: Direct cash savings, extended trading windows, and total peace of mind.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>MOOV PARCEL  •  0113 322 4100  •  moovparcel.co.uk</span>
+      <span>Slide <strong>1 of 6</strong></span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide-page">
+    <div class="slide-top">
+      <div class="eyebrow">The Market Opportunity</div>
+      <h1>The 3 Hidden Margin Leaks in UK E-Commerce Logistics</h1>
+      <div class="subhead">Every consultative discovery call uncovers and prices these three hidden cost drains.</div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 10pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Leak 01</div>
+        <div class="big-stat">£2,400+</div>
+        <div class="stat-label">Annual SaaS Subscription Tax</div>
+        <p>Retailers pay £50 to £250/mo for software like ShipStation, Linnworks, or Shiptheory just to print shipping labels. That's dead margin before a single parcel is dispatched.</p>
+      </div>
+
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 10pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Leak 02</div>
+        <div class="big-stat">18%</div>
+        <div class="stat-label">The Early Cut-Off Trap</div>
+        <p>Trapped with a courier driver arriving at 2:00 or 2:30 PM? Retailers lose late-afternoon sales because they lack carrier accounts with later collection rounds in their area.</p>
+      </div>
+
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 10pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Leak 03</div>
+        <div class="big-stat">3.5 Hrs</div>
+        <div class="stat-label">Weekly Support Limbo</div>
+        <p>Dealing directly with couriers means automated call queues, bot loops, and ignored damage claims. Staff hours are wasted while customer Trustpilot reviews suffer.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>MOOV PARCEL  •  0113 322 4100  •  moovparcel.co.uk</span>
+      <span>Slide <strong>2 of 6</strong></span>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide-page">
+    <div class="slide-top">
+      <div class="eyebrow">The Moov Quad-Engine</div>
+      <h1>Why Retailers Choose Moov Over Going Direct</h1>
+      <div class="subhead">The four integrated operational pillars that make Moov completely unmatchable for UK e-commerce.</div>
+    </div>
+
+    <div class="grid-2" style="grid-template-rows: 1fr 1fr;">
+      <div class="card" style="border-left: 4px solid #1DFB9D;">
+        <h3 style="color: #1DFB9D;">1. Proprietary Free Software (Moov Ninja)</h3>
+        <p>Award-winning cloud software with 150+ direct connectors (Shopify, TikTok Shop, Amazon, eBay). 100-order batch printing in 15 seconds flat, smart routing rules, and zero license fees forever.</p>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #9980E0;">
+        <h3 style="color: #9980E0;">2. Tier-1 Multi-Carrier Buying Power</h3>
+        <p>Access discounted high-volume tariffs across DPD Local, DHL Express, InPost, UPS, and Evri. Benefit from automated carrier routing rules and receive one single weekly VAT invoice.</p>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #FECA00;">
+        <h3 style="color: #FECA00;">3. Carrier Switching for Later Cut-Offs</h3>
+        <p>Stuck with an early 2:30pm driver? We audit collection schedules across multiple carriers in the merchant's postcode and switch them to a carrier that supports a later collection round, plus InPost lockers.</p>
+      </div>
+
+      <div class="card" style="border-left: 4px solid #CD1D69;">
+        <h3 style="color: #FF6B9D;">4. Dedicated Yorkshire Operations Desk</h3>
+        <p>Direct line (0113 322 4101) to our team in Leeds & Sheffield. We answer immediately — no chatbots, no holds. When parcels are delayed or damaged, our team investigates and fights claims for you.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>MOOV PARCEL  •  0113 322 4100  •  moovparcel.co.uk</span>
+      <span>Slide <strong>3 of 6</strong></span>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide-page">
+    <div class="slide-top">
+      <div class="eyebrow">Sales Discovery Methodology</div>
+      <h1>How Moov Reps Lead Consultative Discovery</h1>
+      <div class="subhead">We diagnose operational margin leaks before we prescribe a single tariff or rate.</div>
+    </div>
+
+    <div class="grid-4">
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 9pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Pillar 01</div>
+        <h3 style="font-size: 12pt;">Order Cadence</h3>
+        <p style="font-size: 9pt; margin-top: 6px;">• Daily baseline volumes<br>• Peak & Q4 surges<br>• Highlands & Islands mix<br>• EU & IOSS customs setup<br><br><strong>Goal:</strong> Lock volume tier & eliminate hidden regional surcharges.</p>
+      </div>
+
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 9pt; font-weight: 700; color: #FECA00; text-transform: uppercase;">Pillar 02</div>
+        <h3 style="font-size: 12pt;">Freight Profile</h3>
+        <p style="font-size: 9pt; margin-top: 6px;">• Deadweight vs volumetric<br>• Poly mailers vs cartons<br>• Packaging dead space<br>• Liquids & battery compliance<br><br><strong>Goal:</strong> Rescue merchants from punitive volumetric divisor penalties.</p>
+      </div>
+
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 9pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Pillar 03</div>
+        <h3 style="font-size: 12pt;">Tech & Bench</h3>
+        <p style="font-size: 9pt; margin-top: 6px;">• Shopify, TikTok, Amazon<br>• Current software SaaS fees<br>• Daily hours spent re-keying<br>• 6x4 Zebra thermal format<br><br><strong>Goal:</strong> Replace £100s/mo in SaaS bills with free Moov Ninja.</p>
+      </div>
+
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 9pt; font-weight: 700; color: #CD1D69; text-transform: uppercase;">Pillar 04</div>
+        <h3 style="font-size: 12pt;">Carrier SLAs</h3>
+        <p style="font-size: 9pt; margin-top: 6px;">• Current driver pickup time<br>• Early cut-offs losing sales<br>• Fuel & surcharge surprises<br>• Response times on claims<br><br><strong>Goal:</strong> Switch to later local round; position Leeds support desk.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>MOOV PARCEL  •  0113 322 4100  •  moovparcel.co.uk</span>
+      <span>Slide <strong>4 of 6</strong></span>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide-page">
+    <div class="slide-top">
+      <div class="eyebrow">Commercial Transformation</div>
+      <h1>Typical Client P&L Impact: 1,500 Parcels / Month</h1>
+      <div class="subhead">How a holistic operational audit creates an undeniable commercial business case.</div>
+    </div>
+
+    <div class="grid-3" style="max-height: 180px; margin-bottom: 12px;">
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 9.5pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Software Elimination</div>
+        <div class="big-stat" style="font-size: 26pt;">£1,800 / yr</div>
+        <p style="font-size: 9pt;">Cancelling ShipStation/Linnworks by adopting free Moov Ninja.</p>
+      </div>
+
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 9.5pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Tariff Savings</div>
+        <div class="big-stat" style="font-size: 26pt;">£6,300 / yr</div>
+        <p style="font-size: 9pt;">Average 35p saved across DPD, DHL & InPost multi-carrier split.</p>
+      </div>
+
+      <div class="card" style="border-color: #1DFB9D; background: rgba(29, 251, 157, 0.08);">
+        <div style="font-family: 'Jost'; font-size: 9.5pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Total Landed Gain</div>
+        <div class="big-stat" style="font-size: 26pt; color: #1DFB9D;">£14,100 / yr</div>
+        <p style="font-size: 9pt; color: #FFFFFF;">Including 2 hrs/day packing labour saved and recovered claims.</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 14px 20px;">
+      <h3 style="font-size: 12pt; color: #FFFFFF; margin-bottom: 4px;">Why Competitors Cannot Compete With This Equation</h3>
+      <p style="font-size: 9.5pt; color: #C6C7CD;">Even if an incumbent courier offers to match our base parcel tariff, they cannot eliminate the merchant's software bill, they cannot switch to another carrier when their driver is early or sick, and they don't provide a dedicated human desk to chase their claims. Moov turns parcel shipping into an EBITDA expansion driver.</p>
+    </div>
+
+    <div class="footer">
+      <span>MOOV PARCEL  •  0113 322 4100  •  moovparcel.co.uk</span>
+      <span>Slide <strong>5 of 6</strong></span>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide-page">
+    <div class="slide-top">
+      <div class="eyebrow">Zero-Risk Client Execution</div>
+      <h1>The 72-Hour Frictionless Onboarding Blueprint</h1>
+      <div class="subhead">How we transition retailers from agreement to live dispatch with zero packing bench downtime.</div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom: 14px;">
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 10pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Day 1</div>
+        <h3 style="color: #FFFFFF;">Connect & Audit</h3>
+        <p>• Side-by-side tariff model approved<br>• 10-minute Moov Ninja API sync to Shopify / TikTok Shop / Amazon<br>• SKUs and order channels auto-imported with zero technical setup</p>
+      </div>
+
+      <div class="card">
+        <div style="font-family: 'Jost'; font-size: 10pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Day 2</div>
+        <h3 style="color: #FFFFFF;">Bench Calibration</h3>
+        <p>• Zebra 6x4 thermal printer output calibrated and verified<br>• Carrier collection schedule confirmed or switched to carrier with later local pickup<br>• Automated routing rules set by weight & destination</p>
+      </div>
+
+      <div class="card" style="border-color: #1DFB9D;">
+        <div style="font-family: 'Jost'; font-size: 10pt; font-weight: 700; color: #1DFB9D; text-transform: uppercase;">Day 3</div>
+        <h3 style="color: #FFFFFF;">Live Dispatch</h3>
+        <p>• First live manifest generated and collected<br>• Leeds/Sheffield desk monitors deliveries live in real time<br>• Parallel running enabled so the merchant experiences zero risk</p>
+      </div>
+    </div>
+
+    <div class="card" style="background: rgba(29, 251, 157, 0.08); border-color: #1DFB9D; padding: 12px 18px;">
+      <strong style="color: #1DFB9D; font-size: 10pt;">The Zero-Downtime Promise:</strong>
+      <span style="font-size: 9.5pt; color: #FDFFFF;"> Incumbent couriers run in parallel until the merchant is 100% satisfied. No disruption, no setup fees, and complete continuity for their customers.</span>
+    </div>
+
+    <div class="footer">
+      <span>Ready to transform your shipping? enquiries@moovparcel.co.uk  •  0113 322 4100</span>
+      <span>Slide <strong>6 of 6</strong></span>
+    </div>
+  </div>
+
+</body>
+</html>
