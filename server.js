@@ -2058,6 +2058,11 @@ app.post('/api/book-import', async (req, res) => {
 
     // 1. Book the shipment with UPS (Step 1)
     const shipResult = await ups.bookShipment({
+      mode: 'import',
+      isReturn: false,
+      reasonForExport: req.body.reasonForExport || 'SALE',
+      description: req.body.description || 'Commercial Merchandise',
+      invoiceNumber: req.body.invoiceNumber || null,
       sender,
       receiver,
       packages: pkgs,

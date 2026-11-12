@@ -1059,23 +1059,26 @@ function buildShipmentRequest(p) {
   }
   const defaultOrigin = toIso(p.originCountry || p.origin || (isReturn ? 'PL' : ((senderAddr.Address && senderAddr.Address.CountryCode) || (sender && sender.country) || 'GB')));
   const rawItems = Array.isArray(p.lineItems) && p.lineItems.length ? p.lineItems : (Array.isArray(p.items) && p.items.length ? p.items : []);
+  const fallbackDesc = isReturn ? 'Returned Merchandise' : (p.description || 'Commercial Merchandise');
+  const fallbackSku = isReturn ? 'RET-01' : 'ITEM-01';
+  const fallbackHs = isReturn ? '62046200' : (p.hsCode || '99050000');
   const sourceItems = rawItems.length ? rawItems : [
     {
-      description: S(p.description || 'Returned Merchandise').slice(0, 35),
+      description: S(fallbackDesc).slice(0, 35),
       qty: 1,
       unitValue: Number(p.goodsValue || p.value || 50),
-      hsCode: '62046200',
-      sku: 'RET-01',
+      hsCode: fallbackHs,
+      sku: fallbackSku,
       originCountry: defaultOrigin,
     }
   ];
 
   const productList = sourceItems.map((item, idx) => {
-    const rawDesc = item.description || item.name || 'Returned Merchandise';
+    const rawDesc = item.description || item.name || fallbackDesc;
     const descStr = S(rawDesc).slice(0, 35) || 'Merchandise';
     const orig = toIso(item.originCountry || item.origin || defaultOrigin);
-    const rawHsDigits = S(item.hsCode || item.tariffCode || '62046200').replace(/[^0-9]/g, '');
-    const cleanHs = rawHsDigits.length === 6 ? (rawHsDigits + '00') : (rawHsDigits.slice(0, 10) || '62046200');
+    const rawHsDigits = S(item.hsCode || item.tariffCode || fallbackHs).replace(/[^0-9]/g, '');
+    const cleanHs = rawHsDigits.length === 6 ? (rawHsDigits + '00') : (rawHsDigits.slice(0, 10) || fallbackHs);
     return {
       Description: [descStr],
       Unit: {
@@ -1087,13 +1090,13 @@ function buildShipmentRequest(p) {
         },
       },
       CommodityCode: cleanHs,
-      PartNumber: S(item.sku || item.partNumber || ('RET-' + (idx + 1))).slice(0, 35),
+      PartNumber: S(item.sku || item.partNumber || ((isReturn ? 'RET-' : 'ITEM-') + (idx + 1))).slice(0, 35),
       OriginCountryCode: orig,
       JointFirmRegistrationIndicator: '',
     };
   });
 
-  const invoiceNumber = S(p.invoiceNumber || p.originalOrderRef || ('RET-' + Date.now().toString().slice(-6)));
+  const invoiceNumber = S(p.invoiceNumber || p.originalOrderRef || ((isReturn ? 'RET-' : 'INV-') + Date.now().toString().slice(-6)));
   const purchaseOrderNumber = S(p.reference || p.originalOrderRef || ('MOOV-' + Date.now().toString().slice(-6)));
   const rgrDeclaration = isUkDestination
     ? 'Returned merchandise being returned to the United Kingdom for refund/repair. Relief from customs import duty and VAT claimed under Returned Goods Relief (CPC 61 23 F01).'

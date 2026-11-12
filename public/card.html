@@ -3299,6 +3299,17 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               Required for UK Customs clearance, HMRC declaration, and the Commercial Invoice. <b>Note:</b> This is used strictly for customs valuation (not for courier carriage insurance).
             </div>
           </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+            <div class="f">
+              <label style="font-size:11px">Description of Goods (Optional)</label>
+              <input type="text" id="ibDescription" placeholder="e.g. Electrical parts, Apparel, Homeware" maxlength="35"/>
+            </div>
+            <div class="f">
+              <label style="font-size:11px">Supplier Invoice Number (Optional)</label>
+              <input type="text" id="ibInvoiceNumber" placeholder="e.g. INV-2024-001" maxlength="35"/>
+            </div>
+          </div>
         </div>
 
         <!-- Section 2: Incoterms & Customs Duty Billing -->
@@ -6344,6 +6355,8 @@ async function submitImportBooking() {
     packages: payload.packages,
     serviceCode: svcCode,
     goodsValue: rawVal,
+    description: ival('ibDescription') || 'Commercial Merchandise',
+    invoiceNumber: ival('ibInvoiceNumber') || null,
     incoterms: 'DDP',
     dutyPaymentType,
     dutyAccountNumber: thirdPartyAcct,
