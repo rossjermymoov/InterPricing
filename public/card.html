@@ -2686,7 +2686,17 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
           <div class="isum" id="isummary" style="margin:0;font-size:13px;font-weight:700"></div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:16px 24px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--mv-hairline-2);align-items:flex-end">
-          <div class="f" style="flex:1 1 200px;max-width:280px"><label>Total goods value (£) <span class="pcopt">optional</span></label><input id="igoods" type="number" min="0" step="1" placeholder="Optional (e.g. 250)"/></div>
+          <div class="f" style="flex:1 1 220px;max-width:300px">
+            <label>
+              Goods value for customs (£) <span style="color:#b91c1c;font-weight:800">*</span>
+              <span class="tip-wrap" tabindex="0">
+                <span class="tip-icon">?</span>
+                <span class="tip-bubble">Required for UK customs declaration, Commercial Invoice, and duty/VAT assessment. This declaration is strictly for customs and does not affect courier carriage insurance.</span>
+              </span>
+            </label>
+            <input id="igoods" type="number" min="0.01" step="any" placeholder="e.g. 250.00 (Customs value)"/>
+            <span class="fhint" style="font-size:10px;color:var(--mv-ink-55);margin-top:3px">Required for customs clearance &amp; invoice (not insurance)</span>
+          </div>
           <div class="f" style="flex:1 1 200px;max-width:280px"><label>HS / tariff lines</label><input id="ihslines" type="number" min="0" step="1" value="5" placeholder="e.g. 5"/><span class="fhint" style="font-size:10px;color:var(--mv-ink-55);margin-top:3px">First 5 free, £2.95 each after</span></div>
         </div>
       </div>
@@ -3270,6 +3280,23 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
               <div style="font-size:11px;color:var(--muted);margin-bottom:10px" id="psFileStatus">PDF, PNG, JPG (Max 5MB)</div>
               <input type="file" id="psFileInput" accept=".pdf,.png,.jpg,.jpeg" style="display:none"/>
               <button type="button" class="btn ghost" id="psFileBtn" style="font-size:12px;padding:6px 12px;background:#fff;border:1px solid #cbd5e1;color:var(--ink)">Choose File</button>
+            </div>
+          </div>
+
+          <!-- Declared Customs Value -->
+          <div style="margin-top:14px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:12px 14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+              <label for="ibGoodsValue" style="font-size:12px;font-weight:700;color:var(--ink);margin:0">
+                Declared Goods Value for Customs (£) <span style="color:#b91c1c;font-weight:800">*</span>
+              </label>
+              <span style="font-size:11px;color:#059669;font-weight:700;background:#ecfdf5;padding:2px 8px;border-radius:4px;border:1px solid #a7f3d0">Customs declaration only</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-weight:700;color:var(--ink);font-size:14px">£</span>
+              <input type="number" id="ibGoodsValue" min="0.01" step="0.01" placeholder="e.g. 250.00" style="flex:1;height:36px;border:1px solid var(--line-strong);border-radius:6px;padding:0 10px;font-size:13.5px;font-weight:600" required/>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4">
+              Required for UK Customs clearance, HMRC declaration, and the Commercial Invoice. <b>Note:</b> This is used strictly for customs valuation (not for courier carriage insurance).
             </div>
           </div>
         </div>
@@ -6183,6 +6210,10 @@ function openImportBookingModal(code, name, price) {
   if (d.getDay() === 6) d.setDate(d.getDate() + 2); // Saturday -> Monday
   $('ibPickupDate').value = d.toISOString().slice(0, 10);
 
+  // Sync customs goods value from main quoting form
+  const currentVal = parseFloat(ival('igoods'));
+  if ($('ibGoodsValue')) $('ibGoodsValue').value = (currentVal && !isNaN(currentVal) && currentVal > 0) ? currentVal : '';
+
   $('importBookModal').style.display = 'flex';
 }
 
@@ -6297,13 +6328,22 @@ async function submitImportBooking() {
     return;
   }
 
+  const rawVal = ($('ibGoodsValue') && $('ibGoodsValue').value) ? parseFloat($('ibGoodsValue').value) : (payload.value || 0);
+  if (!rawVal || isNaN(rawVal) || rawVal <= 0) {
+    errBox.textContent = 'Please enter the declared customs value of the goods. This is required by UPS and HMRC for customs clearance and the Commercial Invoice (not for courier insurance).';
+    errBox.style.display = 'block';
+    if ($('ibGoodsValue')) $('ibGoodsValue').focus();
+    return;
+  }
+  if ($('igoods')) $('igoods').value = rawVal;
+
   const reqBody = {
     token: curToken,
     sender: payload.sender,
     receiver: payload.receiver,
     packages: payload.packages,
     serviceCode: svcCode,
-    goodsValue: payload.value,
+    goodsValue: rawVal,
     incoterms: 'DDP',
     dutyPaymentType,
     dutyAccountNumber: thirdPartyAcct,

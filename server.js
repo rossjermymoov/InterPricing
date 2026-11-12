@@ -2051,13 +2051,18 @@ app.post('/api/book-import', async (req, res) => {
 
     const pkgs = (Array.isArray(packages) && packages.length) ? packages : [{ weight: 1, qty: 1 }];
 
+    const gVal = Number(goodsValue);
+    if (!gVal || isNaN(gVal) || gVal <= 0) {
+      return res.status(400).json({ ok: false, error: 'Declared goods value is required for customs clearance and Commercial Invoice declaration (not for courier insurance).' });
+    }
+
     // 1. Book the shipment with UPS (Step 1)
     const shipResult = await ups.bookShipment({
       sender,
       receiver,
       packages: pkgs,
       serviceCode: serviceCode || '65',
-      goodsValue: goodsValue || 0,
+      goodsValue: gVal,
       incoterms: incoterms || 'DDP',
       dutyPaymentType: dutyPaymentType || (thirdPartyAccountNumber ? 'thirdParty' : 'shipper'),
       dutyAccountNumber: dutyAccountNumber || thirdPartyAccountNumber,
