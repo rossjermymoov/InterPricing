@@ -8899,18 +8899,35 @@ async function boot() {
     b.addEventListener('click', () => setView(b.dataset.view));
   });
 
-  const token = location.pathname.split('/').filter(Boolean).pop();
+  let token = location.pathname.split('/').filter(Boolean).pop();
+  if (!token || token === 'card' || token === 'card.html') token = 'demo';
   curToken = token;
   if ($('btnDownloadCardXlsx')) {
     $('btnDownloadCardXlsx').href = '/api/card/' + encodeURIComponent(token) + '/ratecard.xlsx';
   }
   try {
     const res = await fetch('/api/card/' + encodeURIComponent(token));
-    if (!res.ok) { $('state').textContent = 'This rate card link is not available.'; return; }
+    if (!res.ok) {
+      $('state').innerHTML = '<div style="max-width:440px;margin:40px auto;background:#fff;padding:28px 24px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.08);text-align:center;font-family:sans-serif">' +
+        '<div style="font-size:36px;margin-bottom:12px">💳</div>' +
+        '<div style="font-size:17px;font-weight:800;color:#0f172a;margin-bottom:6px">Rate Card Not Available</div>' +
+        '<div style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:18px">We could not load the rate card for token <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;color:#334155;font-weight:700">' + esc(token) + '</code>. It may have expired or been deactivated.</div>' +
+        '<div style="display:flex;gap:10px;justify-content:center">' +
+        '<a href="/card/demo" style="display:inline-block;padding:9px 18px;background:#7000de;color:#fff;text-decoration:none;font-size:13px;font-weight:700;border-radius:6px">Load Demo Rate Card</a>' +
+        '<a href="/" style="display:inline-block;padding:9px 18px;background:#f1f5f9;color:#334155;text-decoration:none;font-size:13px;font-weight:700;border-radius:6px">Back to Portal</a>' +
+        '</div>' +
+        '</div>';
+      return;
+    }
     RC = await res.json();
     try { renderReturnsDestAddress(); } catch (_) {}
   } catch (e) {
-    $('state').textContent = 'Could not load this rate card.';
+    $('state').innerHTML = '<div style="max-width:440px;margin:40px auto;background:#fff;padding:28px 24px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.08);text-align:center;font-family:sans-serif">' +
+      '<div style="font-size:36px;margin-bottom:12px">⚠️</div>' +
+      '<div style="font-size:17px;font-weight:800;color:#0f172a;margin-bottom:6px">Connection Error</div>' +
+      '<div style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:18px">Could not communicate with the pricing server. Please ensure the server is running.</div>' +
+      '<button onclick="location.reload()" style="padding:9px 18px;background:#7000de;color:#fff;border:0;cursor:pointer;font-size:13px;font-weight:700;border-radius:6px">Retry</button>' +
+      '</div>';
     return;
   }
   $('state').style.display = 'none';

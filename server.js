@@ -220,7 +220,28 @@ app.post('/api/cards', auth.requireAuth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.get('/api/cards', auth.requireAuth, async (req, res) => {
-  if (!db.hasDb) return res.json({ cards: [] });
+  if (!db.hasDb) {
+    return res.json({
+      cards: [
+        {
+          id: 1,
+          token: 'demo',
+          customer: 'Demo Customer (Offline Mode)',
+          enabled: true,
+          created_at: new Date().toISOString(),
+          views: 1,
+          config: {
+            title: 'International Rate Card',
+            markup: { default: 10 },
+            importMarkupPct: 15,
+            importBookingEnabled: true,
+            samedayEnabled: true,
+            returnsEnabled: true
+          }
+        }
+      ]
+    });
+  }
   try { res.json({ cards: await db.listCards() }); } catch (e) { res.status(500).json({ error: e.message }); }
 });
 app.patch('/api/cards/:id', auth.requireAuth, async (req, res) => {
@@ -266,7 +287,16 @@ app.get('/api/cards/:id/ratecard.xlsx', auth.requireAuth, async (req, res) => {
 // EXPORT: Customer Rate Card as Excel (.xlsx) by Public Token (Client/Customer)
 app.get('/api/card/:token/ratecard.xlsx', async (req, res) => {
   try {
-    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    let card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card && (!db.hasDb || req.params.token === 'demo' || req.params.token === 'card.html' || req.params.token === 'default')) {
+      card = {
+        id: 1,
+        token: req.params.token,
+        customer: 'Standard Customer',
+        enabled: true,
+        config: { title: 'International Rate Card', markup: { default: 10 } }
+      };
+    }
     if (!card || card.enabled === false) return res.status(404).json({ error: 'This rate card is not available.' });
     const cfg = await db.getConfig();
     const wb = ratecardExporter.buildRateCardWorkbook(cfg, card, {
@@ -314,7 +344,30 @@ app.post('/api/ratecard/export.xlsx', auth.requireAuth, async (req, res) => {
 // PUBLIC: customer-facing payload (final prices only) — no auth.
 app.get('/api/card/:token', async (req, res) => {
   try {
-    const card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    let card = db.hasDb ? await db.getCardByToken(req.params.token) : null;
+    if (!card && (!db.hasDb || req.params.token === 'demo' || req.params.token === 'card.html' || req.params.token === 'default')) {
+      card = {
+        id: 1,
+        token: req.params.token,
+        customer: 'Standard Customer',
+        enabled: true,
+        config: {
+          title: 'International Rate Card',
+          markup: { default: 10 },
+          importMarkupPct: 15,
+          importBookingEnabled: true,
+          samedayEnabled: true,
+          returnsEnabled: true,
+          deliveryAddress: {
+            company: 'Moov Customer Warehouse',
+            line1: 'Unit 4, Magna Way',
+            city: 'Rotherham',
+            postcode: 'S60 1FE',
+            country: 'GB'
+          }
+        }
+      };
+    }
     if (!card || card.enabled === false) return res.status(404).json({ error: 'This rate card is not available.' });
     res.set('Cache-Control', 'no-store');
     const payload = pricing.buildCardPayload(await db.getConfig(), card);
@@ -3265,6 +3318,7 @@ app.post('/api/ups-test', auth.requireAdmin, async (req, res) => {
 app.get('/import', (req, res) => res.sendFile(path.join(__dirname, 'public', 'import-quote.html')));
 
 // PUBLIC: branded card page.
+app.get(['/card', '/card.html'], (req, res) => res.redirect('/card/demo'));
 app.get('/card/:token', (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.set('Pragma', 'no-cache');
