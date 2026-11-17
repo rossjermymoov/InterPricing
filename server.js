@@ -1,5 +1,28 @@
-const express = require('express');
+const fs = require('fs');
 const path = require('path');
+
+// Auto-load local .env if present
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+    const match = trimmed.match(/^([\w.-]+)\s*=\s*(.*)?$/);
+    if (match) {
+      const key = match[1];
+      let value = (match[2] || '').trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      if (process.env[key] === undefined) {
+        process.env[key] = value;
+      }
+    }
+  });
+}
+
+const express = require('express');
 const cookieParser = require('cookie-parser');
 const db = require('./db');
 const auth = require('./auth');
@@ -3102,7 +3125,7 @@ app.post('/api/card/:token/sameday/quotes', async (req, res) => {
       return res.status(400).json({ error: 'Delivery date & time must be strictly after collection date & time.' });
     }
 
-    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
+    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'C/MOOV01';
     const crownPayload = {
       customerID: masterAccountCode,
       vanSize: vanSize || 'SWB',
@@ -3213,7 +3236,7 @@ app.post('/api/card/:token/sameday/jobs', async (req, res) => {
       return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
     }
 
-    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
+    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'C/MOOV01';
     const crownPayload = {
       customerID: masterAccountCode,
       vanSize: jobVanSize || 'SWB',
@@ -3408,7 +3431,7 @@ app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Delivery date & time must be strictly after collection date & time.' });
     }
 
-    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
+    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'C/MOOV01';
 
     const crownPayload = {
       customerID: masterAccountCode,
@@ -3532,7 +3555,7 @@ app.post('/api/sameday/jobs', auth.requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
     }
 
-    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'DEMO01';
+    const masterAccountCode = process.env.CROWN_CUSTOMER_ID || 'C/MOOV01';
 
     const crownPayload = {
       customerID: masterAccountCode,
