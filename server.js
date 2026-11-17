@@ -3177,13 +3177,16 @@ app.post('/api/card/:token/sameday/quotes', async (req, res) => {
       item_des: crownPayload.ItemDes,
       stations: crownPayload.stations,
       parameters: crownPayload.parameters,
-      customer_reference: ref || null
+      customer_reference: ref || null,
+      crown_quote_ref: crownResponse.reference || null
     });
 
     res.json({
       success: true,
       quoteId: savedQuote.id,
       quoteRef: savedQuote.quote_ref,
+      crownQuoteRef: crownResponse.reference || null,
+      crownReference: crownResponse.reference || null,
       price: customerPrice,
       distanceMiles: crownResponse.distanceMiles,
       quote: savedQuote
@@ -3265,9 +3268,11 @@ app.post('/api/card/:token/sameday/jobs', async (req, res) => {
     };
 
     const crownResponse = await crownClient.createJob(crownPayload);
+    const crownJobRef = crownResponse.reference || crownResponse.Reference || crownResponse.job_ref;
 
     const savedJob = await db.createSamedayJob({
-      job_ref: crownResponse.reference,
+      job_ref: String(crownJobRef || ('CRW-' + Math.floor(10000000 + Math.random() * 90000000))),
+      crown_job_ref: crownJobRef ? String(crownJobRef) : null,
       user_id: req.params.token,
       portal_slug: req.params.token,
       customer_email: conf.email || null,
@@ -3292,6 +3297,8 @@ app.post('/api/card/:token/sameday/jobs', async (req, res) => {
     res.json({
       success: true,
       jobRef: savedJob.job_ref,
+      crownJobRef: savedJob.crown_job_ref || savedJob.job_ref,
+      crownReference: savedJob.crown_job_ref || savedJob.job_ref,
       job: savedJob
     });
   } catch (err) {
@@ -3487,7 +3494,8 @@ app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
       item_des: crownPayload.ItemDes,
       stations: crownPayload.stations,
       parameters: crownPayload.parameters,
-      customer_reference: ref || null
+      customer_reference: ref || null,
+      crown_quote_ref: crownResponse.reference || null
     });
 
     const isAdmin = req.user && req.user.role === 'admin';
@@ -3496,6 +3504,8 @@ app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
       success: true,
       quoteId: savedQuote.id,
       quoteRef: savedQuote.quote_ref,
+      crownQuoteRef: crownResponse.reference || null,
+      crownReference: crownResponse.reference || null,
       price: customerPrice,
       distanceMiles: crownResponse.distanceMiles,
       basePrice: isAdmin ? basePrice.toFixed(2) : undefined,
@@ -3585,9 +3595,11 @@ app.post('/api/sameday/jobs', auth.requireAuth, async (req, res) => {
     };
 
     const crownResponse = await crownClient.createJob(crownPayload);
+    const crownJobRef = crownResponse.reference || crownResponse.Reference || crownResponse.job_ref;
 
     const savedJob = await db.createSamedayJob({
-      job_ref: crownResponse.reference,
+      job_ref: String(crownJobRef || ('CRW-' + Math.floor(10000000 + Math.random() * 90000000))),
+      crown_job_ref: crownJobRef ? String(crownJobRef) : null,
       user_id: req.user.id,
       customer_email: req.user.email,
       company_name: req.user.name,
@@ -3611,6 +3623,8 @@ app.post('/api/sameday/jobs', auth.requireAuth, async (req, res) => {
     res.json({
       success: true,
       jobRef: savedJob.job_ref,
+      crownJobRef: savedJob.crown_job_ref || savedJob.job_ref,
+      crownReference: savedJob.crown_job_ref || savedJob.job_ref,
       job: savedJob
     });
   } catch (err) {

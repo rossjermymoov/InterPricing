@@ -192,6 +192,8 @@ async function initDb() {
   await pool.query(`CREATE INDEX IF NOT EXISTS sameday_quotes_ref_idx ON sameday_quotes (quote_ref);`);
   await pool.query(`ALTER TABLE sameday_quotes ADD COLUMN IF NOT EXISTS customer_reference text;`);
   await pool.query(`CREATE INDEX IF NOT EXISTS sameday_quotes_cust_ref_idx ON sameday_quotes (customer_reference);`);
+  await pool.query(`ALTER TABLE sameday_quotes ADD COLUMN IF NOT EXISTS crown_quote_ref text;`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS sameday_quotes_crown_ref_idx ON sameday_quotes (crown_quote_ref);`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sameday_jobs (
@@ -211,6 +213,7 @@ async function initDb() {
       parameters jsonb DEFAULT '[]'::jsonb,
       cancel_reason text,
       customer_reference text,
+      crown_job_ref text,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );`);
@@ -218,6 +221,8 @@ async function initDb() {
   await pool.query(`CREATE INDEX IF NOT EXISTS sameday_jobs_ref_idx ON sameday_jobs (job_ref);`);
   await pool.query(`ALTER TABLE sameday_jobs ADD COLUMN IF NOT EXISTS customer_reference text;`);
   await pool.query(`CREATE INDEX IF NOT EXISTS sameday_jobs_cust_ref_idx ON sameday_jobs (customer_reference);`);
+  await pool.query(`ALTER TABLE sameday_jobs ADD COLUMN IF NOT EXISTS crown_job_ref text;`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS sameday_jobs_crown_ref_idx ON sameday_jobs (crown_job_ref);`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sameday_tracking_events (
@@ -773,8 +778,8 @@ async function createSamedayQuote(q) {
     `INSERT INTO sameday_quotes (
       id, quote_ref, user_id, customer_email, company_name, pickup_postcode, delivery_postcode,
       van_size, no_of_item, item_des, base_price, margin_amount, customer_price, markup_percent,
-      stations, parameters, status, customer_reference
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+      stations, parameters, status, customer_reference, crown_quote_ref
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
     [
       id,
       quoteRef,
@@ -793,7 +798,8 @@ async function createSamedayQuote(q) {
       JSON.stringify(q.stations || []),
       JSON.stringify(q.parameters || []),
       q.status || 'QUOTED',
-      q.customer_reference || q.reference || null
+      q.customer_reference || q.reference || null,
+      q.crown_quote_ref || q.crownReference || null
     ]
   );
   return rows[0] || null;
@@ -840,8 +846,8 @@ async function createSamedayJob(j) {
     `INSERT INTO sameday_jobs (
       id, job_ref, user_id, portal_slug, customer_email, company_name,
       van_size, no_of_item, item_des, status, price, customer_price,
-      stations, parameters, customer_reference
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+      stations, parameters, customer_reference, crown_job_ref
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
     [
       id,
       String(j.job_ref),
@@ -857,7 +863,8 @@ async function createSamedayJob(j) {
       j.customer_price != null ? Number(j.customer_price) : null,
       JSON.stringify(j.stations || []),
       JSON.stringify(j.parameters || []),
-      j.customer_reference || j.reference || null
+      j.customer_reference || j.reference || null,
+      j.crown_job_ref || j.crownReference || String(j.job_ref)
     ]
   );
   return rows[0] || null;

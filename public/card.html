@@ -8688,7 +8688,10 @@ async function handleSdCustQuote(e) {
 
     currentSdCustQuote = d;
     currentSdCustQuote.reference = reference;
-    if ($('sdCustQuoteRefDisplay')) $('sdCustQuoteRefDisplay').textContent = d.quoteRef || d.quoteId;
+    if ($('sdCustQuoteRefDisplay')) {
+      const crownBadge = d.crownQuoteRef ? ` · Crown #${d.crownQuoteRef}` : '';
+      $('sdCustQuoteRefDisplay').textContent = (d.quoteRef || d.quoteId) + crownBadge;
+    }
     if ($('sdCustQuotePriceDisplay')) $('sdCustQuotePriceDisplay').textContent = '£' + d.price;
     if (d.distanceMiles && $('sdCustDistPreview')) {
       $('sdCustDistPreview').style.display = 'block';
@@ -8764,7 +8767,8 @@ if ($('sdCustConfirmExecute')) {
       if (!res.ok) throw new Error(d.error || 'Booking failed');
 
       $('sdCustConfirmModal').style.display = 'none';
-      alert('🎉 Same-Day Transport Run Booked Successfully!\n\nJob Reference: ' + d.jobRef + (jobRef ? ('\nCustomer Reference: ' + jobRef) : ''));
+      const crownRef = d.crownJobRef || d.jobRef;
+      alert('🎉 Same-Day Transport Run Booked Successfully!\n\nCrown SDS Job Reference: ' + crownRef + (jobRef ? ('\nCustomer Reference: ' + jobRef) : ''));
       if ($('btnSdCustBookQuote')) $('btnSdCustBookQuote').style.display = 'none';
       currentSdCustQuote = null;
 
