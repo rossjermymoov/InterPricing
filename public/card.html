@@ -2409,6 +2409,15 @@ a:hover { text-decoration: underline; color: var(--mv-ink); }
                   </select>
                 </div>
               </div>
+              <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--mv-hairline-2)">
+                <div class="sd-field-wrap">
+                  <label class="sd-label" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>Job Reference / PO Number (Optional)</span>
+                    <span style="font-weight:400;color:var(--mv-ink-55);font-size:10.5px">Submitted as job reference to Crown SDS</span>
+                  </label>
+                  <input type="text" id="sdCustJobRef" class="sd-input" placeholder="e.g. PO-88921, REF-1002, BATCH-A" maxlength="60"/>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -7263,6 +7272,7 @@ function renderCustomerBookings(shipments) {
             <div>
               <div style="font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px">3. Job Reference</div>
               <div style="font-weight:800;font-family:monospace;font-size:14px;color:var(--brand)">${esc(x.tracking_number || x.id)}</div>
+              ${(x.order_ref || x.customer_reference) ? `<div style="font-size:12px;color:var(--ink);margin-top:2px">Customer Ref: <b style="color:var(--mv-purple)">${esc(x.order_ref || x.customer_reference)}</b></div>` : ''}
               <div style="font-size:12px;color:var(--muted);margin-top:2px">Vehicle: <b>${esc(x.van_size || 'SWB')} Dedicated Courier</b></div>
             </div>
 
@@ -8657,10 +8667,13 @@ async function handleSdCustQuote(e) {
   btn.disabled = true;
   btn.textContent = 'Calculating direct route…';
 
+  const reference = $('sdCustJobRef') ? $('sdCustJobRef').value.trim() : '';
+
   const payload = {
     vanSize: $('sdCustVan') ? $('sdCustVan').value : 'SWB',
     noOfItem: $('sdCustItemQty') ? parseInt($('sdCustItemQty').value, 10) : 1,
     itemDes: $('sdCustItemDesc') ? $('sdCustItemDesc').value : 'Pallet of freight',
+    reference,
     stations
   };
 
@@ -8674,6 +8687,7 @@ async function handleSdCustQuote(e) {
     if (!res.ok) throw new Error(d.error || 'Failed to calculate quote');
 
     currentSdCustQuote = d;
+    currentSdCustQuote.reference = reference;
     if ($('sdCustQuoteRefDisplay')) $('sdCustQuoteRefDisplay').textContent = d.quoteRef || d.quoteId;
     if ($('sdCustQuotePriceDisplay')) $('sdCustQuotePriceDisplay').textContent = '£' + d.price;
     if (d.distanceMiles && $('sdCustDistPreview')) {
@@ -8694,12 +8708,18 @@ function handleOpenSdCustConfirmModal() {
   const stations = (currentSdCustQuote.quote && currentSdCustQuote.quote.stations) || [];
   const p1 = stations[0] ? (stations[0].postcode + ' (' + (stations[0].company_name || 'Pickup') + ')') : 'Origin';
   const p2 = stations[stations.length - 1] ? (stations[stations.length - 1].postcode + ' (' + (stations[stations.length - 1].company_name || 'Destination') + ')') : 'Destination';
+  const jobRefDisplay = currentSdCustQuote.reference || (currentSdCustQuote.quote && currentSdCustQuote.quote.customer_reference) || ($('sdCustJobRef') ? $('sdCustJobRef').value.trim() : '');
 
   $('sdCustConfirmSummary').innerHTML = `
     <div style="display:flex;justify-content:space-between;margin-bottom:4px">
       <span style="color:var(--mv-ink-55)">Quote Reference:</span>
       <b>${currentSdCustQuote.quoteRef || currentSdCustQuote.quoteId}</b>
     </div>
+    ${jobRefDisplay ? `
+    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+      <span style="color:var(--mv-ink-55)">Customer / Job Ref:</span>
+      <b style="color:var(--moov-navy)">${esc(jobRefDisplay)}</b>
+    </div>` : ''}
     <div style="display:flex;justify-content:space-between;margin-bottom:4px">
       <span style="color:var(--mv-ink-55)">Vehicle Allocation:</span>
       <b>${currentSdCustQuote.quote?.van_size || currentSdCustQuote.quote?.vanSize || 'SWB'} Dedicated Courier</b>
@@ -8730,19 +8750,21 @@ if ($('sdCustConfirmExecute')) {
     btn.textContent = 'Allocating dedicated vehicle…';
 
     try {
+      const jobRef = currentSdCustQuote.reference || (currentSdCustQuote.quote && currentSdCustQuote.quote.customer_reference) || ($('sdCustJobRef') ? $('sdCustJobRef').value.trim() : '');
       const res = await fetch('/api/card/' + encodeURIComponent(curToken) + '/sameday/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           quoteId: currentSdCustQuote.quoteId,
-          customerPrice: currentSdCustQuote.price
+          customerPrice: currentSdCustQuote.price,
+          reference: jobRef
         })
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'Booking failed');
 
       $('sdCustConfirmModal').style.display = 'none';
-      alert('🎉 Same-Day Transport Run Booked Successfully!\n\nJob Reference: ' + d.jobRef);
+      alert('🎉 Same-Day Transport Run Booked Successfully!\n\nJob Reference: ' + d.jobRef + (jobRef ? ('\nCustomer Reference: ' + jobRef) : ''));
       if ($('btnSdCustBookQuote')) $('btnSdCustBookQuote').style.display = 'none';
       currentSdCustQuote = null;
 

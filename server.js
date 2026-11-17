@@ -2974,6 +2974,8 @@ app.get('/api/card/:token/shipments', async (req, res) => {
           service_name: `Same-Day Courier (${j.van_size || 'Van'})`,
           customer: j.company_name || card.customer || '',
           token: req.params.token,
+          order_ref: j.customer_reference || '',
+          customer_reference: j.customer_reference || '',
           sender: {
             company: pick.company_name || 'Collection Site',
             name: pick.contactname || '',
@@ -3038,6 +3040,31 @@ app.delete('/api/card/:token/shipments/cancelled', async (req, res) => {
   }
 });
 
+// Helper to inject customer/job reference into Crown SDS parameters array
+function buildCrownParameters(existingParams, reference) {
+  const params = Array.isArray(existingParams) ? [...existingParams] : [];
+  const refStr = reference ? String(reference).trim() : '';
+  if (refStr) {
+    const hasJobRef = params.some(p => p && (p.name === 'Job Reference' || p.name === 'Job Ref'));
+    if (!hasJobRef) {
+      params.push({
+        name: 'Job Reference',
+        description: 'Customer Job Reference',
+        value: refStr
+      });
+    }
+    const hasRef = params.some(p => p && p.name === 'Reference');
+    if (!hasRef) {
+      params.push({
+        name: 'Reference',
+        description: 'Customer Reference',
+        value: refStr
+      });
+    }
+  }
+  return params;
+}
+
 // CARD TOKEN: Customer Same-Day Quote
 app.post('/api/card/:token/sameday/quotes', async (req, res) => {
   try {
@@ -3048,10 +3075,13 @@ app.post('/api/card/:token/sameday/quotes', async (req, res) => {
       return res.status(403).json({ error: 'Same-day courier service is not enabled for this customer account.' });
     }
 
-    const { vanSize, noOfItem, itemDes, stations, parameters } = req.body;
+    const { vanSize, noOfItem, itemDes, stations, parameters, reference, customerReference } = req.body;
     if (!stations || !Array.isArray(stations) || stations.length < 2) {
       return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
     }
+
+    const ref = (reference || customerReference || '').trim();
+    const crownParams = buildCrownParameters(parameters, ref);
 
     const todayStr = new Date().toISOString().split('T')[0];
     const pStop = stations.find(s => s.type === 'P') || stations[0];
@@ -3078,7 +3108,7 @@ app.post('/api/card/:token/sameday/quotes', async (req, res) => {
       vanSize: vanSize || 'SWB',
       NoOfItem: String(noOfItem || '1'),
       ItemDes: itemDes || 'General Freight',
-      parameters: parameters || [],
+      parameters: crownParams,
       stations: stations.map((s, idx) => ({
         type: s.type,
         order_sequence: s.order_sequence || (idx + 1),
@@ -3123,7 +3153,8 @@ app.post('/api/card/:token/sameday/quotes', async (req, res) => {
       no_of_item: crownPayload.NoOfItem,
       item_des: crownPayload.ItemDes,
       stations: crownPayload.stations,
-      parameters: crownPayload.parameters
+      parameters: crownPayload.parameters,
+      customer_reference: ref || null
     });
 
     res.json({
@@ -3150,13 +3181,15 @@ app.post('/api/card/:token/sameday/jobs', async (req, res) => {
       return res.status(403).json({ error: 'Same-day courier service is not enabled for this customer account.' });
     }
 
-    const { quoteId, vanSize, noOfItem, itemDes, stations, parameters, customerPrice, basePrice } = req.body;
+    const { quoteId, vanSize, noOfItem, itemDes, stations, parameters, customerPrice, basePrice, reference, customerReference } = req.body;
     let jobStations = stations;
     let jobVanSize = vanSize;
     let jobNoOfItem = noOfItem;
     let jobItemDes = itemDes;
     let jobCustomerPrice = customerPrice;
     let jobBasePrice = basePrice;
+    let jobParameters = parameters || [];
+    let jobCustRef = (reference || customerReference || '').trim();
 
     if (quoteId) {
       const quote = await db.getSamedayQuoteByIdOrRef(quoteId);
@@ -3167,6 +3200,12 @@ app.post('/api/card/:token/sameday/jobs', async (req, res) => {
         jobItemDes = quote.item_des;
         jobCustomerPrice = quote.customer_price;
         jobBasePrice = quote.base_price;
+        if (!jobCustRef && quote.customer_reference) {
+          jobCustRef = quote.customer_reference;
+        }
+        if ((!jobParameters || !jobParameters.length) && quote.parameters) {
+          jobParameters = quote.parameters;
+        }
       }
     }
 
@@ -3180,7 +3219,7 @@ app.post('/api/card/:token/sameday/jobs', async (req, res) => {
       vanSize: jobVanSize || 'SWB',
       NoOfItem: String(jobNoOfItem || '1'),
       ItemDes: jobItemDes || 'General Freight',
-      parameters: parameters || [],
+      parameters: buildCrownParameters(jobParameters, jobCustRef),
       stations: jobStations.map((s, idx) => ({
         type: s.type,
         order_sequence: s.order_sequence || (idx + 1),
@@ -3217,7 +3256,8 @@ app.post('/api/card/:token/sameday/jobs', async (req, res) => {
       price: jobBasePrice || '0.00',
       customer_price: jobCustomerPrice || '0.00',
       stations: crownPayload.stations,
-      parameters: crownPayload.parameters
+      parameters: crownPayload.parameters,
+      customer_reference: jobCustRef || null
     });
 
     if (quoteId) {
@@ -3340,11 +3380,14 @@ app.get('/api/stream', (req, res) => {
 // 1. Same-Day Request Quote
 app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
   try {
-    const { vanSize, noOfItem, itemDes, stations, parameters, customMarkupPercent } = req.body;
+    const { vanSize, noOfItem, itemDes, stations, parameters, customMarkupPercent, reference, customerReference } = req.body;
 
     if (!stations || !Array.isArray(stations) || stations.length < 2) {
       return res.status(400).json({ error: 'At least one collection and one delivery station are required.' });
     }
+
+    const ref = (reference || customerReference || '').trim();
+    const crownParams = buildCrownParameters(parameters, ref);
 
     const todayStr = new Date().toISOString().split('T')[0];
     const pStop = stations.find(s => s.type === 'P') || stations[0];
@@ -3372,7 +3415,7 @@ app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
       vanSize: vanSize || 'SWB',
       NoOfItem: String(noOfItem || '1'),
       ItemDes: itemDes || 'General Freight',
-      parameters: parameters || [],
+      parameters: crownParams,
       stations: stations.map((s, idx) => ({
         type: s.type,
         order_sequence: s.order_sequence || (idx + 1),
@@ -3420,7 +3463,8 @@ app.post('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
       no_of_item: crownPayload.NoOfItem,
       item_des: crownPayload.ItemDes,
       stations: crownPayload.stations,
-      parameters: crownPayload.parameters
+      parameters: crownPayload.parameters,
+      customer_reference: ref || null
     });
 
     const isAdmin = req.user && req.user.role === 'admin';
@@ -3456,13 +3500,15 @@ app.get('/api/sameday/quotes', auth.requireAuth, async (req, res) => {
 // 3. Same-Day Book Live Courier Job
 app.post('/api/sameday/jobs', auth.requireAuth, async (req, res) => {
   try {
-    const { quoteId, vanSize, noOfItem, itemDes, stations, parameters, customerPrice, basePrice } = req.body;
+    const { quoteId, vanSize, noOfItem, itemDes, stations, parameters, customerPrice, basePrice, reference, customerReference } = req.body;
     let jobStations = stations;
     let jobVanSize = vanSize;
     let jobNoOfItem = noOfItem;
     let jobItemDes = itemDes;
     let jobCustomerPrice = customerPrice;
     let jobBasePrice = basePrice;
+    let jobParameters = parameters || [];
+    let jobCustRef = (reference || customerReference || '').trim();
 
     if (quoteId) {
       const quote = await db.getSamedayQuoteByIdOrRef(quoteId);
@@ -3473,6 +3519,12 @@ app.post('/api/sameday/jobs', auth.requireAuth, async (req, res) => {
         jobItemDes = quote.item_des;
         jobCustomerPrice = quote.customer_price;
         jobBasePrice = quote.base_price;
+        if (!jobCustRef && quote.customer_reference) {
+          jobCustRef = quote.customer_reference;
+        }
+        if ((!jobParameters || !jobParameters.length) && quote.parameters) {
+          jobParameters = quote.parameters;
+        }
       }
     }
 
@@ -3487,7 +3539,7 @@ app.post('/api/sameday/jobs', auth.requireAuth, async (req, res) => {
       vanSize: jobVanSize || 'SWB',
       NoOfItem: String(jobNoOfItem || '1'),
       ItemDes: jobItemDes || 'General Freight',
-      parameters: parameters || [],
+      parameters: buildCrownParameters(jobParameters, jobCustRef),
       stations: jobStations.map((s, idx) => ({
         type: s.type,
         order_sequence: s.order_sequence || (idx + 1),
@@ -3523,7 +3575,8 @@ app.post('/api/sameday/jobs', auth.requireAuth, async (req, res) => {
       price: jobBasePrice || '0.00',
       customer_price: jobCustomerPrice || '0.00',
       stations: crownPayload.stations,
-      parameters: crownPayload.parameters
+      parameters: crownPayload.parameters,
+      customer_reference: jobCustRef || null
     });
 
     if (quoteId) {
