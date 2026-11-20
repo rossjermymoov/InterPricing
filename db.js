@@ -469,28 +469,38 @@ async function deleteUser(id) {
 
 // ---- rate cards (shareable customer links) ----
 const newToken = () => crypto.randomBytes(9).toString('base64').replace(/[+/=]/g, (m) => ({ '+': 'a', '/': 'b', '=': '' }[m]));
+function normalizeCard(card) {
+  if (!card) return null;
+  if (typeof card.config === 'string') {
+    try { card.config = JSON.parse(card.config); } catch (_) { card.config = {}; }
+  }
+  if (typeof card.config === 'string') {
+    try { card.config = JSON.parse(card.config); } catch (_) { card.config = {}; }
+  }
+  return card;
+}
 async function createCard({ customer, config, created_by }) {
   const token = newToken();
   const { rows } = await pool.query(
     `INSERT INTO rate_cards (token, customer, config, created_by) VALUES ($1,$2,$3,$4) RETURNING *`,
     [token, customer || null, JSON.stringify(config || {}), created_by || null]
   );
-  return rows[0];
+  return normalizeCard(rows[0]);
 }
 async function listCards() {
   const { rows } = await pool.query(
     `SELECT rc.*, u.name AS creator_name, u.email AS creator_email
        FROM rate_cards rc LEFT JOIN users u ON u.id = rc.created_by
       ORDER BY rc.created_at DESC`);
-  return rows;
+  return rows.map(normalizeCard);
 }
 async function getCardByToken(token) {
   const { rows } = await pool.query('SELECT * FROM rate_cards WHERE token = $1', [token]);
-  return rows[0] || null;
+  return normalizeCard(rows[0]);
 }
 async function getCardById(id) {
   const { rows } = await pool.query('SELECT * FROM rate_cards WHERE id = $1', [id]);
-  return rows[0] || null;
+  return normalizeCard(rows[0]);
 }
 async function updateCard(id, { customer, config, enabled }) {
   const sets = [], vals = [];
@@ -501,7 +511,7 @@ async function updateCard(id, { customer, config, enabled }) {
   sets.push('updated_at = now()');
   vals.push(id);
   const { rows } = await pool.query(`UPDATE rate_cards SET ${sets.join(', ')} WHERE id = $${vals.length} RETURNING *`, vals);
-  return rows[0];
+  return normalizeCard(rows[0]);
 }
 async function deleteCard(id) {
   await pool.query('DELETE FROM rate_cards WHERE id = $1', [id]);

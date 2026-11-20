@@ -28,8 +28,20 @@ function euDutyPayload(e) {
   };
 }
 
+function getCardConfig(card) {
+  if (!card || !card.config) return {};
+  if (typeof card.config === 'string') {
+    try {
+      const parsed = JSON.parse(card.config);
+      return (typeof parsed === 'string') ? JSON.parse(parsed) : (parsed || {});
+    } catch (_) { return {}; }
+  }
+  return card.config || {};
+}
+
 function markupFor(card, key, country, euList) {
-  const m = (card && card.config && card.config.markup);
+  const conf = getCardConfig(card);
+  const m = conf.markup;
   if (m == null) return 0;
   if (typeof m === 'number') return m;
   if (country && (key === 'us' || key === 'ux' || key === 'edp' || key === 'edu' || key.startsWith('ups'))) {
@@ -47,7 +59,7 @@ function buildCardPayload(cfg, card) {
   const S = cfg.settings || {};
   const FUEL = S.fuelByService || {};
   const CAPS = (S.caps || cfg.caps || { cp: 31.5, ep: 3 });
-  const conf = (card && card.config) || {};
+  const conf = getCardConfig(card);
   let include = Array.isArray(conf.services) && conf.services.length
     ? [...conf.services]
     : (Array.isArray(conf.includedServices) && conf.includedServices.length ? [...conf.includedServices] : SERVICES.map((s) => s.key));

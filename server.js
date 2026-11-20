@@ -394,7 +394,9 @@ app.get('/api/card/:token', async (req, res) => {
     if (!card || card.enabled === false) return res.status(404).json({ error: 'This rate card is not available.' });
     res.set('Cache-Control', 'no-store');
     const payload = pricing.buildCardPayload(await db.getConfig(), card);
-    const conf = card.config || {};
+    const conf = (card && typeof card.config === 'string')
+      ? (() => { try { return JSON.parse(card.config); } catch (_) { return {}; } })()
+      : ((card && card.config) || {});
     const pc = conf.postcode || (conf.deliveryAddress && conf.deliveryAddress.postcode);
     if (pc) {
       try {
@@ -1554,7 +1556,10 @@ app.post('/api/card-rate', async (req, res) => {
     const st = cfg.settings || {};
     const euCountries = (st.regions && st.regions.eu) || [];
     const isEu = euCountries.includes(country) || euCountries.includes(iso);
-    const mkObj = (card && card.config && card.config.markup) || {};
+    const conf = (card && typeof card.config === 'string')
+      ? (() => { try { return JSON.parse(card.config); } catch (_) { return {}; } })()
+      : ((card && card.config) || {});
+    const mkObj = conf.markup || {};
     const markupOf = (key, code) => {
       if (typeof mkObj === 'number') return mkObj;
       const regKey = isEu ? key + '_eu' : key + '_row';

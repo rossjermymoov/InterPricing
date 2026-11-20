@@ -3912,6 +3912,7 @@ function staticRow(s, c, chg, applicable) {
   const base = r.p, carr = s.carrier.toLowerCase();
   const isDdp = !!($('tg_ddp') && $('tg_ddp').checked);
   const isUsa = (c === 'USA' || c === 'US' || c === 'United States');
+  const isInternational = (c !== 'United Kingdom' && c !== 'GB' && c !== 'UK');
   const sur = applicable
     .filter(a => a.carrier.toLowerCase() === carr || a.carrier === 'ALL')
     .filter(a => a.key !== 'ddp' && a.group !== 'ddp' && a.key !== 'dpdRoad' && a.key !== 'dpdAir')
